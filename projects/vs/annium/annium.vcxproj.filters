@@ -1,0 +1,770 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="annium">
+      <UniqueIdentifier>{e1072e95-c193-4351-95f1-b6d4f07cf0e3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="annium\vm">
+      <UniqueIdentifier>{ec056562-3d02-4717-9b47-e5378636ab3a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="annium\utility">
+      <UniqueIdentifier>{f603819a-fe99-4dae-a434-c8df4edb1c46}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="annium\entities">
+      <UniqueIdentifier>{d553b423-b009-484d-bf7b-59944f59229f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="annium\ast">
+      <UniqueIdentifier>{6b8e3b0f-c0f0-4f67-8223-429a143cf428}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="annium\ast\type_visitors">
+      <UniqueIdentifier>{80e79e33-86d5-4d3b-a403-fbe71616c8aa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="annium\ast\casts">
+      <UniqueIdentifier>{f59ccaea-9648-41e7-b67a-38c0a88c13ce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="annium\entities\array">
+      <UniqueIdentifier>{efe21bdd-4f68-4974-b2ca-2e4b32a0140b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="annium\entities\ellipsis">
+      <UniqueIdentifier>{3983bf7b-fb40-4177-b727-6a0f2171194c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="annium\entities\enum">
+      <UniqueIdentifier>{f8d2d3a4-9164-4e02-aac6-30f42585e0a5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="annium\entities\functions">
+      <UniqueIdentifier>{89c7f0ef-2a51-49a8-9faa-89f68d92cd7e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="annium\entities\literals">
+      <UniqueIdentifier>{d3da3022-de98-402c-ae87-d9d48ecd8928}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="annium\entities\metaobject">
+      <UniqueIdentifier>{54e56fad-39dd-43d3-9f6e-07cf3a3b2c84}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="annium\entities\struct">
+      <UniqueIdentifier>{319add42-863a-4f11-b1b3-699ca31b01e4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="annium\entities\tuple">
+      <UniqueIdentifier>{0b7448d9-e4c6-499a-92a3-03dc890bda0a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="annium\entities\union">
+      <UniqueIdentifier>{37e33f60-ea29-4238-bc6c-1fca888d5fa3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="annium\entities\vector">
+      <UniqueIdentifier>{38f20b4b-4b4e-4d1a-a367-d4b686f68d35}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="annium\errors">
+      <UniqueIdentifier>{9e403601-1a7e-4462-bda6-8499211643b4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="annium\functional">
+      <UniqueIdentifier>{4a105418-4353-44d2-aaa7-791082edfc2b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="annium\functional\fn_pattern_matching">
+      <UniqueIdentifier>{112745a1-8be9-45e9-b560-8b9ad59c5ec2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="annium\functional\general">
+      <UniqueIdentifier>{40eb9b7e-af1e-4a7f-85fc-7d9fd67b8fcd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="annium\library">
+      <UniqueIdentifier>{6706eec8-9490-4b3e-bcca-026c72dfb9e3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="annium\semantic">
+      <UniqueIdentifier>{3a2cf38c-8887-474f-aaa6-2230f91d967e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\src\annium\annium.cpp">
+      <Filter>annium</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\annium.tab.cpp">
+      <Filter>annium</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\annium.yy.cpp">
+      <Filter>annium</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\annium_auxiliary.cpp">
+      <Filter>annium</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\annium_errors.cpp">
+      <Filter>annium</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\annium_parser.cpp">
+      <Filter>annium</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\annium_semantic.cpp">
+      <Filter>annium</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\annium_environment.cpp">
+      <Filter>annium</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\vm\annium_vm.cpp">
+      <Filter>annium\vm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\functional.cpp">
+      <Filter>annium\entities</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\functional_entity.cpp">
+      <Filter>annium\entities</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\prepared_call.cpp">
+      <Filter>annium\entities</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\type_entity.cpp">
+      <Filter>annium\entities</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\variable_entity.cpp">
+      <Filter>annium\entities</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\ast\assign_expression_visitor.cpp">
+      <Filter>annium\ast</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\ast\base_expression_visitor.cpp">
+      <Filter>annium\ast</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\ast\ct_expression_visitor.cpp">
+      <Filter>annium\ast</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\ast\declaration_visitor.cpp">
+      <Filter>annium\ast</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\ast\expression_visitor.cpp">
+      <Filter>annium\ast</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\ast\fn_compiler_context.cpp">
+      <Filter>annium\ast</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\ast\functional_declaration_visitor.cpp">
+      <Filter>annium\ast</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\ast\casts\expression_cast_to_vector_visitor.cpp">
+      <Filter>annium\ast\casts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\ast\casts\expression_cast_utility.cpp">
+      <Filter>annium\ast\casts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\array\array_elements_implicit_cast_pattern.cpp">
+      <Filter>annium\entities\array</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\array\array_head_pattern.cpp">
+      <Filter>annium\entities\array</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\array\array_implicit_cast_pattern.cpp">
+      <Filter>annium\entities\array</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\array\array_make_pattern.cpp">
+      <Filter>annium\entities\array</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\array\array_tail_pattern.cpp">
+      <Filter>annium\entities\array</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\ellipsis\ellipsis_pattern.cpp">
+      <Filter>annium\entities\ellipsis</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\enum\enum_entity.cpp">
+      <Filter>annium\entities\enum</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\enum\enum_implicit_cast_pattern.cpp">
+      <Filter>annium\entities\enum</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\functions\expression_resolver.cpp">
+      <Filter>annium\entities\functions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\functions\function_entity.cpp">
+      <Filter>annium\entities\functions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\functions\internal_function_entity.cpp">
+      <Filter>annium\entities\functions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\functions\parameter_type_expression_visitor.cpp">
+      <Filter>annium\entities\functions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\literals\const_literal_implicit_cast_pattern.cpp">
+      <Filter>annium\entities\literals</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_implicit_cast_pattern.cpp">
+      <Filter>annium\entities\literals</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\literals\string_concat_pattern.cpp">
+      <Filter>annium\entities\literals</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\metaobject\metaobject_argument_pattern.cpp">
+      <Filter>annium\entities\metaobject</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\metaobject\metaobject_bit_and_pattern.cpp">
+      <Filter>annium\entities\metaobject</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\metaobject\metaobject_empty_pattern.cpp">
+      <Filter>annium\entities\metaobject</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\metaobject\metaobject_head_pattern.cpp">
+      <Filter>annium\entities\metaobject</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\metaobject\metaobject_pattern.cpp">
+      <Filter>annium\entities\metaobject</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\metaobject\metaobject_tail_pattern.cpp">
+      <Filter>annium\entities\metaobject</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\metaobject\metaobject_typeof_pattern.cpp">
+      <Filter>annium\entities\metaobject</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\vector\vector_make_pattern.cpp">
+      <Filter>annium\entities\vector</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\union\union_bit_or_pattern.cpp">
+      <Filter>annium\entities\union</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\union\union_implicit_cast_pattern.cpp">
+      <Filter>annium\entities\union</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_empty_pattern.cpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_equal_pattern.cpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_get_pattern.cpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_head_pattern.cpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_implicit_cast_pattern.cpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_make_pattern.cpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_pattern.cpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_pattern_base.cpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_project_get_pattern.cpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_project_size_pattern.cpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_set_pattern.cpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_size_pattern.cpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_tail_pattern.cpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_typename_get_pattern.cpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\struct\struct_entity.cpp">
+      <Filter>annium\entities\struct</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\struct\struct_fn_pattern.cpp">
+      <Filter>annium\entities\struct</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\struct\struct_get_pattern.cpp">
+      <Filter>annium\entities\struct</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\struct\struct_implicit_cast_pattern.cpp">
+      <Filter>annium\entities\struct</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\struct\struct_init_pattern.cpp">
+      <Filter>annium\entities\struct</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\struct\struct_new_pattern.cpp">
+      <Filter>annium\entities\struct</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\errors\assign_error.cpp">
+      <Filter>annium\errors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\errors\cast_error.cpp">
+      <Filter>annium\errors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\errors\circular_dependency_error.cpp">
+      <Filter>annium\errors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\errors\function_call_match_error.cpp">
+      <Filter>annium\errors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\errors\identifier_redefinition_error.cpp">
+      <Filter>annium\errors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\errors\no_position_argument_error.cpp">
+      <Filter>annium\errors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\errors\pattern_match_error.cpp">
+      <Filter>annium\errors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\errors\signature_name_mismatch_error.cpp">
+      <Filter>annium\errors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\errors\type_mismatch_error.cpp">
+      <Filter>annium\errors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\errors\value_mismatch_error.cpp">
+      <Filter>annium\errors</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\general\assert_pattern.cpp">
+      <Filter>annium\functional\general</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\general\create_identifier_pattern.cpp">
+      <Filter>annium\functional\general</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\general\deref_pattern.cpp">
+      <Filter>annium\functional\general</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\general\equal_pattern.cpp">
+      <Filter>annium\functional\general</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\general\error_pattern.cpp">
+      <Filter>annium\functional\general</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\general\is_const_pattern.cpp">
+      <Filter>annium\functional\general</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\general\negate_pattern.cpp">
+      <Filter>annium\functional\general</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\general\runtime_cast_pattern.cpp">
+      <Filter>annium\functional\general</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\general\to_string_pattern.cpp">
+      <Filter>annium\functional\general</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\general\typeof_pattern.cpp">
+      <Filter>annium\functional\general</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\expression_property_visitor.cpp">
+      <Filter>annium\functional\fn_pattern_matching</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\parameter_matcher.cpp">
+      <Filter>annium\functional\fn_pattern_matching</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\pattern_matcher.cpp">
+      <Filter>annium\functional\fn_pattern_matching</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\basic_fn_pattern.cpp">
+      <Filter>annium\functional</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\external_fn_pattern.cpp">
+      <Filter>annium\functional</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\internal_fn_pattern.cpp">
+      <Filter>annium\functional</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\signature_matcher.cpp">
+      <Filter>annium\functional</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\value_match_visitor.cpp">
+      <Filter>annium\functional</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\value_type_match_visitor.cpp">
+      <Filter>annium\functional</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\library\annium_library.cpp">
+      <Filter>annium\library</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\semantic\semantic_expression_printer.cpp">
+      <Filter>annium\semantic</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\src\annium\location.hh">
+      <Filter>annium</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\annium.hpp">
+      <Filter>annium</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\annium.tab.hpp">
+      <Filter>annium</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\annium.yy.hpp">
+      <Filter>annium</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\ast_terms.hpp">
+      <Filter>annium</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\auxiliary.hpp">
+      <Filter>annium</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\errors.hpp">
+      <Filter>annium</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\parser.hpp">
+      <Filter>annium</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\semantic.hpp">
+      <Filter>annium</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\semantic_fwd.hpp">
+      <Filter>annium</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\terms.hpp">
+      <Filter>annium</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\environment.hpp">
+      <Filter>annium</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\vm\annium_vm.hpp">
+      <Filter>annium\vm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\vm\compiler_visitor.hpp">
+      <Filter>annium\vm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\vm\push_value_visitor.hpp">
+      <Filter>annium\vm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\vm\vmasm_builder.hpp">
+      <Filter>annium\vm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\utility\linked_list.hpp">
+      <Filter>annium\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\utility\linked_list.ipp">
+      <Filter>annium\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\functional.hpp">
+      <Filter>annium\entities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\functional_entity.hpp">
+      <Filter>annium\entities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\functional_registry.hpp">
+      <Filter>annium\entities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\internal_type_entity.hpp">
+      <Filter>annium\entities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\prepared_call.hpp">
+      <Filter>annium\entities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\signatured_entity.hpp">
+      <Filter>annium\entities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\type_entity.hpp">
+      <Filter>annium\entities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\variable_entity.hpp">
+      <Filter>annium\entities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\ast\assign_expression_visitor.hpp">
+      <Filter>annium\ast</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\ast\base_expression_visitor.hpp">
+      <Filter>annium\ast</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\ast\ct_expression_visitor.hpp">
+      <Filter>annium\ast</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\ast\declaration_visitor.hpp">
+      <Filter>annium\ast</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\ast\expression_decimal_visitor.hpp">
+      <Filter>annium\ast</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\ast\expression_fn_visitor.hpp">
+      <Filter>annium\ast</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\ast\expression_implicit_cast_visitor.hpp">
+      <Filter>annium\ast</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\ast\expression_type_visitor.hpp">
+      <Filter>annium\ast</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\ast\expression_vector_visitor.hpp">
+      <Filter>annium\ast</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\ast\expression_visitor.hpp">
+      <Filter>annium\ast</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\ast\fn_compiler_context.hpp">
+      <Filter>annium\ast</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\ast\functional_declaration_visitor.hpp">
+      <Filter>annium\ast</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\ast\vector_expression_visitor.hpp">
+      <Filter>annium\ast\type_visitors</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\ast\casts\expression_cast_to_bool_visitor.hpp">
+      <Filter>annium\ast\casts</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\ast\casts\expression_cast_to_enum_visitor.hpp">
+      <Filter>annium\ast\casts</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\ast\casts\expression_cast_to_float_visitor.hpp">
+      <Filter>annium\ast\casts</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\ast\casts\expression_cast_to_int_visitor.hpp">
+      <Filter>annium\ast\casts</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\ast\casts\expression_cast_to_object_visitor.hpp">
+      <Filter>annium\ast\casts</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\ast\casts\expression_cast_to_string_visitor.hpp">
+      <Filter>annium\ast\casts</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\ast\casts\expression_cast_to_vector_visitor.hpp">
+      <Filter>annium\ast\casts</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\ast\casts\utility.hpp">
+      <Filter>annium\ast\casts</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\array\array_elements_implicit_cast_pattern.hpp">
+      <Filter>annium\entities\array</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\array\array_head_pattern.hpp">
+      <Filter>annium\entities\array</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\array\array_implicit_cast_pattern.hpp">
+      <Filter>annium\entities\array</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\array\array_make_pattern.hpp">
+      <Filter>annium\entities\array</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\array\array_tail_pattern.hpp">
+      <Filter>annium\entities\array</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\ellipsis\ellipsis_pattern.hpp">
+      <Filter>annium\entities\ellipsis</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\enum\enum_entity.hpp">
+      <Filter>annium\entities\enum</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\enum\enum_implicit_cast_pattern.hpp">
+      <Filter>annium\entities\enum</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\functions\expression_resolver.hpp">
+      <Filter>annium\entities\functions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\functions\function_entity.hpp">
+      <Filter>annium\entities\functions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\functions\internal_function_entity.hpp">
+      <Filter>annium\entities\functions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\functions\parameter_type_expression_visitor.hpp">
+      <Filter>annium\entities\functions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\literals\const_literal_implicit_cast_pattern.hpp">
+      <Filter>annium\entities\literals</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\literals\literal_entity.hpp">
+      <Filter>annium\entities\literals</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_implicit_cast_pattern.hpp">
+      <Filter>annium\entities\literals</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\literals\string_concat_pattern.hpp">
+      <Filter>annium\entities\literals</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\metaobject\metaobject_argument_pattern.hpp">
+      <Filter>annium\entities\metaobject</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\metaobject\metaobject_bit_and_pattern.hpp">
+      <Filter>annium\entities\metaobject</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\metaobject\metaobject_empty_pattern.hpp">
+      <Filter>annium\entities\metaobject</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\metaobject\metaobject_head_pattern.hpp">
+      <Filter>annium\entities\metaobject</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\metaobject\metaobject_pattern.hpp">
+      <Filter>annium\entities\metaobject</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\metaobject\metaobject_tail_pattern.hpp">
+      <Filter>annium\entities\metaobject</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\metaobject\metaobject_typeof_pattern.hpp">
+      <Filter>annium\entities\metaobject</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\vector\vector_make_pattern.hpp">
+      <Filter>annium\entities\vector</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\union\union_bit_or_pattern.hpp">
+      <Filter>annium\entities\union</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\union\union_implicit_cast_pattern.hpp">
+      <Filter>annium\entities\union</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_empty_pattern.hpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_equal_pattern.hpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_get_pattern.hpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_head_pattern.hpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_implicit_cast_pattern.hpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_make_pattern.hpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_pattern.hpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_pattern_base.hpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_project_get_pattern.hpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_project_size_pattern.hpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_set_pattern.hpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_size_pattern.hpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_tail_pattern.hpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_typename_get_pattern.hpp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\tuple\generic_get_pattern_matcher.ipp">
+      <Filter>annium\entities\tuple</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\struct\struct_entity.hpp">
+      <Filter>annium\entities\struct</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\struct\struct_fn_pattern.hpp">
+      <Filter>annium\entities\struct</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\struct\struct_get_pattern.hpp">
+      <Filter>annium\entities\struct</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\struct\struct_implicit_cast_pattern.hpp">
+      <Filter>annium\entities\struct</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\struct\struct_init_pattern.hpp">
+      <Filter>annium\entities\struct</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\struct\struct_new_pattern.hpp">
+      <Filter>annium\entities\struct</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\errors\assign_error.hpp">
+      <Filter>annium\errors</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\errors\cast_error.hpp">
+      <Filter>annium\errors</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\errors\circular_dependency_error.hpp">
+      <Filter>annium\errors</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\errors\function_call_match_error.hpp">
+      <Filter>annium\errors</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\errors\identifier_redefinition_error.hpp">
+      <Filter>annium\errors</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\errors\no_position_argument_error.hpp">
+      <Filter>annium\errors</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\errors\pattern_match_error.hpp">
+      <Filter>annium\errors</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\errors\signature_name_mismatch_error.hpp">
+      <Filter>annium\errors</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\errors\type_mismatch_error.hpp">
+      <Filter>annium\errors</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\errors\utility.hpp">
+      <Filter>annium\errors</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\errors\value_mismatch_error.hpp">
+      <Filter>annium\errors</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\general\assert_pattern.hpp">
+      <Filter>annium\functional\general</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\general\create_identifier_pattern.hpp">
+      <Filter>annium\functional\general</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\general\deref_pattern.hpp">
+      <Filter>annium\functional\general</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\general\equal_pattern.hpp">
+      <Filter>annium\functional\general</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\general\error_pattern.hpp">
+      <Filter>annium\functional\general</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\general\is_const_pattern.hpp">
+      <Filter>annium\functional\general</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\general\negate_pattern.hpp">
+      <Filter>annium\functional\general</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\general\runtime_cast_pattern.hpp">
+      <Filter>annium\functional\general</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\general\to_string_pattern.hpp">
+      <Filter>annium\functional\general</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\general\typeof_pattern.hpp">
+      <Filter>annium\functional\general</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\expression_property_visitor.hpp">
+      <Filter>annium\functional\fn_pattern_matching</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\parameter_matcher.hpp">
+      <Filter>annium\functional\fn_pattern_matching</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\pattern_matcher.hpp">
+      <Filter>annium\functional\fn_pattern_matching</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\basic_fn_pattern.hpp">
+      <Filter>annium\functional</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\external_fn_pattern.hpp">
+      <Filter>annium\functional</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\generic_pattern_base.hpp">
+      <Filter>annium\functional</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\generic_pattern_base.ipp">
+      <Filter>annium\functional</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\internal_fn_pattern.hpp">
+      <Filter>annium\functional</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\match_utility.ipp">
+      <Filter>annium\functional</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\signature_matcher.hpp">
+      <Filter>annium\functional</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\value_match_visitor.hpp">
+      <Filter>annium\functional</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\value_type_match_visitor.hpp">
+      <Filter>annium\functional</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\library\library.hpp">
+      <Filter>annium\library</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\semantic\expression_printer.hpp">
+      <Filter>annium\semantic</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\src\annium\annium.l">
+      <Filter>annium</Filter>
+    </None>
+    <None Include="..\..\..\src\annium\annium.y">
+      <Filter>annium</Filter>
+    </None>
+  </ItemGroup>
+</Project>

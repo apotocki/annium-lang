@@ -1,0 +1,381 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\..\..\tests\annium_test.cpp" />
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\utility\assert_handler.cpp">
+      <Filter>sonia\utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\applied\tests_external.cpp">
+      <Filter>sonia\applied</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\applied\tests_main.cpp">
+      <Filter>sonia\applied</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\utility\json\json_value.cpp">
+      <Filter>sonia\utility\json</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\utility\parsers\json\json_model.cpp">
+      <Filter>sonia\utility\parsers\json</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\utility\invocation\invocable.cpp">
+      <Filter>sonia\utility\invocation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\utility\invocation\invocation.cpp">
+      <Filter>sonia\utility\invocation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\utility\invocation\value_decoder.cpp">
+      <Filter>sonia\utility\invocation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\utility\invocation\value_encoder.cpp">
+      <Filter>sonia\utility\invocation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\fibers\barrier.cpp">
+      <Filter>sonia\fibers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\fibers\condition_variable.cpp">
+      <Filter>sonia\fibers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\fibers\context.cpp">
+      <Filter>sonia\fibers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\fibers\fiber.cpp">
+      <Filter>sonia\fibers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\fibers\future.cpp">
+      <Filter>sonia\fibers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\fibers\mutex.cpp">
+      <Filter>sonia\fibers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\fibers\postponer.cpp">
+      <Filter>sonia\fibers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\fibers\scheduler.cpp">
+      <Filter>sonia\fibers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\fibers\algo\algorithm.cpp">
+      <Filter>sonia\fibers\algo</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\fibers\algo\round_robin.cpp">
+      <Filter>sonia\fibers\algo</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\services\singleton_locator.cpp">
+      <Filter>sonia\services</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\services\services.cpp">
+      <Filter>sonia\services</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\services\multimethod_registry.cpp">
+      <Filter>sonia\services</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\services\services_host.cpp">
+      <Filter>sonia\services</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\services\durable_type_registry.cpp">
+      <Filter>sonia\services</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\sys\windows\thread_pool.cpp">
+      <Filter>sonia\sys.windows</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\sys\windows\thread_pool_api.cpp">
+      <Filter>sonia\sys.windows</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\sys\windows\windows.cpp">
+      <Filter>sonia\sys.windows</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\services\environment.cpp">
+      <Filter>sonia\services</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\logger\logger.cpp">
+      <Filter>sonia\logger</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\services\basic_service_factory.cpp">
+      <Filter>sonia\services</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\sal\windows_sal.cpp">
+      <Filter>sonia\sal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\utility\file_persister.cpp">
+      <Filter>sonia\utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\services\local_service_registry.cpp">
+      <Filter>sonia\services</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\services\local_type_registry.cpp">
+      <Filter>sonia\services</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\services\service_locator.cpp">
+      <Filter>sonia\services</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\utility\iterators\file_region_iterator.cpp">
+      <Filter>sonia\utility\iterators</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\applied\scoped_services.cpp">
+      <Filter>sonia\applied</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\services\prime_bundle.cpp">
+      <Filter>sonia\services</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\services\bundle.cpp">
+      <Filter>sonia\services</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="sonia">
+      <UniqueIdentifier>{33ffca31-cc71-4f38-8223-456600c97349}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sonia\utility">
+      <UniqueIdentifier>{c9075caf-c497-4ff8-90c6-eb8d989cc6a2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sonia\applied">
+      <UniqueIdentifier>{926b28f3-952c-49e6-be17-32cb1379dbc4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sonia\utility\json">
+      <UniqueIdentifier>{b5832c54-303a-4942-a2d8-c974cfd4c9c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sonia\utility\parsers">
+      <UniqueIdentifier>{ac726044-46ce-4467-9544-0877c1fadd63}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sonia\utility\parsers\json">
+      <UniqueIdentifier>{f83295ca-dd9b-482a-b930-2e2442cd8212}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sonia\utility\invocation">
+      <UniqueIdentifier>{56252c3a-37af-4b71-972b-b2672c0ea351}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sonia\fibers">
+      <UniqueIdentifier>{5e82801d-39a4-4c65-98ef-1a0a7e4dfd02}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sonia\fibers\algo">
+      <UniqueIdentifier>{abfea06a-8739-4677-bcb4-9682fe67c776}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sonia\fibers\detail">
+      <UniqueIdentifier>{f472d9b2-b8a0-49d0-b179-1061f0032840}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sonia\fibers\future">
+      <UniqueIdentifier>{51592ff4-8aba-4f8a-afe1-be6ef2eea429}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sonia\fibers\future\detail">
+      <UniqueIdentifier>{14becdff-e608-43ec-aa94-cc006c0c7f88}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sonia\services">
+      <UniqueIdentifier>{ed5ba350-cba7-44f0-a96b-b73aa01a740e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sonia\sys.windows">
+      <UniqueIdentifier>{9cc05010-866c-4bf3-b138-304d516da162}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sonia\logger">
+      <UniqueIdentifier>{5ea2ff7b-e625-4b6f-a12e-9cd7baab54df}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sonia\sal">
+      <UniqueIdentifier>{2614ad41-58df-48eb-b612-a2d9d8f4e6ea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sonia\utility\iterators">
+      <UniqueIdentifier>{b929fa8f-9e41-4dd4-b256-2687c154882e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="test-suite">
+      <UniqueIdentifier>{953c2e7e-ac13-4e31-8a7a-b302a00479c1}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\applied\tests_external.hpp">
+      <Filter>sonia\applied</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\json\json_cast.hpp">
+      <Filter>sonia\utility\json</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\json\value.hpp">
+      <Filter>sonia\utility\json</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\parsers\lexer.hpp">
+      <Filter>sonia\utility\parsers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\parsers\utility.hpp">
+      <Filter>sonia\utility\parsers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\parsers\json\lexems.hpp">
+      <Filter>sonia\utility\parsers\json</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\parsers\json\lexertl_lexer.hpp">
+      <Filter>sonia\utility\parsers\json</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\parsers\json\model.hpp">
+      <Filter>sonia\utility\parsers\json</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\parsers\json\parser.hpp">
+      <Filter>sonia\utility\parsers\json</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\invocation\functor_object.hpp">
+      <Filter>sonia\utility\invocation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\invocation\invocable.hpp">
+      <Filter>sonia\utility\invocation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\invocation\invocation.hpp">
+      <Filter>sonia\utility\invocation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\invocation\serialization.hpp">
+      <Filter>sonia\utility\invocation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\invocation\value_decoder.hpp">
+      <Filter>sonia\utility\invocation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\invocation\value_encoder.hpp">
+      <Filter>sonia\utility\invocation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\barrier.hpp">
+      <Filter>sonia\fibers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\condition_variable.hpp">
+      <Filter>sonia\fibers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\context.hpp">
+      <Filter>sonia\fibers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\exceptions.hpp">
+      <Filter>sonia\fibers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\fiber.hpp">
+      <Filter>sonia\fibers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\fixedsize_stack.hpp">
+      <Filter>sonia\fibers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\fss.hpp">
+      <Filter>sonia\fibers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\future.hpp">
+      <Filter>sonia\fibers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\mutex.hpp">
+      <Filter>sonia\fibers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\operations.hpp">
+      <Filter>sonia\fibers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\policy.hpp">
+      <Filter>sonia\fibers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\postponer.hpp">
+      <Filter>sonia\fibers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\properties.hpp">
+      <Filter>sonia\fibers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\scheduler.hpp">
+      <Filter>sonia\fibers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\segmented_stack.hpp">
+      <Filter>sonia\fibers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\type.hpp">
+      <Filter>sonia\fibers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\algo\algorithm.hpp">
+      <Filter>sonia\fibers\algo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\algo\round_robin.hpp">
+      <Filter>sonia\fibers\algo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\detail\config.hpp">
+      <Filter>sonia\fibers\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\detail\convert.hpp">
+      <Filter>sonia\fibers\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\detail\cpu_relax.hpp">
+      <Filter>sonia\fibers\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\detail\data.hpp">
+      <Filter>sonia\fibers\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\detail\decay_copy.hpp">
+      <Filter>sonia\fibers\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\detail\disable_overload.hpp">
+      <Filter>sonia\fibers\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\detail\fss.hpp">
+      <Filter>sonia\fibers\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\detail\futex.hpp">
+      <Filter>sonia\fibers\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\detail\spinlock.hpp">
+      <Filter>sonia\fibers\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\detail\spinlock_status.hpp">
+      <Filter>sonia\fibers\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\detail\spinlock_ttas.hpp">
+      <Filter>sonia\fibers\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\detail\spinlock_ttas_adaptive.hpp">
+      <Filter>sonia\fibers\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\detail\spinlock_ttas_adaptive_futex.hpp">
+      <Filter>sonia\fibers\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\detail\spinlock_ttas_futex.hpp">
+      <Filter>sonia\fibers\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\future\async.hpp">
+      <Filter>sonia\fibers\future</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\future\future.hpp">
+      <Filter>sonia\fibers\future</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\future\future_status.hpp">
+      <Filter>sonia\fibers\future</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\future\packaged_task.hpp">
+      <Filter>sonia\fibers\future</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\future\promise.hpp">
+      <Filter>sonia\fibers\future</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\future\detail\shared_state.hpp">
+      <Filter>sonia\fibers\future\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\future\detail\shared_state_object.hpp">
+      <Filter>sonia\fibers\future\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\future\detail\task_base.hpp">
+      <Filter>sonia\fibers\future\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\future\detail\task_object.hpp">
+      <Filter>sonia\fibers\future\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\invocation\invocable_registry.hpp">
+      <Filter>sonia\utility\invocation</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\tests\test-suite\annium_suite.json">
+      <Filter>test-suite</Filter>
+    </None>
+    <None Include="..\..\..\tests\test-suite\draft.ann">
+      <Filter>test-suite</Filter>
+    </None>
+    <None Include="..\..\..\tests\test-suite\file0.ann">
+      <Filter>test-suite</Filter>
+    </None>
+    <None Include="..\..\..\tests\test-suite\file1.ann">
+      <Filter>test-suite</Filter>
+    </None>
+    <None Include="..\..\..\tests\test-suite\file3.ann">
+      <Filter>test-suite</Filter>
+    </None>
+    <None Include="..\..\..\tests\test-suite\file4.ann">
+      <Filter>test-suite</Filter>
+    </None>
+    <None Include="..\..\..\tests\test-suite\file5.ann">
+      <Filter>test-suite</Filter>
+    </None>
+    <None Include="..\..\..\tests\test-suite\file6.ann">
+      <Filter>test-suite</Filter>
+    </None>
+    <None Include="..\..\..\tests\test-suite\tuples_test2.ann">
+      <Filter>test-suite</Filter>
+    </None>
+  </ItemGroup>
+</Project>

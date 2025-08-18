@@ -1,0 +1,6 @@
+[submodule "tpls/sonia-prime"]
+	path = tpls/sonia-prime
+	url = https://github.com/apotocki/sonia-prime
+[submodule "tpls/dataforge"]
+	path = tpls/dataforge
+	url = https://github.com/apotocki/dataforge

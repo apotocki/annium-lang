@@ -1,0 +1,321 @@
+//  Annium programming language (c) 2025 by Alexander Pototskiy
+//  Annium is licensed under the terms of the MIT License.
+
+#pragma once
+
+#include <vector>
+
+#include "ast_terms.hpp"
+#include "semantic.hpp"
+#include "annium/entities/signatured_entity.hpp"
+
+namespace annium {
+
+class error;
+class general_error;
+class binary_relation_error;
+class undeclared_identifier_error;
+class identifier_redefinition_error;
+
+class cast_error;
+//class unknown_case_error;
+class left_not_an_object_error;
+class wrong_lvalue_error;
+
+class function_call_match_error;
+class parameter_not_found_error;
+class alt_error;
+class ambiguity_error;
+class circular_dependency_error;
+
+class error_visitor
+{
+public:
+    virtual ~error_visitor() = default;
+    virtual void operator()(general_error const&) = 0;
+    virtual void operator()(binary_relation_error const&) = 0;
+    virtual void operator()(alt_error const&) = 0;
+    virtual void operator()(ambiguity_error const&) = 0;
+    virtual void operator()(circular_dependency_error const&) = 0;
+};
+
+class error
+{
+    shared_ptr<error> cause_;
+
+public:
+    using string_t = variant<std::string, string_view>;
+    using location_t = variant<resource_location, std::string, string_view>;
+
+    virtual ~error() = default;
+    virtual void visit(error_visitor&) const = 0;
+
+    inline void set_cause(shared_ptr<error> cause) noexcept { cause_ = std::move(cause); }
+    inline shared_ptr<error> const& cause() const { return cause_; }
+
+    [[noreturn]] virtual void rethrow(environment&) const;
+};
+
+using error_storage = shared_ptr<error>;
+
+template <std::derived_from<error> T, typename ... Args>
+inline error_storage make_error(Args&& ... args) { return sonia::make_shared<T>(std::forward<Args>(args) ...); }
+inline error_storage append_cause(error_storage err, error_storage cause)
+{
+    err->set_cause(std::move(cause));
+    return err;
+}
+
+class alt_error : public error
+{
+public:
+    std::vector<error_storage> alternatives;
+    alt_error() = default;
+    alt_error(alt_error&&) = default;
+    alt_error& operator= (alt_error&&) = default;
+    void visit(error_visitor& vis) const override { vis(*this); }
+};
+
+class ambiguity_error : public error
+{
+public:
+    struct alternative
+    {
+        resource_location location;
+        std::string description;
+        entity_signature sig;
+    };
+
+    explicit ambiguity_error(annotated_qname_identifier f, std::vector<alternative> as)
+        : functional_{ f }, alternatives_{ std::move(as) }
+    {}
+
+    void visit(error_visitor& vis) const override { vis(*this); }
+
+    resource_location const& location() const noexcept { return functional_.location; }
+    std::string object(environment const&) const noexcept;
+    inline span<const alternative> alternatives() const noexcept { return alternatives_; }
+
+private:
+    annotated_qname_identifier functional_;
+    std::vector<alternative> alternatives_;
+};
+
+
+class general_error : public error
+{
+public:
+    virtual location_t location() const = 0;
+    virtual string_t object(environment const&) const = 0;
+    virtual string_t description(environment const&) const = 0;
+    virtual resource_location const* ref_location() const noexcept { return nullptr; }
+};
+
+class basic_general_error : public general_error
+{
+protected:
+    using object_t = variant<nullptr_t, syntax_expression_t, qname, qname_view, qname_identifier, entity_identifier, identifier>;
+
+    location_t location_;
+    resource_location reflocation_;
+    string_t description_;
+    object_t object_;
+
+public:
+    basic_general_error(location_t loc, string_t descr, object_t obj = nullptr, resource_location refloc = {})
+        : location_{ std::move(loc) }, description_{ descr }, object_{ std::move(obj) }, reflocation_{ std::move(refloc) }
+    {}
+
+    basic_general_error(error_context const& errctx, string_t descr)
+        : location_{ errctx.location() }, description_{ descr }, reflocation_{ errctx.refloc }
+    {
+        if (auto optexpr = errctx.expression(); optexpr) {
+            object_ = *optexpr;
+        }
+    }
+
+    void visit(error_visitor& vis) const override { vis(*this); }
+
+    location_t location() const noexcept override { return location_; }
+    string_t object(environment const&) const noexcept override;
+    string_t description(environment const&) const noexcept override { return description_; }
+    resource_location const* ref_location() const noexcept override { return reflocation_ ? &reflocation_ : nullptr; }
+};
+
+class binary_relation_error : public error
+{
+protected:
+    using object_t = variant<nullptr_t, syntax_expression_t, qname, qname_view, qname_identifier, entity_identifier, identifier>;
+
+    resource_location location_;
+    resource_location reflocation_;
+    object_t left_;
+    object_t right_;
+    string_t description_;
+
+public:
+    binary_relation_error(resource_location loc, string_t descr, object_t left, object_t right, resource_location refloc = {})
+        : location_{ std::move(loc) }, description_{ std::move(descr) }
+        , left_{ std::move(left) }, right_{ std::move(right) }
+        , reflocation_{ std::move(refloc) }
+    {}
+
+    void visit(error_visitor& vis) const override { vis(*this); }
+    resource_location const& location() const noexcept { return location_; }
+    string_t left_object(environment const&) const noexcept;
+    string_t right_object(environment const&) const noexcept;
+    string_t description(environment const&) const noexcept { return description_; }
+    resource_location const* ref_location() const noexcept { return reflocation_ ? &reflocation_ : nullptr; }
+};
+
+class undeclared_identifier_error : public general_error
+{
+    annotated_qname idname_;
+
+public:
+    inline explicit undeclared_identifier_error(annotated_qname idname) noexcept
+        : idname_{ std::move(idname) }
+    {}
+
+    undeclared_identifier_error(resource_location loc, qname_view idname)
+        : idname_{ qname{idname}, std::move(loc) }
+    {}
+
+    void visit(error_visitor& vis) const override { vis(*this); }
+
+    location_t location() const noexcept override { return idname_.location; }
+    string_t object(environment const&) const noexcept override;
+    string_t description(environment const&) const noexcept override { return "undeclared identifier"sv; }
+};
+
+
+
+class parameter_not_found_error : public general_error
+{
+public:
+    annotated_qname_identifier param;
+    qname_identifier entity_name;
+    parameter_not_found_error(qname_identifier qn, annotated_qname_identifier p)
+        : param{ std::move(p) }, entity_name{ qn }
+    {}
+    //parameter_not_found_error(qname_view qn, annotated_identifier p)
+    //    : param{ qname{std::move(p.value)}, std::move(p.location) }, entity_name{ qn }
+    //{}
+    void visit(error_visitor& vis) const override { vis(*this); }
+    location_t location() const noexcept override { return param.location; }
+    string_t object(environment const&) const noexcept override { return ""sv; }
+    string_t description(environment const&) const noexcept override;
+};
+#if 0
+class cast_error : public general_error
+{
+public:
+    resource_location location_;
+    optional<syntax_expression_t> expr_;
+    entity_identifier from_;
+    entity_identifier to_;
+    resource_location refloc_;
+
+    cast_error(resource_location loc, entity_identifier to, entity_identifier from = {}, optional<syntax_expression_t> expr = nullopt)
+        : location_{ std::move(loc) }, from_{std::move(from)}, to_{ std::move(to) }, expr_{ std::move(expr) }
+    {}
+
+    cast_error(error_context const& errctx, entity_identifier to, entity_identifier from = {})
+        : location_{ errctx.location() }, from_{ std::move(from) }, to_{ std::move(to) }, expr_{ errctx.expression() }, refloc_{ errctx.refloc }
+    {}
+
+    void visit(error_visitor& vis) const override { vis(*this); }
+
+    location_t location() const noexcept override { return location_; }
+    string_t object(environment const&) const noexcept override;
+    string_t description(environment const&) const noexcept override;
+    resource_location const* ref_location() const noexcept override { return refloc_ ? &refloc_ : nullptr; }
+};
+
+
+class unknown_case_error : public general_error
+{
+public:
+    context_identifier ci_;
+    qname_identifier enum_name_;
+    unknown_case_error(context_identifier const& ci, qname_identifier enum_name)
+        : ci_{ ci }, enum_name_{ enum_name }
+    {}
+
+    void visit(error_visitor& vis) const override { vis(*this); }
+
+    resource_location const& location() const noexcept override { return ci_.name.location; }
+    string_t object(environment const&) const noexcept override;
+    string_t description(environment const&) const noexcept override;
+};
+#endif
+
+class left_not_an_object_error : public general_error
+{
+    resource_location location_;
+    identifier right_;
+    entity_identifier type_;
+
+public:
+    left_not_an_object_error(resource_location loc, identifier right, entity_identifier type)
+        : location_{ std::move(loc) }, right_{ right }, type_{ std::move(type) }
+    {}
+
+    void visit(error_visitor& vis) const override { vis(*this); }
+
+    location_t location() const noexcept override { return location_; }
+    string_t object(environment const&) const noexcept override { return ""sv; }
+    string_t description(environment const&) const noexcept override;
+};
+
+class wrong_lvalue_error : public general_error
+{
+    syntax_expression_t expr_;
+
+public:
+    explicit wrong_lvalue_error(syntax_expression_t const& expr)
+        : expr_{ expr }
+    {}
+
+    void visit(error_visitor& vis) const override { vis(*this); }
+
+    location_t location() const noexcept override { return get_start_location(expr_); }
+    string_t object(environment const&) const noexcept override;
+    string_t description(environment const&) const noexcept override { return "is not rvalue"sv; }
+};
+
+class error_printer_visitor : public error_visitor
+{
+    environment const& e_;
+    std::ostream & s_;
+    mutable std::string indent_str_;
+    int indent_ = 0;
+    static constexpr int indent_size_ = 4;
+
+public:
+    inline error_printer_visitor(environment const& e, std::ostream& s) noexcept : e_{e}, s_{s} {}
+
+    void operator()(alt_error const&) override;
+    //void operator()(parameter_not_found_error const&) override;
+    void operator()(general_error const&) override;
+    void operator()(binary_relation_error const&) override;
+    void operator()(ambiguity_error const&) override;
+    void operator()(circular_dependency_error const&) override;
+
+    inline void inc_indent() noexcept { ++indent_; }
+    inline void dec_indent() noexcept { --indent_; }
+    inline string_view indent() const noexcept
+    {
+        if (indent_ * indent_size_ > indent_str_.size()) {
+            indent_str_.resize(indent_ * indent_size_, ' ');
+        }
+        return indent_ ? 
+            string_view{ indent_str_.data(), static_cast<size_t>(indent_ * indent_size_) } :
+            string_view{};
+    }
+
+private:
+    std::ostream& print_general(error::location_t const& loc, string_view err, string_view object, resource_location const* optseeloc = nullptr);
+};
+
+}

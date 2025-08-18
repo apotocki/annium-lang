@@ -1,0 +1,15 @@
+{
+  "name": "dataforge",
+  "version": "0.1.0",
+  "description": "Annium programming language",
+  "dependencies": [
+    "boost-log",
+    "boost-thread",
+    "boost-format",
+    "boost-coroutine2",
+    "boost-program-options",
+    "boost-bimap",
+    "boost-stacktrace",
+    "boost-test"
+  ]
+}

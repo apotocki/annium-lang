@@ -1,0 +1,8 @@
+// base printing
+__print("Hello from Annium!(0)", 1);
+__print("Hello from Annium", runtime_cast("!(1)"), runtime_cast(2));
+print("Hello from Annium!(2)");
+print(runtime_cast("Hello"), runtime_cast(" from "), "Annium!(3)");
+print("Hello", " from ", "Annium!(4)");
+print(); // do nothing
+assert($$ == 0) // no arguments
