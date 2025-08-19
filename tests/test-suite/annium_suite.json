@@ -1,10 +1,10 @@
 [
-    /*
+/*
     {
-        "src": "tuples_test2.ann",
-        "output": ""
+        "src": "draft.ann",
+        "output": "Hello"
     }*/
-    /**/
+    
     {
         "src": "file0.ann",
         "output": "Hello from Annium!(0)Hello from Annium!(1)Hello from Annium!(2)Hello from Annium!(3)Hello from Annium!(4)"
@@ -21,7 +21,7 @@
     {
         "src": "file6.ann",
         "output": "test function called"
-    } /*
+    }/**/ /*
     
     {
         "src": "file2.ann",

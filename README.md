@@ -1,3 +1,4 @@
+[![MSVC Tests](https://github.com/apotocki/annium-lang/actions/workflows/msvc-tests.yml/badge.svg)](https://github.com/apotocki/annium-lang/actions/workflows/msvc-tests.yml)
 # Annium
 
 A modern experimental programming language.
