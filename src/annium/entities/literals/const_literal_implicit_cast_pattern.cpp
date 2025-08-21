@@ -144,7 +144,7 @@ const_literal_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic::e
             break;
         }
         case builtin_eid::integer: {
-            mp::integer_view source_val = nmd.arg.value().as<mp::integer_view>();
+            numetron::integer_view source_val = nmd.arg.value().as<numetron::integer_view>();
             // Handle conversions to different numeric types
             switch (static_cast<builtin_eid>(target_type.value)) {
                 case builtin_eid::any:
@@ -306,11 +306,11 @@ const_literal_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic::e
                 case builtin_eid::decimal: {
                     if (nmd.is_constexpr_result) {
                         // Create constexpr decimal literal entity
-                        mp::decimal_view decimal_val{ source_val, 0 };
+                        numetron::decimal_view decimal_val{ source_val, 0 };
                         auto const& result_entity = e.make_decimal_entity(decimal_val, target_type);
                         src.value_or_type = result_entity.id;
                     } else {
-                        smart_blob result{ decimal_blob_result(mp::decimal_view{source_val, 0}) };
+                        smart_blob result{ decimal_blob_result(numetron::decimal_view{source_val, 0}) };
                         e.push_back_expression(el, src.expressions, semantic::push_value{ std::move(result) });
                     }
                     break;
@@ -321,7 +321,7 @@ const_literal_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic::e
             break;
         }
         case builtin_eid::decimal: {
-            mp::decimal_view source_val = nmd.arg.value().as<mp::decimal_view>();
+            numetron::decimal_view source_val = nmd.arg.value().as<numetron::decimal_view>();
             // Handle conversions from decimal to various types
             switch (static_cast<builtin_eid>(target_type.value)) {
             case builtin_eid::any:

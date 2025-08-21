@@ -24,7 +24,7 @@ entity_identifier entity::get_type() const noexcept
     return {};
 }
 
-std::ostream& entity::print_to(std::ostream& os, environment const& e) const
+std::ostream& entity::print_to(std::ostream& os, environment const&) const
 {
     return os; // << "@E"sv << id().value;
 }

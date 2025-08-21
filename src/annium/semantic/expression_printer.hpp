@@ -73,6 +73,7 @@ public:
     template <typename T>
     void operator()(T const& se) const
     {
+        (void)se; // suppress unused warning
         THROW_NOT_IMPLEMENTED_ERROR();
     }
 

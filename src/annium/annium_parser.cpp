@@ -5,11 +5,10 @@
 #include "sonia/config.hpp"
 #include "parser.hpp"
 
-#include "sonia/mp/decimal.ipp"
 #include "sonia/utility/parsers/utility.hpp"
 #include "sonia/utility/scope_exit.hpp"
 
-#include "sonia/mp/integer_view.hpp"
+#include "numetron/integer_view.hpp"
 
 //using namespace sonia;
 //using namespace sonia::lang;
@@ -54,9 +53,9 @@ protected:
 public:
     managed_syntax_expression_list expressions;
 
-    inline explicit syntax_expression_resource(environment& e, std::string src = {}) noexcept
-        : expressions{ e }
-        , src_ { std::move(src) }
+    inline explicit syntax_expression_resource(environment& env, std::string src = {}) noexcept
+        : src_{ std::move(src) }
+        , expressions{ env }
     {}
 
     std::ostream& print_to(std::ostream& s, string_view indent, int line, int column, resource_print_mode_t mode) const override
@@ -223,14 +222,14 @@ annotated_string parser_context::make_string(annotated_string_view str) const
 //    };
 //}
 
-mp::integer parser_context::make_integer(string_view str) const
+numetron::integer parser_context::make_integer(string_view str) const
 {
-    return mp::integer(str);
+    return numetron::integer(str);
 }
 //
-mp::decimal parser_context::make_decimal(string_view str) const
+numetron::decimal parser_context::make_decimal(string_view str) const
 {
-    return mp::decimal(str);
+    return numetron::decimal(str);
 }
 
 annotated_entity_identifier parser_context::make_void(resource_location loc) const
@@ -251,7 +250,7 @@ void parser_context::append_error(resource_location const& loc_begin, std::strin
     error_messages_.push_back(std::move(errss.str()));
 }
 
-void parser_context::append_error(resource_location const& loc_begin, resource_location const& loc_end, std::string errmsg)
+void parser_context::append_error(resource_location const& loc_begin, resource_location const& /*loc_end*/, std::string errmsg)
 {
     std::ostringstream errss;
     errss << loc_begin << errmsg;

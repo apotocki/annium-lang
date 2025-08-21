@@ -6,6 +6,8 @@
 #include "annium_vm.hpp"
 #include "push_value_visitor.hpp"
 
+#include "sonia/utility/scope_exit.hpp"
+
 #include "annium/semantic.hpp"
 #include "annium/entities/functions/function_entity.hpp"
 
@@ -24,14 +26,14 @@ protected:
 public:
     compiler_visitor_base(environment& e, asm_builder_t::function_builder & b, internal_function_entity const& ife)
         : environment_{ e }
-        , fnbuilder_{ b }
         , fn_context_{ &ife }
+        , fnbuilder_{ b }
     {}
 
     compiler_visitor_base(environment& e, asm_builder_t::function_builder & b)
         : environment_{ e }
-        , fnbuilder_{ b }
         , fn_context_{ nullptr }
+        , fnbuilder_{ b }
     {}
 
     inline void operator()(empty_t const&) const
@@ -285,6 +287,7 @@ public:
     template <typename T>
     void operator()(T const& e) const
     {
+        (void)e; // suppress unused warning
         THROW_NOT_IMPLEMENTED_ERROR();
     }
 };
@@ -367,7 +370,7 @@ public:
 #endif
 
 
-    inline void operator()(semantic::not_empty_condition_t const& n) const
+    inline void operator()(semantic::not_empty_condition_t const& /*n*/) const
     {
         THROW_NOT_IMPLEMENTED_ERROR("compiler_visitor return_statement");
 #if 0

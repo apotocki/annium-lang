@@ -212,13 +212,13 @@ void annium_impl::compile(statement_span decls, span<string_view> args)
     std::array<char, 16> argname = { '$' };
     for (string_view arg : args) {
         bool reversed = false;
-        char * epos = mp::to_string(span{ &argindex, 1 }, argname.data() + 1, reversed);
+        char * epos = numetron::to_string(span{ &argindex, 1 }, argname.data() + 1, reversed);
         if (reversed) std::reverse(argname.data() + 1, epos);
 
         entity const& argent = environment_.make_string_entity(arg);
         identifier argid = environment_.slregistry().resolve(string_view{ argname.data(), epos });
         functional& arg_fnl = environment_.fregistry_resolve(ctx.ns() / argid);
-        arg_fnl.set_default_entity(annotated_entity_identifier{ argent.id });
+        arg_fnl.set_default_entity(annotated_entity_identifier{ argent.id, {} });
             
         //ctx.new_const_entity(string_view{ argname.data(), epos }, std::move(ent));
         ++argindex;
@@ -227,7 +227,7 @@ void annium_impl::compile(statement_span decls, span<string_view> args)
     entity const& argent = environment_.make_integer_entity(argindex);
     identifier argid = environment_.slregistry().resolve(string_view{ argname.data(), 2 });
     functional& arg_fnl = environment_.fregistry_resolve(ctx.ns() / argid);
-    arg_fnl.set_default_entity(annotated_entity_identifier{ argent.id });
+    arg_fnl.set_default_entity(annotated_entity_identifier{ argent.id, {} });
         
 
     //if (!default_ctx_) {
@@ -342,7 +342,7 @@ void annium_impl::do_compile(internal_function_entity const& fe)
         return; // already compiled
     }
 
-    size_t param_count = fe.parameter_count();
+    //size_t param_count = fe.parameter_count();
     asm_builder_t::function_builder fb{ vmasm_, fd };// = vmasm_.create_function(vmasm::fn_identity<qname_identifier>{ fe.name() });
 
     // for accessing function arguments and local variables by zero-based index
@@ -422,7 +422,7 @@ void annium_impl::run(span<string_view> args)
 #endif
 }
 
-smart_blob annium_impl::call(string_view fnsig, span<const std::pair<string_view, const blob_result>> namedargs, span<const blob_result> args)
+smart_blob annium_impl::call(string_view /*fnsig*/, span<const std::pair<string_view, const blob_result>> /*namedargs*/, span<const blob_result> args)
 {
     smart_blob result;
     vm::context ctx{ environment_, penv_ };

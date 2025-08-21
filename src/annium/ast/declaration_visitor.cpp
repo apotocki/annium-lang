@@ -5,6 +5,7 @@
 #include "declaration_visitor.hpp"
 
 #include <boost/container/flat_map.hpp>
+#include "sonia/utility/scope_exit.hpp"
 
 #include "fn_compiler_context.hpp"
 #include "base_expression_visitor.hpp"

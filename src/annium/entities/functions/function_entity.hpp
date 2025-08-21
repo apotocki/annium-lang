@@ -92,7 +92,7 @@ public:
         return false;
     }
 
-    inline std::ostream& print_to(std::ostream& os, environment const& e) const override
+    inline std::ostream& print_to(std::ostream& os, environment const&) const override
     {
         return os << "external fn(id: "sv << extfnid_ << ")"sv;
     }

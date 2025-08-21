@@ -10,7 +10,7 @@
 
 #include "sonia/string.hpp"
 #include "sonia/variant.hpp"
-#include "sonia/mp/basic_decimal.hpp"
+#include "numetron/basic_decimal.hpp"
 
 namespace annium {
 
@@ -20,8 +20,8 @@ struct lex_tag;
 struct enity_tag;
 struct variable_tag;
 
-//using integer = sonia::mp::integer;
-//using decimal = sonia::mp::decimal;
+//using integer = numetron::integer;
+//using decimal = numetron::decimal;
 
 using identifier = sonia::lang::identifier<uint32_t, lex_tag>;
 using qname = sonia::lang::qname<identifier>;
@@ -55,8 +55,8 @@ using annotated_qname = annotated<qname>;
 using annotated_qname_identifier = annotated<qname_identifier>;
 using annotated_entity_identifier = annotated<entity_identifier>;
 using annotated_bool = annotated<bool>;
-using annotated_integer = annotated<mp::integer>;
-using annotated_decimal = annotated<mp::decimal>;
+using annotated_integer = annotated<numetron::integer>;
+using annotated_decimal = annotated<numetron::decimal>;
 using annotated_string = annotated<small_string>;
 
 struct annotated_nil

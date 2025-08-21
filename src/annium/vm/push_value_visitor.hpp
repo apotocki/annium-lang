@@ -196,6 +196,7 @@ public:
     template <typename T>
     void operator()(T const& e) const
     {
+        (void)e; // silence unused warning
         THROW_NOT_IMPLEMENTED_ERROR();
     }
 
@@ -219,7 +220,7 @@ public:
         this->operator()(ie.value());
     }
 
-    void operator()(empty_entity const& ee) const override
+    void operator()(empty_entity const& /*ee*/) const override
     {
 #if 0
         entity const& type_ent = get_entity(environment_, ee.get_type());

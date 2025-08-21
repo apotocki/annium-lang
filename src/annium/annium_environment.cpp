@@ -309,7 +309,7 @@ void environment::setup_type(builtin_qnid bqnid, builtin_eid beid)
     functional& some_type_fnl = fregistry_resolve(qnid);
     auto some_type_entity = make_shared<basic_signatured_entity>(entity_signature{ qnid, get(builtin_eid::typename_) });
     eregistry_insert(some_type_entity);
-    some_type_fnl.set_default_entity(annotated_entity_identifier{ some_type_entity->id });
+    some_type_fnl.set_default_entity(annotated_entity_identifier{ some_type_entity->id, {} });
     builtin_eids_[(size_t)beid] = some_type_entity->id;
 }
 
@@ -565,6 +565,7 @@ struct type_printer_visitor : static_visitor<void>
     template <typename T>
     inline void operator()(T const& v) const
     {
+        (void)v;
         THROW_NOT_IMPLEMENTED_ERROR("environment::type_printer_visitor operator()");
     }
 
@@ -793,12 +794,12 @@ struct expr_printer_visitor : static_visitor<void>
         ss << '"' << s << '"';
     }
 
-    void operator()(mp::integer const& i) const
+    void operator()(numetron::integer const& i) const
     {
         ss << to_string(i);
     }
 
-    void operator()(mp::decimal const& d) const
+    void operator()(numetron::decimal const& d) const
     {
         ss << to_string(d);
     }
@@ -901,6 +902,7 @@ struct expr_printer_visitor : static_visitor<void>
 
     void operator()(lambda_t const& f) const
     {
+        (void)f; // suppress unused warning
         THROW_NOT_IMPLEMENTED_ERROR();
     }
 
@@ -977,6 +979,7 @@ struct expr_printer_visitor : static_visitor<void>
     template <typename T>
     void operator()(T const& te) const
     {
+        (void)te;
         THROW_NOT_IMPLEMENTED_ERROR();
     }
 };
@@ -1173,12 +1176,12 @@ generic_literal_entity const& environment::make_generic_entity(smart_blob value,
     }));
 }
 
-generic_literal_entity const& environment::make_integer_entity(mp::integer_view value, entity_identifier type)
+generic_literal_entity const& environment::make_integer_entity(numetron::integer_view value, entity_identifier type)
 {
     return make_generic_entity(smart_blob{ bigint_blob_result(value) }, type ? type : get(builtin_eid::integer));
 }
 
-generic_literal_entity const& environment::make_decimal_entity(mp::decimal_view value, entity_identifier type)
+generic_literal_entity const& environment::make_decimal_entity(numetron::decimal_view value, entity_identifier type)
 {
     return make_generic_entity(smart_blob{ decimal_blob_result(value) }, type ? type : get(builtin_eid::decimal));
 }
@@ -1255,15 +1258,15 @@ entity const& environment::make_union_type_entity(span<entity_identifier> const&
 }
 
 environment::environment()
-    : slregistry_{ identifier_builder_ }
-    , piregistry_{ identifier_builder_ }
-    , fn_identifier_counter_ { (size_t)virtual_stack_machine::builtin_fn::eof_type }
-    , bvm_{ std::make_unique<virtual_stack_machine>() }
-    , syntax_expression_list_entry_pool_{ 128, 128 }
+    : syntax_expression_list_entry_pool_{ 128, 128 }
     , semantic_expression_list_entry_pool_{ 128, 128 }
     , statements_entry_pool_{ 128, 128 }
+    , slregistry_{ identifier_builder_ }
+    , piregistry_{ identifier_builder_ }
     , ast_{ *this }
-    , expressions_ { *this }
+    , expressions_{ *this }
+    , fn_identifier_counter_ { (size_t)virtual_stack_machine::builtin_fn::eof_type }
+    , bvm_{ std::make_unique<virtual_stack_machine>() }
 {
     //// ids
 #define ANNIUM_PRINT_ENUM_ASSIGN(r, data, i, elem) \
@@ -1387,7 +1390,7 @@ environment::environment()
     functional& union_fnl = fregistry_resolve(get(builtin_qnid::union_));
     union_fnl.push(union_pattern);
 
-    functional& bit_and_fnl = fregistry_resolve(get(builtin_qnid::bit_and));
+    //functional& bit_and_fnl = fregistry_resolve(get(builtin_qnid::bit_and));
     //bit_and_fnl.push(make_shared<metaobject_bit_and_pattern>());
 
     // make_tuple(...) -> tuple(...)

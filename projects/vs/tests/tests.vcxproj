@@ -72,6 +72,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\tpls\sonia-prime\applied\tests_external.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\config.hpp" />
     <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\algo\algorithm.hpp" />
     <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\algo\round_robin.hpp" />
     <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\barrier.hpp" />
@@ -113,6 +114,23 @@
     <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\scheduler.hpp" />
     <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\segmented_stack.hpp" />
     <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\type.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\arithmetic.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\basic_decimal.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\basic_decimal_old.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\basic_integer.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\config\cmath.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\ct.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\decimal.ipp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\decimal_arithmetic.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\decimal_old.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\decimal_view.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\integer_view.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\integer_view_arithmetic.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\limbs_from_decimal_string.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\limbs_from_integral.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\limbs_from_string.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\limbs_to_string.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\limb_arithmetic.hpp" />
     <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\invocation\functor_object.hpp" />
     <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\invocation\invocable.hpp" />
     <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\invocation\invocable_registry.hpp" />
@@ -122,6 +140,21 @@
     <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\invocation\value_encoder.hpp" />
     <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\json\json_cast.hpp" />
     <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\json\value.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\lang\compiler.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\lang\entity.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\lang\entity_registry.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\lang\identifier_builder.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\lang\parameterized_identifier_registry.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\lang\qname.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\lang\qname_registry.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\lang\string_literal_registry.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\lang\utility.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\lang\vm.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\optimized\array.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\optimized\decimal.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\optimized\holder.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\optimized\integer.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\optimized\maybe_array.hpp" />
     <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\parsers\json\lexems.hpp" />
     <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\parsers\json\lexertl_lexer.hpp" />
     <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\parsers\json\model.hpp" />
@@ -207,7 +240,7 @@
       <PrecompiledHeaderFile />
       <PrecompiledHeaderOutputFile />
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir)..\..\tpls\sonia-prime;$(SolutionDir)..\..\tpls\lexertl14\include;$(SolutionDir)..\..\tpls\dataforge\include;$(SolutionDir)..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir)..\..\tpls\sonia-prime;$(SolutionDir)..\..\tpls\lexertl14\include;$(SolutionDir)..\..\tpls\dataforge\include;$(SolutionDir)..\..\tpls\numetron\include;$(SolutionDir)..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -228,7 +261,7 @@
       <PrecompiledHeaderFile />
       <PrecompiledHeaderOutputFile />
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir)..\..\tpls\sonia-prime;$(SolutionDir)..\..\tpls\lexertl14\include;$(SolutionDir)..\..\tpls\dataforge\include;$(SolutionDir)..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir)..\..\tpls\sonia-prime;$(SolutionDir)..\..\tpls\lexertl14\include;$(SolutionDir)..\..\tpls\dataforge\include;$(SolutionDir)..\..\tpls\numetron\include;$(SolutionDir)..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -246,7 +279,7 @@
       <PrecompiledHeaderFile />
       <PrecompiledHeaderOutputFile />
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir)..\..\tpls\sonia-prime;$(SolutionDir)..\..\tpls\lexertl14\include;$(SolutionDir)..\..\tpls\dataforge\include;$(SolutionDir)..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir)..\..\tpls\sonia-prime;$(SolutionDir)..\..\tpls\lexertl14\include;$(SolutionDir)..\..\tpls\dataforge\include;$(SolutionDir)..\..\tpls\numetron\include;$(SolutionDir)..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp23</LanguageStandard>
     </ClCompile>
@@ -269,7 +302,7 @@
       <PrecompiledHeaderFile />
       <PrecompiledHeaderOutputFile />
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir)..\..\tpls\sonia-prime;$(SolutionDir)..\..\tpls\lexertl14\include;$(SolutionDir)..\..\tpls\dataforge\include;$(SolutionDir)..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir)..\..\tpls\sonia-prime;$(SolutionDir)..\..\tpls\lexertl14\include;$(SolutionDir)..\..\tpls\dataforge\include;$(SolutionDir)..\..\tpls\numetron\include;$(SolutionDir)..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>

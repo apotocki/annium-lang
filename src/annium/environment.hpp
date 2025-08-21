@@ -307,8 +307,8 @@ public:
     qname_entity            const& make_qname_entity(qname_view value);
     generic_literal_entity  const& make_nil_entity(entity_identifier type);
     generic_literal_entity  const& make_bool_entity(bool value, entity_identifier type = {});
-    generic_literal_entity  const& make_integer_entity(mp::integer_view value, entity_identifier type = {});
-    generic_literal_entity  const& make_decimal_entity(mp::decimal_view value, entity_identifier type = {});
+    generic_literal_entity  const& make_integer_entity(numetron::integer_view value, entity_identifier type = {});
+    generic_literal_entity  const& make_decimal_entity(numetron::decimal_view value, entity_identifier type = {});
     generic_literal_entity  const& make_string_entity(string_view value, entity_identifier type = {});
     generic_literal_entity  const& make_generic_entity(smart_blob value, entity_identifier type);
     basic_signatured_entity const& make_basic_signatured_entity(entity_signature&&);

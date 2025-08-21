@@ -7,7 +7,7 @@
 #include "sonia/small_vector.hpp"
 
 #include "sonia/utility/scope_exit.hpp"
-#include "sonia/mp/integer_view.hpp" 
+#include "numetron/integer_view.hpp" 
 
 #include "sonia/utility/invocation/functor_object.hpp"
 
@@ -187,7 +187,7 @@ small_string vm::context::generate_object_id() const
     using buff_t = small_vector<char, 16>;
     buff_t tailored_name = { '_', 'i', 'd' };
     bool reversed;
-    mp::to_string(std::span{ &id_counter_, 1 }, std::back_inserter(tailored_name), reversed);
+    numetron::to_string(std::span{ &id_counter_, 1 }, std::back_inserter(tailored_name), reversed);
     if (reversed) std::reverse(tailored_name.begin() + 3, tailored_name.end());
     ++id_counter_;
     return small_string{ tailored_name.data(), tailored_name.size() };

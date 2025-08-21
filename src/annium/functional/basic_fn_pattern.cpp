@@ -66,7 +66,7 @@ error_storage basic_fn_pattern::init(fn_compiler_context& ctx, fn_pure_t const& 
 
         if (!external_name) {
             bool reversed = false;
-            char* epos = mp::to_string(span{ &argindex, 1 }, argname.data() + 1, reversed);
+            char* epos = numetron::to_string(span{ &argindex, 1 }, argname.data() + 1, reversed);
             if (reversed) std::reverse(argname.data() + 1, epos);
             identifier nid = ctx.env().slregistry().resolve(string_view{ argname.data(), epos });
             

@@ -149,17 +149,17 @@ tuple_equal_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
             pure_call_t get_call{ md.call_location };
             get_call.emplace_back(annotated_identifier{ e.get(builtin_id::self), md.call_location },
                 variable_reference{ annotated_qname{ qname{ tuple_var_name, false } }, false });
-            get_call.emplace_back(annotated_identifier{ e.get(builtin_id::property) }, annotated_integer{ mp::integer{ fidx } });
+            get_call.emplace_back(annotated_identifier{ e.get(builtin_id::property) }, annotated_integer{ numetron::integer{ fidx } });
             auto match = ctx.find(builtin_qnid::get, get_call, el);
             if (!match) {
                 return append_cause(
-                    make_error<basic_general_error>(md.call_location, "internal error: can't get tuple element"sv, annotated_integer{ mp::integer{ fidx } }),
+                    make_error<basic_general_error>(md.call_location, "internal error: can't get tuple element"sv, annotated_integer{ numetron::integer{ fidx } }),
                     std::move(match.error()));
             }
             auto res = match->apply(ctx);
             if (!res) {
                 return append_cause(
-                    make_error<basic_general_error>(md.call_location, "internal error: can't get tuple element"sv, annotated_integer{ mp::integer{ fidx } }),
+                    make_error<basic_general_error>(md.call_location, "internal error: can't get tuple element"sv, annotated_integer{ numetron::integer{ fidx } }),
                     std::move(res.error()));
             }
             //result.branches_expressions = el.concat(result.branches_expressions, res->branches_expressions);

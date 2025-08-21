@@ -4,8 +4,9 @@
 #include "sonia/config.hpp"
 #include "library.hpp"
 #include "sonia/logger/logger.hpp"
-#include "sonia/mp/basic_integer.hpp"
-#include "sonia/mp/basic_decimal.hpp"
+#include "sonia/utility/scope_exit.hpp"
+#include "numetron/basic_integer.hpp"
+#include "numetron/basic_decimal.hpp"
 
 #include <sstream>
 
@@ -36,8 +37,8 @@ void annium_any_equal(vm::context& ctx)
 
 void annium_decimal_equal(vm::context& ctx)
 {
-    mp::decimal r = ctx.stack_back().as<mp::decimal>();
-    mp::decimal l = ctx.stack_back(1).as<mp::decimal>();
+    numetron::decimal r = ctx.stack_back().as<numetron::decimal>();
+    numetron::decimal l = ctx.stack_back(1).as<numetron::decimal>();
     ctx.stack_pop();
     ctx.stack_back().replace(smart_blob{ bool_blob_result(l == r) });
 }
@@ -111,7 +112,7 @@ void annium_array_at(vm::context& ctx)
         using type = typename decltype(ident)::type;
         if constexpr (std::is_same_v<type, std::nullptr_t>) { }
         else if constexpr (std::is_void_v<type>) { }
-        //else if constexpr (std::is_same_v<type, sonia::mp::basic_integer_view<invocation_bigint_limb_type>>) { os << "bigint"; }
+        //else if constexpr (std::is_same_v<type, numetron::basic_integer_view<invocation_bigint_limb_type>>) { os << "bigint"; }
         else {
             using fstype = std::conditional_t<std::is_same_v<type, bool>, uint8_t, type>;
             size_t sz = array_size_of<fstype>(b);
@@ -139,7 +140,7 @@ void annium_array_tail(vm::context& ctx)
         using type = typename decltype(ident)::type;
         if constexpr (std::is_same_v<type, std::nullptr_t>) { }
         else if constexpr (std::is_void_v<type>) { }
-        else if constexpr (std::is_same_v<type, sonia::mp::basic_integer_view<invocation_bigint_limb_type>>) { 
+        else if constexpr (std::is_same_v<type, numetron::basic_integer_view<invocation_bigint_limb_type>>) { 
             THROW_NOT_IMPLEMENTED_ERROR("bigint tail");
         } else if constexpr (std::is_same_v<type, sonia::basic_string_view<char>>) {
             THROW_NOT_IMPLEMENTED_ERROR("string tail");
@@ -181,7 +182,7 @@ void annium_negate(vm::context& ctx)
         using type = typename decltype(ident)::type;
         if (!is_array(b)) {
             if constexpr (std::is_same_v<type, bool>) { return bool_blob_result(!b.bp.i8value); }
-            else if constexpr (std::is_integral_v<type> || std::is_same_v<type, sonia::mp::basic_integer_view<invocation_bigint_limb_type>>) { return bool_blob_result(!as<type>(b)); }
+            else if constexpr (std::is_integral_v<type> || std::is_same_v<type, numetron::basic_integer_view<invocation_bigint_limb_type>>) { return bool_blob_result(!as<type>(b)); }
             else {
                 throw exception("cna't negate value: %1%"_fmt % b);
             }
@@ -211,8 +212,8 @@ void annium_concat_string(vm::context& ctx)
 
 void annium_operator_plus_integer(vm::context& ctx)
 {
-    auto l = ctx.stack_back(1).as<mp::integer>();
-    auto r = ctx.stack_back().as<mp::integer_view>();
+    auto l = ctx.stack_back(1).as<numetron::integer>();
+    auto r = ctx.stack_back().as<numetron::integer_view>();
     auto sum = l + r;
     smart_blob res{ bigint_blob_result(sum) };
     res.allocate();
@@ -223,8 +224,8 @@ void annium_operator_plus_integer(vm::context& ctx)
 
 void annium_operator_plus_decimal(vm::context& ctx)
 {
-    auto l = ctx.stack_back(1).as<mp::decimal>();
-    auto r = ctx.stack_back().as<mp::decimal_view>();
+    auto l = ctx.stack_back(1).as<numetron::decimal>();
+    auto r = ctx.stack_back().as<numetron::decimal_view>();
     auto sum = l + r;
     smart_blob res{ decimal_blob_result(sum) };
     res.allocate();
@@ -237,7 +238,7 @@ void annium_str2dec(vm::context& ctx)
 {
     auto str = ctx.stack_back().as<string_view>();
     try {
-        mp::decimal d{ str };
+        numetron::decimal d{ str };
         smart_blob res{ decimal_blob_result(d) };
         res.allocate();
         ctx.stack_back().replace(std::move(res));
@@ -249,8 +250,8 @@ void annium_str2dec(vm::context& ctx)
 
 void annium_int2dec(vm::context& ctx)
 {
-    auto ival = ctx.stack_back().as<mp::integer_view>();
-    mp::decimal dval{ ival };
+    auto ival = ctx.stack_back().as<numetron::integer_view>();
+    numetron::decimal dval{ ival };
     smart_blob res{ decimal_blob_result(dval) };
     res.allocate();
     ctx.stack_back().replace(std::move(res));
@@ -258,7 +259,7 @@ void annium_int2dec(vm::context& ctx)
 
 void annium_int2flt(vm::context& ctx)
 {
-    auto ival = ctx.stack_back().as<mp::integer_view>();
+    auto ival = ctx.stack_back().as<numetron::integer_view>();
     ctx.stack_back().replace(smart_blob{ f32_blob_result((float)ival) });
 }
 

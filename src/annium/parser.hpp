@@ -29,8 +29,8 @@ public:
     ~parser_context();
 
     annotated_string make_string(annotated_string_view) const;
-    mp::integer make_integer(string_view) const;
-    mp::decimal make_decimal(string_view) const;
+    numetron::integer make_integer(string_view) const;
+    numetron::decimal make_decimal(string_view) const;
     annotated_entity_identifier make_void(resource_location) const;
 
     identifier new_identifier() const;

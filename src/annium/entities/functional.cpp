@@ -332,7 +332,7 @@ struct expression_stack_checker
 std::expected<functional::match, error_storage> functional::find(fn_compiler_context& ctx, pure_call_t const& call, semantic::expression_list_t& ael, expected_result_t const& expected_result) const
 {
     alt_error err;
-    mp::decimal major_weight = 0;
+    numetron::decimal major_weight = 0;
     int minor_weight = 0;
     using alternative_t = std::pair<pattern const*, functional_match_descriptor_ptr>;
     small_vector<alternative_t, 2> alternatives;

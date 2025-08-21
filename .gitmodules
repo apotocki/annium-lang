@@ -4,3 +4,6 @@
 [submodule "tpls/dataforge"]
 	path = tpls/dataforge
 	url = https://github.com/apotocki/dataforge
+[submodule "tpls/numetron"]
+	path = tpls/numetron
+	url = https://github.com/apotocki/numetron

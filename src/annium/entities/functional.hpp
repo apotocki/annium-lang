@@ -284,16 +284,16 @@ public:
     class pattern
     {
     protected:
-        mp::decimal weight_;
+        numetron::decimal weight_;
         resource_location location_;
 
-        inline explicit pattern(mp::decimal w = 1) noexcept : weight_{ w } {}
+        inline explicit pattern(numetron::decimal w = 1) noexcept : weight_{ w } {}
 
     public:
         virtual std::expected<functional_match_descriptor_ptr, error_storage> try_match(fn_compiler_context&, prepared_call const&, expected_result_t const&) const = 0;
         virtual std::expected<syntax_expression_result_t, error_storage> apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const = 0;
 
-        inline mp::decimal const& get_weight() const noexcept { return weight_; }
+        inline numetron::decimal const& get_weight() const noexcept { return weight_; }
         inline resource_location const& location() const noexcept { return location_; }
 
         virtual std::ostream& print(environment const&, std::ostream& s) const { return s << "some pattern"; }
@@ -303,7 +303,8 @@ public:
     {
     public:
         inline match(pattern const* p, semantic::expression_list_t& exprs, syntax_expression_result && pser, functional_match_descriptor_ptr md) noexcept
-            : ptrn_{ p }, expressions{ exprs }, pre_ser{ std::move(pser) }, md_{ std::move(md) }
+            : expressions{ exprs }, pre_ser{ std::move(pser) }
+            , ptrn_{ p }, md_{ std::move(md) }
         {
             BOOST_ASSERT(md_);
         }
@@ -381,8 +382,8 @@ public:
     {
         annotated_identifier ename;
         named_field(annotated_identifier n, generic_field f)
-            : ename{ std::move(n) }
-            , generic_field { std::move(f) }
+            : generic_field{ std::move(f) }
+            , ename{ std::move(n) }
         {}
 
         friend inline bool operator==(named_field const& l, named_field const& r) noexcept

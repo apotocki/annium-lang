@@ -56,10 +56,10 @@ public:
             oss_ << (ent.value().as<bool>() ? "true" : "false");
             return;
         case builtin_eid::integer:
-            oss_ << ent.value().as<mp::integer_view>();
+            oss_ << ent.value().as<numetron::integer_view>();
             return;
         case builtin_eid::decimal:
-            oss_ << ent.value().as<mp::decimal_view>();
+            oss_ << ent.value().as<numetron::decimal_view>();
             return;
         case builtin_eid::string:
             oss_ << ent.value().as<string_view>();

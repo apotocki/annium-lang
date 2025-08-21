@@ -40,8 +40,8 @@ struct field_descriptor
         : entity_id_{ e.id }, is_const_{ is_const_val }
     {}
 
-    inline identifier name() const noexcept { return name_; }
-    inline entity_identifier entity_id() const noexcept { return entity_id_; }
+    inline identifier const& name() const noexcept { return name_; }
+    inline entity_identifier const& entity_id() const noexcept { return entity_id_; }
     inline bool is_const() const noexcept { return is_const_; }
 
     inline explicit operator bool() const noexcept { return !!entity_id_; }
@@ -144,7 +144,7 @@ public:
 
     inline void emplace_back(identifier field_name, field_descriptor fd)
     {
-        emplace_back(std::move(field_name), std::move(fd.entity_id()), fd.is_const());
+        emplace_back(std::move(field_name), fd.entity_id(), fd.is_const());
     }
 
     void emplace_back(entity_identifier eid, bool is_const_val)

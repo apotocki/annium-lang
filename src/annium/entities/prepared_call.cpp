@@ -183,18 +183,18 @@ error_storage prepared_call::prepare()
                 pure_call_t get_call{ arg_expr_loc };
                 get_call.emplace_back(annotated_identifier{ e.get(builtin_id::self), arg_expr_loc },
                     variable_reference{ annotated_qname{ qname{ tuple_name, false } }, false });
-                get_call.emplace_back(annotated_identifier{ e.get(builtin_id::property) }, annotated_integer{ mp::integer{ argpos } });
+                get_call.emplace_back(annotated_identifier{ e.get(builtin_id::property) }, annotated_integer{ numetron::integer{ argpos } });
                 
                 auto match = caller_ctx.find(builtin_qnid::get, get_call, expressions);
                 if (!match) {
                     return append_cause(
-                        make_error<basic_general_error>(arg_expr_loc, "internal error: can't get tuple element"sv, annotated_integer{ mp::integer{ argpos - 1 } }),
+                        make_error<basic_general_error>(arg_expr_loc, "internal error: can't get tuple element"sv, annotated_integer{ numetron::integer{ argpos - 1 } }),
                         std::move(match.error()));
                 }
                 auto res = match->apply(caller_ctx);
                 if (!res) {
                     return append_cause(
-                        make_error<basic_general_error>(arg_expr_loc, "internal error: can't get tuple element"sv, annotated_integer{ mp::integer{ argpos - 1 } }),
+                        make_error<basic_general_error>(arg_expr_loc, "internal error: can't get tuple element"sv, annotated_integer{ numetron::integer{ argpos - 1 } }),
                         std::move(res.error()));
                 }
 

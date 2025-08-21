@@ -123,11 +123,11 @@ protected:
 
 public:
     basic_general_error(location_t loc, string_t descr, object_t obj = nullptr, resource_location refloc = {})
-        : location_{ std::move(loc) }, description_{ descr }, object_{ std::move(obj) }, reflocation_{ std::move(refloc) }
+        : location_{ std::move(loc) }, reflocation_{ std::move(refloc) }, description_{ descr }, object_{ std::move(obj) }
     {}
 
     basic_general_error(error_context const& errctx, string_t descr)
-        : location_{ errctx.location() }, description_{ descr }, reflocation_{ errctx.refloc }
+        : location_{ errctx.location() }, reflocation_{ errctx.refloc }, description_{ descr }
     {
         if (auto optexpr = errctx.expression(); optexpr) {
             object_ = *optexpr;
@@ -155,9 +155,10 @@ protected:
 
 public:
     binary_relation_error(resource_location loc, string_t descr, object_t left, object_t right, resource_location refloc = {})
-        : location_{ std::move(loc) }, description_{ std::move(descr) }
-        , left_{ std::move(left) }, right_{ std::move(right) }
+        : location_{ std::move(loc) }
         , reflocation_{ std::move(refloc) }
+        , left_{ std::move(left) }, right_{ std::move(right) }
+        , description_{ std::move(descr) }
     {}
 
     void visit(error_visitor& vis) const override { vis(*this); }
@@ -289,8 +290,8 @@ class error_printer_visitor : public error_visitor
     environment const& e_;
     std::ostream & s_;
     mutable std::string indent_str_;
-    int indent_ = 0;
-    static constexpr int indent_size_ = 4;
+    unsigned int indent_ = 0;
+    static constexpr unsigned int indent_size_ = 4;
 
 public:
     inline error_printer_visitor(environment const& e, std::ostream& s) noexcept : e_{e}, s_{s} {}

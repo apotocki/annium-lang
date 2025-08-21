@@ -352,8 +352,8 @@ struct pure_call
     inline explicit pure_call(resource_location loc) noexcept : location{ std::move(loc) } {}
 
     inline pure_call(resource_location loc, opt_named_term_list<ExprT>&& args_val) noexcept
-        : location{ std::move(loc) }
-        , args{ std::move(args_val) }
+        : args{ std::move(args_val) }
+        , location{ std::move(loc) }
     {}
 
     //pure_call(resource_location loc, opt_named_term_list<ExprT> && args)
@@ -399,7 +399,7 @@ struct unary_expression : pure_call<ExprT>
     unary_operator_type op;
 
     template <typename ET>
-    inline unary_expression(unary_operator_type opval, bool is_prefix, ET&& e, resource_location loc) noexcept
+    inline unary_expression(unary_operator_type opval, bool /*is_prefix*/, ET&& e, resource_location loc) noexcept
         : base_t{ std::move(loc) }
         , op{ opval }
     {
@@ -611,7 +611,7 @@ struct lambda : fn_pure<ExprT>
     statement_span body;
 
     lambda(fn_kind kind, resource_location loc, parameter_list<ExprT>&& params, statement_span&& b, ExprT rtype)
-        : fn_pure<ExprT>{ .location = std::move(loc),
+        : fn_pure<ExprT>{ .nameval = {}, .location = std::move(loc),
                           .parameters = std::move(params),
                           .result = std::move(rtype),
                           .kind = kind }
@@ -619,7 +619,7 @@ struct lambda : fn_pure<ExprT>
     {}
 
     lambda(fn_kind kind, resource_location loc, parameter_list<ExprT>&& params, statement_span&& b)
-        : fn_pure<ExprT>{ .location = std::move(loc),
+        : fn_pure<ExprT>{ .nameval = {}, .location = std::move(loc),
                           .parameters = std::move(params),
                           .result = nullptr,
                           .kind = kind }
