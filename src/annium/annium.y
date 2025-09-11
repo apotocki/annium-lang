@@ -240,7 +240,7 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 %type <generic_statement_type> generic-statement
 
 %type <managed_statement_list> statement_any finished-statement-any
-%type <managed_statement_list> infunction-statement-any finished-infunction-statement-any infunction-statement-set braced-statements
+%type <managed_statement_list> infunction-statement-any finished-infunction-statement-any infunction-statement-set braced-statements function-body
 
 %type <let_statement> let-decl-start let-decl-start-with-opt-type let-decl
 
@@ -316,8 +316,8 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 
 
 // PATTERNS
-%type <parameter_constraint_modifier_t> constraint-expression-mod
-%type <std::pair<syntax_expression_t, parameter_constraint_modifier_t>> constraint-expression
+%type <parameter_constraint_modifier_t> constraint-expression-mod constraint-expression-specified-mod
+%type <std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t>> constraint-expression constraint-expression-specified
 %type <std::pair<pattern_t, parameter_constraint_modifier_t>> pattern-mod pattern-sfx
 %type <pattern_t> pattern
 %type <pattern_t::field> pattern-field pattern-field-sfx
@@ -373,6 +373,7 @@ statement:
         { $$ = std::move($fn); IGNORE_TERM($FN); }
     | INCLUDE STRING
         { $$ = include_decl{ctx.make_string(std::move($STRING)) }; }
+/*
     | fn-start-decl[fnkind] fn-name[name] OPEN_PARENTHESIS parameter-list-opt[parameters] CLOSE_PARENTHESIS ARROWEXPR syntax-expression[value]
         { 
             auto sts = ctx.new_statement_list();
@@ -382,6 +383,7 @@ statement:
             IGNORE_TERM($OPEN_PARENTHESIS);
             //     $$ = fn_decl_t{ fn_pure_t{ .nameval = std::move($name.value), .location = std::move($name.location), .parameters = std::move($parameters), .result = std::move($value), .is_type_expression_result = false, .kind = $fnkind } }; IGNORE_TERM($OPEN_PARENTHESIS); }
         }
+*/
     | generic-statement
         { $$ = apply_visitor(statement_adopt_visitor<statement>{}, $1); }
     | STRUCT struct-decl[struct]
@@ -427,6 +429,19 @@ finished-infunction-statement-any:
         { $$ = std::move($sts); }
     ;
 
+// lambda only
+function-body:
+      braced-statements
+        { $$ = std::move($1); }
+    | ARROWEXPR syntax-expression[value] APOSTROPHE
+        { 
+            auto sts = ctx.new_statement_list();
+            auto loc = get_start_location($value);
+            sts.emplace_back(return_decl_t{ $value, std::move(loc) });
+            $$ = std::move(sts);
+        }
+    ;
+
 braced-statements:
     OPEN_BRACE infunction-statement-set[sts] CLOSE_BRACE
         { $$ = std::move($sts); IGNORE_TERM($1); }
@@ -445,6 +460,14 @@ finished-statement:
         { $$ = if_decl{ std::move($2), ctx.push(std::move($trueBody)), ctx.push(std::move($falseBody)) }; }
     | fn-start-decl[fnkind] fn-decl[fn] braced-statements[body]
         { $fn.kind = $fnkind; $$ = fn_decl_t{ std::move($fn), ctx.push(std::move($body)) }; }
+    | fn-start-decl[fnkind] fn-decl[fn] ARROWEXPR syntax-expression[value] END_STATEMENT
+        {
+            auto sts = ctx.new_statement_list();
+            auto loc = get_start_location($value);
+            sts.emplace_back(return_decl_t{ std::move($value), std::move(loc) });
+            $fn.kind = $fnkind;
+            $$ = fn_decl_t{ std::move($fn), ctx.push(std::move(sts)) };
+        }
     | STRUCT qname braced-statements[body]
         { $$ = struct_decl{ .name = std::move($qname), .body = ctx.push(std::move($body)) }; }
     | STRUCT qname OPEN_PARENTHESIS[beginParams] parameter-list-opt[parameters] CLOSE_PARENTHESIS braced-statements[body]
@@ -532,9 +555,9 @@ fn-name:
 fn-decl:
       fn-name[name] OPEN_PARENTHESIS parameter-list-opt[parameters] CLOSE_PARENTHESIS
         { $$ = fn_pure_t{ .nameval = std::move($name.value), .location = std::move($name.location), .parameters = std::move($parameters) }; IGNORE_TERM($OPEN_PARENTHESIS); }
-    | fn-name[name] OPEN_PARENTHESIS parameter-list-opt[parameters] CLOSE_PARENTHESIS FARROW type-expr[type]
+    | fn-name[name] OPEN_PARENTHESIS parameter-list-opt[parameters] CLOSE_PARENTHESIS ARROW type-expr[type]
         { $$ = fn_pure_t{ .nameval = std::move($name.value), .location = std::move($name.location), .parameters = std::move($parameters), .result = std::move($type) }; IGNORE_TERM($OPEN_PARENTHESIS); }
-    | fn-name[name] OPEN_PARENTHESIS parameter-list-opt[parameters] CLOSE_PARENTHESIS ARROW pattern[type]
+    | fn-name[name] OPEN_PARENTHESIS parameter-list-opt[parameters] CLOSE_PARENTHESIS FARROW pattern[type]
         { $$ = fn_pure_t{ .nameval = std::move($name.value), .location = std::move($name.location), .parameters = std::move($parameters), .result = std::move($type) }; IGNORE_TERM($OPEN_PARENTHESIS); }
     ;
 
@@ -702,7 +725,9 @@ parameter-decl:
         { $$ = parameter_t{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint = std::move(get<0>($pm)), .default_value = std::move($default), .modifier = get<1>($pm) }; }
     | COLON pattern-mod[pm] parameter-default-value-opt[default]
         { $$ = parameter_t{ .name = unnamed_parameter_name{ }, .constraint = std::move(get<0>($pm)), .default_value = std::move($default), .modifier = get<1>($pm) }; }
-    
+    | pattern-mod[pm] parameter-default-value-opt[default]
+        { $$ = parameter_t{ .name = unnamed_parameter_name{ }, .constraint = std::move(get<0>($pm)), .default_value = std::move($default), .modifier = get<1>($pm) }; }
+
     | identifier[id] internal-identifier[intid] parameter-default-value-opt[default]
         { $$ = parameter_t{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint = pattern_t{ .descriptor = placeholder{ std::move($intid.name.location) }}, .default_value = std::move($default), .modifier =  parameter_constraint_modifier_t::const_or_runtime_type }; }
     | internal-identifier[intid] parameter-default-value-opt[default]
@@ -714,7 +739,7 @@ parameter-decl:
     | ELLIPSIS parameter-default-value-opt[default]
         { $$ = parameter_t{ .name = unnamed_parameter_name{ }, .constraint = pattern_t{ .descriptor = placeholder{ std::move($ELLIPSIS) }}, .default_value = std::move($default), .modifier =  parameter_constraint_modifier_t::const_or_runtime_type | parameter_constraint_modifier_t::ellipsis }; }
 
-    //| pattern-mod[pm] parameter-default-value-opt[default]
+    //| TILDA pattern-mod[pm] parameter-default-value-opt[default]
     //    { $$ = parameter_t{ .name = unnamed_parameter_name{}, .constraint = std::move(get<0>($pm)), .default_value = std::move($default), .modifier =  get<1>($pm) }; }
     | identifier[id] internal-identifier-opt[intid] COLON constraint-expression[ce] parameter-default-value-opt[default]
         { $$ = parameter_t{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint = std::move(get<0>($ce)), .default_value = std::move($default), .modifier = get<1>($ce) }; }
@@ -722,14 +747,27 @@ parameter-decl:
         { $$ = parameter_t{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint = std::move(get<0>($ce)), .default_value = std::move($default), .modifier = get<1>($ce) }; }
     | COLON constraint-expression[ce] parameter-default-value-opt[default]
         { $$ = parameter_t{ .name = unnamed_parameter_name{ }, .constraint = std::move(get<0>($ce)), .default_value = std::move($default), .modifier = get<1>($ce) }; }
-    | constraint-expression[ce] parameter-default-value-opt[default]
+    | constraint-expression-specified[ce] parameter-default-value-opt[default]
         { $$ = parameter_t{ .name = unnamed_parameter_name{ }, .constraint = std::move(get<0>($ce)), .default_value = std::move($default), .modifier = get<1>($ce) }; }
     ;
 
+constraint-expression-specified-mod:
+      CONSTEXPR { $$ = parameter_constraint_modifier_t::any_constexpr_type; }
+    | RUNTIME { $$ = parameter_constraint_modifier_t::runtime_type; }
+    ;
+
+constraint-expression-specified:
+      constraint-expression-specified-mod[mod] type-expr[match]
+        { $$ = std::pair{ std::move($match), $mod }; }
+    | constraint-expression-specified-mod[mod] type-expr[match] ELLIPSIS
+        { $$ = std::pair{ std::move($match), $mod | parameter_constraint_modifier_t::ellipsis }; IGNORE_TERM($ELLIPSIS); }
+    | constraint-expression-specified-mod[mod] ELLIPSIS // all of sudden, it's the ellipsis pattern
+        { $$ = std::pair{ pattern_t{ .descriptor = placeholder{ std::move($ELLIPSIS) }}, $mod | parameter_constraint_modifier_t::ellipsis }; }
+    ;
+
 constraint-expression-mod:
-      TILDA { $$ = parameter_constraint_modifier_t::const_or_runtime_type; }
-    | TILDA CONSTEXPR { $$ = parameter_constraint_modifier_t::any_constexpr_type; }
-    | TILDA RUNTIME { $$ = parameter_constraint_modifier_t::runtime_type; }
+      %empty { $$ = parameter_constraint_modifier_t::const_or_runtime_type; }
+    | constraint-expression-specified-mod
     ;
 
 constraint-expression:
@@ -737,6 +775,8 @@ constraint-expression:
         { $$ = std::pair{ std::move($match), $mod }; }
     | constraint-expression-mod[mod] type-expr[match] ELLIPSIS
         { $$ = std::pair{ std::move($match), $mod | parameter_constraint_modifier_t::ellipsis }; IGNORE_TERM($ELLIPSIS); }
+    | constraint-expression-mod[mod] ELLIPSIS // all of sudden, it's the ellipsis pattern
+        { $$ = std::pair{ pattern_t{ .descriptor = placeholder{ std::move($ELLIPSIS) }}, $mod | parameter_constraint_modifier_t::ellipsis }; }
     ;
 
 /////////////////////////// PATTERNS
@@ -798,10 +838,10 @@ pattern-field:
     ;
 
 pattern-mod:
-      pattern-sfx[ps]                   { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::const_or_runtime_type }; }
-    | CONSTEXPR pattern-sfx[ps]         { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::constexpr_value_type }; }
-    | RUNTIME pattern-sfx[ps]           { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::runtime_type }; }
-    | TYPENAME pattern-sfx[ps]          { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::typename_type }; }
+      TILDA pattern-sfx[ps]                   { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::const_or_runtime_type }; }
+    | TILDA CONSTEXPR pattern-sfx[ps]         { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::constexpr_value_type }; }
+    | TILDA RUNTIME pattern-sfx[ps]           { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::runtime_type }; }
+    | TILDA TYPENAME pattern-sfx[ps]          { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::typename_type }; }
     ;
 
 pattern-sfx:
@@ -991,10 +1031,12 @@ call-expression:
     ;
 
 lambda-expression:
-      fn-start-decl[fnkind] OPEN_PARENTHESIS[start] parameter-list-opt[parameters] CLOSE_PARENTHESIS braced-statements[body]
-        { $$ = lambda_t{ $fnkind, std::move($start), std::move($parameters), std::move($body) }; }
-    | fn-start-decl[fnkind] OPEN_PARENTHESIS[start] parameter-list-opt[parameters] CLOSE_PARENTHESIS ARROW type-expr[type] braced-statements[body]
-        { $$ = lambda_t{ $fnkind, std::move($start), std::move($parameters), std::move($body), std::move($type) }; }
+      fn-start-decl[fnkind] OPEN_PARENTHESIS[start] parameter-list-opt[parameters] CLOSE_PARENTHESIS function-body[body]
+        { $$ = lambda_t{ fn_pure_t{ .location = std::move($start), .parameters = std::move($parameters), .result = nullptr, .kind = $fnkind }, ctx.push(std::move($body)) }; }
+    | fn-start-decl[fnkind] OPEN_PARENTHESIS[start] parameter-list-opt[parameters] CLOSE_PARENTHESIS ARROW type-expr[type] function-body[body]
+        { $$ = lambda_t{ fn_pure_t{ .location = std::move($start), .parameters = std::move($parameters), .result = std::move($type), .kind = $fnkind }, ctx.push(std::move($body)) }; }
+    | fn-start-decl[fnkind] OPEN_PARENTHESIS[start] parameter-list-opt[parameters] CLOSE_PARENTHESIS FARROW pattern[type] function-body[body]
+        { $$ = lambda_t{ fn_pure_t{ .location = std::move($start), .parameters = std::move($parameters), .result = std::move($type), .kind = $fnkind }, ctx.push(std::move($body)) }; }
     ;
 
 pack-expression-opt:

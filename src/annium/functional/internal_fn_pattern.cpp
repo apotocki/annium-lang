@@ -80,6 +80,16 @@ void internal_fn_pattern::build_scope(environment& e, functional_match_descripto
             }
         }
     }
+
+    // bind constants
+    md.bindings.for_each([&e, &fent](identifier name, resource_location const& loc, functional_binding::value_type& value) {
+        if (entity_identifier const* peid = get<entity_identifier>(&value); peid) {
+            qname infn_name = fent.name() / name;
+            functional& fnl = e.fregistry_resolve(infn_name);
+            fnl.set_default_entity(annotated_entity_identifier{ *peid, loc });
+        }
+    });
+
     //for (auto& [argindex, mr] : md.matches) {
     //    parameter_descriptor const& pd = parameters_[argindex];
     //    functional_binding::value_type const* bsp = md.bindings.lookup(pd.inames.front().value);
@@ -91,7 +101,6 @@ void internal_fn_pattern::build_scope(environment& e, functional_match_descripto
     //    }
     //}
     
-    // ? bind constants ?
 #if 0
     // bind consts
     md.bindings.for_each([&e, &fent](identifier name, resource_location const& loc, functional_binding::value_type & value) {

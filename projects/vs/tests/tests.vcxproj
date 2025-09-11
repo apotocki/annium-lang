@@ -114,23 +114,6 @@
     <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\scheduler.hpp" />
     <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\segmented_stack.hpp" />
     <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\fibers\type.hpp" />
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\arithmetic.hpp" />
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\basic_decimal.hpp" />
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\basic_decimal_old.hpp" />
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\basic_integer.hpp" />
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\config\cmath.hpp" />
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\ct.hpp" />
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\decimal.ipp" />
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\decimal_arithmetic.hpp" />
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\decimal_old.hpp" />
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\decimal_view.hpp" />
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\integer_view.hpp" />
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\integer_view_arithmetic.hpp" />
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\limbs_from_decimal_string.hpp" />
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\limbs_from_integral.hpp" />
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\limbs_from_string.hpp" />
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\limbs_to_string.hpp" />
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\limb_arithmetic.hpp" />
     <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\invocation\functor_object.hpp" />
     <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\invocation\invocable.hpp" />
     <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\invocation\invocable_registry.hpp" />
@@ -163,6 +146,9 @@
     <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\parsers\utility.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\numetron\msvc\numetron.vcxproj">
+      <Project>{b3da4b02-589c-4f86-b8be-4cccd9faa17b}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\annium\annium.vcxproj">
       <Project>{3ddb116f-4c58-4e9b-9ae2-5590b2c3d562}</Project>
     </ProjectReference>

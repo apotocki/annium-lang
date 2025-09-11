@@ -10,7 +10,7 @@ namespace annium {
 class environment;
 class entity;
 
-entity const& get_entity(environment const&, entity_identifier const&);
+entity const& get_entity(environment const &, entity_identifier const&);
 
 inline entity const& get_entity(environment const& e, annotated_entity_identifier const& aeid)
 {

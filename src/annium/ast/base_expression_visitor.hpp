@@ -54,9 +54,12 @@ public:
 
     result_type operator()(index_expression_t const&) const;
 
+    result_type operator()(lambda_t const&) const;
+
     template <typename T>
     result_type operator()(T const& v) const
     {
+        (void)v;
         THROW_NOT_IMPLEMENTED_ERROR("base_expression_visitor not implemented expression");
     }
 

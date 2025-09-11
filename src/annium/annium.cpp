@@ -107,31 +107,31 @@ using namespace annium;
 
 const char annium_bootstrap_code[] = R"#(
 inline fn not_equal(_, _) => !($0 == $1);
-inline fn logic_and($FT, $ST) ~> union($FT, $ST) {
+inline fn logic_and($FT, $ST) -> union($FT, $ST) {
     if $0 {
         return $1;
     } else {
         return $0;
     }
 }
-inline fn assert_equal(_, _, location:~ string = __call_location) ~> () {
+inline fn assert_equal(_, _, location: string = __call_location) -> () {
     if $0 != $1 {
         error(location: location, "Assertion failed: " ..to_string($0) .. " != " ..to_string($1));
     }
 }
-inline fn assert_not_equal(_, _, location:~ string = __call_location) ~> () {
+inline fn assert_not_equal(_, _, location: string = __call_location) -> () {
     if $0 == $1 {
         error(location: location, "Assertion failed: " ..to_string($0) .. " == " ..to_string($1));
     }
 }
-inline fn print(~string ...) ~> () {
+inline fn print(:string ...) -> () {
     __print($0 ..., size($0));
 }
 
-inline fn empty(: array(of, size $size)) => $size == 0;
-inline fn size(: array(of, size $size)) => $size;
+inline fn empty(~array(of, size $size)) => $size == 0;
+inline fn size(~array(of, size $size)) => $size;
 
-inline fn __bit_and(:typename tuple($l...), :typename tuple($r...)) => tuple($l..., $r...);
+inline fn __bit_and(:~ typename tuple($l...), :~ typename tuple($r...)) => tuple($l..., $r...);
 
 inline fn foldl($f, $z) => $z;
 inline fn foldl($f, $z, $elements ...) => foldl($f, $f($z, head($elements)), tail($elements)...);
@@ -139,7 +139,7 @@ inline fn foldl($f, $z, $elements ...) => foldl($f, $f($z, head($elements)), tai
 inline fn foldr($f, $z) => $z;
 inline fn foldr($f, $z, $elements ...) => $f(head($elements), foldr($f, $z, tail($elements)...));
 
-inline fn ::set(self: runtime object, property: constexpr __identifier, : ~runtime any) => set(self: self, property: to_string(property), $0);
+inline fn ::set(self: runtime object, property: constexpr __identifier, : runtime any) => set(self: self, property: to_string(property), $0);
 )#";
 
 annium_impl::annium_impl()
@@ -282,7 +282,7 @@ void annium_impl::compile(statement_span decls, span<string_view> args)
         if (auto* fe = dynamic_cast<internal_function_entity*>(&e); fe) {
             if (!fe->is_built()) {
                 if (auto err = fe->build(environment_)) {
-                    throw exception("function '%1%' build error: %2%"_fmt % environment_.print(fe->id) % environment_.print(*err));
+                    throw exception("function '%1%' build error:\n%2%"_fmt % environment_.print(fe->id) % environment_.print(*err));
                 }
             }
             fns.push_back(fe);
@@ -333,7 +333,8 @@ void annium_impl::do_compile(internal_function_entity const& fe)
         }
     }
     
-    if (fe.is_inline()) return;
+    if (fe.is_inline())
+        return;
 
     asm_builder_t::function_descriptor & fd = vmasm_.resolve_function(vmasm::fn_identity<entity_identifier>{ fe.id });
     std::string description = environment_.print(fe);

@@ -231,7 +231,7 @@ error_storage declaration_visitor::operator()(expression_statement_t const& ed) 
 
     size_t scope_sz = append_result(el, res->first);
     if (scope_sz) {
-        ctx.append_expression(semantic::truncate_values(scope_sz, false));
+        ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)scope_sz });
     }
     
     return {};
@@ -286,7 +286,7 @@ error_storage declaration_visitor::operator()(if_decl const& stm) const
     
     if (er.is_const_result) { // constexpr result
         if (scope_sz) {
-            ctx.append_expression(semantic::truncate_values(scope_sz, false));
+            ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)scope_sz });
         }
         entity_identifier v = er.value();
         BOOST_ASSERT(v == env().get(builtin_eid::false_) || v == env().get(builtin_eid::true_));
@@ -296,7 +296,7 @@ error_storage declaration_visitor::operator()(if_decl const& stm) const
         return apply(body);
     } else {
         if (scope_sz > 1) {
-            ctx.append_expression(semantic::truncate_values(scope_sz - 1, true));
+            ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)(scope_sz - 1), .keep_back = 1 });
         }
         return do_rt_if_decl(stm);
     }
@@ -697,7 +697,7 @@ error_storage declaration_visitor::operator()(let_statement const& ld) const
                 ld.aname,
                 local_variable{ .type = pelemsig ? pelemsig->id : er.type(), .varid = env().new_variable_identifier(), .is_weak = ld.weakness });
             if (scope_sz) {
-                ctx.append_expression(semantic::truncate_values(scope_sz, !er.is_const_result));
+                ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)scope_sz, .keep_back = (uint16_t)(er.is_const_result ? 0 : 1u) });
             }
         }
         return {};
@@ -720,7 +720,7 @@ error_storage declaration_visitor::operator()(let_statement const& ld) const
                 annotated_identifier{ unnamedid },
                 local_variable{ .type = er.type(), .varid = env().new_variable_identifier(), .is_weak = ld.weakness });
             if (scope_sz) {
-                ctx.append_expression(semantic::truncate_values(scope_sz, !er.is_const_result));
+                ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)scope_sz, .keep_back = (uint16_t)(er.is_const_result ? 0 : 1u) });
             }
             result_sig.emplace_back(id, env().make_qname_entity(qname{ unnamedid, false }).id, true);
         }

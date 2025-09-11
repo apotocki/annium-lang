@@ -49,6 +49,7 @@ class external_fn_pattern;
     ((property, "property"sv))             \
     ((object, "object"sv))                 \
     ((mask, "mask"sv))                     \
+    ((visitor, "visitor"sv))               \
     ((numargs, "$$"sv))                    \
     ((init, "init"sv))
 
@@ -111,6 +112,7 @@ class external_fn_pattern;
     ((to_string, "to_string"sv))           \
     ((string_concat, "concat"sv))          \
     ((is_const, "is_const"sv))             \
+    ((apply, "apply"sv))                   \
     ((empty, "empty"sv))
 
 #define ANNIUM_PRINT_TYPE_ENUM(r, data, i, elem) BOOST_PP_TUPLE_ELEM(2, 0, elem),
@@ -157,6 +159,7 @@ enum class builtin_eid : entity_identifier::value_type
     void_, object,
     true_, false_,  identifier, qname, 
     arrayify, // builtin ::arrayify(...)->array
+    unfold, // builtin ::unfold(:array(...))
     array_tail, // builtin ::array_tail(array)-> array
     array_at, // builtin ::array_at(array, index)-> elementT
     equal, // builtin ::equal(a, b)-> boolean

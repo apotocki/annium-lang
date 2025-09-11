@@ -178,12 +178,6 @@
     <Filter Include="sonia\optimized">
       <UniqueIdentifier>{769eb39b-a63d-455b-96ed-e3b0e1bd9001}</UniqueIdentifier>
     </Filter>
-    <Filter Include="sonia\mp">
-      <UniqueIdentifier>{76b20536-397d-47fe-af55-845686069b43}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="sonia\mp\config">
-      <UniqueIdentifier>{4e759ace-4c06-4ed0-805f-e171f23d0f24}</UniqueIdentifier>
-    </Filter>
     <Filter Include="sonia\utility\lang">
       <UniqueIdentifier>{394d2ce6-0a75-4c5f-9332-c8ab3bc74782}</UniqueIdentifier>
     </Filter>
@@ -374,57 +368,6 @@
     </ClInclude>
     <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\optimized\maybe_array.hpp">
       <Filter>sonia\optimized</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\arithmetic.hpp">
-      <Filter>sonia\mp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\basic_decimal.hpp">
-      <Filter>sonia\mp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\basic_decimal_old.hpp">
-      <Filter>sonia\mp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\basic_integer.hpp">
-      <Filter>sonia\mp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\ct.hpp">
-      <Filter>sonia\mp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\decimal.ipp">
-      <Filter>sonia\mp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\decimal_arithmetic.hpp">
-      <Filter>sonia\mp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\decimal_old.hpp">
-      <Filter>sonia\mp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\decimal_view.hpp">
-      <Filter>sonia\mp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\integer_view.hpp">
-      <Filter>sonia\mp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\integer_view_arithmetic.hpp">
-      <Filter>sonia\mp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\limb_arithmetic.hpp">
-      <Filter>sonia\mp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\limbs_from_decimal_string.hpp">
-      <Filter>sonia\mp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\limbs_from_integral.hpp">
-      <Filter>sonia\mp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\limbs_from_string.hpp">
-      <Filter>sonia\mp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\limbs_to_string.hpp">
-      <Filter>sonia\mp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\mp\config\cmath.hpp">
-      <Filter>sonia\mp\config</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\config.hpp">
       <Filter>sonia</Filter>

@@ -100,6 +100,42 @@ void annium_arrayify(vm::context& ctx)
     ctx.stack_push(std::move(r));
 }
 
+void annium_unfold(vm::context& ctx)
+{
+    auto& arg = ctx.stack_back();
+    if (!is_array(arg.as<blob_result>())) {
+        throw exception("expected array, got %1%"_fmt % arg.as<blob_result>());
+    }
+    smart_blob arr = std::move(arg);
+    // Pop the array from stack
+    ctx.stack_pop(1);
+
+    blob_type_selector(arr.as<blob_result>(), [&ctx](auto ident, blob_result b) {
+        using type = typename decltype(ident)::type;
+        if constexpr (std::is_integral_v<type> || std::is_floating_point_v<type> ||
+            std::is_same_v<type, numetron::float16> || std::is_same_v<type, blob_result>)
+        { 
+            using fstype = std::conditional_t<std::is_same_v<type, bool>, uint8_t, type>;
+            size_t array_size = array_size_of<fstype>(b);
+            const fstype* data = data_of<fstype>(b);
+            
+            // Push each element to the stack
+            for (size_t i = 0; i < array_size; ++i) {
+                if constexpr (std::is_same_v<fstype, blob_result>) {
+                    ctx.stack_push(smart_blob{ std::move(data[i]) });
+                } else {
+                    ctx.stack_push(smart_blob{ particular_blob_result(data[i]) });
+                }
+            }
+            
+            // Push the array size at the end
+            ctx.stack_push(smart_blob{ ui64_blob_result(array_size) });
+        } else {
+            THROW_INTERNAL_ERROR("unexpected array element type");
+        }
+    });
+}
+
 void annium_array_at(vm::context& ctx)
 {
     auto idx = ctx.stack_back().as<size_t>();
@@ -110,10 +146,9 @@ void annium_array_at(vm::context& ctx)
     smart_blob result;
     blob_type_selector(arr, [idx, &result](auto ident, blob_result b) {
         using type = typename decltype(ident)::type;
-        if constexpr (std::is_same_v<type, std::nullptr_t>) { }
-        else if constexpr (std::is_void_v<type>) { }
-        //else if constexpr (std::is_same_v<type, numetron::basic_integer_view<invocation_bigint_limb_type>>) { os << "bigint"; }
-        else {
+        if constexpr (std::is_same_v<type, std::nullptr_t> || std::is_void_v<type>) {
+            THROW_INTERNAL_ERROR("unexpected array element type");
+        } else {
             using fstype = std::conditional_t<std::is_same_v<type, bool>, uint8_t, type>;
             size_t sz = array_size_of<fstype>(b);
             if (idx >= sz) {

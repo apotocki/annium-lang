@@ -386,7 +386,7 @@ struct function_call : pure_call<ExprT>
 {
     using base_t = pure_call<ExprT>;
     ExprT fn_object;
-    inline function_call(resource_location && callloc, ExprT && n, opt_named_term_list<ExprT>&& args = {}) noexcept
+    inline function_call(resource_location callloc, ExprT && n, opt_named_term_list<ExprT>&& args = {}) noexcept
         : base_t{ std::move(callloc), std::move(args) }
         , fn_object{ std::move(n) }
     {}
@@ -588,7 +588,7 @@ enum class fn_kind : int8_t
 template <typename ExprT>
 struct fn_pure
 {
-    variant<qname, qname_view> nameval;
+    variant<qname, qname_view> nameval = {};
     resource_location location;
     parameter_list<ExprT> parameters;
     variant<nullptr_t, ExprT, pattern<ExprT>> result; // undefined or type expression or pattern
@@ -605,26 +605,11 @@ struct fn_pure
     }
 };
 
+// used for both function declaration and lambda expression
 template <typename ExprT>
-struct lambda : fn_pure<ExprT>
+struct fn_decl : fn_pure<ExprT>
 {
-    statement_span body;
-
-    lambda(fn_kind kind, resource_location loc, parameter_list<ExprT>&& params, statement_span&& b, ExprT rtype)
-        : fn_pure<ExprT>{ .nameval = {}, .location = std::move(loc),
-                          .parameters = std::move(params),
-                          .result = std::move(rtype),
-                          .kind = kind }
-        , body{ std::move(b) }
-    {}
-
-    lambda(fn_kind kind, resource_location loc, parameter_list<ExprT>&& params, statement_span&& b)
-        : fn_pure<ExprT>{ .nameval = {}, .location = std::move(loc),
-                          .parameters = std::move(params),
-                          .result = nullptr,
-                          .kind = kind }
-        , body{ std::move(b) }
-    {}
+    /*mutable */ statement_span body;
 };
 
 using syntax_expression_t = make_recursive_variant<
@@ -635,7 +620,7 @@ using syntax_expression_t = make_recursive_variant<
     annium_vector<recursive_variant_>,
     annium_union<recursive_variant_>,
     indirect_value, not_empty_expression<recursive_variant_>, member_expression<recursive_variant_>,
-    lambda<recursive_variant_>,
+    fn_decl<recursive_variant_>, // aka lambda
     unary_expression<recursive_variant_>,
     binary_expression<recursive_variant_>,
     //assign_expression<>, logic_and_expression<>, logic_or_expression<>, concat_expression<>,
@@ -651,7 +636,8 @@ using syntax_expression_t = make_recursive_variant<
 //using parameter_constraint_set_t = parameter_constraint_set<syntax_expression_t>;
 using parameter_t = parameter<syntax_expression_t>;
 using fn_pure_t = fn_pure<syntax_expression_t>;
-using lambda_t = lambda<syntax_expression_t>;
+using fn_decl_t = fn_decl<syntax_expression_t>;
+using lambda_t = fn_decl_t;
 using array_expression_t = array_expression<syntax_expression_t>;
 using index_expression_t = index_expression<syntax_expression_t>;
 
@@ -850,11 +836,6 @@ struct extern_function_decl
 */
 
 using extension_list_t = std::vector<annotated_qname_identifier>;
-
-struct fn_decl_t : fn_pure_t
-{
-    mutable statement_span body;
-};
 
 struct using_decl : fn_decl_t
 {

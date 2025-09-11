@@ -65,6 +65,7 @@ public:
     inline void operator()(semantic::truncate_values const& c) const
     {
         if (c.keep_back) {
+            BOOST_ASSERT(c.keep_back == 1); // not implemented yet for arbitrary values
             fnbuilder_.append_collapse(c.count);
         } else {
             fnbuilder_.append_pop(c.count);
@@ -172,7 +173,10 @@ public:
 
     inline void operator()(semantic::conditional_t const& c) const
     {
-        if (!c.false_branch && !c.true_branch) return;
+        if (!c.false_branch && !c.true_branch) {
+            fnbuilder_.append_pop();
+            return;
+        }
         fnbuilder_.append_noop();
         auto branch_pt = fnbuilder_.current_entry();
         if (!c.false_branch) {
@@ -183,14 +187,14 @@ public:
                 apply(e);
             });
             auto branch_end_pt = fnbuilder_.make_label();
-            branch_pt->operation = asm_builder_t::op_t::jf;
+            branch_pt->operation = asm_builder_t::op_t::je;
             branch_pt->operand = branch_end_pt;
         } else if (!c.true_branch) {
             c.false_branch.for_each([this](semantic::expression const& e) {
                 apply(e);
             });
             auto branch_end_pt = fnbuilder_.make_label();
-            branch_pt->operation = asm_builder_t::op_t::jt;
+            branch_pt->operation = asm_builder_t::op_t::jne;
             branch_pt->operand = branch_end_pt;
         } else {
             c.true_branch.for_each([this](semantic::expression const& e) {
@@ -206,13 +210,68 @@ public:
             });
             
             auto branch_end_pt = fnbuilder_.make_label();
-            branch_pt->operation = asm_builder_t::op_t::jf;
+            branch_pt->operation = asm_builder_t::op_t::je;
             branch_pt->operand = true_branch_end_pt;
             if (!c.true_branch_finished) {
                 true_branch_end_pt->operation = asm_builder_t::op_t::jmp;
                 true_branch_end_pt->operand = branch_end_pt;
             }
         }
+    }
+
+    inline void operator()(semantic::switch_t const& c) const
+    {
+        if (c.branches.empty()) {
+            fnbuilder_.append_pop(); // pop branch index value
+            return;
+        }
+        small_vector<asm_builder_t::instruction_entry*, 16> branch_exit_points;
+
+        // each branch should take into account that there is a branch index value on the stack top
+        
+        // first branch does not need cmp, so we handle it separately
+        auto branches = std::span{ c.branches };
+        auto first_branch = branches.front(); branches = branches.subspan(1);
+
+        fnbuilder_.append_op(asm_builder_t::op_t::jne);
+        auto branch_pt = fnbuilder_.current_entry();
+        first_branch.for_each([this](semantic::expression const& e) {
+            apply(e);
+        });
+        if (!branches.empty()) {
+            fnbuilder_.append_noop(); // exit jump will be here
+        }
+        branch_exit_points.push_back(fnbuilder_.make_label()); // first_branch_end_pt
+        branch_pt->operand = branch_exit_points.back();
+
+        size_t branch_index = 1;
+        for (auto const& br : branches) {
+            fnbuilder_.append_push_pooled_const(ui64_blob_result(branch_index));
+            fnbuilder_.append_op(asm_builder_t::op_t::cmp);
+            fnbuilder_.append_op(asm_builder_t::op_t::jne);
+            auto branch_pt = fnbuilder_.current_entry();
+            fnbuilder_.append_pop(); // pop condition value
+            br.for_each([this](semantic::expression const& e) {
+                apply(e);
+            });
+            if (&br != &branches.back()) {
+                fnbuilder_.append_noop(); // exit jump will be here
+            }
+            branch_exit_points.push_back(fnbuilder_.make_label());
+            branch_pt->operand = branch_exit_points.back();
+            ++branch_index;
+        }
+        // set jumps to exit points for all branch_exit_points except the last one
+        auto exit_pt = branch_exit_points.back();
+        branch_exit_points.pop_back();
+        for (auto bep : branch_exit_points) {
+            bep->operation = asm_builder_t::op_t::jmp;
+            bep->operand = exit_pt;
+        }
+
+
+
+        //THROW_NOT_IMPLEMENTED_ERROR("compiler_visitor switch_t");
     }
 
     virtual void apply(semantic::expression const&) const = 0;

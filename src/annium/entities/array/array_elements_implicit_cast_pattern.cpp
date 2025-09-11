@@ -23,7 +23,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_elements_imp
         return std::unexpected(make_error<basic_general_error>(call.location, "expected an array result"sv));
     }
     environment& e = ctx.env();
-    entity const& ent = e.eregistry_get(exp.type);
+    entity const& ent = get_entity(e, exp.type);
     entity_signature const* psig = ent.signature();
     if (!psig || psig->name != e.get(builtin_qnid::array)) {
         return std::unexpected(make_error<type_mismatch_error>(exp.location, exp.type, "an array"sv));
@@ -92,7 +92,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_elements_imp
 }
 
 
-std::expected<syntax_expression_result_t, error_storage> array_elements_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result_t, error_storage> array_elements_implicit_cast_pattern::apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor& md) const
 {
     return syntax_expression_result_t{
         .value_or_type = md.signature.result->entity_id(),

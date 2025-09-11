@@ -19,7 +19,7 @@ public:
     apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const override;
 
     std::ostream& print(environment const&, std::ostream& s) const override {
-        return s << "tuple_equal(@tuple, @tuple)->bool";
+        return s << "equal(:tuple(...), :tuple(...))->bool";
     }
 };
 

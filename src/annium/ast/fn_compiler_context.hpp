@@ -75,7 +75,7 @@ class fn_compiler_context
     sonia::lang::compiler_worker_id worker_id_;
     small_vector<functional_binding const*, 4> bindings_;
     std::list<functional_binding_set> scoped_locals_;
-    int64_t scope_offset_ = 0;
+    int64_t scope_offset_;
 
 public:
     fn_compiler_context(environment& e, internal_function_entity&);
@@ -105,7 +105,7 @@ public:
     sonia::lang::compiler_task_tracer::task_guard try_lock_task(sonia::lang::compiler_task_id const&);
 
     void push_scope();
-    void push_scope_variable(annotated_identifier name, local_variable);
+    local_variable& push_scope_variable(annotated_identifier name, local_variable);
     void pop_scope();
     inline functional_binding_set const& current_scope_binding() const noexcept { return scoped_locals_.back(); }
 
@@ -333,6 +333,8 @@ public:
     ~fn_compiler_context_scope();
     
     local_variable& new_temporary(identifier name, entity_identifier type);
+    std::pair<identifier, local_variable&> push_scope_variable(entity_identifier type);
+    void skip_scope_variables();
 };
 
 }

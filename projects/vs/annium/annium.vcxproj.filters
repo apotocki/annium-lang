@@ -177,7 +177,7 @@
     <ClCompile Include="..\..\..\src\annium\entities\functions\parameter_type_expression_visitor.cpp">
       <Filter>annium\entities\functions</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\literals\const_literal_implicit_cast_pattern.cpp">
+    <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_implicit_cast_pattern.cpp">
       <Filter>annium\entities\literals</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_implicit_cast_pattern.cpp">
@@ -213,7 +213,7 @@
     <ClCompile Include="..\..\..\src\annium\entities\union\union_bit_or_pattern.cpp">
       <Filter>annium\entities\union</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\union\union_implicit_cast_pattern.cpp">
+    <ClCompile Include="..\..\..\src\annium\entities\union\to_union_implicit_cast_pattern.cpp">
       <Filter>annium\entities\union</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_empty_pattern.cpp">
@@ -368,6 +368,15 @@
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\semantic\semantic_expression_printer.cpp">
       <Filter>annium\semantic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\array\array_get_pattern.cpp">
+      <Filter>annium\entities\array</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\union\union_apply_pattern.cpp">
+      <Filter>annium\entities\union</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\literals\string_implicit_cast_pattern.cpp">
+      <Filter>annium\entities\literals</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -548,7 +557,7 @@
     <ClInclude Include="..\..\..\src\annium\entities\functions\parameter_type_expression_visitor.hpp">
       <Filter>annium\entities\functions</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\literals\const_literal_implicit_cast_pattern.hpp">
+    <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_implicit_cast_pattern.hpp">
       <Filter>annium\entities\literals</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\literals\literal_entity.hpp">
@@ -587,7 +596,7 @@
     <ClInclude Include="..\..\..\src\annium\entities\union\union_bit_or_pattern.hpp">
       <Filter>annium\entities\union</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\union\union_implicit_cast_pattern.hpp">
+    <ClInclude Include="..\..\..\src\annium\entities\union\to_union_implicit_cast_pattern.hpp">
       <Filter>annium\entities\union</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_empty_pattern.hpp">
@@ -757,6 +766,15 @@
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\semantic\expression_printer.hpp">
       <Filter>annium\semantic</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\array\array_get_pattern.hpp">
+      <Filter>annium\entities\array</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\union\union_apply_pattern.hpp">
+      <Filter>annium\entities\union</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\literals\string_implicit_cast_pattern.hpp">
+      <Filter>annium\entities\literals</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

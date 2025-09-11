@@ -86,17 +86,60 @@ vm::context::context(environment& e, invocation::invocable* penv)
     : environment_{ e }, vm_{ e.bvm() }, penv_{ penv }
 {}
 
-bool vm::context::is_true(variable_type const& v) const noexcept
+bool vm::context::is_zero(variable_type const& v) const noexcept
 {
-    return v.as<bool>();
-    //blob_result const* br = &e.get();
-    //while (br->type == blob_type::blob_reference) {
-    //    br = data_of<blob_result>(*br);
-    //}
-    //if (br->type == blob_type::boolean) {
-    //    return !!br->bp.ui8value;
-    //}
-    //return true;
+    if (v->type == blob_type::boolean) {
+        return !v.as<bool>();
+    } else if (::is_integral(v->type)) {
+        return !v.as<numetron::integer_view>();
+    } else if (::is_numeric(v->type)) {
+        return !v.as<numetron::decimal>();
+    } else {
+        return false;
+    }
+}
+
+bool vm::context::is_positive(variable_type const& v) const noexcept
+{
+    if (::is_integral(v->type)) {
+        return v.as<numetron::integer_view>().is_positive();
+    } else if (::is_numeric(v->type)) {
+        return v.as<numetron::decimal>().is_positive();
+    } else {
+        return false;
+    }
+}
+
+bool vm::context::is_negative(variable_type const& v) const noexcept
+{
+    if (::is_integral(v->type)) {
+        return v.as<numetron::integer_view>().is_negative();
+    } else if (::is_numeric(v->type)) {
+        return v.as<numetron::decimal>().is_negative();
+    } else {
+        return false;
+    }
+}
+
+void vm::context::cmp()
+{
+    smart_blob const& rhs = stack_back();
+    smart_blob const& lhs = stack_back(1);
+    optional<std::strong_ordering> res;
+
+    if (::is_integral(lhs->type) && ::is_integral(rhs->type)) {
+        auto l = lhs.as<numetron::integer_view>();
+        auto r = rhs.as<numetron::integer_view>();
+        res = l <=> r;
+    } else if (::is_numeric(lhs->type) || ::is_numeric(rhs->type)) {
+        auto l = lhs.as<numetron::decimal>();
+        auto r = rhs.as<numetron::decimal>();
+        res = l <=> r;
+    } else {
+       throw exception("cmp: unsupported types %1% and %2%"_fmt % (int)lhs->type % (int)rhs->type);
+    }
+    stack_pop();
+    stack_push(i8_blob_result((*res < 0) ? -1 : ((*res == 0) ? 0 : 1)));
 }
 
 size_t vm::context::callp(size_t ret_address)
@@ -494,6 +537,7 @@ void virtual_stack_machine::set_const(size_t index, smart_blob&& value)
         literals_.insert(it, std::pair{ *value, index });
     }
     base_t::set_const(index, std::move(value));
+    GLOBAL_LOG_DEBUG() << "set const value: " << base_t::consts()[index] << ", at index: " << index;
 }
 
 void virtual_stack_machine::append_push_pooled_const(smart_blob&& value)

@@ -460,10 +460,8 @@ struct set_variable { extern_variable_entity const* entity; };
 struct set_by_offset { size_t offset; }; // offset from the stack top
 struct truncate_values
 {
-    uint32_t count : 31;
-    uint32_t keep_back : 1;
-
-    truncate_values(size_t cnt, bool keepb) : count { static_cast<uint32_t>(cnt) }, keep_back{ keepb } {}
+    uint16_t count;
+    uint16_t keep_back = 0;
 };
 
 struct invoke_function
@@ -510,6 +508,11 @@ struct conditional_t
     conditional_t() : true_branch_finished{ 0 }, false_branch_finished{ 0 } {}
 };
 
+struct switch_t
+{
+    std::vector<expression_span> branches;
+};
+
 struct not_empty_condition_t
 {
     expression_span branch;
@@ -529,7 +532,7 @@ using expression = variant<
     push_value, push_local_variable, push_by_offset, truncate_values,
     set_local_variable, set_variable, set_by_offset, invoke_function, return_statement, loop_breaker, loop_continuer,
     expression_span,
-    conditional_t,
+    conditional_t, switch_t,
     not_empty_condition_t,
     loop_scope_t
     //logic_tree_node<recursive_variant_>
@@ -563,13 +566,13 @@ struct syntax_expression_result
 
     // if is_const_result is true, value_or_type is a value entity identifier and we ignore temporaries, expressions, and branches_expressions
 
-    inline entity_identifier type() const
+    inline entity_identifier const& type() const
     {
         BOOST_ASSERT(!is_const_result);
         return value_or_type;
     }
 
-    inline entity_identifier value() const
+    inline entity_identifier const& value() const
     {
         BOOST_ASSERT(is_const_result);
         return value_or_type;

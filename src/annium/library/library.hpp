@@ -15,6 +15,7 @@ void annium_tostring(vm::context&);
 void annium_print_string(vm::context&);
 void annium_concat(vm::context&);
 void annium_arrayify(vm::context&);
+void annium_unfold(vm::context&);
 void annium_array_tail(vm::context&);
 void annium_array_at(vm::context&);
 

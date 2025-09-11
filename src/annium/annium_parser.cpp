@@ -67,7 +67,7 @@ public:
         const int target_column = column - 1;
 
         // Determine range of lines to show (2-3 lines before + target line)
-        const int context_lines = 3;
+        const int context_lines = 0;
         const int start_line = (std::max)(0, target_line - context_lines);
         const int end_line = (std::min)(static_cast<int>(lines.size()) - 1, target_line);
 

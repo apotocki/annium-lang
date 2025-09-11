@@ -89,7 +89,7 @@ public:
             oss_ << ent.value().as<uint64_t>();
             return;
         case builtin_eid::f16:
-            oss_ << ent.value().as<float16>();
+            oss_ << ent.value().as<numetron::float16>();
             return;
         case builtin_eid::f32:
             oss_ << ent.value().as<float>();

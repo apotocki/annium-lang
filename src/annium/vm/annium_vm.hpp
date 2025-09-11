@@ -103,7 +103,11 @@ class context
 
 public:
     using variable_type = smart_blob;
-    bool is_true(variable_type const& v) const noexcept;
+    bool is_zero(variable_type const&) const noexcept;
+    bool is_positive(variable_type const&) const noexcept;
+    bool is_negative(variable_type const&) const noexcept;
+    void cmp();
+
     variable_type value_of(size_t val) const { return ui64_blob_result(val); }
 
     string_view describe_address(size_t /*address*/) const;

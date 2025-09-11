@@ -14,6 +14,8 @@
 #include "annium/entities/prepared_call.hpp"
 #include "annium/entities/literals/literal_entity.hpp"
 
+#include "annium/functional/internal_fn_pattern.hpp"
+
 #include "annium/errors/cast_error.hpp"
 
 #include "annium/auxiliary.hpp"
@@ -54,7 +56,7 @@ base_expression_visitor::result_type base_expression_visitor::apply_cast(entity 
 
     resource_location expr_location = get_start_location(e);
     
-    pure_call_t cast_call{ expected_result.location };
+    pure_call_t cast_call{ expected_result.location | expr_location };
     cast_call.emplace_back(annotated_entity_identifier{ ent.id, expr_location });
 
     auto match = ctx.find(builtin_qnid::implicit_cast, cast_call, expressions, expected_result_t {
@@ -67,7 +69,7 @@ base_expression_visitor::result_type base_expression_visitor::apply_cast(entity 
         // ignore casting error details
         //return std::unexpected(make_error<cast_error>(expected_result.location, expected_result.type, typeeid, e));
         return std::unexpected(append_cause(
-            make_error<cast_error>(expected_result.location | expr_location, ent.get_type(), expected_result.type), //, e),
+            make_error<cast_error>(cast_call.location, ent.get_type(), expected_result.type), //, e),
             std::move(match.error())
         ));
     }
@@ -931,4 +933,29 @@ base_expression_visitor::result_type base_expression_visitor::do_assign(binary_e
     //return std::pair{ semantic::managed_expression_list{ ctx.env() }, false };
 }
 
+base_expression_visitor::result_type base_expression_visitor::operator()(lambda_t const& l) const
+{
+    //l.body.for_each([this](statement const& e) {
+    //    if (return_decl_t const* rd = get< return_decl_t>(&e); rd) {
+    //        GLOBAL_LOG_INFO() << "lambda return expression: " << env().print(*rd->expression) << "\n";
+    //    } else if (fn_decl_t const* fd = get< fn_decl_t>(&e); &fd)  {
+    //        GLOBAL_LOG_INFO() << "lambda function declaration: " << env().print(fd->name()) << "\n";
+    //    } else {
+    //        GLOBAL_LOG_INFO() << e.which() << "\n";
+    //    }
+    //});
+
+    // make up internal lambda name
+    identifier lambda_name_id = env().new_identifier();
+    qname lambda_qname = ctx.ns() / qname{ lambda_name_id, false };
+    functional& fnl = env().resolve_functional(lambda_qname);
+    auto fnptrn = make_shared<internal_fn_pattern>();
+    error_storage err = fnptrn->init(ctx, l);
+    if (!err) fnl.push(std::move(fnptrn));
+
+    // to do: deal with lambda captures
+    entity const& ent = env().make_qname_entity(lambda_qname);
+    return apply_cast(ent, l);
 }
+
+} // namespace annium

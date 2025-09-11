@@ -10,6 +10,8 @@
 //#include <boost/multi_index/member.hpp>
 #include "function_entity.hpp"
 
+//#define ANNIUM_NO_INLINE_FUNCTIONS 1
+
 namespace annium {
 
 class internal_function_entity : public function_entity
@@ -52,7 +54,12 @@ public:
     inline void set_arg_count(uint64_t count) noexcept { arg_count_ = count; }
     [[nodiscard]] inline uint64_t arg_count() const noexcept { return arg_count_; }
 
+#ifdef ANNIUM_NO_INLINE_FUNCTIONS
+    [[nodiscard]] inline bool is_inline() const noexcept { return false; }
+#else
     [[nodiscard]] inline bool is_inline() const noexcept { return !!is_inline_; }
+#endif // ANNIUM_NO_INLINE_FUNCTIONS
+
     inline void set_inline(bool val = true) noexcept { is_inline_ = val ? 1 : 0; }
 
     [[nodiscard]] inline bool is_built() const noexcept { return !!is_built_; }
@@ -69,6 +76,8 @@ public:
     [[nodiscard]] error_storage build(fn_compiler_context&);
 
     bool is_const_eval(environment&) const noexcept;
+
+    inline size_t variables_count() const noexcept { return variables_.size(); }
 
 private:
     var_set_t variables_;

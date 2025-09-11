@@ -30,11 +30,13 @@
 
 #include "entities/literals/literal_entity.hpp"
 #include "entities/literals/numeric_implicit_cast_pattern.hpp"
-#include "entities/literals/const_literal_implicit_cast_pattern.hpp"
+#include "entities/literals/numeric_literal_implicit_cast_pattern.hpp"
+#include "entities/literals/string_implicit_cast_pattern.hpp"
 #include "entities/literals/string_concat_pattern.hpp"
 
 #include "entities/union/union_bit_or_pattern.hpp"
-#include "entities/union/union_implicit_cast_pattern.hpp"
+#include "entities/union/union_apply_pattern.hpp"
+#include "entities/union/to_union_implicit_cast_pattern.hpp"
 
 #include "entities/tuple/tuple_pattern.hpp"
 #include "entities/tuple/tuple_make_pattern.hpp"
@@ -61,6 +63,7 @@
 #include "entities/array/array_make_pattern.hpp"
 #include "entities/array/array_head_pattern.hpp"
 #include "entities/array/array_tail_pattern.hpp"
+#include "entities/array/array_get_pattern.hpp"
 #include "entities/array/array_implicit_cast_pattern.hpp"
 #include "entities/array/array_elements_implicit_cast_pattern.hpp"
 
@@ -110,9 +113,6 @@ qname_identifier environment::get_function_entity_identifier(string_view signatu
 identifier environment::new_identifier()
 {
     return identifier_builder_();
-    //auto r = identifier_builder_();
-    //auto rv = r.value;
-    //return r;
 }
 
 identifier environment::make_identifier(string_view sv)
@@ -1251,7 +1251,7 @@ entity const& environment::make_union_type_entity(span<entity_identifier> const&
 
     entity_signature usig(get(builtin_qnid::union_), get(builtin_eid::typename_));
     for (entity_identifier const& eid : types) {
-        usig.push_back(field_descriptor{ eid, true });
+        usig.push_back(field_descriptor{ eid, false });
     }
 
     return make_basic_signatured_entity(std::move(usig));
@@ -1378,10 +1378,11 @@ environment::environment()
     implicit_cast_fnl.push(make_shared<enum_implicit_cast_pattern>());
     //implicit_cast_fnl.push(make_shared<array_implicit_cast_pattern>());
     implicit_cast_fnl.push(make_shared<array_elements_implicit_cast_pattern>());
-    implicit_cast_fnl.push(make_shared<union_implicit_cast_pattern>());
+    implicit_cast_fnl.push(make_shared<to_union_implicit_cast_pattern>());
     //implicit_cast_fnl.push(make_shared<numeric_implicit_cast_pattern>());
     implicit_cast_fnl.push(make_shared<tuple_implicit_cast_pattern>());
-    implicit_cast_fnl.push(make_shared<const_literal_implicit_cast_pattern>());
+    implicit_cast_fnl.push(make_shared<numeric_literal_implicit_cast_pattern>());
+    implicit_cast_fnl.push(make_shared<string_implicit_cast_pattern>());
 
     auto union_pattern = make_shared<union_bit_or_pattern>();
     functional& bit_or_fnl = fregistry_resolve(get(builtin_qnid::bit_or));
@@ -1392,6 +1393,10 @@ environment::environment()
 
     //functional& bit_and_fnl = fregistry_resolve(get(builtin_qnid::bit_and));
     //bit_and_fnl.push(make_shared<metaobject_bit_and_pattern>());
+
+    // apply(union(...), visitor) -> auto  
+    functional& apply_fnl = fregistry_resolve(get(builtin_qnid::apply));
+    apply_fnl.push(make_shared<union_apply_pattern>());
 
     // make_tuple(...) -> tuple(...)
     functional& make_tuple_fnl = fregistry_resolve(get(builtin_qnid::make_tuple));
@@ -1408,6 +1413,7 @@ environment::environment()
     functional& get_fnl = fregistry_resolve(get(builtin_qnid::get));
     get_fnl.push(make_shared<tuple_typename_get_pattern>());
     get_fnl.push(make_shared<tuple_get_pattern>());
+    get_fnl.push(make_shared<array_get_pattern>());
     get_fnl.push(make_shared<tuple_project_get_pattern>());
     get_fnl.push(make_shared<struct_get_pattern>());
 
@@ -1456,30 +1462,31 @@ environment::environment()
     //functional& eq_fnl = fregistry_resolve(eq_qname_identifier_);
     //eq_fnl.push(make_shared<eq_pattern>());
 
-    builtin_eids_[(size_t)builtin_eid::arrayify] = set_builtin_extern("__arrayify(..., ~ runtime integer)~>tuple($0...)"sv, &annium_arrayify);
-    builtin_eids_[(size_t)builtin_eid::array_tail] = set_builtin_extern("__array_tail(:runtime tuple(_, $t...))~>tuple($t...)"sv, &annium_array_tail);
+    builtin_eids_[(size_t)builtin_eid::arrayify] = set_builtin_extern("__arrayify(..., runtime integer)->tuple($0...)"sv, &annium_arrayify);
+    builtin_eids_[(size_t)builtin_eid::unfold] = set_builtin_extern("__unfold(~runtime array(...))"sv, &annium_unfold);
+    builtin_eids_[(size_t)builtin_eid::array_tail] = set_builtin_extern("__array_tail(~runtime tuple(_, $t...))->tuple($t...)"sv, &annium_array_tail);
     builtin_eids_[(size_t)builtin_eid::array_at] = set_builtin_extern("__array_at()->any"sv, &annium_array_at);
-    builtin_eids_[(size_t)builtin_eid::equal] = set_builtin_extern("__equal(:runtime any, :runtime any)->bool"sv, &annium_any_equal);
-    builtin_eids_[(size_t)builtin_eid::assert] = set_builtin_extern("__assert(:runtime any)"sv, &annium_assert);
-    builtin_eids_[(size_t)builtin_eid::to_string] = set_builtin_extern("__to_string(:runtime any)->string"sv, &annium_tostring);
-    builtin_eids_[(size_t)builtin_eid::negate] = set_builtin_extern("__negate(:runtime any)->bool"sv, &annium_negate);
-    builtin_eids_[(size_t)builtin_eid::concat] = set_builtin_extern("__concat(:runtime any)->string"sv, &annium_concat);
-    builtin_eids_[(size_t)builtin_eid::error] = set_builtin_extern("__error(:runtime string)"sv, &annium_error);
+    builtin_eids_[(size_t)builtin_eid::equal] = set_builtin_extern("__equal(runtime any, runtime any)->bool"sv, &annium_any_equal);
+    builtin_eids_[(size_t)builtin_eid::assert] = set_builtin_extern("__assert(runtime any)"sv, &annium_assert);
+    builtin_eids_[(size_t)builtin_eid::to_string] = set_builtin_extern("__to_string(runtime any)->string"sv, &annium_tostring);
+    builtin_eids_[(size_t)builtin_eid::negate] = set_builtin_extern("__negate(runtime any)->bool"sv, &annium_negate);
+    builtin_eids_[(size_t)builtin_eid::concat] = set_builtin_extern("__concat(runtime any)->string"sv, &annium_concat);
+    builtin_eids_[(size_t)builtin_eid::error] = set_builtin_extern("__error(runtime string)"sv, &annium_error);
     //set_const_extern<to_string_pattern>("size(const metaobjct))->integer"sv);
 
     //set_extern<external_fn_pattern>("__error(mut string)"sv, &annium_error);
-    set_builtin_extern("__print(:runtime ..., ~runtime integer)"sv, &annium_print_string);
+    set_builtin_extern("__print(runtime ..., runtime integer)"sv, &annium_print_string);
 
     //set_extern("implicit_cast(to: typename string, _)->string"sv, &annium_tostring);
     //set_const_extern<to_string_pattern>("to_string(const __identifier)->string"sv);
     //set_extern<external_fn_pattern>("to_string(_)->string"sv, &annium_tostring);
     //set_extern<external_fn_pattern>("implicit_cast(mut integer)->decimal"sv, &annium_int2dec);
     //set_extern<external_fn_pattern>("implicit_cast(mut integer)->float"sv, &annium_int2flt);
-    set_builtin_extern("create_extern_object(:runtime string)~>object"sv, &annium_create_extern_object);
+    set_builtin_extern("create_extern_object(:runtime string)->object"sv, &annium_create_extern_object);
 
     //set_extern<external_fn_pattern>("set(self: object, property: const __identifier, any)"sv, &annium_set_object_property);
 
-    set_builtin_extern("set(self:~ object, property:~ runtime string, ~ runtime any)~>object"sv, &annium_set_object_property);
+    set_builtin_extern("set(self: object, property: runtime string, runtime any)->object"sv, &annium_set_object_property);
 
     //set_extern("string(any)->string"sv, &annium_tostring);
     //set_extern<external_fn_pattern>("assert(bool)"sv, &annium_assert);
@@ -1491,5 +1498,4 @@ environment::environment()
     set_builtin_extern("__plus(:decimal, :decimal)->decimal"sv, &annium_operator_plus_decimal);
 
 }
-
 }

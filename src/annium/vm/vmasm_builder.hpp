@@ -55,6 +55,7 @@ public:
     }
 
     size_t hash() const noexcept override { return hash_value(id_); }
+    //inline IDT id() const noexcept { return id_; }
 };
 
 template <typename ContextT>
@@ -352,6 +353,7 @@ void builder<ContextT>::function_builder::materialize()
     for (instruction_entry& e : dr_.instructions) {
         switch (e.operation) {
         case op_t::noop: continue;
+        case op_t::cmp:
         case op_t::pushfp:
         case op_t::popfp:
         case op_t::pop:
@@ -405,14 +407,20 @@ void builder<ContextT>::function_builder::materialize()
             if (fd.address) {
                 blocks.back().append(e.operation, *fd.address);
             } else {
-                fd.index = builder_.allocate_constant_index();
+                if (!fd.index) {
+                    fd.index = builder_.allocate_constant_index();
+                }
                 blocks.back().append(op_t::pushc, *fd.index);
                 blocks.back().append(op_t::callp);
             }
             break;
         }
-        case op_t::jt:
-        case op_t::jf:
+        case op_t::jne:
+        case op_t::je:
+        case op_t::jg:
+        case op_t::jge:
+        case op_t::jl:
+        case op_t::jle:
         case op_t::jmp:
         {
             block& cur_block = blocks.back();
@@ -466,10 +474,10 @@ void builder<ContextT>::function_builder::materialize()
             switch (b.operation) {
             case op_t::noop:
                 break;
-            case op_t::jt:
-                b.append_relative_jump(op_t::jtp, jmp_offset); break;
-            case op_t::jf:
-                b.append_relative_jump(op_t::jfp, jmp_offset); break;
+            case op_t::jne:
+                b.append_relative_jump(op_t::jnep, jmp_offset); break;
+            case op_t::je:
+                b.append_relative_jump(op_t::jep, jmp_offset); break;
             case op_t::jmp:
                 b.append_relative_jump(op_t::jmpp, jmp_offset); break;
             default:
