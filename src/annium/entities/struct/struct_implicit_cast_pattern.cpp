@@ -8,7 +8,6 @@
 #include "annium/entities/prepared_call.hpp"
 
 #include "annium/ast/fn_compiler_context.hpp"
-#include "annium/ast/ct_expression_visitor.hpp"
 #include "annium/ast/base_expression_visitor.hpp"
 
 #include "annium/errors/type_mismatch_error.hpp"
@@ -49,8 +48,10 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_implicit_ca
         annotated_identifier const* pargname = arg.name();
         auto const& argexpr = arg.value();
         if (pargname) { // named arguments are not expected
-            auto res = apply_visitor(ct_expression_visitor{ ctx, call.expressions }, argexpr);
-            if (!res || res->value != e.get(builtin_eid::void_)) {
+            auto res = apply_visitor(
+                base_expression_visitor{ ctx, call.expressions, expected_result_t{.modifier = value_modifier_t::constexpr_value}},
+                argexpr);
+            if (!res || res->first.value() != e.get(builtin_eid::void_)) {
                 return std::unexpected(make_error<basic_general_error>(pargname->location, "argument mismatch"sv, argexpr));
             }
             continue; // skip void argument

@@ -6,7 +6,6 @@
 #include "enum_entity.hpp"
 
 #include "annium/ast/fn_compiler_context.hpp"
-#include "annium/ast/ct_expression_visitor.hpp"
 #include "annium/ast/base_expression_visitor.hpp"
 
 #include "annium/entities/prepared_call.hpp"

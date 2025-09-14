@@ -431,5 +431,8 @@
     <None Include="..\..\..\tests\test-suite\tuples_test2.ann">
       <Filter>test-suite</Filter>
     </None>
+    <None Include="..\..\..\tests\test-suite\unions_test.ann">
+      <Filter>test-suite</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -9,7 +9,6 @@
 
 #include "annium/ast/fn_compiler_context.hpp"
 #include "annium/ast/base_expression_visitor.hpp"
-#include "annium/ast/ct_expression_visitor.hpp"
 
 #include "annium/entities/prepared_call.hpp"
 #include "annium/entities/literals/literal_entity.hpp"
@@ -331,9 +330,9 @@ std::ostream& basic_fn_pattern::print(environment const& e, std::ostream& ss) co
         
         apply_visitor(make_functional_visitor<void>([&e, &ss](auto const& m) {
             if constexpr (std::is_same_v<pattern_t, std::decay_t<decltype(m)>>) {
-                e.print_to(ss << ": "sv, m);
+                e.print_to(ss << ":~ "sv, m);
             } else if constexpr (std::is_same_v<syntax_expression_t, std::decay_t<decltype(m)>>) {
-                e.print_to(ss << " ~ "sv, m);
+                e.print_to(ss << ": "sv, m);
             }
         }), pd.constraint);
         if ((pd.modifier & parameter_constraint_modifier_t::ellipsis) == parameter_constraint_modifier_t::ellipsis) {
@@ -344,9 +343,9 @@ std::ostream& basic_fn_pattern::print(environment const& e, std::ostream& ss) co
     if (0 == result_.which()) {
         ss << ")->auto"sv;
     } else if (auto const* pexpr = get<syntax_expression_t>(&result_)) {
-        e.print_to(ss << ")~>"sv, *pexpr);
+        e.print_to(ss << ")->"sv, *pexpr);
     } else if (auto const* rpattern = get<pattern_t>(&result_)) {
-        e.print_to(ss << ")->"sv, *rpattern);
+        e.print_to(ss << ")~>"sv, *rpattern);
     }
     return ss;
 }

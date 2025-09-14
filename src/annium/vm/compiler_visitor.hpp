@@ -371,7 +371,8 @@ public:
             return;
         } else if (fn_context_) {
             local_return_position = fnbuilder_.make_label();
-            size_t param_count = fn_context_->parameter_count(); // including captured_variables
+            size_t param_count = fn_context_->arg_count() + fn_context_->captured_var_count();
+            //size_t param_count = fn_context_->parameter_count(); // including captured_variables
             BOOST_ASSERT(fn_context_->result.entity_id());
             if (fn_context_->result.entity_id() != environment_.get(builtin_eid::void_)) {
                 fnbuilder_.append_fset(-static_cast<intptr_t>(param_count));
@@ -484,8 +485,6 @@ void compiler_visitor_base::operator()(semantic::invoke_function const& invf) co
             } else {
                 vmasm::fn_identity fnident{ fe->id };
                 fnbuilder_.append_call(fnident);
-
-                //bvm().append_push_static_const(i64_blob_result((fe->parameter_count() + 1) * (fe->is_void() ? -1 : 1)));
             }
         } // else just noop, empty function
     } else if (auto efe = dynamic_cast<external_function_entity const*>(&e); efe) {

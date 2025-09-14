@@ -11,7 +11,6 @@
 #include "ast/base_expression_visitor.hpp"
 
 #include "vm/annium_vm.hpp"
-#include "entities/internal_type_entity.hpp"
 #include "entities/ellipsis/ellipsis_pattern.hpp"
 #include "entities/functions/function_entity.hpp"
 #include "entities/functions/internal_function_entity.hpp"
@@ -31,6 +30,7 @@
 #include "entities/literals/literal_entity.hpp"
 #include "entities/literals/numeric_implicit_cast_pattern.hpp"
 #include "entities/literals/numeric_literal_implicit_cast_pattern.hpp"
+#include "entities/literals/numeric_literal_equal_pattern.hpp"
 #include "entities/literals/string_implicit_cast_pattern.hpp"
 #include "entities/literals/string_concat_pattern.hpp"
 
@@ -84,31 +84,6 @@ functional& environment::resolve_functional(qname_view qn)
     assert(qn.is_absolute());
     return fregistry_resolve(qn);
 }
-
-#if 0
-qname_identifier environment::get_function_entity_identifier(string_view signature)
-{
-    using sonia::get;
-
-    parser_context parser{ *this };
-    auto decls = parser.parse_string((string_view)("extern fn %1%;"_fmt % signature).str());
-
-    fn_compiler_context ctx{ *this, qname{} };
-    auto& fndecl = get<fn_pure_t>(decls->front());
-    fndecl.aname.value.set_absolute();
-
-    THROW_NOT_IMPLEMENTED_ERROR("environment get_function_entity_identifier");
-#if 0
-    function_signature sig;
-    sig.setup(ctx, fndecl.parameters);
-    sig.normilize(ctx);
-    sig.build_mangled_id(*this);
-
-    qname fnm = fndecl.name() / sig.mangled_id;
-    return qnregistry().resolve(fnm);
-#endif
-}
-#endif
 
 identifier environment::new_identifier()
 {
@@ -1122,14 +1097,6 @@ identifier_entity const& environment::make_identifier_entity(identifier value)
     }));
 }
 
-//qname_identifier_entity const& environment::make_qname_identifier_entity(qname_identifier value)
-//{
-//    qname_identifier_entity smpl{ value, get(builtin_eid::qname_identifier) };
-//    return static_cast<qname_identifier_entity&>(eregistry_find_or_create(smpl, [&smpl]() {
-//        return make_shared<qname_identifier_entity>(std::move(smpl));
-//    }));
-//}
-
 empty_entity const& environment::make_empty_entity(entity_identifier type)
 {
     empty_entity smpl{ type };
@@ -1149,6 +1116,14 @@ qname_entity const& environment::make_qname_entity(qname_view value)
     qname_entity smpl{ value, get(builtin_eid::qname) };
     return static_cast<qname_entity&>(eregistry_find_or_create(smpl, [&smpl]() {
         return make_shared<qname_entity>(std::move(smpl));
+    }));
+}
+
+functional_identifier_entity const& environment::make_functional_identifier_entity(qname_identifier value)
+{
+    functional_identifier_entity smpl{ value, get(builtin_eid::qname) };
+    return static_cast<functional_identifier_entity&>(eregistry_find_or_create(smpl, [&smpl]() {
+        return make_shared<functional_identifier_entity>(std::move(smpl));
     }));
 }
 
@@ -1356,6 +1331,7 @@ environment::environment()
     // equal(_, _) -> bool
     functional& equal_fnl = fregistry_resolve(get(builtin_qnid::eq));
     equal_fnl.push(make_shared<tuple_equal_pattern>());
+    equal_fnl.push(make_shared<numeric_literal_equal_pattern>());
     equal_fnl.push(make_shared<equal_pattern>());
 
     functional& negate_fnl = fregistry_resolve(get(builtin_qnid::negate));
@@ -1401,7 +1377,7 @@ environment::environment()
     // make_tuple(...) -> tuple(...)
     functional& make_tuple_fnl = fregistry_resolve(get(builtin_qnid::make_tuple));
     make_tuple_fnl.push(make_shared<tuple_make_pattern>());
-    
+
     // make_vector(...) -> vector(...)
     functional& make_vector_fnl = fregistry_resolve(get(builtin_qnid::make_vector));
     make_vector_fnl.push(make_shared<vector_make_pattern>());

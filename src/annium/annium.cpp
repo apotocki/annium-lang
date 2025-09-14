@@ -107,6 +107,18 @@ using namespace annium;
 
 const char annium_bootstrap_code[] = R"#(
 inline fn not_equal(_, _) => !($0 == $1);
+inline fn equal($l: ~union(...), $r) -> bool {
+    return apply(to: $l, visitor: fn[$r]($value)->bool {
+        return $value == $r;
+    });
+}
+
+inline fn equal($l, $r: ~union(...)) -> bool {
+    return apply(to: $r, visitor: fn[$l]($value)->bool {
+        return $value == $l;
+    });
+}
+
 inline fn logic_and($FT, $ST) -> union($FT, $ST) {
     if $0 {
         return $1;
@@ -344,7 +356,7 @@ void annium_impl::do_compile(internal_function_entity const& fe)
     }
 
     //size_t param_count = fe.parameter_count();
-    asm_builder_t::function_builder fb{ vmasm_, fd };// = vmasm_.create_function(vmasm::fn_identity<qname_identifier>{ fe.name() });
+    asm_builder_t::function_builder fb{ vmasm_, fd };
 
     // for accessing function arguments and local variables by zero-based index
     fb.append_pushfp(); // for accessing function arguments and local variables

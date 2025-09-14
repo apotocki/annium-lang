@@ -6,7 +6,7 @@
 #include "signature_matcher.hpp"
 
 #include "annium/ast/fn_compiler_context.hpp"
-#include "annium/ast/ct_expression_visitor.hpp"
+#include "annium/ast/base_expression_visitor.hpp"
 
 #include "annium/entities/literals/literal_entity.hpp"
 
@@ -24,13 +24,13 @@ value_match_visitor::result_type value_match_visitor::operator()(annotated_bool 
 {
     environment& e = callee_ctx.env();
 
-    ct_expression_visitor sv{ callee_ctx, expressions, expected_result_t{ e.get(builtin_eid::boolean) } };
-    auto ent_id = apply_visitor(sv, cexpr);
-    if (!ent_id) return std::unexpected(std::move(ent_id.error()));
+    base_expression_visitor sv{ callee_ctx, expressions, expected_result_t{ .type = e.get(builtin_eid::boolean), .modifier = value_modifier_t::constexpr_value } };
+    auto res = apply_visitor(sv, cexpr);
+    if (!res) return std::unexpected(std::move(res.error()));
     entity_identifier expected_ent_id = bv.value ? e.get(builtin_eid::true_) : e.get(builtin_eid::false_);
-    if (ent_id->value == expected_ent_id) return expected_ent_id;
+    if (res->first.value() == expected_ent_id) return expected_ent_id;
 
-    return std::unexpected(make_error<value_mismatch_error>(get_start_location(cexpr), ent_id->value, expected_ent_id, bv.location));
+    return std::unexpected(make_error<value_mismatch_error>(get_start_location(cexpr), res->first.value(), expected_ent_id, bv.location));
 }
 
 value_match_visitor::result_type value_match_visitor::operator()(annotated_qname_identifier const& aqi) const

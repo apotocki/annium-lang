@@ -44,6 +44,23 @@ shared_ptr<entity> internal_fn_pattern::build(fn_compiler_context& ctx, function
 
 void internal_fn_pattern::build_scope(environment& e, functional_match_descriptor& md, internal_function_entity& fent) const
 {
+    // setup captures
+    if (captures_) {
+        entity_signature const* psig = captures_->signature();
+        BOOST_ASSERT(psig);
+        span<const field_descriptor> fields = psig->fields().subspan(1); // skip 'this'
+        // calculate runtime size of captures
+        size_t rt_size = std::ranges::count_if(fields, [](field_descriptor const& fd) { return !fd.is_const(); });
+        fent.set_captured_var_count(rt_size);
+        int64_t capture_var_offset = -static_cast<int64_t>(rt_size);
+        for (field_descriptor const& fd : fields) {
+            if (!fd.is_const()) {
+                fent.push_capture(e, fd.name(), fd.entity_id(), capture_var_offset++);
+            }
+        }
+        // to do: for multivalued names bound constexpr vector of captures
+    }
+
     // bind variables (rt arguments)
     for (parameter_descriptor const& pd : parameters_) {
         functional_binding::value_type const* bsp = md.bindings.lookup(pd.inames.front().value);

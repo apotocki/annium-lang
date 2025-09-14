@@ -38,6 +38,11 @@ union_apply_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
     prepared_call::argument_descriptor_t union_expr;
     auto union_arg = call_session.use_named_argument(env.get(builtin_id::to), expected_result_t{}, &union_expr);
     if (!union_arg) {
+        if (union_arg.error()) {
+            return std::unexpected(append_cause(
+                make_error<basic_general_error>(get_start_location(*get<0>(union_expr)), "error resolving 'to' argument"sv),
+                std::move(union_arg.error())));
+        }
         return std::unexpected(make_error<basic_general_error>(call.location, "missing 'to' argument"sv));
     }
 
@@ -57,6 +62,11 @@ union_apply_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
     prepared_call::argument_descriptor_t visitor_expr;
     auto visitor_arg = call_session.use_named_argument(env.get(builtin_id::visitor), expected_result_t{}, &visitor_expr);
     if (!visitor_arg) {
+        if (visitor_arg.error()) {
+            return std::unexpected(append_cause(
+                make_error<basic_general_error>(get_start_location(*get<0>(visitor_expr)), "error resolving 'visitor' argument"sv),
+                std::move(visitor_arg.error())));
+        }
         return std::unexpected(make_error<basic_general_error>(call.location, "missing 'visitor' argument"sv));
     }
 
@@ -67,8 +77,8 @@ union_apply_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
     syntax_expression_result_t & visitor_arg_er = visitor_arg->first;
 
     auto pmd = make_shared<union_apply_match_descriptor>(call, union_entity_type);
-    pmd->emplace_back(0, union_arg_er);
-    pmd->emplace_back(1, visitor_arg_er);
+    pmd->emplace_back(0, union_arg_er, get_start_location(*get<0>(union_expr)));
+    pmd->emplace_back(1, visitor_arg_er, get_start_location(*get<0>(visitor_expr)));
     pmd->signature.emplace_back(env.get(builtin_id::to), union_arg_er.type(), false);
     pmd->signature.emplace_back(env.get(builtin_id::visitor), visitor_arg_er.value_or_type, visitor_arg_er.is_const_result);
     return pmd;
@@ -136,7 +146,7 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
 
         env.push_back_expression(el, branch_res, semantic::truncate_values{ .count = 1, .keep_back = 0 }); // remove 'which' value from stack
         
-        function_call_t visitor_call{ md.call_location, syntax_expression_t{ *visitor_expr } };
+        function_call_t visitor_call{ get<2>(md.matches[1]), syntax_expression_t{ *visitor_expr } };
         if (!union_field.is_const()) {
             // set union_value_var_pair type for this branch
             union_value_var_pair.second.type = union_field.entity_id();
@@ -148,7 +158,7 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
         auto res = base_expression_visitor{ ctx, el }(visitor_call);
         if (!res) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(md.call_location, ("error calling visitor for union type index %1% (%2%)"_fmt % i % env.print(union_field.entity_id())).str()),
+                make_error<basic_general_error>(visitor_call.location, ("error calling visitor for union type index %1% (%2%)"_fmt % i % env.print(union_field.entity_id())).str()),
                 std::move(res.error())));
         }
 

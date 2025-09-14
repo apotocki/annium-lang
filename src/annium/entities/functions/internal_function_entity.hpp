@@ -40,11 +40,13 @@ class internal_function_entity : public function_entity
 public:
     semantic::expression_span body;
     functional_binding_set bindings;
+    functional_binding_set captured_bindings;
 
     internal_function_entity(qname&& name, entity_signature&& sig, statement_span bd);
 
     void push_argument(variable_identifier);
     void push_variable(variable_identifier varid, intptr_t index);
+    void push_capture(environment&, identifier name, entity_identifier type, intptr_t index);
     //void push_argument(annotated_identifier, local_variable &&);
     //void push_variable(variable_identifier, intptr_t);
     [[nodiscard]] intptr_t resolve_variable_index(variable_identifier) const;
@@ -53,6 +55,9 @@ public:
 
     inline void set_arg_count(uint64_t count) noexcept { arg_count_ = count; }
     [[nodiscard]] inline uint64_t arg_count() const noexcept { return arg_count_; }
+
+    inline void set_captured_var_count(uint64_t count) noexcept { captured_var_count_ = count; }
+    [[nodiscard]] inline uint64_t captured_var_count() const noexcept { return captured_var_count_; }
 
 #ifdef ANNIUM_NO_INLINE_FUNCTIONS
     [[nodiscard]] inline bool is_inline() const noexcept { return false; }
@@ -79,11 +84,14 @@ public:
 
     inline size_t variables_count() const noexcept { return variables_.size(); }
 
+    inline size_t scope_offset() const noexcept { return variables_count() - captured_var_count_; }
+
 private:
     var_set_t variables_;
     //qname_view ns_;
     statement_span sts_;
-    uint64_t arg_count_ : 16;
+    uint64_t arg_count_ : 16; // number of runtime arguments
+    uint64_t captured_var_count_ : 16; // number of runtime captured variables
     uint64_t is_built_ : 1;
     uint64_t is_inline_ : 1;
     uint64_t is_empty_ : 1;

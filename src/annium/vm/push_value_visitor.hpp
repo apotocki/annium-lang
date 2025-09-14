@@ -7,7 +7,6 @@
 
 #include "annium_vm.hpp"
 #include "../semantic.hpp"
-#include "../entities/functional_entity.hpp"
 
 namespace annium::vm {
 
@@ -215,9 +214,14 @@ public:
         this->operator()(ie.value());
     }
 
-    void operator()(qname_identifier_entity const& ie) const override
+    void operator()(functional_identifier_entity const& ie) const override
     {
         this->operator()(ie.value());
+    }
+
+    void operator()(qname_entity const& qne) const override
+    {
+        this->operator()(qne.value());
     }
 
     void operator()(empty_entity const& /*ee*/) const override

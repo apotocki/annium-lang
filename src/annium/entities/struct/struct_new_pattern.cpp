@@ -5,7 +5,7 @@
 #include "struct_new_pattern.hpp"
 
 #include "annium/ast/fn_compiler_context.hpp"
-#include "annium/ast/ct_expression_visitor.hpp"
+#include "annium/ast/base_expression_visitor.hpp"
 #include "annium/entities/prepared_call.hpp"
 
 #include "annium/auxiliary.hpp"
@@ -43,10 +43,12 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_new_pattern
         annotated_identifier const* pargname = arg.name();
         if (pargname && pargname->value == tpid) {
             syntax_expression_t const& arg_expr = arg.value();
-            auto res = apply_visitor(ct_expression_visitor{ ctx, call.expressions }, arg_expr);
+            auto res = apply_visitor(
+                base_expression_visitor{ ctx, call.expressions, expected_result_t{ .modifier = value_modifier_t::constexpr_value } },
+                arg_expr);
             if (!res) return std::unexpected(std::move(res.error()));
-            if (res->expressions) THROW_NOT_IMPLEMENTED_ERROR("struct_new_pattern::try_match, const value expressions"sv);
-            entity const& some_entity = get_entity(e, res->value);
+            if (res->first.expressions) THROW_NOT_IMPLEMENTED_ERROR("struct_new_pattern::try_match, const value expressions"sv);
+            entity const& some_entity = get_entity(e, res->first.value());
             pse = dynamic_cast<struct_entity const*>(&some_entity);
             if (!pse) return std::unexpected(make_error<basic_general_error>(pargname->location, "argument mismatch, expected a structure"sv, pargname->value));
             typeloc = get_start_location(arg_expr);

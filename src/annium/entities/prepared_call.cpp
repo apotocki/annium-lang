@@ -8,7 +8,7 @@
 #include "sonia/sal.hpp"
 
 #include "annium/ast/fn_compiler_context.hpp"
-#include "annium/ast/ct_expression_visitor.hpp"
+#include "annium/ast/base_expression_visitor.hpp"
 
 #include "annium/entities/literals/literal_entity.hpp"
 #include "annium/auxiliary.hpp"
@@ -18,21 +18,12 @@
 
 namespace annium {
 
-prepared_call::prepared_call(fn_compiler_context& ctx, functional const* pf, semantic::expression_list_t& ael, resource_location loc) noexcept
+prepared_call::prepared_call(fn_compiler_context &ctx, functional const* pf, span<const named_expression_t> call_args, resource_location call_loc, semantic::expression_list_t& ael)
     : caller_ctx{ ctx }
     , pfnl{ pf }
     , expressions{ ael }
-    , location{ std::move(loc) }
-{
-    init_bindings();
-}
-
-prepared_call::prepared_call(fn_compiler_context &ctx, functional const* pf, pure_call_t const& call, semantic::expression_list_t& ael)
-    : caller_ctx{ ctx }
-    , pfnl{ pf }
-    , expressions{ ael }
-    , location{ call.location }
-    , args{ call.args }
+    , location{ std::move(call_loc) }
+    , args{ call_args.begin(), call_args.end() }
 {
     init_bindings();
 }
@@ -68,7 +59,7 @@ local_variable& prepared_call::new_temporary(environment& e, identifier name, en
 
 void prepared_call::export_auxiliaries(syntax_expression_result& ser)
 {
-    ser.expressions = arguments_auxiliary_expressions;
+    ser.expressions = expressions.concat(ser.expressions, arguments_auxiliary_expressions);
     for(auto& [name, plv, el] : temporaries) {
         ser.temporaries.emplace_back(name, std::move(*plv), el);
     }

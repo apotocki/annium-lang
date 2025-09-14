@@ -5,7 +5,7 @@
 #include "pattern_matcher.hpp"
 
 #include "annium/ast/fn_compiler_context.hpp"
-#include "annium/ast/ct_expression_visitor.hpp"
+#include "annium/ast/base_expression_visitor.hpp"
 #include "annium/entities/literals/literal_entity.hpp"
 
 #include "annium/errors/type_mismatch_error.hpp"
@@ -23,10 +23,10 @@ error_storage pattern_matcher::match(pattern_t const& pattern, annotated_entity_
         } else if constexpr (std::is_same_v<context_identifier, std::decay_t<decltype(d)>>) {
             return do_match_context_identifier(d, pattern, type);
         } else if constexpr (std::is_same_v<syntax_expression_t, std::decay_t<decltype(d)>>) {
-            auto expr_res = apply_visitor(ct_expression_visitor{ ctx_, expressions_ }, d);
+            auto expr_res = apply_visitor(base_expression_visitor{ ctx_, expressions_, expected_result_t{ .modifier = value_modifier_t::constexpr_value } }, d);
             if (!expr_res) { return std::move(expr_res.error()); }
-            if (type.value == expr_res->value) { return do_match_concepts(pattern.concepts, type); } // Expression matches the type
-            return make_error<type_mismatch_error>(type.location, type.value, expr_res->value, get_start_location(d));
+            if (type.value == expr_res->first.value()) { return do_match_concepts(pattern.concepts, type); } // Expression matches the type
+            return make_error<type_mismatch_error>(type.location, type.value, expr_res->first.value(), get_start_location(d));
         } else { //if constexpr (std::is_same_v<pattern_t::signature_descriptor, std::decay_t<decltype(d)>>) {
             static_assert(std::is_same_v<pattern_t::signature_descriptor, std::decay_t<decltype(d)>>);
             return do_match(d, pattern, type);
@@ -67,7 +67,9 @@ error_storage pattern_matcher::do_match_concepts(span<const syntax_expression_t>
 {
     // Check if the type matches any of the concepts
     for (const auto& concept_expr : concepts) {
-        auto concept_res = apply_visitor(ct_expression_visitor{ ctx_, ctx_.expression_store() }, concept_expr);
+        auto concept_res = apply_visitor(
+            base_expression_visitor{ ctx_, ctx_.expression_store(), expected_result_t{.modifier = value_modifier_t::constexpr_value }},
+            concept_expr);
         if (!concept_res) {
             return concept_res.error();
         }

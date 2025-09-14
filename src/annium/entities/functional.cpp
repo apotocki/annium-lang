@@ -329,7 +329,12 @@ struct expression_stack_checker
 #endif
 };
 
-std::expected<functional::match, error_storage> functional::find(fn_compiler_context& ctx, pure_call_t const& call, semantic::expression_list_t& ael, expected_result_t const& expected_result) const
+std::expected<functional::match, error_storage> functional::find(
+    fn_compiler_context& ctx,
+    syntax_expression_result_t* capture_result, // optional, nullptr if not needed
+    pure_call_t const& call,
+    semantic::expression_list_t& ael,
+    expected_result_t const& expected_result) const
 {
     alt_error err;
     numetron::decimal major_weight = 0;
@@ -339,7 +344,7 @@ std::expected<functional::match, error_storage> functional::find(fn_compiler_con
 
     expression_stack_checker expr_stack_state{ ctx };
 
-    prepared_call pcall{ ctx, this, call, ael };
+    prepared_call pcall{ ctx, this, call.args, call.location, ael };
     if (auto err = pcall.prepare(); err) return std::unexpected(std::move(err));
 
     for (auto const& p : patterns_) {
@@ -390,6 +395,9 @@ std::expected<functional::match, error_storage> functional::find(fn_compiler_con
     }
     auto [ptrn, md] = alternatives.front();
     syntax_expression_result pre_ser;
+    if (capture_result) {
+        append_semantic_result(ael, pre_ser, *capture_result);
+    }
     pcall.export_auxiliaries(pre_ser);
     return match{ ptrn, ael, std::move(pre_ser), std::move(md) };
 }

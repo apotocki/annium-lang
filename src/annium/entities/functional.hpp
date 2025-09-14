@@ -350,7 +350,10 @@ public:
     }
 
     // looking by argument expressions (pattern matching)
-    std::expected<match, error_storage> find(fn_compiler_context&, pure_call_t const&, semantic::expression_list_t&, expected_result_t const& expected_result = expected_result_t{}) const;
+    std::expected<match, error_storage> find(
+        fn_compiler_context&,
+        syntax_expression_result_t* capture_result,
+        pure_call_t const&, semantic::expression_list_t&, expected_result_t const& expected_result = expected_result_t{}) const;
 
 private:
     qname_identifier id_;

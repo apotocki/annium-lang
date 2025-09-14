@@ -10,7 +10,7 @@
 #include "annium/entities/signatured_entity.hpp"
 
 #include "annium/ast/fn_compiler_context.hpp"
-#include "annium/ast/ct_expression_visitor.hpp"
+#include "annium/ast/base_expression_visitor.hpp"
 
 namespace annium {
 
@@ -31,7 +31,9 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_pattern::try
 
     for (auto const& arg : call.args) { // { argname, expr }
         annotated_identifier const* pargname = arg.name();
-        auto res = apply_visitor(ct_expression_visitor{ ctx, call.expressions }, arg.value());
+        auto res = apply_visitor(
+            base_expression_visitor{ ctx, call.expressions, expected_result_t{.modifier = value_modifier_t::constexpr_value } },
+            arg.value());
         if (!res) {
             return std::unexpected(append_cause(
                 make_error<basic_general_error>(pargname ? pargname->location : get_start_location(arg.value()), "argument error"sv, arg.value()),
@@ -39,13 +41,13 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_pattern::try
             ));
         }
         
-        if (res->value == veid) {
+        if (res->first.value() == veid) {
             continue; // ignore argument
         }
-        if (res->expressions) {
+        if (res->first.expressions) {
             THROW_NOT_IMPLEMENTED_ERROR("tuple_pattern::try_match: expressions for const value");
         }
-        pmd->fields.emplace_back(pargname ? *pargname : annotated_identifier{}, res->value);
+        pmd->fields.emplace_back(pargname ? *pargname : annotated_identifier{}, res->first.value());
     }
 
     return pmd;

@@ -11,10 +11,7 @@
 
 #include "fn_compiler_context.hpp"
 #include "annium/entities/enum/enum_entity.hpp"
-#include "annium/entities/functional_entity.hpp"
 #include "annium/entities/literals/literal_entity.hpp"
-
-#include "ct_expression_visitor.hpp"
 
 #include "annium/auxiliary.hpp"
 #include "annium/errors.hpp"

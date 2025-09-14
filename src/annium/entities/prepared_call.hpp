@@ -41,8 +41,7 @@ public:
     mutable small_vector<std::tuple<identifier, resource_location, argument_cache>, 8> argument_caches_;
     uint64_t named_map_, positioned_map_; // bitmasks of named and positional arguments
 
-    prepared_call(fn_compiler_context&, functional const*, semantic::expression_list_t& ael, resource_location loc) noexcept;
-    prepared_call(fn_compiler_context&, functional const*, pure_call_t const&, semantic::expression_list_t&);
+    prepared_call(fn_compiler_context&, functional const*, span<const named_expression_t>, resource_location call_loc, semantic::expression_list_t&);
     prepared_call(prepared_call const&) = delete;
     ~prepared_call();
 

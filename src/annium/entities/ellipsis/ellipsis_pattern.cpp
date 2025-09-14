@@ -9,7 +9,7 @@
 #include "annium/entities/literals/literal_entity.hpp"
 
 #include "annium/ast/fn_compiler_context.hpp"
-#include "annium/ast/ct_expression_visitor.hpp"
+#include "annium/ast/base_expression_visitor.hpp"
 
 #include "annium/auxiliary.hpp"
 
@@ -51,11 +51,11 @@ std::expected<functional_match_descriptor_ptr, error_storage> ellipsis_pattern::
         return std::unexpected(make_error<basic_general_error>(call.location, "unmatched parameter"sv));
     }
 
-    ct_expression_visitor eobjvis{ ctx, call.expressions };
+    base_expression_visitor eobjvis{ ctx, call.expressions, expected_result_t{ .modifier = value_modifier_t::constexpr_value } };
     auto obj = apply_visitor(eobjvis, *object_arg);
     if (!obj) return std::unexpected(std::move(obj.error()));
-    BOOST_ASSERT(!obj->expressions); // not impelemented const value expressions
-    entity const& metaobject_ent = get_entity(e, obj->value);
+    BOOST_ASSERT(!obj->first.expressions); // not impelemented const value expressions
+    entity const& metaobject_ent = get_entity(e, obj->first.value());
     if (identifier_entity const* pie = dynamic_cast<identifier_entity const*>(&metaobject_ent); pie) {
         return make_shared<ellipsis_match_descriptor>(call.functional_id(), pie, get_start_location(*object_arg));
     }

@@ -12,6 +12,7 @@ namespace annium {
 internal_function_entity::internal_function_entity(qname&& name, entity_signature&& sig, statement_span sts)
     : function_entity{ std::move(name), std::move(sig) }
     , sts_{ std::move(sts) }
+    , captured_var_count_{ 0 }
     , is_inline_{ 0 }
     , is_built_{ 0 }
     , arg_count_{ 0 }
@@ -35,6 +36,13 @@ void internal_function_entity::push_argument(variable_identifier varid)
 void internal_function_entity::push_variable(variable_identifier varid, intptr_t index)
 {
     BOOST_VERIFY(variables_.insert(std::pair{ varid, index }).second);
+}
+
+void internal_function_entity::push_capture(environment& e, identifier name, entity_identifier type, intptr_t index)
+{
+    variable_identifier varid = e.new_variable_identifier();
+    captured_bindings.emplace_back(annotated_identifier{ name }, local_variable{ .type = type, .varid = varid });
+    variables_.insert(std::pair{ varid, index });
 }
 
 //void internal_function_entity::push_argument(annotated_identifier name, local_variable&& lv)
@@ -67,6 +75,9 @@ intptr_t internal_function_entity::resolve_variable_index(variable_identifier va
 error_storage internal_function_entity::build(environment& e)
 {
     fn_compiler_context fnctx{ e, *this };
+    if (captured_var_count_) {
+        fnctx.push_binding(captured_bindings);
+    }
     fnctx.push_binding(bindings);
     return build(fnctx);
 }

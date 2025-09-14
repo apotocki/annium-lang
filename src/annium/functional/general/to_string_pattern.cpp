@@ -108,7 +108,12 @@ public:
         e_.print_to(oss_, ent.value());
     }
     
-    void operator()(const qname_identifier_entity& ent) const override
+    void operator()(const functional_identifier_entity& ent) const override
+    {
+        e_.print_to(oss_, ent.value());
+    }
+
+    void operator()(const qname_entity& ent) const override
     {
         e_.print_to(oss_, ent.value());
     }

@@ -31,6 +31,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> equal_pattern::try
         }
     }
     syntax_expression_result_t& lhs_arg_er = lhs_arg->first;
+    resource_location lhs_loc = get_start_location(*get<0>(lhs_expr));
     entity_identifier lhs_type = lhs_arg_er.is_const_result ? get_entity(ctx.env(), lhs_arg_er.value()).get_type() : lhs_arg_er.type();
 
     auto rhs_arg = call_session.use_next_positioned_argument(expected_result_t{ lhs_type }, &rhs_expr);
@@ -43,21 +44,21 @@ std::expected<functional_match_descriptor_ptr, error_storage> equal_pattern::try
             return std::unexpected(make_error<basic_general_error>(call.location, "equality comparison requires two arguments: missing second argument"sv));
         }
     }
-
+    resource_location rhs_loc = get_start_location(*get<0>(rhs_expr));
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "equality comparison accepts exactly two arguments, but more were provided"sv, std::move(argterm.value())));
     }
     auto pmd = make_shared<functional_match_descriptor>(call);
-    pmd->emplace_back(0, lhs_arg_er);
-    pmd->emplace_back(1, rhs_arg->first);
+    pmd->emplace_back(0, lhs_arg_er, lhs_loc);
+    pmd->emplace_back(1, rhs_arg->first, rhs_loc);
     return std::move(pmd);
 }
 
 std::expected<syntax_expression_result_t, error_storage> equal_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& e = ctx.env();
-    auto & lhs_er = get<1>(md.matches.front());
-    auto & rhs_er = get<1>(md.matches.back());
+    auto& [_, lhs_er, lhs_loc] = md.matches.front();
+    auto& [__, rhs_er, rhs_loc] = md.matches.back();
 
     if (lhs_er.is_const_result && rhs_er.is_const_result) {
         return syntax_expression_result_t{
@@ -77,20 +78,20 @@ std::expected<syntax_expression_result_t, error_storage> equal_pattern::apply(fn
         
         // Create implicit cast call instead of direct push_value
         pure_call_t cast_call{ md.call_location };
-        cast_call.emplace_back(annotated_entity_identifier{ lhs_er.value(), md.call_location });
+        cast_call.emplace_back(annotated_entity_identifier{ lhs_er.value(), lhs_loc });
 
         // Try to find an implicit cast from const value to non-const type
-        auto match = ctx.find(builtin_qnid::implicit_cast, cast_call, el, expected_result_t{ .type = lhs_type, .location = md.call_location, .modifier = value_modifier_t::runtime_value });
+        auto match = ctx.find(builtin_qnid::implicit_cast, cast_call, el, expected_result_t{ .type = lhs_type, .location = lhs_loc, .modifier = value_modifier_t::runtime_value });
         if (!match) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(md.call_location, "failed to convert left constant value to runtime value for equality comparison"sv),
+                make_error<basic_general_error>(lhs_loc, "failed to convert left constant value to runtime value for equality comparison"sv),
                 std::move(match.error())));
         } else {
             // Apply the implicit cast and use its result
             auto cast_result = match->apply(ctx);
             if (!cast_result) {
                 return std::unexpected(append_cause(
-                    make_error<basic_general_error>(md.call_location, "failed to apply implicit cast for left argument in equality comparison"sv),
+                    make_error<basic_general_error>(lhs_loc, "failed to apply implicit cast for left argument in equality comparison"sv),
                     std::move(cast_result.error())));
             } else {
                 result.expressions = el.concat(result.expressions, cast_result->expressions);
@@ -98,9 +99,7 @@ std::expected<syntax_expression_result_t, error_storage> equal_pattern::apply(fn
             }
         }
     } else {
-        result.temporaries = lhs_er.temporaries;
-        result.branches_expressions = lhs_er.branches_expressions;
-        result.expressions = el.concat(result.expressions, lhs_er.expressions);
+        append_semantic_result(el, result, lhs_er);
     }
     
     if (rhs_er.is_const_result) {
@@ -109,20 +108,20 @@ std::expected<syntax_expression_result_t, error_storage> equal_pattern::apply(fn
         
         // Create implicit cast call instead of direct push_value
         pure_call_t cast_call{ md.call_location };
-        cast_call.emplace_back(annotated_entity_identifier{ rhs_er.value(), md.call_location });
+        cast_call.emplace_back(annotated_entity_identifier{ rhs_er.value(), rhs_loc });
 
         // Try to find an implicit cast from const value to non-const type
-        auto match = ctx.find(builtin_qnid::implicit_cast, cast_call, el, expected_result_t{ .type = rhs_type, .location = md.call_location, .modifier = value_modifier_t::runtime_value });
+        auto match = ctx.find(builtin_qnid::implicit_cast, cast_call, el, expected_result_t{ .type = rhs_type, .location = rhs_loc, .modifier = value_modifier_t::runtime_value });
         if (!match) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(md.call_location, "failed to convert right constant value to runtime value for equality comparison"sv),
+                make_error<basic_general_error>(rhs_loc, "failed to convert right constant value to runtime value for equality comparison"sv),
                 std::move(match.error())));
         } else {
             // Apply the implicit cast and use its result
             auto cast_result = match->apply(ctx);
             if (!cast_result) {
                 return std::unexpected(append_cause(
-                    make_error<basic_general_error>(md.call_location, "failed to apply implicit cast for right argument in equality comparison"sv),
+                    make_error<basic_general_error>(rhs_loc, "failed to apply implicit cast for right argument in equality comparison"sv),
                     std::move(cast_result.error())));
             } else {
                 result.expressions = el.concat(result.expressions, cast_result->expressions);
@@ -130,9 +129,7 @@ std::expected<syntax_expression_result_t, error_storage> equal_pattern::apply(fn
             }
         }
     } else {
-        result.temporaries.insert(result.temporaries.end(), rhs_er.temporaries.begin(), rhs_er.temporaries.end());
-        result.branches_expressions = el.concat(result.branches_expressions, rhs_er.branches_expressions);
-        result.expressions = el.concat(result.expressions, rhs_er.expressions);
+        append_semantic_result(el, result, rhs_er);
     }
 
     e.push_back_expression(el, result.expressions, semantic::invoke_function(e.get(builtin_eid::equal)));

@@ -609,7 +609,9 @@ struct fn_pure
 template <typename ExprT>
 struct fn_decl : fn_pure<ExprT>
 {
-    /*mutable */ statement_span body;
+    statement_span body;
+    opt_named_term_list<ExprT> captures;
+    resource_location captures_location;
 };
 
 using syntax_expression_t = make_recursive_variant<

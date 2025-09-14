@@ -25,7 +25,6 @@
 
 #include "semantic.hpp"
 #include "entities/variable_entity.hpp"
-#include "entities/functional_entity.hpp"
 #include "entities/functional.hpp"
 #include "entities/functional_registry.hpp"
 
@@ -65,7 +64,8 @@ class external_fn_pattern;
     ((tuple_project, "tuple_project"sv))   \
     ((vector, "vector"sv))                 \
     ((array, "array"sv))                   \
-    ((data, "data"sv))         \
+    ((functor, "functor"))                 \
+    ((data, "data"sv))                     \
     ((identifier, "__identifier"sv))       \
     ((qname, "__qname"sv))                 \
     ((object, "object"sv))                 \
@@ -157,7 +157,7 @@ enum class builtin_eid : entity_identifier::value_type
     typename_ = 1,
     BOOST_PP_SEQ_FOR_EACH(ANNIUM_PRINT_BUILTINTYPE_ENUM, _, ANNIUM_BUILTIN_TYPES_SEQ)
     void_, object,
-    true_, false_,  identifier, qname, 
+    true_, false_, identifier, qname,
     arrayify, // builtin ::arrayify(...)->array
     unfold, // builtin ::unfold(:array(...))
     array_tail, // builtin ::array_tail(array)-> array
@@ -303,23 +303,24 @@ public:
     inline functional const& fget(builtin_qnid bi) const noexcept { return functional_registry_.resolve(builtin_qnids_[(size_t)bi]); }
     inline identifier get(builtin_id bi) const noexcept { return builtin_ids_[(size_t)bi]; }
 
-    identifier_entity       const& make_identifier_entity(identifier value);
-    //qname_identifier_entity const& make_qname_identifier_entity(qname_identifier value);
-    empty_entity            const& make_empty_entity(entity_identifier);
-    empty_entity            const& make_empty_entity(entity const&);
-    qname_entity            const& make_qname_entity(qname_view value);
-    generic_literal_entity  const& make_nil_entity(entity_identifier type);
-    generic_literal_entity  const& make_bool_entity(bool value, entity_identifier type = {});
-    generic_literal_entity  const& make_integer_entity(numetron::integer_view value, entity_identifier type = {});
-    generic_literal_entity  const& make_decimal_entity(numetron::decimal_view value, entity_identifier type = {});
-    generic_literal_entity  const& make_string_entity(string_view value, entity_identifier type = {});
-    generic_literal_entity  const& make_generic_entity(smart_blob value, entity_identifier type);
-    basic_signatured_entity const& make_basic_signatured_entity(entity_signature&&);
-    basic_signatured_entity const& make_vector_type_entity(entity_identifier element_type);
-    basic_signatured_entity const& make_vector_entity(entity_identifier element_type, span<entity_identifier> const& values);
-    basic_signatured_entity const& make_array_type_entity(entity_identifier element_type, size_t sz);
-    basic_signatured_entity const& make_array_entity(entity_identifier element_type, span<entity_identifier> const& values);
-    entity                  const& make_union_type_entity(span<entity_identifier> const& types);
+    identifier_entity            const& make_identifier_entity(identifier value);
+    empty_entity                 const& make_empty_entity(entity_identifier);
+    functional_identifier_entity const& make_functional_identifier_entity(qname_identifier value);
+    empty_entity                 const& make_empty_entity(entity const&);
+    qname_entity                 const& make_qname_entity(qname_view value);
+    
+    generic_literal_entity       const& make_nil_entity(entity_identifier type);
+    generic_literal_entity       const& make_bool_entity(bool value, entity_identifier type = {});
+    generic_literal_entity       const& make_integer_entity(numetron::integer_view value, entity_identifier type = {});
+    generic_literal_entity       const& make_decimal_entity(numetron::decimal_view value, entity_identifier type = {});
+    generic_literal_entity       const& make_string_entity(string_view value, entity_identifier type = {});
+    generic_literal_entity       const& make_generic_entity(smart_blob value, entity_identifier type);
+    basic_signatured_entity      const& make_basic_signatured_entity(entity_signature&&);
+    basic_signatured_entity      const& make_vector_type_entity(entity_identifier element_type);
+    basic_signatured_entity      const& make_vector_entity(entity_identifier element_type, span<entity_identifier> const& values);
+    basic_signatured_entity      const& make_array_type_entity(entity_identifier element_type, size_t sz);
+    basic_signatured_entity      const& make_array_entity(entity_identifier element_type, span<entity_identifier> const& values);
+    entity                       const& make_union_type_entity(span<entity_identifier> const& types);
 
     //void push_entity(shared_ptr<entity>);
 

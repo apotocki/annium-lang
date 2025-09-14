@@ -212,7 +212,7 @@ fn_compiler_context::fn_compiler_context(environment& e, internal_function_entit
     , fent_{ fent }
     , parent_{ nullptr }
     , ns_{ fent.name() }
-    , scope_offset_{ static_cast<int64_t>(fent.variables_count()) } // offset by function parameters
+    , scope_offset_{ static_cast<int64_t>(fent.scope_offset()) } // offset by function parameters
     , expression_store_{ e }
 {
     init();
@@ -504,14 +504,15 @@ variant<entity_identifier, local_variable const&> fn_compiler_context::lookup_en
 std::expected<functional::match, error_storage> fn_compiler_context::find(builtin_qnid qnid, pure_call_t const& call, semantic::expression_list_t& el, expected_result_t const& expected_result)
 {
     functional const& fn = env().fget(qnid);
-    return fn.find(*this, call, el, expected_result);
+    return fn.find(*this, nullptr, call, el, expected_result);
 }
 
 std::expected<functional::match, error_storage> fn_compiler_context::find(qname_identifier qnid, pure_call_t const& call, semantic::expression_list_t& el, expected_result_t const& expected_result)
 {
     functional const& fn = env().fregistry_resolve(qnid);
-    return fn.find(*this, call, el, expected_result);
+    return fn.find(*this, nullptr, call, el, expected_result);
 }
+
 
 /*
 local_variable & fn_compiler_context::new_variable(annotated_identifier name, entity_identifier t)

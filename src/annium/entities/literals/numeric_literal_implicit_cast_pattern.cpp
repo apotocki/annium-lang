@@ -359,7 +359,7 @@ smart_blob floating_point_to_numeric(T source_val, builtin_eid target_type)
 {
     switch (target_type) {
     case builtin_eid::f16:
-        return f16_blob_result(float16_cast(source_val));
+        return f16_blob_result(numetron::float16_cast(source_val));
     case builtin_eid::f32:
         return f32_blob_result(static_cast<float>(source_val));
     case builtin_eid::f64:

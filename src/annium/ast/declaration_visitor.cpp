@@ -651,7 +651,7 @@ error_storage declaration_visitor::operator()(let_statement const& ld) const
 
     small_vector<std::pair<identifier, syntax_expression_result_t>, 8> results;
 
-    prepared_call pcall{ ctx, nullptr, el, ld.location() };
+    prepared_call pcall{ ctx, nullptr, {}, ld.location(), el };
     for (auto const& e : ld.expressions) {
         pcall.args.emplace_back(e);
     }

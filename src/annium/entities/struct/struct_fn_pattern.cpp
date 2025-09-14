@@ -6,7 +6,7 @@
 #include "struct_entity.hpp"
 
 #include "annium/ast/fn_compiler_context.hpp"
-#include "annium/ast/ct_expression_visitor.hpp"
+#include "annium/ast/base_expression_visitor.hpp"
 #include "annium/entities/functions/internal_function_entity.hpp"
 #include "annium/errors/circular_dependency_error.hpp"
 

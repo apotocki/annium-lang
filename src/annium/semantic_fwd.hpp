@@ -53,8 +53,8 @@ template <typename ValueT> class literal_entity;
 
 using generic_literal_entity = literal_entity<smart_blob>;
 using identifier_entity = literal_entity<identifier>;
-using qname_identifier_entity = literal_entity<qname_identifier>;
-using qname_entity = literal_entity<qname>;
+using functional_identifier_entity = literal_entity<qname_identifier>;
+using qname_entity = literal_entity<qname>; // a reference to a variable or a functional
 using empty_entity = literal_entity<void>;
 
 class enum_entity;
@@ -74,7 +74,8 @@ public:
 
     virtual void operator()(generic_literal_entity const&) const = 0;
     virtual void operator()(identifier_entity const&) const = 0;
-    virtual void operator()(qname_identifier_entity const&) const = 0;
+    virtual void operator()(functional_identifier_entity const&) const = 0;
+    virtual void operator()(qname_entity const&) const = 0;
     virtual void operator()(empty_entity const&) const = 0;
 
     virtual void operator()(function_entity const&) const = 0;
@@ -89,7 +90,8 @@ class entity_visitor_adapter : public entity_visitor
     void operator()(entity const&) const override {}
     void operator()(generic_literal_entity const&) const override {}
     void operator()(identifier_entity const&) const override {}
-    void operator()(qname_identifier_entity const&) const override {}
+    void operator()(functional_identifier_entity const&) const override {}
+    void operator()(qname_entity const&) const override {}
     void operator()(empty_entity const&) const override {}
     
     void operator()(function_entity const&) const override {}
@@ -97,9 +99,6 @@ class entity_visitor_adapter : public entity_visitor
     void operator()(extern_variable_entity const&) const override {}
     //void operator()(functional_entity const&) const override {}
 };
-
-
-
 
 //class vector_type_entity : public entity
 //{

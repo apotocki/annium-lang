@@ -46,9 +46,8 @@ std::expected<syntax_expression_result_t, error_storage> deref_pattern::apply(fn
     BOOST_ASSERT(ser.is_const_result);
     qname_entity const& argent = static_cast<qname_entity const&>(get_entity(ctx.env(), ser.value()));
 
-    auto res = base_expression_visitor{ ctx, el }(
-        variable_reference{ annotated_qname{ argent.value(), md.call_location }, false }
-    );
+    base_expression_visitor evis{ ctx, el };
+    auto res = evis(variable_reference{ annotated_qname{ argent.value(), md.call_location }, false });
     if (!res) return std::unexpected(res.error());
     auto& er = res->first;
     er.expressions = el.concat(ser.expressions, er.expressions);

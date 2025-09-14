@@ -69,19 +69,20 @@ value_type_match_visitor::result_type value_type_match_visitor::operator()(funct
 {
     environment& e = caller_ctx.env();
 
-    ct_expression_visitor sv{ callee_ctx, expressions, expected_result_t{ .type = e.get(builtin_eid::qname), .modifier = value_modifier_t::constexpr_value } };
+    base_expression_visitor sv{ callee_ctx, expressions, expected_result_t{ .type = e.get(builtin_eid::qname), .modifier = value_modifier_t::constexpr_value } };
     auto qn_ent_id = apply_visitor(sv, fc.fn_object);
     if (!qn_ent_id) return std::unexpected(std::move(qn_ent_id.error()));
-    qname_identifier_entity qname_ent = static_cast<qname_identifier_entity const&>(get_entity(e, qn_ent_id->value));
+    qname_identifier_entity qname_ent = static_cast<qname_identifier_entity const&>(get_entity(e, qn_ent_id->first.value()));
 
     // check if can evaluate signature_pattern as a const expression
     
-    auto match = callee_ctx.find(qname_ent.value(), fc, expressions);
+    auto match = callee_ctx.find(qname_ent.value(), fc, expressions, expected_result_t{ .modifier = value_modifier_t::constexpr_value });
     if (match) {
         if (auto gresult = match->apply(callee_ctx); gresult) {
-            if (auto result = ct_expression_visitor{ callee_ctx, expressions }.handle(std::pair{std::move(*gresult), false}); result) {
-                return match_type(result->value, fc.location);
-            }
+            return match_type(gresult->value(), fc.location);
+            //if (auto result = ct_expression_visitor{ callee_ctx, expressions, expected_result_t{ .modifier = value_modifier_t::constexpr_value } }.handle(std::pair{std::move(*gresult), false}); result) {
+            //    return match_type(result->first.value(), fc.location);
+            //}
         }
     }
 

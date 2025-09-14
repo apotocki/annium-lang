@@ -8,6 +8,7 @@ namespace annium {
 
 class internal_fn_pattern : public basic_fn_pattern
 {
+    basic_signatured_entity const * captures_ = nullptr;
     statement_span body_;
     fn_kind kind_;
 
@@ -16,6 +17,8 @@ public:
 
     using basic_fn_pattern::init;
     error_storage init(fn_compiler_context&, fn_decl_t const&);
+
+    inline void set_captures(basic_signatured_entity const& captures) noexcept { captures_ = &captures; }
 
     std::expected<syntax_expression_result_t, error_storage> apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const override;
 
