@@ -179,6 +179,9 @@
     <ClCompile Include="..\..\..\src\annium\library\annium_library.cpp" />
     <ClCompile Include="..\..\..\src\annium\semantic\semantic_expression_printer.cpp" />
     <ClCompile Include="..\..\..\src\annium\vm\annium_vm.cpp" />
+    <ClCompile Include="..\..\..\src\sonia\mvvm\annium_view_model.cpp" />
+    <ClCompile Include="..\..\..\src\sonia\mvvm\builder_view_model.cpp" />
+    <ClCompile Include="..\..\..\src\sonia\mvvm\bunch_builder_view_model.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\annium\annium.hpp" />
@@ -310,6 +313,9 @@
     <ClInclude Include="..\..\..\src\annium\vm\compiler_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\vm\push_value_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\vm\vmasm_builder.hpp" />
+    <ClInclude Include="..\..\..\src\sonia\mvvm\annium_view_model.hpp" />
+    <ClInclude Include="..\..\..\src\sonia\mvvm\builder_view_model.hpp" />
+    <ClInclude Include="..\..\..\src\sonia\mvvm\bunch_builder_view_model.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\src\annium\annium.l" />
@@ -366,6 +372,12 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IntDir>$(ShortProjectName)\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IntDir>$(ShortProjectName)\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -378,7 +390,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <PrecompiledHeaderOutputFile />
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\vcpkg_installed\x64-windows-cpp23\include\;$(SolutionDir)..\..\tpls\sonia-prime;$(SolutionDir)..\..\tpls\lexertl14\include;$(SolutionDir)..\..\tpls\dataforge\include;$(SolutionDir)..\..\tpls\numetron\include;$(SolutionDir)..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include\;$(SolutionDir)tpls\sonia-prime;$(SolutionDir)tpls\lexertl14\include;$(SolutionDir)tpls\dataforge\include;$(SolutionDir)tpls\numetron\include;$(ProjectDir)..\..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -401,7 +413,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <PrecompiledHeaderOutputFile />
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\vcpkg_installed\x64-windows-cpp23\include\;$(SolutionDir)..\..\tpls\sonia-prime;$(SolutionDir)..\..\tpls\lexertl14\include;$(SolutionDir)..\..\tpls\dataforge\include;$(SolutionDir)..\..\tpls\numetron\include;$(SolutionDir)..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include\;$(SolutionDir)tpls\sonia-prime;$(SolutionDir)tpls\lexertl14\include;$(SolutionDir)tpls\dataforge\include;$(SolutionDir)tpls\numetron\include;$(ProjectDir)..\..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -422,7 +434,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpp23</LanguageStandard>
       <PrecompiledHeaderOutputFile />
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\vcpkg_installed\x64-windows-cpp23\include\;$(SolutionDir)..\..\tpls\sonia-prime;$(SolutionDir)..\..\tpls\lexertl14\include;$(SolutionDir)..\..\tpls\dataforge\include;$(SolutionDir)..\..\tpls\numetron\include;$(SolutionDir)..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include\;$(SolutionDir)tpls\sonia-prime;$(SolutionDir)tpls\lexertl14\include;$(SolutionDir)tpls\dataforge\include;$(SolutionDir)tpls\numetron\include;$(ProjectDir)..\..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -445,7 +457,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <PrecompiledHeaderOutputFile />
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\vcpkg_installed\x64-windows-cpp23\include\;$(SolutionDir)..\..\tpls\sonia-prime;$(SolutionDir)..\..\tpls\lexertl14\include;$(SolutionDir)..\..\tpls\dataforge\include;$(SolutionDir)..\..\tpls\numetron\include;$(SolutionDir)..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include\;$(SolutionDir)tpls\sonia-prime;$(SolutionDir)tpls\lexertl14\include;$(SolutionDir)tpls\dataforge\include;$(SolutionDir)tpls\numetron\include;$(ProjectDir)..\..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>

@@ -70,6 +70,9 @@
     <Filter Include="annium\semantic">
       <UniqueIdentifier>{3a2cf38c-8887-474f-aaa6-2230f91d967e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="sonia.mvvm">
+      <UniqueIdentifier>{a5c240f5-b658-4b09-a065-8c09ffe0f349}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\annium\annium.cpp">
@@ -371,6 +374,15 @@
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_equal_pattern.cpp">
       <Filter>annium\entities\literals</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\sonia\mvvm\annium_view_model.cpp">
+      <Filter>sonia.mvvm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\sonia\mvvm\builder_view_model.cpp">
+      <Filter>sonia.mvvm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\sonia\mvvm\bunch_builder_view_model.cpp">
+      <Filter>sonia.mvvm</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -760,6 +772,15 @@
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_equal_pattern.hpp">
       <Filter>annium\entities\literals</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\sonia\mvvm\annium_view_model.hpp">
+      <Filter>sonia.mvvm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\sonia\mvvm\builder_view_model.hpp">
+      <Filter>sonia.mvvm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\sonia\mvvm\bunch_builder_view_model.hpp">
+      <Filter>sonia.mvvm</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
