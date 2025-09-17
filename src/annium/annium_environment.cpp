@@ -1352,8 +1352,8 @@ environment::environment()
     functional& implicit_cast_fnl = fregistry_resolve(get(builtin_qnid::implicit_cast));
     implicit_cast_fnl.push(make_shared<struct_implicit_cast_pattern>());
     implicit_cast_fnl.push(make_shared<enum_implicit_cast_pattern>());
-    //implicit_cast_fnl.push(make_shared<array_implicit_cast_pattern>());
-    implicit_cast_fnl.push(make_shared<array_elements_implicit_cast_pattern>());
+    implicit_cast_fnl.push(make_shared<array_implicit_cast_pattern>());
+    //implicit_cast_fnl.push(make_shared<array_elements_implicit_cast_pattern>());
     implicit_cast_fnl.push(make_shared<to_union_implicit_cast_pattern>());
     //implicit_cast_fnl.push(make_shared<numeric_implicit_cast_pattern>());
     implicit_cast_fnl.push(make_shared<tuple_implicit_cast_pattern>());

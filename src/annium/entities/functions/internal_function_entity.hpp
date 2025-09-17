@@ -10,7 +10,7 @@
 //#include <boost/multi_index/member.hpp>
 #include "function_entity.hpp"
 
-//#define ANNIUM_NO_INLINE_FUNCTIONS 1
+#define ANNIUM_NO_INLINE_FUNCTIONS 1
 
 namespace annium {
 

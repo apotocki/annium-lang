@@ -1,4 +1,3 @@
-
 //  Annium programming language (c) 2025 by Alexander Pototskiy
 //  Annium is licensed under the terms of the MIT License.
 
@@ -35,7 +34,7 @@ public:
     result_type operator()(annotated_string const&) const;
     result_type operator()(annotated_identifier const&) const;
     result_type operator()(annotated_entity_identifier const&) const;
-    result_type operator()(annotated_qname const&) const;
+    //result_type operator()(annotated_qname const&) const;
 
     result_type operator()(variable_reference const&) const;
 
@@ -56,6 +55,9 @@ public:
 
     result_type operator()(lambda_t const&) const;
 
+    template <typename FnIdT, std::derived_from<pure_call_t> ExprT>
+    result_type operator()(FnIdT&& fnid, ExprT const& call) const;
+    
     template <typename T>
     result_type operator()(T const& v) const
     {
@@ -66,8 +68,6 @@ public:
 protected:
     environment& env() const noexcept;
 
-    template <typename FnIdT, std::derived_from<pure_call_t> ExprT>
-    result_type operator()(FnIdT &&, ExprT const&) const;
 
     result_type do_logic_and(binary_expression_t const&) const;
     result_type do_logic_or(binary_expression_t const&) const;
@@ -80,17 +80,11 @@ protected:
     result_type apply_cast(entity_identifier eid, ExprT const& e) const;
     
     template <typename ExprT>
-    inline result_type apply_cast(entity const& ent, ExprT const& e) const
-    {
-        return apply_cast(ent, syntax_expression_result_t{ .value_or_type = ent.id, .is_const_result = true }, syntax_expression_t{ e });
-    }
-
+    result_type apply_cast(entity const& ent, ExprT const& e) const;
+    
     template <typename ExprT>
-    result_type apply_cast(syntax_expression_result_t er, ExprT const& e) const
-    {
-        return apply_cast(std::move(er), syntax_expression_t{ e });
-    }
-
+    result_type apply_cast(syntax_expression_result_t er, ExprT const& e) const;
+    
     template <typename ExprT>
     inline result_type apply_cast(std::expected<syntax_expression_result_t, error_storage>, ExprT const&) const;
 };

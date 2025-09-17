@@ -616,7 +616,7 @@ struct fn_decl : fn_pure<ExprT>
 
 using syntax_expression_t = make_recursive_variant<
     variable_reference,
-    annotated_nil, annotated_bool, annotated_integer, annotated_decimal, annotated_string, annotated_identifier, annotated_qname,
+    annotated_nil, annotated_bool, annotated_integer, annotated_decimal, annotated_string, annotated_identifier,
     array_expression<recursive_variant_>, index_expression<recursive_variant_>,
     annium_fn_type<recursive_variant_>,
     annium_vector<recursive_variant_>,

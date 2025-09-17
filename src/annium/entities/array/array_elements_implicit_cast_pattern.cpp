@@ -20,7 +20,7 @@ namespace annium {
 std::expected<functional_match_descriptor_ptr, error_storage> array_elements_implicit_cast_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
 {
     if (!exp.type) {
-        return std::unexpected(make_error<basic_general_error>(call.location, "expected an array result"sv));
+        return std::unexpected(make_error<basic_general_error>(call.location, "expected a vector result"sv));
     }
     environment& e = ctx.env();
     entity const& ent = get_entity(e, exp.type);

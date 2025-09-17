@@ -931,7 +931,7 @@ syntax-expression-wo-ii:
     | OPEN_PARENTHESIS[start] COLON syntax-expression[expr] CLOSE_PARENTHESIS
         {
             // one element tuple
-            $$ = function_call_t{ std::move($start), annotated_qname{}, named_expression_list_t{ named_expression_t{ std::move($expr) } } };
+            $$ = function_call_t{ std::move($start), variable_reference{}, named_expression_list_t{ named_expression_t{ std::move($expr) } } };
         }
     | OPEN_PARENTHESIS[start] pack-expression[list] CLOSE_PARENTHESIS
         {
@@ -939,7 +939,7 @@ syntax-expression-wo-ii:
                 $$ = std::move($list.front().value());
             } else {
                 BOOST_ASSERT(!$list.empty());
-                $$ = function_call_t{ std::move($start), annotated_qname{}, std::move($list) };
+                $$ = function_call_t{ std::move($start), variable_reference{}, std::move($list) };
             }
         }
     | OPEN_SQUARE_BRACKET expression-list[list] CLOSE_SQUARE_BRACKET
@@ -1022,15 +1022,9 @@ new-expression:
 
 call-expression:
       qname[name] OPEN_PARENTHESIS[start] pack-expression-opt[arguments] CLOSE_PARENTHESIS
-        { $$ = function_call_t{ std::move($start), std::move($name), std::move($arguments) }; }
+        { $$ = function_call_t{ std::move($start), variable_reference{ std::move($name), false }, std::move($arguments) }; }
     | CONTEXT_IDENTIFIER[id] OPEN_PARENTHESIS[start] pack-expression-opt[arguments] CLOSE_PARENTHESIS
         { $$ = function_call_t{ std::move($start), variable_reference{ ctx.make_qname(std::move($id)), true }, std::move($arguments) }; }
-/*
-    | MUT OPEN_PARENTHESIS[start] pack-expression[arguments] CLOSE_PARENTHESIS
-        { 
-            auto aid = ctx.make_identifier(annotated_string_view{ "mut"sv, std::move($MUT) });
-            $$ = function_call_t{ std::move($start), annotated_qname{ qname{ aid.value, true }, std::move(aid.location) }, std::move($arguments) };
-        }*/
     | call-expression[nameExpr] OPEN_PARENTHESIS[start] pack-expression[arguments] CLOSE_PARENTHESIS
         { $$ = function_call_t{ std::move($start), std::move($nameExpr), std::move($arguments) }; }
     | apostrophe-expression[nameExpr] OPEN_PARENTHESIS[start] pack-expression[arguments] CLOSE_PARENTHESIS
@@ -1083,13 +1077,6 @@ pack-expression-opt:
 pack-expression:
       syntax-expression[expr]
         { $$ = named_expression_list_t{ named_expression_t{ std::move($expr) } }; }
-        /*
-    | MUT syntax-expression[expr]
-    {
-        auto aid = ctx.make_identifier(annotated_string_view{ "mut"sv, std::move($MUT) });
-        $$ = named_expression_list_t{ named_expression_t{ function_call_t{ qname{ aid.value, true }, std::move(aid.location) }, std::move($expr) } };
-    }
-    */
     | identifier[id] COLON syntax-expression[expr]
         {
             named_expression_list_t list{};
@@ -1163,9 +1150,8 @@ type-expr:
         { $$ = annium_vector_t{ std::move($OPEN_SQUARE_BRACKET), std::move($type)}; }
     | OPEN_PARENTHESIS[start] CLOSE_PARENTHESIS
         { $$ = ctx.make_void(std::move($start)); }
-    //    { $$ = function_call_t{ std::move($start), annotated_qname{} }; }
     | OPEN_PARENTHESIS[start] pack-expression[elements] CLOSE_PARENTHESIS
-        { $$ = function_call_t{ std::move($start), annotated_qname{}, std::move($elements) }; } 
+        { $$ = function_call_t{ std::move($start), variable_reference{}, std::move($elements) }; } 
     | type-expr[type] OPEN_SQUARE_BRACKET syntax-expression[index] CLOSE_SQUARE_BRACKET
         { $$ = index_expression_t{ std::move($type), std::move($index) }; IGNORE_TERM($OPEN_SQUARE_BRACKET); }
     | type-expr[ltype] BITOR type-expr[rtype]

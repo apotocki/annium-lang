@@ -3861,7 +3861,7 @@ namespace annium_lang {
 #line 932 "annium.y"
         {
             // one element tuple
-            yylhs.value.as < syntax_expression_t > () = function_call_t{ std::move(yystack_[3].value.as < sonia::lang::lex::resource_location > ()), annotated_qname{}, named_expression_list_t{ named_expression_t{ std::move(yystack_[1].value.as < syntax_expression_t > ()) } } };
+            yylhs.value.as < syntax_expression_t > () = function_call_t{ std::move(yystack_[3].value.as < sonia::lang::lex::resource_location > ()), variable_reference{}, named_expression_list_t{ named_expression_t{ std::move(yystack_[1].value.as < syntax_expression_t > ()) } } };
         }
 #line 3867 "annium.tab.cpp"
     break;
@@ -3873,7 +3873,7 @@ namespace annium_lang {
                 yylhs.value.as < syntax_expression_t > () = std::move(yystack_[1].value.as < named_expression_list_t > ().front().value());
             } else {
                 BOOST_ASSERT(!yystack_[1].value.as < named_expression_list_t > ().empty());
-                yylhs.value.as < syntax_expression_t > () = function_call_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), annotated_qname{}, std::move(yystack_[1].value.as < named_expression_list_t > ()) };
+                yylhs.value.as < syntax_expression_t > () = function_call_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), variable_reference{}, std::move(yystack_[1].value.as < named_expression_list_t > ()) };
             }
         }
 #line 3880 "annium.tab.cpp"
@@ -4049,7 +4049,7 @@ namespace annium_lang {
 
   case 200: // call-expression: qname "`(`" pack-expression-opt "`)`"
 #line 1025 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = function_call_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), std::move(yystack_[3].value.as < annium::annotated_qname > ()), std::move(yystack_[1].value.as < named_expression_list_t > ()) }; }
+        { yylhs.value.as < syntax_expression_t > () = function_call_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), variable_reference{ std::move(yystack_[3].value.as < annium::annotated_qname > ()), false }, std::move(yystack_[1].value.as < named_expression_list_t > ()) }; }
 #line 4054 "annium.tab.cpp"
     break;
 
@@ -4060,37 +4060,37 @@ namespace annium_lang {
     break;
 
   case 202: // call-expression: call-expression "`(`" pack-expression "`)`"
-#line 1035 "annium.y"
+#line 1029 "annium.y"
         { yylhs.value.as < syntax_expression_t > () = function_call_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), std::move(yystack_[3].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < named_expression_list_t > ()) }; }
 #line 4066 "annium.tab.cpp"
     break;
 
   case 203: // call-expression: apostrophe-expression "`(`" pack-expression "`)`"
-#line 1037 "annium.y"
+#line 1031 "annium.y"
         { yylhs.value.as < syntax_expression_t > () = function_call_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), std::move(yystack_[3].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < named_expression_list_t > ()) }; }
 #line 4072 "annium.tab.cpp"
     break;
 
   case 204: // call-expression: lambda-expression "`(`" pack-expression "`)`"
-#line 1039 "annium.y"
+#line 1033 "annium.y"
         { yylhs.value.as < syntax_expression_t > () = function_call_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), std::move(yystack_[3].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < named_expression_list_t > ()) }; }
 #line 4078 "annium.tab.cpp"
     break;
 
   case 205: // lambda-start-decl: fn-start-decl
-#line 1045 "annium.y"
+#line 1039 "annium.y"
         { yylhs.value.as < lambda_t > () = lambda_t{ fn_pure_t{ .location = std::move(get<0>(yystack_[0].value.as < std::pair<sonia::lang::lex::resource_location, fn_kind> > ())), .result = nullptr, .kind = get<1>(yystack_[0].value.as < std::pair<sonia::lang::lex::resource_location, fn_kind> > ()) } }; }
 #line 4084 "annium.tab.cpp"
     break;
 
   case 206: // lambda-start-decl: fn-start-decl "`[`" pack-expression-opt "`]`"
-#line 1047 "annium.y"
+#line 1041 "annium.y"
         { yylhs.value.as < lambda_t > () = lambda_t{ fn_pure_t{ .location = std::move(get<0>(yystack_[3].value.as < std::pair<sonia::lang::lex::resource_location, fn_kind> > ())), .result = nullptr, .kind = get<1>(yystack_[3].value.as < std::pair<sonia::lang::lex::resource_location, fn_kind> > ()) }, {}, std::move(yystack_[1].value.as < named_expression_list_t > ()) }; IGNORE_TERM(yystack_[2].value.as < sonia::lang::lex::resource_location > ()); }
 #line 4090 "annium.tab.cpp"
     break;
 
   case 207: // lambda-expression: lambda-start-decl "`(`" parameter-list-opt "`)`" function-body
-#line 1052 "annium.y"
+#line 1046 "annium.y"
         { 
             yystack_[4].value.as < lambda_t > ().parameters = std::move(yystack_[2].value.as < parameter_list_t > ());
             yystack_[4].value.as < lambda_t > ().body = ctx.push(std::move(yystack_[0].value.as < managed_statement_list > ()));
@@ -4101,7 +4101,7 @@ namespace annium_lang {
     break;
 
   case 208: // lambda-expression: lambda-start-decl "`(`" parameter-list-opt "`)`" "`->`" type-expr function-body
-#line 1059 "annium.y"
+#line 1053 "annium.y"
         {
             yystack_[6].value.as < lambda_t > ().parameters = std::move(yystack_[4].value.as < parameter_list_t > ());
             yystack_[6].value.as < lambda_t > ().result = std::move(yystack_[1].value.as < syntax_expression_t > ());
@@ -4113,7 +4113,7 @@ namespace annium_lang {
     break;
 
   case 209: // lambda-expression: lambda-start-decl "`(`" parameter-list-opt "`)`" "`~>`" pattern function-body
-#line 1067 "annium.y"
+#line 1061 "annium.y"
         {
             yystack_[6].value.as < lambda_t > ().parameters = std::move(yystack_[4].value.as < parameter_list_t > ());
             yystack_[6].value.as < lambda_t > ().result = std::move(yystack_[1].value.as < pattern_t > ());
@@ -4125,25 +4125,25 @@ namespace annium_lang {
     break;
 
   case 210: // pack-expression-opt: %empty
-#line 1078 "annium.y"
+#line 1072 "annium.y"
         { yylhs.value.as < named_expression_list_t > () = named_expression_list_t{}; }
 #line 4131 "annium.tab.cpp"
     break;
 
   case 211: // pack-expression-opt: pack-expression
-#line 1080 "annium.y"
+#line 1074 "annium.y"
         { yylhs.value.as < named_expression_list_t > () = std::move(yystack_[0].value.as < named_expression_list_t > ()); }
 #line 4137 "annium.tab.cpp"
     break;
 
   case 212: // pack-expression: syntax-expression
-#line 1085 "annium.y"
+#line 1079 "annium.y"
         { yylhs.value.as < named_expression_list_t > () = named_expression_list_t{ named_expression_t{ std::move(yystack_[0].value.as < syntax_expression_t > ()) } }; }
 #line 4143 "annium.tab.cpp"
     break;
 
   case 213: // pack-expression: identifier "`:`" syntax-expression
-#line 1094 "annium.y"
+#line 1081 "annium.y"
         {
             named_expression_list_t list{};
             list.emplace_back(std::move(yystack_[2].value.as < annium::annotated_identifier > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()));
@@ -4153,7 +4153,7 @@ namespace annium_lang {
     break;
 
   case 214: // pack-expression: pack-expression "," syntax-expression
-#line 1100 "annium.y"
+#line 1087 "annium.y"
         {
             yystack_[2].value.as < named_expression_list_t > ().emplace_back(std::move(yystack_[0].value.as < syntax_expression_t > ()));
             yylhs.value.as < named_expression_list_t > () = std::move(yystack_[2].value.as < named_expression_list_t > ());
@@ -4162,7 +4162,7 @@ namespace annium_lang {
     break;
 
   case 215: // pack-expression: pack-expression "," identifier "`:`" syntax-expression
-#line 1105 "annium.y"
+#line 1092 "annium.y"
         {
             yystack_[4].value.as < named_expression_list_t > ().emplace_back(std::move(yystack_[2].value.as < annium::annotated_identifier > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()));
             yylhs.value.as < named_expression_list_t > () = std::move(yystack_[4].value.as < named_expression_list_t > ());
@@ -4171,61 +4171,61 @@ namespace annium_lang {
     break;
 
   case 216: // compound-expression: syntax-expression "`...`"
-#line 1113 "annium.y"
+#line 1100 "annium.y"
         { yylhs.value.as < syntax_expression_t > () = unary_expression_t{ unary_operator_type::ELLIPSIS, false, std::move(yystack_[1].value.as < syntax_expression_t > ()), std::move(yystack_[0].value.as < sonia::lang::lex::resource_location > ()) }; }
 #line 4177 "annium.tab.cpp"
     break;
 
   case 217: // compound-expression: call-expression
-#line 1114 "annium.y"
+#line 1101 "annium.y"
         { yylhs.value.as < syntax_expression_t > () = yystack_[0].value.as < syntax_expression_t > (); }
 #line 4183 "annium.tab.cpp"
     break;
 
   case 218: // type-expr: qname
-#line 1156 "annium.y"
+#line 1143 "annium.y"
         { yylhs.value.as < syntax_expression_t > () = variable_reference{ std::move(yystack_[0].value.as < annium::annotated_qname > ()) }; }
 #line 4189 "annium.tab.cpp"
     break;
 
   case 219: // type-expr: call-expression
-#line 1157 "annium.y"
+#line 1144 "annium.y"
       { yylhs.value.as < syntax_expression_t > () = yystack_[0].value.as < syntax_expression_t > (); }
 #line 4195 "annium.tab.cpp"
     break;
 
   case 220: // type-expr: CONTEXT_IDENTIFIER
-#line 1159 "annium.y"
+#line 1146 "annium.y"
         { yylhs.value.as < syntax_expression_t > () = variable_reference{ ctx.make_qname(std::move(yystack_[0].value.as < annium::annotated_string_view > ())), true }; }
 #line 4201 "annium.tab.cpp"
     break;
 
   case 221: // type-expr: "`[`" type-expr "`]`"
-#line 1163 "annium.y"
+#line 1150 "annium.y"
         { yylhs.value.as < syntax_expression_t > () = annium_vector_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), std::move(yystack_[1].value.as < syntax_expression_t > ())}; }
 #line 4207 "annium.tab.cpp"
     break;
 
   case 222: // type-expr: "`(`" "`)`"
-#line 1165 "annium.y"
+#line 1152 "annium.y"
         { yylhs.value.as < syntax_expression_t > () = ctx.make_void(std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ())); }
 #line 4213 "annium.tab.cpp"
     break;
 
   case 223: // type-expr: "`(`" pack-expression "`)`"
-#line 1168 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = function_call_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), annotated_qname{}, std::move(yystack_[1].value.as < named_expression_list_t > ()) }; }
+#line 1154 "annium.y"
+        { yylhs.value.as < syntax_expression_t > () = function_call_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), variable_reference{}, std::move(yystack_[1].value.as < named_expression_list_t > ()) }; }
 #line 4219 "annium.tab.cpp"
     break;
 
   case 224: // type-expr: type-expr "`[`" syntax-expression "`]`"
-#line 1170 "annium.y"
+#line 1156 "annium.y"
         { yylhs.value.as < syntax_expression_t > () = index_expression_t{ std::move(yystack_[3].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < syntax_expression_t > ()) }; IGNORE_TERM(yystack_[2].value.as < sonia::lang::lex::resource_location > ()); }
 #line 4225 "annium.tab.cpp"
     break;
 
   case 225: // type-expr: type-expr "`|`" type-expr
-#line 1172 "annium.y"
+#line 1158 "annium.y"
         {
             annium_union_t uni{};
             uni.members.emplace_back(std::move(yystack_[2].value.as < syntax_expression_t > ()));
@@ -4237,7 +4237,7 @@ namespace annium_lang {
     break;
 
   case 226: // type-expr: type-expr "`->`" type-expr
-#line 1180 "annium.y"
+#line 1166 "annium.y"
         { 
             auto loc = get_start_location(yystack_[2].value.as < syntax_expression_t > ());
             yylhs.value.as < syntax_expression_t > () = annium_fn_type_t{ named_expression_list_t{ named_expression_t{ std::move(yystack_[2].value.as < syntax_expression_t > ()) } }, std::move(yystack_[0].value.as < syntax_expression_t > ()), std::move(loc) };
@@ -5150,9 +5150,9 @@ namespace annium_lang {
      929,   931,   936,   945,   953,   955,   957,   961,   963,   965,
      968,   970,   975,   977,   981,   983,   985,   988,   992,   995,
      998,  1001,  1002,  1003,  1004,  1008,  1013,  1015,  1017,  1019,
-    1024,  1026,  1034,  1036,  1038,  1044,  1046,  1051,  1058,  1066,
-    1077,  1079,  1084,  1093,  1099,  1104,  1112,  1114,  1155,  1157,
-    1158,  1162,  1164,  1167,  1169,  1171,  1179
+    1024,  1026,  1028,  1030,  1032,  1038,  1040,  1045,  1052,  1060,
+    1071,  1073,  1078,  1080,  1086,  1091,  1099,  1101,  1142,  1144,
+    1145,  1149,  1151,  1153,  1155,  1157,  1165
   };
 
   void
@@ -5242,5 +5242,5 @@ namespace annium_lang {
 } // annium_lang
 #line 5244 "annium.tab.cpp"
 
-#line 1506 "annium.y"
+#line 1492 "annium.y"
 

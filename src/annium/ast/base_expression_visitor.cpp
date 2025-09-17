@@ -2,13 +2,12 @@
 //  Annium is licensed under the terms of the MIT License.
 
 #include "sonia/config.hpp"
-#include "base_expression_visitor.hpp"
+//#include "base_expression_visitor.hpp"
+#include "base_expression_visitor.ipp"
 
 #include <boost/container/flat_set.hpp>
 
 #include "assign_expression_visitor.hpp"
-
-#include "fn_compiler_context.hpp"
 
 #include "annium/entities/prepared_call.hpp"
 #include "annium/entities/literals/literal_entity.hpp"
@@ -35,12 +34,6 @@ base_expression_visitor::base_expression_visitor(fn_compiler_context& c, semanti
 environment& base_expression_visitor::env() const noexcept
 {
     return ctx.env();
-}
-
-template <typename ExprT>
-inline base_expression_visitor::result_type base_expression_visitor::apply_cast(entity_identifier eid, ExprT const& e) const
-{
-    return apply_cast(get_entity(env(), eid), syntax_expression_result_t{ .value_or_type = eid, .is_const_result = true }, e);
 }
 
 base_expression_visitor::result_type base_expression_visitor::apply_cast(entity const& ent, syntax_expression_result_t er, syntax_expression_t const& e) const
@@ -114,17 +107,6 @@ base_expression_visitor::result_type base_expression_visitor::apply_cast(syntax_
     return std::pair{ std::move(*res), true };
 }
 
-template <typename ExprT>
-inline base_expression_visitor::result_type base_expression_visitor::apply_cast(std::expected<syntax_expression_result_t, error_storage> r, ExprT const& e) const
-{
-    if (!r) return std::unexpected(std::move(r.error()));
-    syntax_expression_t se = e;
-    return apply_cast(std::move(*r), se);
-    //return apply_visitor(make_functional_visitor<result_type>([this, e](auto& v) -> result_type {
-    //    return apply_cast(std::move(v), e);
-    //}), *r);
-}
-
 base_expression_visitor::result_type base_expression_visitor::operator()(indirect_value const& v) const
 {
     return apply_cast(retrieve_indirect_value(env(), expressions, v), v);
@@ -168,18 +150,18 @@ base_expression_visitor::result_type base_expression_visitor::operator()(annotat
     return apply_cast(e.value, e);
 }
 
-base_expression_visitor::result_type base_expression_visitor::operator()(annotated_qname const& aqn) const
-{
-    entity const& ent = env().make_qname_entity(aqn.value);
-    return apply_cast(ent, aqn);
-
-    //auto optqnid = ctx.lookup_qname(aqn);
-    //if (optqnid) {
-    //    entity const& ent = env().make_qname_identifier_entity(*optqnid);
-    //    return apply_cast(ent, aqn);
-    //}
-    //return std::unexpected(optqnid.error());
-}
+//base_expression_visitor::result_type base_expression_visitor::operator()(annotated_qname const& aqn) const
+//{
+//    entity const& ent = env().make_qname_entity(aqn.value);
+//    return apply_cast(ent, aqn);
+//
+//    //auto optqnid = ctx.lookup_qname(aqn);
+//    //if (optqnid) {
+//    //    entity const& ent = env().make_qname_identifier_entity(*optqnid);
+//    //    return apply_cast(ent, aqn);
+//    //}
+//    //return std::unexpected(optqnid.error());
+//}
 
 base_expression_visitor::result_type base_expression_visitor::operator()(annium_vector_t const& bv) const
 {
@@ -548,6 +530,9 @@ base_expression_visitor::result_type base_expression_visitor::operator()(array_e
 
 base_expression_visitor::result_type base_expression_visitor::operator()(variable_reference const& var) const
 {
+    if (!var.name) { // hardcoded tuple constructor
+        return apply_cast(env().make_functional_identifier_entity(env().get(builtin_qnid::make_tuple)), var);
+    }
     auto optent = ctx.lookup_entity(var.name);
     return apply_visitor(make_functional_visitor<result_type>([this, &var](auto eid_or_var) -> result_type
     {
@@ -623,14 +608,6 @@ base_expression_visitor::result_type base_expression_visitor::operator()(unary_e
     THROW_NOT_IMPLEMENTED_ERROR("base_expression_visitor unary_expression_t");
 }
 
-template <typename FnIdT, std::derived_from<pure_call_t> ExprT>
-inline base_expression_visitor::result_type base_expression_visitor::operator()(FnIdT && fnid, ExprT const& call) const
-{
-    auto match = ctx.find(std::forward<FnIdT>(fnid), call, expressions, expected_result);
-    if (!match) return std::unexpected(match.error());
-    return apply_cast(match->apply(ctx), call);
-}
-
 base_expression_visitor::result_type base_expression_visitor::operator()(function_call_t const& proc) const
 {
     base_expression_visitor vis{ ctx, expressions };
@@ -644,10 +621,10 @@ base_expression_visitor::result_type base_expression_visitor::operator()(functio
             if (functional_identifier_entity const* pqnent = dynamic_cast<functional_identifier_entity const*>(&ent); pqnent) {
                 return (*this)(pqnent->value(), proc);
             } else if (qname_entity const* pqnent = dynamic_cast<qname_entity const*>(&ent); pqnent) {
-                if (!pqnent->value()) {
-                    // no name => make tuple
-                    return (*this)(env().get(builtin_qnid::make_tuple), proc);
-                }
+                //if (!pqnent->value()) {
+                //    // no name => make tuple
+                //    return (*this)(env().get(builtin_qnid::make_tuple), proc);
+                //}
                 auto optqnid = ctx.lookup_qname(annotated_qname{ pqnent->value(), get_start_location(proc.fn_object) });
                 if (!optqnid) {
                     return std::unexpected(append_cause(
@@ -678,7 +655,7 @@ base_expression_visitor::result_type base_expression_visitor::operator()(functio
     // unfold capture list
     if (fn_ent_sig->field_count() > 2) { // has at least two captured values
         env().push_back_expression(expressions, ftor_expr_res.expressions, semantic::invoke_function{ env().get(builtin_eid::unfold) });
-        env().push_back_expression(expressions, ftor_expr_res.expressions, semantic::truncate_values{ .count = 1, .keep_back = 0 }); // keep only the unfolded captured values on stack
+        //env().push_back_expression(expressions, ftor_expr_res.expressions, semantic::truncate_values{ .count = 1, .keep_back = 0 }); // keep only the unfolded captured values on stack
     }
 
     functional const& fn = env().fregistry_resolve(pqnent->value());

@@ -123,7 +123,7 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
     append_semantic_result(el, result, union_er);
     //fn_scope.skip_scope_variables(); // we don't need to keep union argument temporary variables
     env.push_back_expression(el, result.expressions, semantic::invoke_function{ env.get(builtin_eid::unfold) });
-    env.push_back_expression(el, result.expressions, semantic::truncate_values{ .count = 1, .keep_back = 0 }); // keep only the unfolded union value on stack
+    //env.push_back_expression(el, result.expressions, semantic::truncate_values{ .count = 1, .keep_back = 0 }); // keep only the unfolded union value on stack
     
     auto union_value_var_pair = fn_scope.push_scope_variable(entity_identifier{}); // yet unknown type
     //auto which_var_pair = fn_scope.push_scope_variable(env.get(builtin_eid::integer));

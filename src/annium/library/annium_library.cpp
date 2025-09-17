@@ -129,7 +129,7 @@ void annium_unfold(vm::context& ctx)
             }
             
             // Push the array size at the end
-            ctx.stack_push(smart_blob{ ui64_blob_result(array_size) });
+            //ctx.stack_push(smart_blob{ ui64_blob_result(array_size) });
         } else {
             THROW_INTERNAL_ERROR("unexpected array element type");
         }
