@@ -331,9 +331,9 @@ HASHTAG					"#"
 
 	{WEAK} { return (annium_lang::parser::token::WEAK); }
 
-	{TYPENAME} { return (annium_lang::parser::token::TYPENAME); }
-	{CONSTEXPR} { return (annium_lang::parser::token::CONSTEXPR); }
-	{RUNTIME} { return (annium_lang::parser::token::RUNTIME); }
+	{TYPENAME} { variant_emplace(location); return (annium_lang::parser::token::TYPENAME); }
+	{CONSTEXPR} { variant_emplace(location); return (annium_lang::parser::token::CONSTEXPR); }
+	{RUNTIME} { variant_emplace(location); return (annium_lang::parser::token::RUNTIME); }
 
 	{NIL_WORD} {
 		variant_emplace(annotated_nil{location});

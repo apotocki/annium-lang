@@ -144,7 +144,7 @@ tuple_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic::expressio
 
             pure_call_t get_call{ md.call_location };
             get_call.emplace_back(annotated_identifier{ e.get(builtin_id::self), md.call_location },
-                variable_reference{ annotated_qname{ qname{ src_tuple_var_name, false } }, false });
+                name_reference{ annotated_identifier{ src_tuple_var_name } });
             get_call.emplace_back(annotated_identifier{ e.get(builtin_id::property) }, annotated_integer{ numetron::integer{ i } });
             auto match = ctx.find(builtin_qnid::get, get_call, el);
             if (!match) {

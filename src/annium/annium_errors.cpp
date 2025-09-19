@@ -13,17 +13,17 @@ void error::rethrow(environment& e) const
     throw exception{ e.print(*this) };
 }
 
-error::string_t binary_relation_error::left_object(environment const& e) const noexcept
+error::string_t binary_relation_error::left_object(environment const& e) const
 {
     return apply_visitor(printer_resolver_visitor{ e }, left_);
 }
 
-error::string_t binary_relation_error::right_object(environment const& e) const noexcept
+error::string_t binary_relation_error::right_object(environment const& e) const
 {
     return apply_visitor(printer_resolver_visitor{ e }, right_);
 }
 
-general_error::string_t basic_general_error::object(environment const& e) const noexcept
+general_error::string_t basic_general_error::object(environment const& e) const
 { 
     return apply_visitor(printer_resolver_visitor{e}, object_);
 }

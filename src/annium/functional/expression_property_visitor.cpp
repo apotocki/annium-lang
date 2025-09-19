@@ -7,10 +7,15 @@
 
 namespace annium {
 
-expression_property_visitor::result_type expression_property_visitor::operator()(variable_reference const& v) const
+expression_property_visitor::result_type expression_property_visitor::operator()(qname_reference const& v) const
 {
-    if (!v.implicit || v.name.value.size() != 1) return expression_analysis_result::this_is_not_pattern();
-    identifier paramname = *v.name.value.begin();
+    return expression_analysis_result::this_is_not_pattern();
+}
+
+expression_property_visitor::result_type expression_property_visitor::operator()(name_reference const& v) const
+{
+
+    identifier paramname = v.name.value;
     if (auto it = std::lower_bound(parameters.begin(), parameters.end(), paramname); it != parameters.end() && *it == paramname) {
         return expression_analysis_result::this_is_pattern();
     }

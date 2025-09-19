@@ -39,7 +39,7 @@
 #define yylex   annium_langlex
 
 // First part of user prologue.
-#line 26 "annium.y"
+#line 25 "annium.y"
 
 #include "sonia/config.hpp"
 #include <iostream>
@@ -57,7 +57,6 @@ using YYSTYPE = annium_lang::parser::semantic_type;
 using YYLTYPE = annium_lang::parser::location_type;
 
 int annium_langlex(YYSTYPE * yylval_param, YYLTYPE * yylloc_param, parser_context & ctx, void* yyscanner);
-//#include "annium.yy.hpp"
 
 void annium_lang::parser::error(const location_type& loc, const std::string& msg)
 {
@@ -70,7 +69,7 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 #define IGNORE_TERM(...)
 
 
-#line 74 "annium.tab.cpp"
+#line 73 "annium.tab.cpp"
 
 
 #include "annium.tab.hpp"
@@ -167,7 +166,7 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 #define YYRECOVERING()  (!!yyerrstatus_)
 
 namespace annium_lang {
-#line 171 "annium.tab.cpp"
+#line 170 "annium.tab.cpp"
 
   /// Build a parser object.
   parser::parser (void * scanner_yyarg, parser_context & ctx_yyarg)
@@ -311,11 +310,6 @@ namespace annium_lang {
         value.copy< named_expression_t > (YY_MOVE (that.value));
         break;
 
-      case symbol_kind::S_147_constraint_expression_specified_mod: // constraint-expression-specified-mod
-      case symbol_kind::S_149_constraint_expression_mod: // constraint-expression-mod
-        value.copy< parameter_constraint_modifier_t > (YY_MOVE (that.value));
-        break;
-
       case symbol_kind::S_142_parameter_list_opt: // parameter-list-opt
       case symbol_kind::S_143_parameter_list: // parameter-list
         value.copy< parameter_list_t > (YY_MOVE (that.value));
@@ -364,6 +358,9 @@ namespace annium_lang {
       case symbol_kind::S_BREAK: // "`break`"
       case symbol_kind::S_RETURN: // "`return`"
       case symbol_kind::S_FN: // "`fn`"
+      case symbol_kind::S_TYPENAME: // "typename modifier"
+      case symbol_kind::S_CONSTEXPR: // "constexpr modifier"
+      case symbol_kind::S_RUNTIME: // "runctime modifier"
         value.copy< sonia::lang::lex::resource_location > (YY_MOVE (that.value));
         break;
 
@@ -388,6 +385,11 @@ namespace annium_lang {
 
       case symbol_kind::S_124_fn_start_decl: // fn-start-decl
         value.copy< std::pair<sonia::lang::lex::resource_location, fn_kind> > (YY_MOVE (that.value));
+        break;
+
+      case symbol_kind::S_147_constraint_expression_specified_mod: // constraint-expression-specified-mod
+      case symbol_kind::S_149_constraint_expression_mod: // constraint-expression-mod
+        value.copy< std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t> > (YY_MOVE (that.value));
         break;
 
       case symbol_kind::S_148_constraint_expression_specified: // constraint-expression-specified
@@ -562,11 +564,6 @@ namespace annium_lang {
         value.move< named_expression_t > (YY_MOVE (s.value));
         break;
 
-      case symbol_kind::S_147_constraint_expression_specified_mod: // constraint-expression-specified-mod
-      case symbol_kind::S_149_constraint_expression_mod: // constraint-expression-mod
-        value.move< parameter_constraint_modifier_t > (YY_MOVE (s.value));
-        break;
-
       case symbol_kind::S_142_parameter_list_opt: // parameter-list-opt
       case symbol_kind::S_143_parameter_list: // parameter-list
         value.move< parameter_list_t > (YY_MOVE (s.value));
@@ -615,6 +612,9 @@ namespace annium_lang {
       case symbol_kind::S_BREAK: // "`break`"
       case symbol_kind::S_RETURN: // "`return`"
       case symbol_kind::S_FN: // "`fn`"
+      case symbol_kind::S_TYPENAME: // "typename modifier"
+      case symbol_kind::S_CONSTEXPR: // "constexpr modifier"
+      case symbol_kind::S_RUNTIME: // "runctime modifier"
         value.move< sonia::lang::lex::resource_location > (YY_MOVE (s.value));
         break;
 
@@ -639,6 +639,11 @@ namespace annium_lang {
 
       case symbol_kind::S_124_fn_start_decl: // fn-start-decl
         value.move< std::pair<sonia::lang::lex::resource_location, fn_kind> > (YY_MOVE (s.value));
+        break;
+
+      case symbol_kind::S_147_constraint_expression_specified_mod: // constraint-expression-specified-mod
+      case symbol_kind::S_149_constraint_expression_mod: // constraint-expression-mod
+        value.move< std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t> > (YY_MOVE (s.value));
         break;
 
       case symbol_kind::S_148_constraint_expression_specified: // constraint-expression-specified
@@ -883,11 +888,6 @@ namespace annium_lang {
         value.YY_MOVE_OR_COPY< named_expression_t > (YY_MOVE (that.value));
         break;
 
-      case symbol_kind::S_147_constraint_expression_specified_mod: // constraint-expression-specified-mod
-      case symbol_kind::S_149_constraint_expression_mod: // constraint-expression-mod
-        value.YY_MOVE_OR_COPY< parameter_constraint_modifier_t > (YY_MOVE (that.value));
-        break;
-
       case symbol_kind::S_142_parameter_list_opt: // parameter-list-opt
       case symbol_kind::S_143_parameter_list: // parameter-list
         value.YY_MOVE_OR_COPY< parameter_list_t > (YY_MOVE (that.value));
@@ -936,6 +936,9 @@ namespace annium_lang {
       case symbol_kind::S_BREAK: // "`break`"
       case symbol_kind::S_RETURN: // "`return`"
       case symbol_kind::S_FN: // "`fn`"
+      case symbol_kind::S_TYPENAME: // "typename modifier"
+      case symbol_kind::S_CONSTEXPR: // "constexpr modifier"
+      case symbol_kind::S_RUNTIME: // "runctime modifier"
         value.YY_MOVE_OR_COPY< sonia::lang::lex::resource_location > (YY_MOVE (that.value));
         break;
 
@@ -960,6 +963,11 @@ namespace annium_lang {
 
       case symbol_kind::S_124_fn_start_decl: // fn-start-decl
         value.YY_MOVE_OR_COPY< std::pair<sonia::lang::lex::resource_location, fn_kind> > (YY_MOVE (that.value));
+        break;
+
+      case symbol_kind::S_147_constraint_expression_specified_mod: // constraint-expression-specified-mod
+      case symbol_kind::S_149_constraint_expression_mod: // constraint-expression-mod
+        value.YY_MOVE_OR_COPY< std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t> > (YY_MOVE (that.value));
         break;
 
       case symbol_kind::S_148_constraint_expression_specified: // constraint-expression-specified
@@ -1118,11 +1126,6 @@ namespace annium_lang {
         value.move< named_expression_t > (YY_MOVE (that.value));
         break;
 
-      case symbol_kind::S_147_constraint_expression_specified_mod: // constraint-expression-specified-mod
-      case symbol_kind::S_149_constraint_expression_mod: // constraint-expression-mod
-        value.move< parameter_constraint_modifier_t > (YY_MOVE (that.value));
-        break;
-
       case symbol_kind::S_142_parameter_list_opt: // parameter-list-opt
       case symbol_kind::S_143_parameter_list: // parameter-list
         value.move< parameter_list_t > (YY_MOVE (that.value));
@@ -1171,6 +1174,9 @@ namespace annium_lang {
       case symbol_kind::S_BREAK: // "`break`"
       case symbol_kind::S_RETURN: // "`return`"
       case symbol_kind::S_FN: // "`fn`"
+      case symbol_kind::S_TYPENAME: // "typename modifier"
+      case symbol_kind::S_CONSTEXPR: // "constexpr modifier"
+      case symbol_kind::S_RUNTIME: // "runctime modifier"
         value.move< sonia::lang::lex::resource_location > (YY_MOVE (that.value));
         break;
 
@@ -1195,6 +1201,11 @@ namespace annium_lang {
 
       case symbol_kind::S_124_fn_start_decl: // fn-start-decl
         value.move< std::pair<sonia::lang::lex::resource_location, fn_kind> > (YY_MOVE (that.value));
+        break;
+
+      case symbol_kind::S_147_constraint_expression_specified_mod: // constraint-expression-specified-mod
+      case symbol_kind::S_149_constraint_expression_mod: // constraint-expression-mod
+        value.move< std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t> > (YY_MOVE (that.value));
         break;
 
       case symbol_kind::S_148_constraint_expression_specified: // constraint-expression-specified
@@ -1353,11 +1364,6 @@ namespace annium_lang {
         value.copy< named_expression_t > (that.value);
         break;
 
-      case symbol_kind::S_147_constraint_expression_specified_mod: // constraint-expression-specified-mod
-      case symbol_kind::S_149_constraint_expression_mod: // constraint-expression-mod
-        value.copy< parameter_constraint_modifier_t > (that.value);
-        break;
-
       case symbol_kind::S_142_parameter_list_opt: // parameter-list-opt
       case symbol_kind::S_143_parameter_list: // parameter-list
         value.copy< parameter_list_t > (that.value);
@@ -1406,6 +1412,9 @@ namespace annium_lang {
       case symbol_kind::S_BREAK: // "`break`"
       case symbol_kind::S_RETURN: // "`return`"
       case symbol_kind::S_FN: // "`fn`"
+      case symbol_kind::S_TYPENAME: // "typename modifier"
+      case symbol_kind::S_CONSTEXPR: // "constexpr modifier"
+      case symbol_kind::S_RUNTIME: // "runctime modifier"
         value.copy< sonia::lang::lex::resource_location > (that.value);
         break;
 
@@ -1430,6 +1439,11 @@ namespace annium_lang {
 
       case symbol_kind::S_124_fn_start_decl: // fn-start-decl
         value.copy< std::pair<sonia::lang::lex::resource_location, fn_kind> > (that.value);
+        break;
+
+      case symbol_kind::S_147_constraint_expression_specified_mod: // constraint-expression-specified-mod
+      case symbol_kind::S_149_constraint_expression_mod: // constraint-expression-mod
+        value.copy< std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t> > (that.value);
         break;
 
       case symbol_kind::S_148_constraint_expression_specified: // constraint-expression-specified
@@ -1587,11 +1601,6 @@ namespace annium_lang {
         value.move< named_expression_t > (that.value);
         break;
 
-      case symbol_kind::S_147_constraint_expression_specified_mod: // constraint-expression-specified-mod
-      case symbol_kind::S_149_constraint_expression_mod: // constraint-expression-mod
-        value.move< parameter_constraint_modifier_t > (that.value);
-        break;
-
       case symbol_kind::S_142_parameter_list_opt: // parameter-list-opt
       case symbol_kind::S_143_parameter_list: // parameter-list
         value.move< parameter_list_t > (that.value);
@@ -1640,6 +1649,9 @@ namespace annium_lang {
       case symbol_kind::S_BREAK: // "`break`"
       case symbol_kind::S_RETURN: // "`return`"
       case symbol_kind::S_FN: // "`fn`"
+      case symbol_kind::S_TYPENAME: // "typename modifier"
+      case symbol_kind::S_CONSTEXPR: // "constexpr modifier"
+      case symbol_kind::S_RUNTIME: // "runctime modifier"
         value.move< sonia::lang::lex::resource_location > (that.value);
         break;
 
@@ -1664,6 +1676,11 @@ namespace annium_lang {
 
       case symbol_kind::S_124_fn_start_decl: // fn-start-decl
         value.move< std::pair<sonia::lang::lex::resource_location, fn_kind> > (that.value);
+        break;
+
+      case symbol_kind::S_147_constraint_expression_specified_mod: // constraint-expression-specified-mod
+      case symbol_kind::S_149_constraint_expression_mod: // constraint-expression-mod
+        value.move< std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t> > (that.value);
         break;
 
       case symbol_kind::S_148_constraint_expression_specified: // constraint-expression-specified
@@ -1733,621 +1750,639 @@ namespace annium_lang {
         switch (yykind)
     {
       case symbol_kind::S_STRING: // STRING
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1739 "annium.tab.cpp"
+#line 1756 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_IDENTIFIER: // IDENTIFIER
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1745 "annium.tab.cpp"
+#line 1762 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_CONTEXT_IDENTIFIER: // CONTEXT_IDENTIFIER
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1751 "annium.tab.cpp"
+#line 1768 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_RESERVED_IDENTIFIER: // RESERVED_IDENTIFIER
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1757 "annium.tab.cpp"
+#line 1774 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_CT_IDENTIFIER: // CT_IDENTIFIER
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1763 "annium.tab.cpp"
+#line 1780 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_INTEGER_INDEX: // INTEGER_INDEX
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1769 "annium.tab.cpp"
+#line 1786 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_INTEGER: // INTEGER
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1775 "annium.tab.cpp"
+#line 1792 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_DECIMAL: // DECIMAL
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1781 "annium.tab.cpp"
+#line 1798 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_DECIMAL_S: // DECIMAL_S
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1787 "annium.tab.cpp"
+#line 1804 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_OPERATOR_TERM: // OPERATOR_TERM
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1793 "annium.tab.cpp"
+#line 1810 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_ASSIGN: // "`=`"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1799 "annium.tab.cpp"
+#line 1816 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_UNDERSCORE: // "`_`"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1805 "annium.tab.cpp"
+#line 1822 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_EQ: // "`==`"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1811 "annium.tab.cpp"
+#line 1828 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_NE: // "`!=`"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1817 "annium.tab.cpp"
+#line 1834 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_LOGIC_AND: // "`&&`"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1823 "annium.tab.cpp"
+#line 1840 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_LOGIC_OR: // "`||`"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1829 "annium.tab.cpp"
+#line 1846 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_CONCAT: // "`..`"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1835 "annium.tab.cpp"
+#line 1852 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_ELLIPSIS: // "`...`"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1841 "annium.tab.cpp"
+#line 1858 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_OPEN_PARENTHESIS: // "`(`"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1847 "annium.tab.cpp"
+#line 1864 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_OPEN_BRACE: // "`{`"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1853 "annium.tab.cpp"
+#line 1870 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_OPEN_SQUARE_BRACKET: // "`[`"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1859 "annium.tab.cpp"
+#line 1876 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_OPEN_SQUARE_DBL_BRACKET: // "`[[`"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1865 "annium.tab.cpp"
+#line 1882 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_POINT: // "`.`"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1871 "annium.tab.cpp"
+#line 1888 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_PLUS: // "`+`"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1877 "annium.tab.cpp"
+#line 1894 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_MINUS: // "`-`"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1883 "annium.tab.cpp"
+#line 1900 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_ASTERISK: // "`*`"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1889 "annium.tab.cpp"
+#line 1906 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_AMPERSAND: // "`&`"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1895 "annium.tab.cpp"
+#line 1912 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_BITOR: // "`|`"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1901 "annium.tab.cpp"
+#line 1918 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_EXCLPT: // "`!`"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1907 "annium.tab.cpp"
+#line 1924 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_QMARK: // "`?`"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1913 "annium.tab.cpp"
+#line 1930 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_NEW: // "`new`"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1919 "annium.tab.cpp"
+#line 1936 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_CONTINUE: // "`continue`"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1925 "annium.tab.cpp"
+#line 1942 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_BREAK: // "`break`"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1931 "annium.tab.cpp"
+#line 1948 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_RETURN: // "`return`"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1937 "annium.tab.cpp"
+#line 1954 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_FN: // "`fn`"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1943 "annium.tab.cpp"
+#line 1960 "annium.tab.cpp"
+        break;
+
+      case symbol_kind::S_TYPENAME: // "typename modifier"
+#line 330 "annium.y"
+                 { }
+#line 1966 "annium.tab.cpp"
+        break;
+
+      case symbol_kind::S_CONSTEXPR: // "constexpr modifier"
+#line 330 "annium.y"
+                 { }
+#line 1972 "annium.tab.cpp"
+        break;
+
+      case symbol_kind::S_RUNTIME: // "runctime modifier"
+#line 330 "annium.y"
+                 { }
+#line 1978 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_NIL_WORD: // "nil"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1949 "annium.tab.cpp"
+#line 1984 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_TRUE_WORD: // "true"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1955 "annium.tab.cpp"
+#line 1990 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_FALSE_WORD: // "false"
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1961 "annium.tab.cpp"
+#line 1996 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_statement_any: // statement_any
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1967 "annium.tab.cpp"
+#line 2002 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_108_finished_statement_any: // finished-statement-any
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1973 "annium.tab.cpp"
+#line 2008 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_statement: // statement
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1979 "annium.tab.cpp"
+#line 2014 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_110_let_decl: // let-decl
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1985 "annium.tab.cpp"
+#line 2020 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_111_let_decl_start: // let-decl-start
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1991 "annium.tab.cpp"
+#line 2026 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_112_let_decl_start_with_opt_type: // let-decl-start-with-opt-type
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 1997 "annium.tab.cpp"
+#line 2032 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_113_infunction_statement_any: // infunction-statement-any
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2003 "annium.tab.cpp"
+#line 2038 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_114_finished_infunction_statement_any: // finished-infunction-statement-any
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2009 "annium.tab.cpp"
+#line 2044 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_115_function_body: // function-body
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2015 "annium.tab.cpp"
+#line 2050 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_116_braced_statements: // braced-statements
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2021 "annium.tab.cpp"
+#line 2056 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_117_finished_statement: // finished-statement
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2027 "annium.tab.cpp"
+#line 2062 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_118_infunction_statement_set: // infunction-statement-set
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2033 "annium.tab.cpp"
+#line 2068 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_119_generic_statement: // generic-statement
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2039 "annium.tab.cpp"
+#line 2074 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_120_infunction_statement: // infunction-statement
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2045 "annium.tab.cpp"
+#line 2080 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_identifier: // identifier
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2051 "annium.tab.cpp"
+#line 2086 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_122_internal_identifier: // internal-identifier
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2057 "annium.tab.cpp"
+#line 2092 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_qname: // qname
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2063 "annium.tab.cpp"
+#line 2098 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_124_fn_start_decl: // fn-start-decl
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2069 "annium.tab.cpp"
+#line 2104 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_125_fn_name: // fn-name
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2075 "annium.tab.cpp"
+#line 2110 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_126_fn_decl: // fn-decl
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2081 "annium.tab.cpp"
+#line 2116 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_127_enum_decl: // enum-decl
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2087 "annium.tab.cpp"
+#line 2122 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_128_case_list_opt: // case-list-opt
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2093 "annium.tab.cpp"
+#line 2128 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_129_case_list: // case-list
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2099 "annium.tab.cpp"
+#line 2134 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_130_case_decl: // case-decl
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2105 "annium.tab.cpp"
+#line 2140 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_131_struct_decl: // struct-decl
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2111 "annium.tab.cpp"
+#line 2146 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_132_using_decl: // using-decl
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2117 "annium.tab.cpp"
+#line 2152 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_133_expression_list: // expression-list
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2123 "annium.tab.cpp"
+#line 2158 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_134_argument_list_opt: // argument-list-opt
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2129 "annium.tab.cpp"
+#line 2164 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_135_argument_list: // argument-list
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2135 "annium.tab.cpp"
+#line 2170 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_argument: // argument
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2141 "annium.tab.cpp"
+#line 2176 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_137_argument_name: // argument-name
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2147 "annium.tab.cpp"
+#line 2182 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_138_field_list_opt: // field-list-opt
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2153 "annium.tab.cpp"
+#line 2188 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_139_field_list: // field-list
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2159 "annium.tab.cpp"
+#line 2194 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_140_field_default_value_opt: // field-default-value-opt
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2165 "annium.tab.cpp"
+#line 2200 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_field: // field
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2171 "annium.tab.cpp"
+#line 2206 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_142_parameter_list_opt: // parameter-list-opt
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2177 "annium.tab.cpp"
+#line 2212 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_143_parameter_list: // parameter-list
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2183 "annium.tab.cpp"
+#line 2218 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_144_internal_identifier_opt: // internal-identifier-opt
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2189 "annium.tab.cpp"
+#line 2224 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_145_parameter_default_value_opt: // parameter-default-value-opt
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2195 "annium.tab.cpp"
+#line 2230 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_146_parameter_decl: // parameter-decl
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2201 "annium.tab.cpp"
+#line 2236 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_147_constraint_expression_specified_mod: // constraint-expression-specified-mod
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2207 "annium.tab.cpp"
+#line 2242 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_148_constraint_expression_specified: // constraint-expression-specified
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2213 "annium.tab.cpp"
+#line 2248 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_149_constraint_expression_mod: // constraint-expression-mod
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2219 "annium.tab.cpp"
+#line 2254 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_150_constraint_expression: // constraint-expression
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2225 "annium.tab.cpp"
+#line 2260 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_subpatterns: // subpatterns
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2231 "annium.tab.cpp"
+#line 2266 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_152_pattern_list: // pattern-list
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2237 "annium.tab.cpp"
+#line 2272 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_153_pattern_field_sfx: // pattern-field-sfx
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2243 "annium.tab.cpp"
+#line 2278 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_154_pattern_field: // pattern-field
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2249 "annium.tab.cpp"
+#line 2284 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_155_pattern_mod: // pattern-mod
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2255 "annium.tab.cpp"
+#line 2290 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_156_pattern_sfx: // pattern-sfx
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2261 "annium.tab.cpp"
+#line 2296 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_pattern: // pattern
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2267 "annium.tab.cpp"
+#line 2302 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_158_concept_expression: // concept-expression
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2273 "annium.tab.cpp"
+#line 2308 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_159_concept_expression_list_opt: // concept-expression-list-opt
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2279 "annium.tab.cpp"
+#line 2314 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_160_concept_expression_list: // concept-expression-list
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2285 "annium.tab.cpp"
+#line 2320 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_161_syntax_expression: // syntax-expression
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2291 "annium.tab.cpp"
+#line 2326 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_162_syntax_expression_wo_ii: // syntax-expression-wo-ii
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2297 "annium.tab.cpp"
+#line 2332 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_163_apostrophe_expression: // apostrophe-expression
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2303 "annium.tab.cpp"
+#line 2338 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_164_new_expression: // new-expression
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2309 "annium.tab.cpp"
+#line 2344 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_165_call_expression: // call-expression
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2315 "annium.tab.cpp"
+#line 2350 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_166_lambda_start_decl: // lambda-start-decl
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2321 "annium.tab.cpp"
+#line 2356 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_167_lambda_expression: // lambda-expression
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2327 "annium.tab.cpp"
+#line 2362 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_168_pack_expression_opt: // pack-expression-opt
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2333 "annium.tab.cpp"
+#line 2368 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_169_pack_expression: // pack-expression
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2339 "annium.tab.cpp"
+#line 2374 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_170_compound_expression: // compound-expression
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2345 "annium.tab.cpp"
+#line 2380 "annium.tab.cpp"
         break;
 
       case symbol_kind::S_171_type_expr: // type-expr
-#line 331 "annium.y"
+#line 330 "annium.y"
                  { }
-#line 2351 "annium.tab.cpp"
+#line 2386 "annium.tab.cpp"
         break;
 
       default:
@@ -2687,11 +2722,6 @@ namespace annium_lang {
         yylhs.value.emplace< named_expression_t > ();
         break;
 
-      case symbol_kind::S_147_constraint_expression_specified_mod: // constraint-expression-specified-mod
-      case symbol_kind::S_149_constraint_expression_mod: // constraint-expression-mod
-        yylhs.value.emplace< parameter_constraint_modifier_t > ();
-        break;
-
       case symbol_kind::S_142_parameter_list_opt: // parameter-list-opt
       case symbol_kind::S_143_parameter_list: // parameter-list
         yylhs.value.emplace< parameter_list_t > ();
@@ -2740,6 +2770,9 @@ namespace annium_lang {
       case symbol_kind::S_BREAK: // "`break`"
       case symbol_kind::S_RETURN: // "`return`"
       case symbol_kind::S_FN: // "`fn`"
+      case symbol_kind::S_TYPENAME: // "typename modifier"
+      case symbol_kind::S_CONSTEXPR: // "constexpr modifier"
+      case symbol_kind::S_RUNTIME: // "runctime modifier"
         yylhs.value.emplace< sonia::lang::lex::resource_location > ();
         break;
 
@@ -2764,6 +2797,11 @@ namespace annium_lang {
 
       case symbol_kind::S_124_fn_start_decl: // fn-start-decl
         yylhs.value.emplace< std::pair<sonia::lang::lex::resource_location, fn_kind> > ();
+        break;
+
+      case symbol_kind::S_147_constraint_expression_specified_mod: // constraint-expression-specified-mod
+      case symbol_kind::S_149_constraint_expression_mod: // constraint-expression-mod
+        yylhs.value.emplace< std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t> > ();
         break;
 
       case symbol_kind::S_148_constraint_expression_specified: // constraint-expression-specified
@@ -2817,232 +2855,232 @@ namespace annium_lang {
           switch (yyn)
             {
   case 2: // begin: statement_any "end of file"
-#line 336 "annium.y"
+#line 335 "annium.y"
                             { ctx.set_root_statements(std::move(yystack_[1].value.as < managed_statement_list > ())); }
-#line 2823 "annium.tab.cpp"
+#line 2861 "annium.tab.cpp"
     break;
 
   case 3: // begin: finished-statement-any "end of file"
-#line 337 "annium.y"
+#line 336 "annium.y"
                                  { ctx.set_root_statements(std::move(yystack_[1].value.as < managed_statement_list > ())); }
-#line 2829 "annium.tab.cpp"
+#line 2867 "annium.tab.cpp"
     break;
 
   case 4: // statement_any: %empty
-#line 342 "annium.y"
+#line 341 "annium.y"
         { yylhs.value.as < managed_statement_list > () = ctx.new_statement_list(); }
-#line 2835 "annium.tab.cpp"
+#line 2873 "annium.tab.cpp"
     break;
 
   case 5: // statement_any: statement
-#line 344 "annium.y"
+#line 343 "annium.y"
         { yylhs.value.as < managed_statement_list > () = ctx.new_statement_list(); yylhs.value.as < managed_statement_list > ().emplace_back(std::move(yystack_[0].value.as < statement > ())); }
-#line 2841 "annium.tab.cpp"
+#line 2879 "annium.tab.cpp"
     break;
 
   case 6: // statement_any: finished-statement-any statement
-#line 346 "annium.y"
+#line 345 "annium.y"
         { yystack_[1].value.as < managed_statement_list > ().emplace_back(std::move(yystack_[0].value.as < statement > ())); yylhs.value.as < managed_statement_list > () = std::move(yystack_[1].value.as < managed_statement_list > ()); }
-#line 2847 "annium.tab.cpp"
+#line 2885 "annium.tab.cpp"
     break;
 
   case 7: // finished-statement-any: finished-statement
-#line 363 "annium.y"
+#line 362 "annium.y"
         { yylhs.value.as < managed_statement_list > () = ctx.new_statement_list(); yylhs.value.as < managed_statement_list > ().emplace_back(std::move(yystack_[0].value.as < finished_statement_type > ())); }
-#line 2853 "annium.tab.cpp"
+#line 2891 "annium.tab.cpp"
     break;
 
   case 8: // finished-statement-any: finished-statement-any "`;`"
-#line 364 "annium.y"
+#line 363 "annium.y"
                                                 { yylhs.value.as < managed_statement_list > () = std::move(yystack_[1].value.as < managed_statement_list > ()); }
-#line 2859 "annium.tab.cpp"
+#line 2897 "annium.tab.cpp"
     break;
 
   case 9: // finished-statement-any: finished-statement-any finished-statement
-#line 366 "annium.y"
+#line 365 "annium.y"
         { yystack_[1].value.as < managed_statement_list > ().emplace_back(std::move(yystack_[0].value.as < finished_statement_type > ())); yylhs.value.as < managed_statement_list > () = std::move(yystack_[1].value.as < managed_statement_list > ()); }
-#line 2865 "annium.tab.cpp"
+#line 2903 "annium.tab.cpp"
     break;
 
   case 10: // finished-statement-any: statement_any "`;`"
-#line 368 "annium.y"
+#line 367 "annium.y"
         { yylhs.value.as < managed_statement_list > () = std::move(yystack_[1].value.as < managed_statement_list > ()); }
-#line 2871 "annium.tab.cpp"
+#line 2909 "annium.tab.cpp"
     break;
 
   case 11: // statement: EXTERN VAR identifier "`:`" type-expr
-#line 373 "annium.y"
+#line 372 "annium.y"
         { yylhs.value.as < statement > () = extern_var{ std::move(yystack_[2].value.as < annium::annotated_identifier > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()) }; }
-#line 2877 "annium.tab.cpp"
+#line 2915 "annium.tab.cpp"
     break;
 
   case 12: // statement: EXTERN "`fn`" fn-decl
-#line 375 "annium.y"
+#line 374 "annium.y"
         { yylhs.value.as < statement > () = std::move(yystack_[0].value.as < fn_pure_t > ()); IGNORE_TERM(yystack_[1].value.as < sonia::lang::lex::resource_location > ()); }
-#line 2883 "annium.tab.cpp"
+#line 2921 "annium.tab.cpp"
     break;
 
   case 13: // statement: INCLUDE STRING
-#line 377 "annium.y"
+#line 376 "annium.y"
         { yylhs.value.as < statement > () = include_decl{ctx.make_string(std::move(yystack_[0].value.as < annium::annotated_string_view > ())) }; }
-#line 2889 "annium.tab.cpp"
+#line 2927 "annium.tab.cpp"
     break;
 
   case 14: // statement: generic-statement
-#line 390 "annium.y"
+#line 389 "annium.y"
         { yylhs.value.as < statement > () = apply_visitor(statement_adopt_visitor<statement>{}, yystack_[0].value.as < generic_statement_type > ()); }
-#line 2895 "annium.tab.cpp"
+#line 2933 "annium.tab.cpp"
     break;
 
   case 15: // statement: STRUCT struct-decl
-#line 392 "annium.y"
+#line 391 "annium.y"
         { yylhs.value.as < statement > () = std::move(yystack_[0].value.as < struct_decl > ()); }
-#line 2901 "annium.tab.cpp"
+#line 2939 "annium.tab.cpp"
     break;
 
   case 16: // let-decl: let-decl-start-with-opt-type
-#line 397 "annium.y"
+#line 396 "annium.y"
         { yylhs.value.as < let_statement > () = std::move(yystack_[0].value.as < let_statement > ()); }
-#line 2907 "annium.tab.cpp"
+#line 2945 "annium.tab.cpp"
     break;
 
   case 17: // let-decl: let-decl-start-with-opt-type "`=`" pack-expression
-#line 399 "annium.y"
+#line 398 "annium.y"
         { yylhs.value.as < let_statement > () = std::move(yystack_[2].value.as < let_statement > ()); yylhs.value.as < let_statement > ().expressions = std::move(yystack_[0].value.as < named_expression_list_t > ()); yylhs.value.as < let_statement > ().assign_location = std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()); }
-#line 2913 "annium.tab.cpp"
+#line 2951 "annium.tab.cpp"
     break;
 
   case 18: // let-decl-start: identifier
-#line 404 "annium.y"
+#line 403 "annium.y"
         { yylhs.value.as < let_statement > () = let_statement{ .aname = std::move(yystack_[0].value.as < annium::annotated_identifier > ()), .weakness = false }; }
-#line 2919 "annium.tab.cpp"
+#line 2957 "annium.tab.cpp"
     break;
 
   case 19: // let-decl-start: "weak modifier" identifier
-#line 406 "annium.y"
+#line 405 "annium.y"
         { yylhs.value.as < let_statement > () = let_statement{ .aname = std::move(yystack_[0].value.as < annium::annotated_identifier > ()), .weakness = true }; }
-#line 2925 "annium.tab.cpp"
+#line 2963 "annium.tab.cpp"
     break;
 
   case 20: // let-decl-start-with-opt-type: let-decl-start
-#line 410 "annium.y"
+#line 409 "annium.y"
       { yylhs.value.as < let_statement > () = yystack_[0].value.as < let_statement > (); }
-#line 2931 "annium.tab.cpp"
+#line 2969 "annium.tab.cpp"
     break;
 
   case 21: // let-decl-start-with-opt-type: let-decl-start "`:`" type-expr
-#line 412 "annium.y"
+#line 411 "annium.y"
         { yylhs.value.as < let_statement > () = std::move(yystack_[2].value.as < let_statement > ()); yylhs.value.as < let_statement > ().type = std::move(yystack_[0].value.as < syntax_expression_t > ()); }
-#line 2937 "annium.tab.cpp"
+#line 2975 "annium.tab.cpp"
     break;
 
   case 22: // infunction-statement-any: %empty
-#line 417 "annium.y"
+#line 416 "annium.y"
         { yylhs.value.as < managed_statement_list > () = ctx.new_statement_list(); }
-#line 2943 "annium.tab.cpp"
+#line 2981 "annium.tab.cpp"
     break;
 
   case 23: // infunction-statement-any: infunction-statement
-#line 419 "annium.y"
+#line 418 "annium.y"
         { yylhs.value.as < managed_statement_list > () = ctx.new_statement_list(); yylhs.value.as < managed_statement_list > ().emplace_back(std::move(yystack_[0].value.as < statement > ())); }
-#line 2949 "annium.tab.cpp"
+#line 2987 "annium.tab.cpp"
     break;
 
   case 24: // infunction-statement-any: finished-infunction-statement-any infunction-statement
-#line 421 "annium.y"
+#line 420 "annium.y"
         { yystack_[1].value.as < managed_statement_list > ().emplace_back(std::move(yystack_[0].value.as < statement > ())); yylhs.value.as < managed_statement_list > () = std::move(yystack_[1].value.as < managed_statement_list > ()); }
-#line 2955 "annium.tab.cpp"
+#line 2993 "annium.tab.cpp"
     break;
 
   case 25: // finished-infunction-statement-any: finished-statement
-#line 426 "annium.y"
+#line 425 "annium.y"
         { yylhs.value.as < managed_statement_list > () = ctx.new_statement_list(); yylhs.value.as < managed_statement_list > ().emplace_back(std::move(yystack_[0].value.as < finished_statement_type > ())); }
-#line 2961 "annium.tab.cpp"
+#line 2999 "annium.tab.cpp"
     break;
 
   case 26: // finished-infunction-statement-any: finished-infunction-statement-any "`;`"
-#line 427 "annium.y"
+#line 426 "annium.y"
                                                            { yylhs.value.as < managed_statement_list > () = std::move(yystack_[1].value.as < managed_statement_list > ()); }
-#line 2967 "annium.tab.cpp"
+#line 3005 "annium.tab.cpp"
     break;
 
   case 27: // finished-infunction-statement-any: finished-infunction-statement-any finished-statement
-#line 429 "annium.y"
+#line 428 "annium.y"
         { yystack_[1].value.as < managed_statement_list > ().emplace_back(std::move(yystack_[0].value.as < finished_statement_type > ())); yylhs.value.as < managed_statement_list > () = std::move(yystack_[1].value.as < managed_statement_list > ()); }
-#line 2973 "annium.tab.cpp"
+#line 3011 "annium.tab.cpp"
     break;
 
   case 28: // finished-infunction-statement-any: infunction-statement-any "`;`"
-#line 431 "annium.y"
+#line 430 "annium.y"
         { yylhs.value.as < managed_statement_list > () = std::move(yystack_[1].value.as < managed_statement_list > ()); }
-#line 2979 "annium.tab.cpp"
+#line 3017 "annium.tab.cpp"
     break;
 
   case 29: // function-body: braced-statements
-#line 437 "annium.y"
+#line 436 "annium.y"
         { yylhs.value.as < managed_statement_list > () = std::move(yystack_[0].value.as < managed_statement_list > ()); }
-#line 2985 "annium.tab.cpp"
+#line 3023 "annium.tab.cpp"
     break;
 
   case 30: // function-body: "`=>`" syntax-expression "APOSTROPHE"
-#line 439 "annium.y"
+#line 438 "annium.y"
         { 
             auto sts = ctx.new_statement_list();
             auto loc = get_start_location(yystack_[1].value.as < syntax_expression_t > ());
             sts.emplace_back(return_decl_t{ yystack_[1].value.as < syntax_expression_t > (), std::move(loc) });
             yylhs.value.as < managed_statement_list > () = std::move(sts);
         }
-#line 2996 "annium.tab.cpp"
+#line 3034 "annium.tab.cpp"
     break;
 
   case 31: // braced-statements: "`{`" infunction-statement-set "`}`"
-#line 449 "annium.y"
+#line 448 "annium.y"
         { yylhs.value.as < managed_statement_list > () = std::move(yystack_[1].value.as < managed_statement_list > ()); IGNORE_TERM(yystack_[2].value.as < sonia::lang::lex::resource_location > ()); }
-#line 3002 "annium.tab.cpp"
+#line 3040 "annium.tab.cpp"
     break;
 
   case 32: // finished-statement: "`while`" syntax-expression braced-statements
-#line 454 "annium.y"
+#line 453 "annium.y"
         { yylhs.value.as < finished_statement_type > () = while_decl{ std::move(yystack_[1].value.as < syntax_expression_t > ()), ctx.push(std::move(yystack_[0].value.as < managed_statement_list > ())) }; }
-#line 3008 "annium.tab.cpp"
+#line 3046 "annium.tab.cpp"
     break;
 
   case 33: // finished-statement: "`while`" syntax-expression "`;`" syntax-expression braced-statements
-#line 456 "annium.y"
+#line 455 "annium.y"
         { yylhs.value.as < finished_statement_type > () = while_decl{ std::move(yystack_[3].value.as < syntax_expression_t > ()), ctx.push(std::move(yystack_[0].value.as < managed_statement_list > ())), std::move(yystack_[1].value.as < syntax_expression_t > ()) }; }
-#line 3014 "annium.tab.cpp"
+#line 3052 "annium.tab.cpp"
     break;
 
   case 34: // finished-statement: "`for`" syntax-expression "`in`" syntax-expression braced-statements
-#line 458 "annium.y"
+#line 457 "annium.y"
         { yylhs.value.as < finished_statement_type > () = for_decl{ std::move(yystack_[3].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < syntax_expression_t > ()), ctx.push(std::move(yystack_[0].value.as < managed_statement_list > ())) }; }
-#line 3020 "annium.tab.cpp"
+#line 3058 "annium.tab.cpp"
     break;
 
   case 35: // finished-statement: "`if`" syntax-expression braced-statements
-#line 460 "annium.y"
+#line 459 "annium.y"
         { yylhs.value.as < finished_statement_type > () = if_decl{ std::move(yystack_[1].value.as < syntax_expression_t > ()), ctx.push(std::move(yystack_[0].value.as < managed_statement_list > ())) }; }
-#line 3026 "annium.tab.cpp"
+#line 3064 "annium.tab.cpp"
     break;
 
   case 36: // finished-statement: "`if`" syntax-expression braced-statements "`else`" braced-statements
-#line 462 "annium.y"
+#line 461 "annium.y"
         { yylhs.value.as < finished_statement_type > () = if_decl{ std::move(yystack_[3].value.as < syntax_expression_t > ()), ctx.push(std::move(yystack_[2].value.as < managed_statement_list > ())), ctx.push(std::move(yystack_[0].value.as < managed_statement_list > ())) }; }
-#line 3032 "annium.tab.cpp"
+#line 3070 "annium.tab.cpp"
     break;
 
   case 37: // finished-statement: fn-start-decl fn-decl braced-statements
-#line 464 "annium.y"
+#line 463 "annium.y"
         {   
             yystack_[1].value.as < fn_pure_t > ().location = std::move(get<0>(yystack_[2].value.as < std::pair<sonia::lang::lex::resource_location, fn_kind> > ()));
             yystack_[1].value.as < fn_pure_t > ().kind = get<1>(yystack_[2].value.as < std::pair<sonia::lang::lex::resource_location, fn_kind> > ());
             yylhs.value.as < finished_statement_type > () = fn_decl_t{ std::move(yystack_[1].value.as < fn_pure_t > ()), ctx.push(std::move(yystack_[0].value.as < managed_statement_list > ())) };
         }
-#line 3042 "annium.tab.cpp"
+#line 3080 "annium.tab.cpp"
     break;
 
   case 38: // finished-statement: fn-start-decl fn-decl "`=>`" syntax-expression "`;`"
-#line 470 "annium.y"
+#line 469 "annium.y"
         {
             auto sts = ctx.new_statement_list();
             auto loc = get_start_location(yystack_[1].value.as < syntax_expression_t > ());
@@ -3051,226 +3089,226 @@ namespace annium_lang {
             yystack_[3].value.as < fn_pure_t > ().kind = get<1>(yystack_[4].value.as < std::pair<sonia::lang::lex::resource_location, fn_kind> > ());
             yylhs.value.as < finished_statement_type > () = fn_decl_t{ std::move(yystack_[3].value.as < fn_pure_t > ()), ctx.push(std::move(sts)) };
         }
-#line 3055 "annium.tab.cpp"
+#line 3093 "annium.tab.cpp"
     break;
 
   case 39: // finished-statement: STRUCT qname braced-statements
-#line 479 "annium.y"
+#line 478 "annium.y"
         { yylhs.value.as < finished_statement_type > () = struct_decl{ .name = std::move(yystack_[1].value.as < annium::annotated_qname > ()), .body = ctx.push(std::move(yystack_[0].value.as < managed_statement_list > ())) }; }
-#line 3061 "annium.tab.cpp"
+#line 3099 "annium.tab.cpp"
     break;
 
   case 40: // finished-statement: STRUCT qname "`(`" parameter-list-opt "`)`" braced-statements
-#line 481 "annium.y"
+#line 480 "annium.y"
         { yylhs.value.as < finished_statement_type > () = struct_decl{ .name = std::move(yystack_[4].value.as < annium::annotated_qname > ()), .parameters = std::move(yystack_[2].value.as < parameter_list_t > ()), .body = ctx.push(std::move(yystack_[0].value.as < managed_statement_list > ())) }; IGNORE_TERM(yystack_[3].value.as < sonia::lang::lex::resource_location > ()); }
-#line 3067 "annium.tab.cpp"
+#line 3105 "annium.tab.cpp"
     break;
 
   case 41: // finished-statement: ENUM enum-decl
-#line 483 "annium.y"
+#line 482 "annium.y"
         { yylhs.value.as < finished_statement_type > () = std::move(yystack_[0].value.as < enum_decl > ()); }
-#line 3073 "annium.tab.cpp"
+#line 3111 "annium.tab.cpp"
     break;
 
   case 42: // infunction-statement-set: infunction-statement-any
-#line 488 "annium.y"
+#line 487 "annium.y"
         { yylhs.value.as < managed_statement_list > () = std::move(yystack_[0].value.as < managed_statement_list > ()); }
-#line 3079 "annium.tab.cpp"
+#line 3117 "annium.tab.cpp"
     break;
 
   case 43: // infunction-statement-set: finished-infunction-statement-any
-#line 490 "annium.y"
+#line 489 "annium.y"
         { yylhs.value.as < managed_statement_list > () = std::move(yystack_[0].value.as < managed_statement_list > ()); }
-#line 3085 "annium.tab.cpp"
+#line 3123 "annium.tab.cpp"
     break;
 
   case 44: // generic-statement: LET let-decl
-#line 495 "annium.y"
+#line 494 "annium.y"
         { yylhs.value.as < generic_statement_type > () = std::move(yystack_[0].value.as < let_statement > ()); }
-#line 3091 "annium.tab.cpp"
+#line 3129 "annium.tab.cpp"
     break;
 
   case 45: // generic-statement: USING using-decl
-#line 497 "annium.y"
+#line 496 "annium.y"
         { yylhs.value.as < generic_statement_type > () = std::move(yystack_[0].value.as < using_decl > ()); }
-#line 3097 "annium.tab.cpp"
+#line 3135 "annium.tab.cpp"
     break;
 
   case 46: // generic-statement: compound-expression
-#line 499 "annium.y"
+#line 498 "annium.y"
         { yylhs.value.as < generic_statement_type > () = expression_statement_t{ std::move(yystack_[0].value.as < syntax_expression_t > ()) }; }
-#line 3103 "annium.tab.cpp"
+#line 3141 "annium.tab.cpp"
     break;
 
   case 47: // generic-statement: syntax-expression "`=`" syntax-expression
-#line 501 "annium.y"
+#line 500 "annium.y"
         { yylhs.value.as < generic_statement_type > () = expression_statement_t{ binary_expression_t{ binary_operator_type::ASSIGN, std::move(yystack_[2].value.as < syntax_expression_t > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) } }; }
-#line 3109 "annium.tab.cpp"
+#line 3147 "annium.tab.cpp"
     break;
 
   case 48: // infunction-statement: generic-statement
-#line 506 "annium.y"
+#line 505 "annium.y"
         { yylhs.value.as < statement > () = apply_visitor(statement_adopt_visitor<statement>{}, yystack_[0].value.as < generic_statement_type > ()); }
-#line 3115 "annium.tab.cpp"
+#line 3153 "annium.tab.cpp"
     break;
 
   case 49: // infunction-statement: "`break`"
-#line 508 "annium.y"
+#line 507 "annium.y"
         { yylhs.value.as < statement > () = break_statement_t{ std::move(yystack_[0].value.as < sonia::lang::lex::resource_location > ()) }; }
-#line 3121 "annium.tab.cpp"
+#line 3159 "annium.tab.cpp"
     break;
 
   case 50: // infunction-statement: "`continue`"
-#line 510 "annium.y"
+#line 509 "annium.y"
         { yylhs.value.as < statement > () = continue_statement_t{ std::move(yystack_[0].value.as < sonia::lang::lex::resource_location > ()) }; }
-#line 3127 "annium.tab.cpp"
+#line 3165 "annium.tab.cpp"
     break;
 
   case 51: // infunction-statement: "`return`"
-#line 512 "annium.y"
+#line 511 "annium.y"
         { yylhs.value.as < statement > () = return_decl_t{ .location = std::move(yystack_[0].value.as < sonia::lang::lex::resource_location > ()) }; }
-#line 3133 "annium.tab.cpp"
+#line 3171 "annium.tab.cpp"
     break;
 
   case 52: // infunction-statement: "`return`" syntax-expression
-#line 514 "annium.y"
+#line 513 "annium.y"
         { yylhs.value.as < statement > () = return_decl_t{ .expression = std::move(yystack_[0].value.as < syntax_expression_t > ()), .location = std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }; }
-#line 3139 "annium.tab.cpp"
+#line 3177 "annium.tab.cpp"
     break;
 
   case 53: // identifier: IDENTIFIER
-#line 519 "annium.y"
+#line 518 "annium.y"
       { yylhs.value.as < annium::annotated_identifier > () = ctx.make_identifier(yystack_[0].value.as < annium::annotated_string_view > ()); }
-#line 3145 "annium.tab.cpp"
+#line 3183 "annium.tab.cpp"
     break;
 
   case 54: // internal-identifier: CONTEXT_IDENTIFIER
-#line 527 "annium.y"
+#line 526 "annium.y"
         { yylhs.value.as < annium::context_identifier > () = context_identifier { ctx.make_identifier(yystack_[0].value.as < annium::annotated_string_view > ()) }; }
-#line 3151 "annium.tab.cpp"
+#line 3189 "annium.tab.cpp"
     break;
 
   case 55: // qname: "`::`" identifier
-#line 542 "annium.y"
+#line 541 "annium.y"
         { yylhs.value.as < annium::annotated_qname > () = annotated_qname{ qname{yystack_[0].value.as < annium::annotated_identifier > ().value}, std::move(yystack_[0].value.as < annium::annotated_identifier > ().location) }; }
-#line 3157 "annium.tab.cpp"
+#line 3195 "annium.tab.cpp"
     break;
 
   case 56: // qname: identifier
-#line 544 "annium.y"
+#line 543 "annium.y"
         { yylhs.value.as < annium::annotated_qname > () = annotated_qname{ qname{yystack_[0].value.as < annium::annotated_identifier > ().value, false}, std::move(yystack_[0].value.as < annium::annotated_identifier > ().location) }; }
-#line 3163 "annium.tab.cpp"
+#line 3201 "annium.tab.cpp"
     break;
 
   case 57: // qname: qname "`::`" identifier
-#line 546 "annium.y"
+#line 545 "annium.y"
         { yylhs.value.as < annium::annotated_qname > () = std::move(yystack_[2].value.as < annium::annotated_qname > ()); yylhs.value.as < annium::annotated_qname > ().value.append(std::move(yystack_[0].value.as < annium::annotated_identifier > ().value)); }
-#line 3169 "annium.tab.cpp"
+#line 3207 "annium.tab.cpp"
     break;
 
   case 58: // fn-start-decl: "`fn`"
-#line 552 "annium.y"
+#line 551 "annium.y"
         { yylhs.value.as < std::pair<sonia::lang::lex::resource_location, fn_kind> > () = std::pair{ std::move(yystack_[0].value.as < sonia::lang::lex::resource_location > ()), fn_kind::DEFAULT }; }
-#line 3175 "annium.tab.cpp"
+#line 3213 "annium.tab.cpp"
     break;
 
   case 59: // fn-start-decl: INLINE "`fn`"
-#line 554 "annium.y"
+#line 553 "annium.y"
         { yylhs.value.as < std::pair<sonia::lang::lex::resource_location, fn_kind> > () = std::pair{ std::move(yystack_[0].value.as < sonia::lang::lex::resource_location > ()), fn_kind::INLINE }; }
-#line 3181 "annium.tab.cpp"
+#line 3219 "annium.tab.cpp"
     break;
 
   case 60: // fn-name: qname
-#line 558 "annium.y"
+#line 557 "annium.y"
       { yylhs.value.as < annium::annotated_qname > () = yystack_[0].value.as < annium::annotated_qname > (); }
-#line 3187 "annium.tab.cpp"
+#line 3225 "annium.tab.cpp"
     break;
 
   case 61: // fn-name: "`new`"
-#line 559 "annium.y"
+#line 558 "annium.y"
           { yylhs.value.as < annium::annotated_qname > () = ctx.make_qname(annotated_string_view{ "new"sv, std::move(yystack_[0].value.as < sonia::lang::lex::resource_location > ()) }); }
-#line 3193 "annium.tab.cpp"
+#line 3231 "annium.tab.cpp"
     break;
 
   case 62: // fn-decl: fn-name "`(`" parameter-list-opt "`)`"
-#line 564 "annium.y"
+#line 563 "annium.y"
         { yylhs.value.as < fn_pure_t > () = fn_pure_t{ .nameval = std::move(yystack_[3].value.as < annium::annotated_qname > ().value), .location = std::move(yystack_[3].value.as < annium::annotated_qname > ().location), .parameters = std::move(yystack_[1].value.as < parameter_list_t > ()) }; IGNORE_TERM(yystack_[2].value.as < sonia::lang::lex::resource_location > ()); }
-#line 3199 "annium.tab.cpp"
+#line 3237 "annium.tab.cpp"
     break;
 
   case 63: // fn-decl: fn-name "`(`" parameter-list-opt "`)`" "`->`" type-expr
-#line 566 "annium.y"
+#line 565 "annium.y"
         { yylhs.value.as < fn_pure_t > () = fn_pure_t{ .nameval = std::move(yystack_[5].value.as < annium::annotated_qname > ().value), .location = std::move(yystack_[5].value.as < annium::annotated_qname > ().location), .parameters = std::move(yystack_[3].value.as < parameter_list_t > ()), .result = std::move(yystack_[0].value.as < syntax_expression_t > ()) }; IGNORE_TERM(yystack_[4].value.as < sonia::lang::lex::resource_location > ()); }
-#line 3205 "annium.tab.cpp"
+#line 3243 "annium.tab.cpp"
     break;
 
   case 64: // fn-decl: fn-name "`(`" parameter-list-opt "`)`" "`~>`" pattern
-#line 568 "annium.y"
+#line 567 "annium.y"
         { yylhs.value.as < fn_pure_t > () = fn_pure_t{ .nameval = std::move(yystack_[5].value.as < annium::annotated_qname > ().value), .location = std::move(yystack_[5].value.as < annium::annotated_qname > ().location), .parameters = std::move(yystack_[3].value.as < parameter_list_t > ()), .result = std::move(yystack_[0].value.as < pattern_t > ()) }; IGNORE_TERM(yystack_[4].value.as < sonia::lang::lex::resource_location > ()); }
-#line 3211 "annium.tab.cpp"
+#line 3249 "annium.tab.cpp"
     break;
 
   case 65: // enum-decl: qname "`{`" case-list-opt "`}`"
-#line 574 "annium.y"
+#line 573 "annium.y"
         { yylhs.value.as < enum_decl > () = enum_decl{ std::move(yystack_[3].value.as < annium::annotated_qname > ()), std::move(yystack_[1].value.as < std::vector<annium::identifier> > ()) }; IGNORE_TERM(yystack_[2].value.as < sonia::lang::lex::resource_location > ()); }
-#line 3217 "annium.tab.cpp"
+#line 3255 "annium.tab.cpp"
     break;
 
   case 66: // case-list-opt: %empty
-#line 578 "annium.y"
+#line 577 "annium.y"
              { yylhs.value.as < std::vector<annium::identifier> > () = {}; }
-#line 3223 "annium.tab.cpp"
+#line 3261 "annium.tab.cpp"
     break;
 
   case 67: // case-list-opt: case-list
-#line 579 "annium.y"
+#line 578 "annium.y"
       { yylhs.value.as < std::vector<annium::identifier> > () = yystack_[0].value.as < std::vector<annium::identifier> > (); }
-#line 3229 "annium.tab.cpp"
+#line 3267 "annium.tab.cpp"
     break;
 
   case 68: // case-list: case-decl
-#line 584 "annium.y"
+#line 583 "annium.y"
         { yylhs.value.as < std::vector<annium::identifier> > () = std::vector<annium::identifier>{std::move(yystack_[0].value.as < annium::identifier > ())}; }
-#line 3235 "annium.tab.cpp"
+#line 3273 "annium.tab.cpp"
     break;
 
   case 69: // case-list: case-list "," case-decl
-#line 586 "annium.y"
+#line 585 "annium.y"
         { yylhs.value.as < std::vector<annium::identifier> > () = std::move(yystack_[2].value.as < std::vector<annium::identifier> > ()); yylhs.value.as < std::vector<annium::identifier> > ().emplace_back(std::move(yystack_[0].value.as < annium::identifier > ())); }
-#line 3241 "annium.tab.cpp"
+#line 3279 "annium.tab.cpp"
     break;
 
   case 70: // case-decl: identifier
-#line 591 "annium.y"
+#line 590 "annium.y"
         { yylhs.value.as < annium::identifier > () = yystack_[0].value.as < annium::annotated_identifier > ().value; }
-#line 3247 "annium.tab.cpp"
+#line 3285 "annium.tab.cpp"
     break;
 
   case 71: // struct-decl: qname "`=>`" "`(`" field-list-opt "`)`"
-#line 597 "annium.y"
+#line 596 "annium.y"
         { yylhs.value.as < struct_decl > () = struct_decl{ .name = std::move(yystack_[4].value.as < annium::annotated_qname > ()), .body = std::move(yystack_[1].value.as < field_list_t > ()) }; IGNORE_TERM(yystack_[2].value.as < sonia::lang::lex::resource_location > ()); }
-#line 3253 "annium.tab.cpp"
+#line 3291 "annium.tab.cpp"
     break;
 
   case 72: // struct-decl: qname "`(`" parameter-list-opt "`)`" "`=>`" "`(`" field-list-opt "`)`"
-#line 599 "annium.y"
+#line 598 "annium.y"
         { yylhs.value.as < struct_decl > () = struct_decl{ .name = std::move(yystack_[7].value.as < annium::annotated_qname > ()), .parameters = std::move(yystack_[5].value.as < parameter_list_t > ()), .body = std::move(yystack_[1].value.as < field_list_t > ()) }; IGNORE_TERM(yystack_[6].value.as < sonia::lang::lex::resource_location > ()); IGNORE_TERM(yystack_[2].value.as < sonia::lang::lex::resource_location > ()); }
-#line 3259 "annium.tab.cpp"
+#line 3297 "annium.tab.cpp"
     break;
 
   case 73: // using-decl: qname "`=>`" syntax-expression
-#line 622 "annium.y"
+#line 621 "annium.y"
         { 
             auto sts = ctx.new_statement_list();
             auto loc = get_start_location(yystack_[0].value.as < syntax_expression_t > ());
             sts.emplace_back(return_decl_t{ .expression = std::move(yystack_[0].value.as < syntax_expression_t > ()), .location = std::move(loc) });
             yylhs.value.as < using_decl > () = using_decl{ fn_decl_t{ fn_pure_t{ .nameval = std::move(yystack_[2].value.as < annium::annotated_qname > ().value), .location = std::move(yystack_[2].value.as < annium::annotated_qname > ().location), .result = nullptr }, ctx.push(std::move(sts)) } };
         }
-#line 3270 "annium.tab.cpp"
+#line 3308 "annium.tab.cpp"
     break;
 
   case 74: // using-decl: qname "`(`" parameter-list-opt "`)`" "`=>`" syntax-expression
-#line 629 "annium.y"
+#line 628 "annium.y"
         {
             auto sts = ctx.new_statement_list();
             auto loc = get_start_location(yystack_[0].value.as < syntax_expression_t > ());
@@ -3278,609 +3316,624 @@ namespace annium_lang {
             yylhs.value.as < using_decl > () = using_decl{ fn_decl_t{ fn_pure_t{ .nameval = std::move(yystack_[5].value.as < annium::annotated_qname > ().value), .location = std::move(yystack_[5].value.as < annium::annotated_qname > ().location), .parameters = std::move(yystack_[3].value.as < parameter_list_t > ()), .result = nullptr }, ctx.push(std::move(sts)) } };
             IGNORE_TERM(yystack_[4].value.as < sonia::lang::lex::resource_location > ());
         }
-#line 3282 "annium.tab.cpp"
+#line 3320 "annium.tab.cpp"
     break;
 
   case 75: // expression-list: syntax-expression
-#line 647 "annium.y"
+#line 646 "annium.y"
         { yylhs.value.as < expression_list_t > () = expression_list_t{ std::move(yystack_[0].value.as < syntax_expression_t > ()) }; }
-#line 3288 "annium.tab.cpp"
+#line 3326 "annium.tab.cpp"
     break;
 
   case 76: // expression-list: expression-list "," syntax-expression
-#line 649 "annium.y"
+#line 648 "annium.y"
         { yylhs.value.as < expression_list_t > () = std::move(yystack_[2].value.as < expression_list_t > ()); yylhs.value.as < expression_list_t > ().emplace_back(std::move(yystack_[0].value.as < syntax_expression_t > ())); }
-#line 3294 "annium.tab.cpp"
+#line 3332 "annium.tab.cpp"
     break;
 
   case 77: // argument-list-opt: %empty
-#line 654 "annium.y"
+#line 653 "annium.y"
               { yylhs.value.as < named_expression_list_t > () = {}; }
-#line 3300 "annium.tab.cpp"
+#line 3338 "annium.tab.cpp"
     break;
 
   case 78: // argument-list-opt: argument-list
-#line 655 "annium.y"
+#line 654 "annium.y"
       { yylhs.value.as < named_expression_list_t > () = yystack_[0].value.as < named_expression_list_t > (); }
-#line 3306 "annium.tab.cpp"
+#line 3344 "annium.tab.cpp"
     break;
 
   case 79: // argument-list: argument
-#line 660 "annium.y"
+#line 659 "annium.y"
         { yylhs.value.as < named_expression_list_t > () = named_expression_list_t{std::move(yystack_[0].value.as < named_expression_t > ())}; }
-#line 3312 "annium.tab.cpp"
+#line 3350 "annium.tab.cpp"
     break;
 
   case 80: // argument-list: argument-list "," argument
-#line 662 "annium.y"
+#line 661 "annium.y"
         { yylhs.value.as < named_expression_list_t > () = std::move(yystack_[2].value.as < named_expression_list_t > ()); yylhs.value.as < named_expression_list_t > ().emplace_back(std::move(yystack_[0].value.as < named_expression_t > ())); }
-#line 3318 "annium.tab.cpp"
+#line 3356 "annium.tab.cpp"
     break;
 
   case 81: // argument: argument-name syntax-expression
-#line 667 "annium.y"
+#line 666 "annium.y"
         { yylhs.value.as < named_expression_t > () = named_expression_t{ std::move(yystack_[1].value.as < annium::annotated_identifier > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()) }; }
-#line 3324 "annium.tab.cpp"
+#line 3362 "annium.tab.cpp"
     break;
 
   case 82: // argument: syntax-expression
-#line 669 "annium.y"
+#line 668 "annium.y"
         { yylhs.value.as < named_expression_t > () = named_expression_t{ std::move(yystack_[0].value.as < syntax_expression_t > ()) }; }
-#line 3330 "annium.tab.cpp"
+#line 3368 "annium.tab.cpp"
     break;
 
   case 83: // argument-name: identifier "`=`"
-#line 674 "annium.y"
+#line 673 "annium.y"
         { yylhs.value.as < annium::annotated_identifier > () = std::move(yystack_[1].value.as < annium::annotated_identifier > ()); IGNORE_TERM(yystack_[0].value.as < sonia::lang::lex::resource_location > ()); }
-#line 3336 "annium.tab.cpp"
+#line 3374 "annium.tab.cpp"
     break;
 
   case 84: // argument-name: identifier "`:`"
-#line 676 "annium.y"
+#line 675 "annium.y"
         { yylhs.value.as < annium::annotated_identifier > () = std::move(yystack_[1].value.as < annium::annotated_identifier > ()); }
-#line 3342 "annium.tab.cpp"
+#line 3380 "annium.tab.cpp"
     break;
 
   case 85: // field-list-opt: %empty
-#line 681 "annium.y"
+#line 680 "annium.y"
               { yylhs.value.as < field_list_t > () = {}; }
-#line 3348 "annium.tab.cpp"
+#line 3386 "annium.tab.cpp"
     break;
 
   case 86: // field-list-opt: field-list
-#line 682 "annium.y"
+#line 681 "annium.y"
       { yylhs.value.as < field_list_t > () = yystack_[0].value.as < field_list_t > (); }
-#line 3354 "annium.tab.cpp"
+#line 3392 "annium.tab.cpp"
     break;
 
   case 87: // field-list: field
-#line 687 "annium.y"
+#line 686 "annium.y"
         { yylhs.value.as < field_list_t > () = field_list_t{std::move(yystack_[0].value.as < field_t > ())}; }
-#line 3360 "annium.tab.cpp"
+#line 3398 "annium.tab.cpp"
     break;
 
   case 88: // field-list: field-list "," field
-#line 689 "annium.y"
+#line 688 "annium.y"
         { yylhs.value.as < field_list_t > () = std::move(yystack_[2].value.as < field_list_t > ()); yylhs.value.as < field_list_t > ().emplace_back(std::move(yystack_[0].value.as < field_t > ())); }
-#line 3366 "annium.tab.cpp"
+#line 3404 "annium.tab.cpp"
     break;
 
   case 89: // field-default-value-opt: %empty
-#line 693 "annium.y"
+#line 692 "annium.y"
              { yylhs.value.as < sonia::optional<syntax_expression_t> > () = nullopt; }
-#line 3372 "annium.tab.cpp"
+#line 3410 "annium.tab.cpp"
     break;
 
   case 90: // field-default-value-opt: "`=`" syntax-expression
-#line 694 "annium.y"
+#line 693 "annium.y"
                                       { yylhs.value.as < sonia::optional<syntax_expression_t> > () = std::move(yystack_[0].value.as < syntax_expression_t > ()); IGNORE_TERM(yystack_[1].value.as < sonia::lang::lex::resource_location > ()); }
-#line 3378 "annium.tab.cpp"
+#line 3416 "annium.tab.cpp"
     break;
 
   case 91: // field: identifier "`:`" type-expr field-default-value-opt
-#line 699 "annium.y"
+#line 698 "annium.y"
         { yylhs.value.as < field_t > () = field_t{ std::move(yystack_[3].value.as < annium::annotated_identifier > ()), parameter_constraint_modifier_t::runtime_type, std::move(yystack_[1].value.as < syntax_expression_t > ()), std::move(yystack_[0].value.as < sonia::optional<syntax_expression_t> > ()) }; }
-#line 3384 "annium.tab.cpp"
+#line 3422 "annium.tab.cpp"
     break;
 
   case 92: // field: identifier "`=>`" syntax-expression
-#line 701 "annium.y"
+#line 700 "annium.y"
         { yylhs.value.as < field_t > () = field_t{ std::move(yystack_[2].value.as < annium::annotated_identifier > ()), parameter_constraint_modifier_t::any_constexpr_type, std::move(yystack_[0].value.as < syntax_expression_t > ()) }; }
-#line 3390 "annium.tab.cpp"
+#line 3428 "annium.tab.cpp"
     break;
 
   case 93: // parameter-list-opt: %empty
-#line 707 "annium.y"
+#line 706 "annium.y"
               { yylhs.value.as < parameter_list_t > () = {}; }
-#line 3396 "annium.tab.cpp"
+#line 3434 "annium.tab.cpp"
     break;
 
   case 94: // parameter-list-opt: parameter-list
-#line 708 "annium.y"
+#line 707 "annium.y"
        { yylhs.value.as < parameter_list_t > () = yystack_[0].value.as < parameter_list_t > (); }
-#line 3402 "annium.tab.cpp"
+#line 3440 "annium.tab.cpp"
     break;
 
   case 95: // parameter-list: parameter-decl
-#line 713 "annium.y"
+#line 712 "annium.y"
         { yylhs.value.as < parameter_list_t > () = parameter_list_t{ parameter_t{std::move(yystack_[0].value.as < parameter_t > ())} }; }
-#line 3408 "annium.tab.cpp"
+#line 3446 "annium.tab.cpp"
     break;
 
   case 96: // parameter-list: parameter-list "," parameter-decl
-#line 715 "annium.y"
+#line 714 "annium.y"
         { yylhs.value.as < parameter_list_t > () = std::move(yystack_[2].value.as < parameter_list_t > ()); yylhs.value.as < parameter_list_t > ().emplace_back(std::move(yystack_[0].value.as < parameter_t > ())); }
-#line 3414 "annium.tab.cpp"
+#line 3452 "annium.tab.cpp"
     break;
 
   case 97: // internal-identifier-opt: %empty
-#line 719 "annium.y"
+#line 718 "annium.y"
              { yylhs.value.as < annium::context_identifier > () = context_identifier{}; }
-#line 3420 "annium.tab.cpp"
+#line 3458 "annium.tab.cpp"
     break;
 
   case 98: // internal-identifier-opt: internal-identifier
-#line 720 "annium.y"
+#line 719 "annium.y"
                                  { yylhs.value.as < annium::context_identifier > () = std::move(yystack_[0].value.as < annium::context_identifier > ()); }
-#line 3426 "annium.tab.cpp"
+#line 3464 "annium.tab.cpp"
     break;
 
   case 99: // parameter-default-value-opt: %empty
-#line 724 "annium.y"
+#line 723 "annium.y"
              { yylhs.value.as < sonia::optional<syntax_expression_t> > () = nullopt; }
-#line 3432 "annium.tab.cpp"
+#line 3470 "annium.tab.cpp"
     break;
 
   case 100: // parameter-default-value-opt: "`=`" syntax-expression
-#line 725 "annium.y"
+#line 724 "annium.y"
                                       { yylhs.value.as < sonia::optional<syntax_expression_t> > () = std::move(yystack_[0].value.as < syntax_expression_t > ()); IGNORE_TERM(yystack_[1].value.as < sonia::lang::lex::resource_location > ()); }
-#line 3438 "annium.tab.cpp"
+#line 3476 "annium.tab.cpp"
     break;
 
   case 101: // parameter-decl: identifier internal-identifier-opt "`:`" pattern-mod parameter-default-value-opt
-#line 730 "annium.y"
+#line 729 "annium.y"
         { yylhs.value.as < parameter_t > () = parameter_t{ .name = named_parameter_name{ std::move(yystack_[4].value.as < annium::annotated_identifier > ()), std::move(yystack_[3].value.as < annium::context_identifier > ().name) }, .constraint = std::move(get<0>(yystack_[1].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ())), .default_value = std::move(yystack_[0].value.as < sonia::optional<syntax_expression_t> > ()), .modifier = get<1>(yystack_[1].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ()) }; }
-#line 3444 "annium.tab.cpp"
+#line 3482 "annium.tab.cpp"
     break;
 
   case 102: // parameter-decl: internal-identifier "`:`" pattern-mod parameter-default-value-opt
-#line 732 "annium.y"
+#line 731 "annium.y"
         { yylhs.value.as < parameter_t > () = parameter_t{ .name = unnamed_parameter_name{ std::move(yystack_[3].value.as < annium::context_identifier > ().name) }, .constraint = std::move(get<0>(yystack_[1].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ())), .default_value = std::move(yystack_[0].value.as < sonia::optional<syntax_expression_t> > ()), .modifier = get<1>(yystack_[1].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ()) }; }
-#line 3450 "annium.tab.cpp"
+#line 3488 "annium.tab.cpp"
     break;
 
   case 103: // parameter-decl: "`:`" pattern-mod parameter-default-value-opt
-#line 734 "annium.y"
+#line 733 "annium.y"
         { yylhs.value.as < parameter_t > () = parameter_t{ .name = unnamed_parameter_name{ }, .constraint = std::move(get<0>(yystack_[1].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ())), .default_value = std::move(yystack_[0].value.as < sonia::optional<syntax_expression_t> > ()), .modifier = get<1>(yystack_[1].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ()) }; }
-#line 3456 "annium.tab.cpp"
+#line 3494 "annium.tab.cpp"
     break;
 
   case 104: // parameter-decl: pattern-mod parameter-default-value-opt
-#line 736 "annium.y"
+#line 735 "annium.y"
         { yylhs.value.as < parameter_t > () = parameter_t{ .name = unnamed_parameter_name{ }, .constraint = std::move(get<0>(yystack_[1].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ())), .default_value = std::move(yystack_[0].value.as < sonia::optional<syntax_expression_t> > ()), .modifier = get<1>(yystack_[1].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ()) }; }
-#line 3462 "annium.tab.cpp"
+#line 3500 "annium.tab.cpp"
     break;
 
   case 105: // parameter-decl: identifier internal-identifier parameter-default-value-opt
-#line 739 "annium.y"
+#line 738 "annium.y"
         { yylhs.value.as < parameter_t > () = parameter_t{ .name = named_parameter_name{ std::move(yystack_[2].value.as < annium::annotated_identifier > ()), std::move(yystack_[1].value.as < annium::context_identifier > ().name) }, .constraint = pattern_t{ .descriptor = placeholder{ std::move(yystack_[1].value.as < annium::context_identifier > ().name.location) }}, .default_value = std::move(yystack_[0].value.as < sonia::optional<syntax_expression_t> > ()), .modifier =  parameter_constraint_modifier_t::const_or_runtime_type }; }
-#line 3468 "annium.tab.cpp"
+#line 3506 "annium.tab.cpp"
     break;
 
   case 106: // parameter-decl: internal-identifier parameter-default-value-opt
-#line 741 "annium.y"
+#line 740 "annium.y"
         { yylhs.value.as < parameter_t > () = parameter_t{ .name = unnamed_parameter_name{ std::move(yystack_[1].value.as < annium::context_identifier > ().name) }, .constraint = pattern_t{ .descriptor = placeholder{ std::move(yystack_[1].value.as < annium::context_identifier > ().name.location) }}, .default_value = std::move(yystack_[0].value.as < sonia::optional<syntax_expression_t> > ()), .modifier =  parameter_constraint_modifier_t::const_or_runtime_type }; }
-#line 3474 "annium.tab.cpp"
+#line 3512 "annium.tab.cpp"
     break;
 
   case 107: // parameter-decl: "`_`" parameter-default-value-opt
-#line 743 "annium.y"
+#line 742 "annium.y"
         { yylhs.value.as < parameter_t > () = parameter_t{ .name = unnamed_parameter_name{ }, .constraint = pattern_t{ .descriptor = placeholder{ std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }}, .default_value = std::move(yystack_[0].value.as < sonia::optional<syntax_expression_t> > ()), .modifier =  parameter_constraint_modifier_t::const_or_runtime_type }; }
-#line 3480 "annium.tab.cpp"
+#line 3518 "annium.tab.cpp"
     break;
 
   case 108: // parameter-decl: internal-identifier "`...`" parameter-default-value-opt
-#line 745 "annium.y"
+#line 744 "annium.y"
         { yylhs.value.as < parameter_t > () = parameter_t{ .name = unnamed_parameter_name{ std::move(yystack_[2].value.as < annium::context_identifier > ().name) }, .constraint = pattern_t{ .descriptor = placeholder{ std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }}, .default_value = std::move(yystack_[0].value.as < sonia::optional<syntax_expression_t> > ()), .modifier =  parameter_constraint_modifier_t::const_or_runtime_type | parameter_constraint_modifier_t::ellipsis }; }
-#line 3486 "annium.tab.cpp"
+#line 3524 "annium.tab.cpp"
     break;
 
   case 109: // parameter-decl: "`...`" parameter-default-value-opt
-#line 747 "annium.y"
+#line 746 "annium.y"
         { yylhs.value.as < parameter_t > () = parameter_t{ .name = unnamed_parameter_name{ }, .constraint = pattern_t{ .descriptor = placeholder{ std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }}, .default_value = std::move(yystack_[0].value.as < sonia::optional<syntax_expression_t> > ()), .modifier =  parameter_constraint_modifier_t::const_or_runtime_type | parameter_constraint_modifier_t::ellipsis }; }
-#line 3492 "annium.tab.cpp"
+#line 3530 "annium.tab.cpp"
     break;
 
   case 110: // parameter-decl: identifier internal-identifier-opt "`:`" constraint-expression parameter-default-value-opt
-#line 752 "annium.y"
+#line 751 "annium.y"
         { yylhs.value.as < parameter_t > () = parameter_t{ .name = named_parameter_name{ std::move(yystack_[4].value.as < annium::annotated_identifier > ()), std::move(yystack_[3].value.as < annium::context_identifier > ().name) }, .constraint = std::move(get<0>(yystack_[1].value.as < std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t> > ())), .default_value = std::move(yystack_[0].value.as < sonia::optional<syntax_expression_t> > ()), .modifier = get<1>(yystack_[1].value.as < std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t> > ()) }; }
-#line 3498 "annium.tab.cpp"
+#line 3536 "annium.tab.cpp"
     break;
 
   case 111: // parameter-decl: internal-identifier "`:`" constraint-expression parameter-default-value-opt
-#line 754 "annium.y"
+#line 753 "annium.y"
         { yylhs.value.as < parameter_t > () = parameter_t{ .name = unnamed_parameter_name{ std::move(yystack_[3].value.as < annium::context_identifier > ().name) }, .constraint = std::move(get<0>(yystack_[1].value.as < std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t> > ())), .default_value = std::move(yystack_[0].value.as < sonia::optional<syntax_expression_t> > ()), .modifier = get<1>(yystack_[1].value.as < std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t> > ()) }; }
-#line 3504 "annium.tab.cpp"
+#line 3542 "annium.tab.cpp"
     break;
 
   case 112: // parameter-decl: "`:`" constraint-expression parameter-default-value-opt
-#line 756 "annium.y"
+#line 755 "annium.y"
         { yylhs.value.as < parameter_t > () = parameter_t{ .name = unnamed_parameter_name{ }, .constraint = std::move(get<0>(yystack_[1].value.as < std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t> > ())), .default_value = std::move(yystack_[0].value.as < sonia::optional<syntax_expression_t> > ()), .modifier = get<1>(yystack_[1].value.as < std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t> > ()) }; }
-#line 3510 "annium.tab.cpp"
+#line 3548 "annium.tab.cpp"
     break;
 
   case 113: // parameter-decl: constraint-expression-specified parameter-default-value-opt
-#line 758 "annium.y"
+#line 757 "annium.y"
         { yylhs.value.as < parameter_t > () = parameter_t{ .name = unnamed_parameter_name{ }, .constraint = std::move(get<0>(yystack_[1].value.as < std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t> > ())), .default_value = std::move(yystack_[0].value.as < sonia::optional<syntax_expression_t> > ()), .modifier = get<1>(yystack_[1].value.as < std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t> > ()) }; }
-#line 3516 "annium.tab.cpp"
+#line 3554 "annium.tab.cpp"
     break;
 
   case 114: // constraint-expression-specified-mod: "constexpr modifier"
-#line 762 "annium.y"
-                { yylhs.value.as < parameter_constraint_modifier_t > () = parameter_constraint_modifier_t::any_constexpr_type; }
-#line 3522 "annium.tab.cpp"
+#line 761 "annium.y"
+                { yylhs.value.as < std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t> > () = std::pair{ std::move(yystack_[0].value.as < sonia::lang::lex::resource_location > ()), parameter_constraint_modifier_t::any_constexpr_type }; }
+#line 3560 "annium.tab.cpp"
     break;
 
   case 115: // constraint-expression-specified-mod: "runctime modifier"
-#line 763 "annium.y"
-              { yylhs.value.as < parameter_constraint_modifier_t > () = parameter_constraint_modifier_t::runtime_type; }
-#line 3528 "annium.tab.cpp"
+#line 762 "annium.y"
+              { yylhs.value.as < std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t> > () = std::pair{ std::move(yystack_[0].value.as < sonia::lang::lex::resource_location > ()), parameter_constraint_modifier_t::runtime_type }; }
+#line 3566 "annium.tab.cpp"
     break;
 
   case 116: // constraint-expression-specified: constraint-expression-specified-mod type-expr
-#line 768 "annium.y"
-        { yylhs.value.as < std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t> > () = std::pair{ std::move(yystack_[0].value.as < syntax_expression_t > ()), yystack_[1].value.as < parameter_constraint_modifier_t > () }; }
-#line 3534 "annium.tab.cpp"
+#line 767 "annium.y"
+        { yylhs.value.as < std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t> > () = std::pair{ std::move(yystack_[0].value.as < syntax_expression_t > ()), get<1>(yystack_[1].value.as < std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t> > ()) }; }
+#line 3572 "annium.tab.cpp"
     break;
 
   case 117: // constraint-expression-specified: constraint-expression-specified-mod type-expr "`...`"
-#line 770 "annium.y"
-        { yylhs.value.as < std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t> > () = std::pair{ std::move(yystack_[1].value.as < syntax_expression_t > ()), yystack_[2].value.as < parameter_constraint_modifier_t > () | parameter_constraint_modifier_t::ellipsis }; IGNORE_TERM(yystack_[0].value.as < sonia::lang::lex::resource_location > ()); }
-#line 3540 "annium.tab.cpp"
+#line 769 "annium.y"
+        { yylhs.value.as < std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t> > () = std::pair{ std::move(yystack_[1].value.as < syntax_expression_t > ()), get<1>(yystack_[2].value.as < std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t> > ()) | parameter_constraint_modifier_t::ellipsis }; IGNORE_TERM(yystack_[0].value.as < sonia::lang::lex::resource_location > ()); }
+#line 3578 "annium.tab.cpp"
     break;
 
-  case 118: // constraint-expression-specified: constraint-expression-specified-mod "`...`"
-#line 772 "annium.y"
-        { yylhs.value.as < std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t> > () = std::pair{ pattern_t{ .descriptor = placeholder{ std::move(yystack_[0].value.as < sonia::lang::lex::resource_location > ()) }}, yystack_[1].value.as < parameter_constraint_modifier_t > () | parameter_constraint_modifier_t::ellipsis }; }
-#line 3546 "annium.tab.cpp"
+  case 118: // constraint-expression-specified: constraint-expression-specified-mod
+#line 773 "annium.y"
+        { yylhs.value.as < std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t> > () = std::pair{ pattern_t{ .descriptor = placeholder{ std::move(get<0>(yystack_[0].value.as < std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t> > ())) }}, get<1>(yystack_[0].value.as < std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t> > ()) }; }
+#line 3584 "annium.tab.cpp"
     break;
 
-  case 119: // constraint-expression-mod: %empty
-#line 776 "annium.y"
-             { yylhs.value.as < parameter_constraint_modifier_t > () = parameter_constraint_modifier_t::const_or_runtime_type; }
-#line 3552 "annium.tab.cpp"
+  case 119: // constraint-expression-specified: constraint-expression-specified-mod "`...`"
+#line 775 "annium.y"
+        { yylhs.value.as < std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t> > () = std::pair{ pattern_t{ .descriptor = placeholder{ std::move(yystack_[0].value.as < sonia::lang::lex::resource_location > ()) }}, get<1>(yystack_[1].value.as < std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t> > ()) | parameter_constraint_modifier_t::ellipsis }; }
+#line 3590 "annium.tab.cpp"
     break;
 
-  case 120: // constraint-expression-mod: constraint-expression-specified-mod
-#line 777 "annium.y"
-      { yylhs.value.as < parameter_constraint_modifier_t > () = yystack_[0].value.as < parameter_constraint_modifier_t > (); }
-#line 3558 "annium.tab.cpp"
+  case 120: // constraint-expression-mod: %empty
+#line 780 "annium.y"
+        {
+            location_type const& loc = yystack_[(0) - (-1)].location;
+            yylhs.value.as < std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t> > () = std::pair{ sonia::lang::lex::resource_location{ loc.begin.line, loc.begin.column, ctx.get_resource() }, parameter_constraint_modifier_t::const_or_runtime_type };
+        }
+#line 3599 "annium.tab.cpp"
     break;
 
-  case 121: // constraint-expression: constraint-expression-mod type-expr
-#line 782 "annium.y"
-        { yylhs.value.as < std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t> > () = std::pair{ std::move(yystack_[0].value.as < syntax_expression_t > ()), yystack_[1].value.as < parameter_constraint_modifier_t > () }; }
-#line 3564 "annium.tab.cpp"
-    break;
-
-  case 122: // constraint-expression: constraint-expression-mod type-expr "`...`"
+  case 121: // constraint-expression-mod: constraint-expression-specified-mod
 #line 784 "annium.y"
-        { yylhs.value.as < std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t> > () = std::pair{ std::move(yystack_[1].value.as < syntax_expression_t > ()), yystack_[2].value.as < parameter_constraint_modifier_t > () | parameter_constraint_modifier_t::ellipsis }; IGNORE_TERM(yystack_[0].value.as < sonia::lang::lex::resource_location > ()); }
-#line 3570 "annium.tab.cpp"
+      { yylhs.value.as < std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t> > () = yystack_[0].value.as < std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t> > (); }
+#line 3605 "annium.tab.cpp"
     break;
 
-  case 123: // constraint-expression: constraint-expression-mod "`...`"
-#line 786 "annium.y"
-        { yylhs.value.as < std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t> > () = std::pair{ pattern_t{ .descriptor = placeholder{ std::move(yystack_[0].value.as < sonia::lang::lex::resource_location > ()) }}, yystack_[1].value.as < parameter_constraint_modifier_t > () | parameter_constraint_modifier_t::ellipsis }; }
-#line 3576 "annium.tab.cpp"
+  case 122: // constraint-expression: constraint-expression-mod type-expr
+#line 789 "annium.y"
+        { yylhs.value.as < std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t> > () = std::pair{ std::move(yystack_[0].value.as < syntax_expression_t > ()), get<1>(yystack_[1].value.as < std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t> > ()) }; }
+#line 3611 "annium.tab.cpp"
     break;
 
-  case 124: // subpatterns: "`(`" pattern-list "`)`"
-#line 792 "annium.y"
-        { yylhs.value.as < pattern_list_t > () = std::move(yystack_[1].value.as < pattern_list_t > ()); IGNORE_TERM(yystack_[2].value.as < sonia::lang::lex::resource_location > ()); }
-#line 3582 "annium.tab.cpp"
+  case 123: // constraint-expression: constraint-expression-mod type-expr "`...`"
+#line 791 "annium.y"
+        { yylhs.value.as < std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t> > () = std::pair{ std::move(yystack_[1].value.as < syntax_expression_t > ()), get<1>(yystack_[2].value.as < std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t> > ()) | parameter_constraint_modifier_t::ellipsis }; IGNORE_TERM(yystack_[0].value.as < sonia::lang::lex::resource_location > ()); }
+#line 3617 "annium.tab.cpp"
     break;
 
-  case 125: // pattern-list: pattern-field
+  case 124: // constraint-expression: constraint-expression-mod
+#line 795 "annium.y"
+        { yylhs.value.as < std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t> > () = std::pair{ pattern_t{ .descriptor = placeholder{ get<0>(yystack_[0].value.as < std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t> > ()) } }, get<1>(yystack_[0].value.as < std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t> > ()) }; }
+#line 3623 "annium.tab.cpp"
+    break;
+
+  case 125: // constraint-expression: constraint-expression-mod "`...`"
 #line 797 "annium.y"
+        { yylhs.value.as < std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t> > () = std::pair{ pattern_t{ .descriptor = placeholder{ std::move(yystack_[0].value.as < sonia::lang::lex::resource_location > ()) }}, get<1>(yystack_[1].value.as < std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t> > ()) | parameter_constraint_modifier_t::ellipsis }; }
+#line 3629 "annium.tab.cpp"
+    break;
+
+  case 126: // subpatterns: "`(`" pattern-list "`)`"
+#line 803 "annium.y"
+        { yylhs.value.as < pattern_list_t > () = std::move(yystack_[1].value.as < pattern_list_t > ()); IGNORE_TERM(yystack_[2].value.as < sonia::lang::lex::resource_location > ()); }
+#line 3635 "annium.tab.cpp"
+    break;
+
+  case 127: // pattern-list: pattern-field
+#line 808 "annium.y"
         { yylhs.value.as < pattern_list_t > () = pattern_list_t{ std::move(yystack_[0].value.as < pattern_t::field > ()) }; }
-#line 3588 "annium.tab.cpp"
+#line 3641 "annium.tab.cpp"
     break;
 
-  case 126: // pattern-list: pattern-list "," pattern-field
-#line 799 "annium.y"
-        { yylhs.value.as < pattern_list_t > () = std::move(yystack_[2].value.as < pattern_list_t > ()); yylhs.value.as < pattern_list_t > ().emplace_back(std::move(yystack_[0].value.as < pattern_t::field > ())); }
-#line 3594 "annium.tab.cpp"
-    break;
-
-  case 127: // pattern-field-sfx: concept-expression-list-opt
-#line 805 "annium.y"
-        { yylhs.value.as < pattern_t::field > () = pattern_t::field{ .name = nullptr, .value = pattern_t{ .descriptor = placeholder{ }, .concepts = std::move(yystack_[0].value.as < concept_expression_list_t > ()) } }; }
-#line 3600 "annium.tab.cpp"
-    break;
-
-  case 128: // pattern-field-sfx: concept-expression-list-opt "`...`"
-#line 807 "annium.y"
-        { yylhs.value.as < pattern_t::field > () = pattern_t::field{ .name = nullptr, .value = pattern_t{ .descriptor = placeholder{ }, .concepts = std::move(yystack_[1].value.as < concept_expression_list_t > ()) }, .ellipsis = true }; IGNORE_TERM(yystack_[0].value.as < sonia::lang::lex::resource_location > ()); }
-#line 3606 "annium.tab.cpp"
-    break;
-
-  case 129: // pattern-field-sfx: internal-identifier concept-expression-list-opt
+  case 128: // pattern-list: pattern-list "," pattern-field
 #line 810 "annium.y"
-        { yylhs.value.as < pattern_t::field > () = pattern_t::field{ .name = nullptr, .bound_variable = std::move(yystack_[1].value.as < annium::context_identifier > ().name), .value = pattern_t{ .descriptor = placeholder{ }, .concepts = std::move(yystack_[0].value.as < concept_expression_list_t > ()) } }; }
-#line 3612 "annium.tab.cpp"
+        { yylhs.value.as < pattern_list_t > () = std::move(yystack_[2].value.as < pattern_list_t > ()); yylhs.value.as < pattern_list_t > ().emplace_back(std::move(yystack_[0].value.as < pattern_t::field > ())); }
+#line 3647 "annium.tab.cpp"
     break;
 
-  case 130: // pattern-field-sfx: internal-identifier concept-expression-list-opt "`...`"
-#line 812 "annium.y"
-        { yylhs.value.as < pattern_t::field > () = pattern_t::field{ .name = nullptr, .bound_variable = std::move(yystack_[2].value.as < annium::context_identifier > ().name), .value = pattern_t{ .descriptor = placeholder{ }, .concepts = std::move(yystack_[1].value.as < concept_expression_list_t > ()) }, .ellipsis = true }; IGNORE_TERM(yystack_[0].value.as < sonia::lang::lex::resource_location > ()); }
-#line 3618 "annium.tab.cpp"
-    break;
-
-  case 131: // pattern-field-sfx: "`=`" pattern-sfx
+  case 129: // pattern-field-sfx: concept-expression-list-opt
 #line 816 "annium.y"
+        { yylhs.value.as < pattern_t::field > () = pattern_t::field{ .name = nullptr, .value = pattern_t{ .descriptor = placeholder{ }, .concepts = std::move(yystack_[0].value.as < concept_expression_list_t > ()) } }; }
+#line 3653 "annium.tab.cpp"
+    break;
+
+  case 130: // pattern-field-sfx: concept-expression-list-opt "`...`"
+#line 818 "annium.y"
+        { yylhs.value.as < pattern_t::field > () = pattern_t::field{ .name = nullptr, .value = pattern_t{ .descriptor = placeholder{ }, .concepts = std::move(yystack_[1].value.as < concept_expression_list_t > ()) }, .ellipsis = true }; IGNORE_TERM(yystack_[0].value.as < sonia::lang::lex::resource_location > ()); }
+#line 3659 "annium.tab.cpp"
+    break;
+
+  case 131: // pattern-field-sfx: internal-identifier concept-expression-list-opt
+#line 821 "annium.y"
+        { yylhs.value.as < pattern_t::field > () = pattern_t::field{ .name = nullptr, .bound_variable = std::move(yystack_[1].value.as < annium::context_identifier > ().name), .value = pattern_t{ .descriptor = placeholder{ }, .concepts = std::move(yystack_[0].value.as < concept_expression_list_t > ()) } }; }
+#line 3665 "annium.tab.cpp"
+    break;
+
+  case 132: // pattern-field-sfx: internal-identifier concept-expression-list-opt "`...`"
+#line 823 "annium.y"
+        { yylhs.value.as < pattern_t::field > () = pattern_t::field{ .name = nullptr, .bound_variable = std::move(yystack_[2].value.as < annium::context_identifier > ().name), .value = pattern_t{ .descriptor = placeholder{ }, .concepts = std::move(yystack_[1].value.as < concept_expression_list_t > ()) }, .ellipsis = true }; IGNORE_TERM(yystack_[0].value.as < sonia::lang::lex::resource_location > ()); }
+#line 3671 "annium.tab.cpp"
+    break;
+
+  case 133: // pattern-field-sfx: "`=`" pattern-sfx
+#line 827 "annium.y"
         { yylhs.value.as < pattern_t::field > () = pattern_t::field{ .name = nullptr, .value = std::move(get<0>(yystack_[0].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ())), .ellipsis = has(get<1>(yystack_[0].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ()), parameter_constraint_modifier_t::ellipsis) }; IGNORE_TERM(yystack_[1].value.as < sonia::lang::lex::resource_location > ()); }
-#line 3624 "annium.tab.cpp"
+#line 3677 "annium.tab.cpp"
     break;
 
-  case 132: // pattern-field-sfx: internal-identifier "`=`" pattern-sfx
-#line 819 "annium.y"
+  case 134: // pattern-field-sfx: internal-identifier "`=`" pattern-sfx
+#line 830 "annium.y"
         { yylhs.value.as < pattern_t::field > () = pattern_t::field{ .name = nullptr, .bound_variable = std::move(yystack_[2].value.as < annium::context_identifier > ().name), .value = std::move(get<0>(yystack_[0].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ())), .ellipsis = has(get<1>(yystack_[0].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ()), parameter_constraint_modifier_t::ellipsis) }; IGNORE_TERM(yystack_[1].value.as < sonia::lang::lex::resource_location > ()); }
-#line 3630 "annium.tab.cpp"
+#line 3683 "annium.tab.cpp"
     break;
 
-  case 133: // pattern-field: identifier pattern-field-sfx
-#line 825 "annium.y"
+  case 135: // pattern-field: identifier pattern-field-sfx
+#line 836 "annium.y"
         { yylhs.value.as < pattern_t::field > () = std::move(yystack_[0].value.as < pattern_t::field > ()); yylhs.value.as < pattern_t::field > ().name = std::move(yystack_[1].value.as < annium::annotated_identifier > ()); }
-#line 3636 "annium.tab.cpp"
+#line 3689 "annium.tab.cpp"
     break;
 
-  case 134: // pattern-field: "`?`" internal-identifier pattern-field-sfx
-#line 828 "annium.y"
+  case 136: // pattern-field: "`?`" internal-identifier pattern-field-sfx
+#line 839 "annium.y"
         { yylhs.value.as < pattern_t::field > () = std::move(yystack_[0].value.as < pattern_t::field > ()); yylhs.value.as < pattern_t::field > ().name = std::move(yystack_[1].value.as < annium::context_identifier > ()); IGNORE_TERM(yystack_[2].value.as < sonia::lang::lex::resource_location > ()); }
-#line 3642 "annium.tab.cpp"
+#line 3695 "annium.tab.cpp"
     break;
 
-  case 135: // pattern-field: pattern-field-sfx
-#line 841 "annium.y"
+  case 137: // pattern-field: pattern-field-sfx
+#line 852 "annium.y"
         { yylhs.value.as < pattern_t::field > () = std::move(yystack_[0].value.as < pattern_t::field > ()); yylhs.value.as < pattern_t::field > ().name = placeholder{ }; }
-#line 3648 "annium.tab.cpp"
+#line 3701 "annium.tab.cpp"
     break;
 
-  case 136: // pattern-field: "`_`" pattern-field-sfx
-#line 844 "annium.y"
-        { yylhs.value.as < pattern_t::field > () = std::move(yystack_[0].value.as < pattern_t::field > ()); yylhs.value.as < pattern_t::field > ().name = placeholder{ std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }; }
-#line 3654 "annium.tab.cpp"
-    break;
-
-  case 137: // pattern-mod: "`~`" pattern-sfx
-#line 848 "annium.y"
-                                              { yylhs.value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > () = std::pair{ std::move(get<0>(yystack_[0].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ())), get<1>(yystack_[0].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ()) | parameter_constraint_modifier_t::const_or_runtime_type }; }
-#line 3660 "annium.tab.cpp"
-    break;
-
-  case 138: // pattern-mod: "`~`" "constexpr modifier" pattern-sfx
-#line 849 "annium.y"
-                                              { yylhs.value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > () = std::pair{ std::move(get<0>(yystack_[0].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ())), get<1>(yystack_[0].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ()) | parameter_constraint_modifier_t::constexpr_value_type }; }
-#line 3666 "annium.tab.cpp"
-    break;
-
-  case 139: // pattern-mod: "`~`" "runctime modifier" pattern-sfx
-#line 850 "annium.y"
-                                              { yylhs.value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > () = std::pair{ std::move(get<0>(yystack_[0].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ())), get<1>(yystack_[0].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ()) | parameter_constraint_modifier_t::runtime_type }; }
-#line 3672 "annium.tab.cpp"
-    break;
-
-  case 140: // pattern-mod: "`~`" "typename modifier" pattern-sfx
-#line 851 "annium.y"
-                                              { yylhs.value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > () = std::pair{ std::move(get<0>(yystack_[0].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ())), get<1>(yystack_[0].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ()) | parameter_constraint_modifier_t::typename_type }; }
-#line 3678 "annium.tab.cpp"
-    break;
-
-  case 141: // pattern-sfx: pattern
+  case 138: // pattern-field: "`_`" pattern-field-sfx
 #line 855 "annium.y"
-              { yylhs.value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > () = std::pair{ std::move(yystack_[0].value.as < pattern_t > ()), parameter_constraint_modifier_t::none }; }
-#line 3684 "annium.tab.cpp"
+        { yylhs.value.as < pattern_t::field > () = std::move(yystack_[0].value.as < pattern_t::field > ()); yylhs.value.as < pattern_t::field > ().name = placeholder{ std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }; }
+#line 3707 "annium.tab.cpp"
     break;
 
-  case 142: // pattern-sfx: pattern "`...`"
-#line 856 "annium.y"
-                       { yylhs.value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > () = std::pair{ std::move(yystack_[1].value.as < pattern_t > ()), parameter_constraint_modifier_t::ellipsis }; IGNORE_TERM(yystack_[0].value.as < sonia::lang::lex::resource_location > ()); }
-#line 3690 "annium.tab.cpp"
+  case 139: // pattern-mod: "`~`" pattern-sfx
+#line 859 "annium.y"
+                                              { yylhs.value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > () = std::pair{ std::move(get<0>(yystack_[0].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ())), get<1>(yystack_[0].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ()) | parameter_constraint_modifier_t::const_or_runtime_type }; }
+#line 3713 "annium.tab.cpp"
     break;
 
-  case 143: // pattern-sfx: "`...`"
-#line 857 "annium.y"
-               { yylhs.value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > () = std::pair{ pattern_t{ .descriptor = placeholder{} }, parameter_constraint_modifier_t::ellipsis }; IGNORE_TERM(yystack_[0].value.as < sonia::lang::lex::resource_location > ()); }
-#line 3696 "annium.tab.cpp"
+  case 140: // pattern-mod: "`~`" "constexpr modifier" pattern-sfx
+#line 860 "annium.y"
+                                              { yylhs.value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > () = std::pair{ std::move(get<0>(yystack_[0].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ())), get<1>(yystack_[0].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ()) | parameter_constraint_modifier_t::constexpr_value_type }; IGNORE_TERM(yystack_[1].value.as < sonia::lang::lex::resource_location > ()); }
+#line 3719 "annium.tab.cpp"
     break;
 
-  case 144: // pattern: qname
+  case 141: // pattern-mod: "`~`" "runctime modifier" pattern-sfx
+#line 861 "annium.y"
+                                              { yylhs.value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > () = std::pair{ std::move(get<0>(yystack_[0].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ())), get<1>(yystack_[0].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ()) | parameter_constraint_modifier_t::runtime_type }; IGNORE_TERM(yystack_[1].value.as < sonia::lang::lex::resource_location > ()); }
+#line 3725 "annium.tab.cpp"
+    break;
+
+  case 142: // pattern-mod: "`~`" "typename modifier" pattern-sfx
 #line 862 "annium.y"
-        { yylhs.value.as < pattern_t > () = pattern_t{ .descriptor = pattern_t::signature_descriptor{ .name = std::move(yystack_[0].value.as < annium::annotated_qname > ()) } }; }
-#line 3702 "annium.tab.cpp"
+                                              { yylhs.value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > () = std::pair{ std::move(get<0>(yystack_[0].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ())), get<1>(yystack_[0].value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > ()) | parameter_constraint_modifier_t::typename_type }; IGNORE_TERM(yystack_[1].value.as < sonia::lang::lex::resource_location > ()); }
+#line 3731 "annium.tab.cpp"
     break;
 
-  case 145: // pattern: qname subpatterns concept-expression-list-opt
-#line 864 "annium.y"
-        { yylhs.value.as < pattern_t > () = pattern_t{ .descriptor = pattern_t::signature_descriptor{ .name = std::move(yystack_[2].value.as < annium::annotated_qname > ()), .fields = std::move(yystack_[1].value.as < pattern_list_t > ()) }, .concepts = std::move(yystack_[0].value.as < concept_expression_list_t > ()) }; }
-#line 3708 "annium.tab.cpp"
-    break;
-
-  case 146: // pattern: internal-identifier concept-expression-list-opt
+  case 143: // pattern-sfx: pattern
 #line 866 "annium.y"
-        { yylhs.value.as < pattern_t > () = pattern_t{ .descriptor = std::move(yystack_[1].value.as < annium::context_identifier > ()), .concepts = std::move(yystack_[0].value.as < concept_expression_list_t > ()) }; }
-#line 3714 "annium.tab.cpp"
+              { yylhs.value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > () = std::pair{ std::move(yystack_[0].value.as < pattern_t > ()), parameter_constraint_modifier_t::none }; }
+#line 3737 "annium.tab.cpp"
     break;
 
-  case 147: // pattern: "`_`" concept-expression-list-opt
+  case 144: // pattern-sfx: pattern "`...`"
+#line 867 "annium.y"
+                       { yylhs.value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > () = std::pair{ std::move(yystack_[1].value.as < pattern_t > ()), parameter_constraint_modifier_t::ellipsis }; IGNORE_TERM(yystack_[0].value.as < sonia::lang::lex::resource_location > ()); }
+#line 3743 "annium.tab.cpp"
+    break;
+
+  case 145: // pattern-sfx: "`...`"
 #line 868 "annium.y"
+               { yylhs.value.as < std::pair<pattern_t, parameter_constraint_modifier_t> > () = std::pair{ pattern_t{ .descriptor = placeholder{} }, parameter_constraint_modifier_t::ellipsis }; IGNORE_TERM(yystack_[0].value.as < sonia::lang::lex::resource_location > ()); }
+#line 3749 "annium.tab.cpp"
+    break;
+
+  case 146: // pattern: qname
+#line 873 "annium.y"
+        { yylhs.value.as < pattern_t > () = pattern_t{ .descriptor = pattern_t::signature_descriptor{ .name = std::move(yystack_[0].value.as < annium::annotated_qname > ()) } }; }
+#line 3755 "annium.tab.cpp"
+    break;
+
+  case 147: // pattern: qname subpatterns concept-expression-list-opt
+#line 875 "annium.y"
+        { yylhs.value.as < pattern_t > () = pattern_t{ .descriptor = pattern_t::signature_descriptor{ .name = std::move(yystack_[2].value.as < annium::annotated_qname > ()), .fields = std::move(yystack_[1].value.as < pattern_list_t > ()) }, .concepts = std::move(yystack_[0].value.as < concept_expression_list_t > ()) }; }
+#line 3761 "annium.tab.cpp"
+    break;
+
+  case 148: // pattern: internal-identifier concept-expression-list-opt
+#line 877 "annium.y"
+        { yylhs.value.as < pattern_t > () = pattern_t{ .descriptor = std::move(yystack_[1].value.as < annium::context_identifier > ()), .concepts = std::move(yystack_[0].value.as < concept_expression_list_t > ()) }; }
+#line 3767 "annium.tab.cpp"
+    break;
+
+  case 149: // pattern: "`_`" concept-expression-list-opt
+#line 879 "annium.y"
         { yylhs.value.as < pattern_t > () = pattern_t{ .descriptor = placeholder{ std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }, .concepts = std::move(yystack_[0].value.as < concept_expression_list_t > ()) }; }
-#line 3720 "annium.tab.cpp"
+#line 3773 "annium.tab.cpp"
     break;
 
-  case 148: // pattern: "`_`" subpatterns concept-expression-list-opt
-#line 870 "annium.y"
-        { yylhs.value.as < pattern_t > () = pattern_t{ .descriptor = pattern_t::signature_descriptor{ .name = placeholder{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()) }, .fields = std::move(yystack_[1].value.as < pattern_list_t > ()) }, .concepts = std::move(yystack_[0].value.as < concept_expression_list_t > ()) }; }
-#line 3726 "annium.tab.cpp"
-    break;
-
-  case 149: // pattern: "`{`" syntax-expression "`}`" concept-expression-list-opt
-#line 872 "annium.y"
-        { yylhs.value.as < pattern_t > () = pattern_t{ .descriptor = std::move(yystack_[2].value.as < syntax_expression_t > ()), .concepts = std::move(yystack_[0].value.as < concept_expression_list_t > ()) }; IGNORE_TERM(yystack_[3].value.as < sonia::lang::lex::resource_location > ()); }
-#line 3732 "annium.tab.cpp"
-    break;
-
-  case 150: // pattern: "`{`" syntax-expression "`}`" subpatterns concept-expression-list-opt
-#line 874 "annium.y"
-        { yylhs.value.as < pattern_t > () = pattern_t{ .descriptor = pattern_t::signature_descriptor{ .name = std::move(yystack_[3].value.as < syntax_expression_t > ()), .fields = std::move(yystack_[1].value.as < pattern_list_t > ()) }, .concepts = std::move(yystack_[0].value.as < concept_expression_list_t > ()) }; IGNORE_TERM(yystack_[4].value.as < sonia::lang::lex::resource_location > ()); }
-#line 3738 "annium.tab.cpp"
-    break;
-
-  case 151: // pattern: concept-expression-list
-#line 876 "annium.y"
-        { yylhs.value.as < pattern_t > () = pattern_t{ .descriptor = placeholder{}, .concepts = std::move(yystack_[0].value.as < concept_expression_list_t > ()) }; }
-#line 3744 "annium.tab.cpp"
-    break;
-
-  case 152: // concept-expression: "`@`" qname
+  case 150: // pattern: "`_`" subpatterns concept-expression-list-opt
 #line 881 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = syntax_expression_t{ variable_reference{std::move(yystack_[0].value.as < annium::annotated_qname > ()), false} }; }
-#line 3750 "annium.tab.cpp"
+        { yylhs.value.as < pattern_t > () = pattern_t{ .descriptor = pattern_t::signature_descriptor{ .name = placeholder{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()) }, .fields = std::move(yystack_[1].value.as < pattern_list_t > ()) }, .concepts = std::move(yystack_[0].value.as < concept_expression_list_t > ()) }; }
+#line 3779 "annium.tab.cpp"
     break;
 
-  case 153: // concept-expression-list-opt: %empty
-#line 886 "annium.y"
-        { yylhs.value.as < concept_expression_list_t > () = {}; }
-#line 3756 "annium.tab.cpp"
+  case 151: // pattern: "`{`" syntax-expression "`}`" concept-expression-list-opt
+#line 883 "annium.y"
+        { yylhs.value.as < pattern_t > () = pattern_t{ .descriptor = std::move(yystack_[2].value.as < syntax_expression_t > ()), .concepts = std::move(yystack_[0].value.as < concept_expression_list_t > ()) }; IGNORE_TERM(yystack_[3].value.as < sonia::lang::lex::resource_location > ()); }
+#line 3785 "annium.tab.cpp"
     break;
 
-  case 154: // concept-expression-list-opt: concept-expression-list
+  case 152: // pattern: "`{`" syntax-expression "`}`" subpatterns concept-expression-list-opt
+#line 885 "annium.y"
+        { yylhs.value.as < pattern_t > () = pattern_t{ .descriptor = pattern_t::signature_descriptor{ .name = std::move(yystack_[3].value.as < syntax_expression_t > ()), .fields = std::move(yystack_[1].value.as < pattern_list_t > ()) }, .concepts = std::move(yystack_[0].value.as < concept_expression_list_t > ()) }; IGNORE_TERM(yystack_[4].value.as < sonia::lang::lex::resource_location > ()); }
+#line 3791 "annium.tab.cpp"
+    break;
+
+  case 153: // pattern: concept-expression-list
 #line 887 "annium.y"
-      { yylhs.value.as < concept_expression_list_t > () = yystack_[0].value.as < concept_expression_list_t > (); }
-#line 3762 "annium.tab.cpp"
+        { yylhs.value.as < pattern_t > () = pattern_t{ .descriptor = placeholder{}, .concepts = std::move(yystack_[0].value.as < concept_expression_list_t > ()) }; }
+#line 3797 "annium.tab.cpp"
     break;
 
-  case 155: // concept-expression-list: concept-expression
+  case 154: // concept-expression: "`@`" qname
 #line 892 "annium.y"
-        { yylhs.value.as < concept_expression_list_t > () = concept_expression_list_t{std::move(yystack_[0].value.as < syntax_expression_t > ())}; }
-#line 3768 "annium.tab.cpp"
+        { yylhs.value.as < syntax_expression_t > () = syntax_expression_t{ qname_reference{ std::move(yystack_[0].value.as < annium::annotated_qname > ()) } }; }
+#line 3803 "annium.tab.cpp"
     break;
 
-  case 156: // concept-expression-list: concept-expression-list concept-expression
-#line 894 "annium.y"
-        { yylhs.value.as < concept_expression_list_t > () = std::move(yystack_[1].value.as < concept_expression_list_t > ()); yylhs.value.as < concept_expression_list_t > ().emplace_back(std::move(yystack_[0].value.as < syntax_expression_t > ())); }
-#line 3774 "annium.tab.cpp"
+  case 155: // concept-expression-list-opt: %empty
+#line 897 "annium.y"
+        { yylhs.value.as < concept_expression_list_t > () = {}; }
+#line 3809 "annium.tab.cpp"
     break;
 
-  case 157: // syntax-expression: CONTEXT_IDENTIFIER
-#line 901 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = variable_reference{ ctx.make_qname(std::move(yystack_[0].value.as < annium::annotated_string_view > ())), true }; }
-#line 3780 "annium.tab.cpp"
+  case 156: // concept-expression-list-opt: concept-expression-list
+#line 898 "annium.y"
+      { yylhs.value.as < concept_expression_list_t > () = yystack_[0].value.as < concept_expression_list_t > (); }
+#line 3815 "annium.tab.cpp"
     break;
 
-  case 158: // syntax-expression: CT_IDENTIFIER
+  case 157: // concept-expression-list: concept-expression
 #line 903 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = variable_reference{ ctx.make_qname(std::move(yystack_[0].value.as < annium::annotated_string_view > ())), true }; }
-#line 3786 "annium.tab.cpp"
+        { yylhs.value.as < concept_expression_list_t > () = concept_expression_list_t{std::move(yystack_[0].value.as < syntax_expression_t > ())}; }
+#line 3821 "annium.tab.cpp"
     break;
 
-  case 159: // syntax-expression: syntax-expression-wo-ii
-#line 904 "annium.y"
-      { yylhs.value.as < syntax_expression_t > () = yystack_[0].value.as < syntax_expression_t > (); }
-#line 3792 "annium.tab.cpp"
+  case 158: // concept-expression-list: concept-expression-list concept-expression
+#line 905 "annium.y"
+        { yylhs.value.as < concept_expression_list_t > () = std::move(yystack_[1].value.as < concept_expression_list_t > ()); yylhs.value.as < concept_expression_list_t > ().emplace_back(std::move(yystack_[0].value.as < syntax_expression_t > ())); }
+#line 3827 "annium.tab.cpp"
     break;
 
-  case 160: // syntax-expression-wo-ii: "nil"
-#line 910 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = std::move(yystack_[0].value.as < annotated_nil > ()); }
-#line 3798 "annium.tab.cpp"
-    break;
-
-  case 161: // syntax-expression-wo-ii: "true"
+  case 159: // syntax-expression: CONTEXT_IDENTIFIER
 #line 912 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = std::move(yystack_[0].value.as < annotated_bool > ()); }
-#line 3804 "annium.tab.cpp"
+        { yylhs.value.as < syntax_expression_t > () = name_reference{ ctx.make_identifier(std::move(yystack_[0].value.as < annium::annotated_string_view > ())) }; }
+#line 3833 "annium.tab.cpp"
     break;
 
-  case 162: // syntax-expression-wo-ii: "false"
+  case 160: // syntax-expression: CT_IDENTIFIER
 #line 914 "annium.y"
+        { yylhs.value.as < syntax_expression_t > () = name_reference{ ctx.make_identifier(std::move(yystack_[0].value.as < annium::annotated_string_view > ())) }; }
+#line 3839 "annium.tab.cpp"
+    break;
+
+  case 161: // syntax-expression: syntax-expression-wo-ii
+#line 915 "annium.y"
+      { yylhs.value.as < syntax_expression_t > () = yystack_[0].value.as < syntax_expression_t > (); }
+#line 3845 "annium.tab.cpp"
+    break;
+
+  case 162: // syntax-expression-wo-ii: "nil"
+#line 921 "annium.y"
+        { yylhs.value.as < syntax_expression_t > () = std::move(yystack_[0].value.as < annotated_nil > ()); }
+#line 3851 "annium.tab.cpp"
+    break;
+
+  case 163: // syntax-expression-wo-ii: "true"
+#line 923 "annium.y"
         { yylhs.value.as < syntax_expression_t > () = std::move(yystack_[0].value.as < annotated_bool > ()); }
-#line 3810 "annium.tab.cpp"
+#line 3857 "annium.tab.cpp"
     break;
 
-  case 163: // syntax-expression-wo-ii: INTEGER
-#line 916 "annium.y"
+  case 164: // syntax-expression-wo-ii: "false"
+#line 925 "annium.y"
+        { yylhs.value.as < syntax_expression_t > () = std::move(yystack_[0].value.as < annotated_bool > ()); }
+#line 3863 "annium.tab.cpp"
+    break;
+
+  case 165: // syntax-expression-wo-ii: INTEGER
+#line 927 "annium.y"
         { yylhs.value.as < syntax_expression_t > () = std::move(yystack_[0].value.as < annium::annotated_integer > ()); }
-#line 3816 "annium.tab.cpp"
+#line 3869 "annium.tab.cpp"
     break;
 
-  case 164: // syntax-expression-wo-ii: DECIMAL
-#line 918 "annium.y"
+  case 166: // syntax-expression-wo-ii: DECIMAL
+#line 929 "annium.y"
         { yylhs.value.as < syntax_expression_t > () = std::move(yystack_[0].value.as < annium::annotated_decimal > ()); }
-#line 3822 "annium.tab.cpp"
+#line 3875 "annium.tab.cpp"
     break;
 
-  case 165: // syntax-expression-wo-ii: DECIMAL_S
-#line 920 "annium.y"
+  case 167: // syntax-expression-wo-ii: DECIMAL_S
+#line 931 "annium.y"
         { yylhs.value.as < syntax_expression_t > () = std::move(yystack_[0].value.as < annium::annotated_decimal > ()); }
-#line 3828 "annium.tab.cpp"
+#line 3881 "annium.tab.cpp"
     break;
 
-  case 166: // syntax-expression-wo-ii: INTEGER_INDEX
-#line 922 "annium.y"
+  case 168: // syntax-expression-wo-ii: INTEGER_INDEX
+#line 933 "annium.y"
         { yylhs.value.as < syntax_expression_t > () = annotated_decimal{ ctx.make_decimal(yystack_[0].value.as < annium::annotated_string_view > ().value), yystack_[0].value.as < annium::annotated_string_view > ().location }; }
-#line 3834 "annium.tab.cpp"
+#line 3887 "annium.tab.cpp"
     break;
 
-  case 167: // syntax-expression-wo-ii: STRING
-#line 924 "annium.y"
+  case 169: // syntax-expression-wo-ii: STRING
+#line 935 "annium.y"
         { yylhs.value.as < syntax_expression_t > () = ctx.make_string(std::move(yystack_[0].value.as < annium::annotated_string_view > ())); }
-#line 3840 "annium.tab.cpp"
+#line 3893 "annium.tab.cpp"
     break;
 
-  case 168: // syntax-expression-wo-ii: RESERVED_IDENTIFIER
-#line 926 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = variable_reference{ ctx.make_qname(std::move(yystack_[0].value.as < annium::annotated_string_view > ())), true }; }
-#line 3846 "annium.tab.cpp"
+  case 170: // syntax-expression-wo-ii: RESERVED_IDENTIFIER
+#line 937 "annium.y"
+        { yylhs.value.as < syntax_expression_t > () = name_reference{ ctx.make_identifier(std::move(yystack_[0].value.as < annium::annotated_string_view > ())) }; }
+#line 3899 "annium.tab.cpp"
     break;
 
-  case 169: // syntax-expression-wo-ii: qname
-#line 928 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = variable_reference{ std::move(yystack_[0].value.as < annium::annotated_qname > ()) }; }
-#line 3852 "annium.tab.cpp"
+  case 171: // syntax-expression-wo-ii: qname
+#line 939 "annium.y"
+        { yylhs.value.as < syntax_expression_t > () = qname_reference{ std::move(yystack_[0].value.as < annium::annotated_qname > ()) }; }
+#line 3905 "annium.tab.cpp"
     break;
 
-  case 170: // syntax-expression-wo-ii: "`(`" "`)`"
-#line 930 "annium.y"
+  case 172: // syntax-expression-wo-ii: "`(`" "`)`"
+#line 941 "annium.y"
         { yylhs.value.as < syntax_expression_t > () = ctx.make_void(std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ())); }
-#line 3858 "annium.tab.cpp"
+#line 3911 "annium.tab.cpp"
     break;
 
-  case 171: // syntax-expression-wo-ii: "`(`" "`:`" syntax-expression "`)`"
-#line 932 "annium.y"
+  case 173: // syntax-expression-wo-ii: "`(`" "`:`" syntax-expression "`)`"
+#line 943 "annium.y"
         {
             // one element tuple
-            yylhs.value.as < syntax_expression_t > () = function_call_t{ std::move(yystack_[3].value.as < sonia::lang::lex::resource_location > ()), variable_reference{}, named_expression_list_t{ named_expression_t{ std::move(yystack_[1].value.as < syntax_expression_t > ()) } } };
+            yylhs.value.as < syntax_expression_t > () = function_call_t{ std::move(yystack_[3].value.as < sonia::lang::lex::resource_location > ()), qname_reference{}, named_expression_list_t{ named_expression_t{ std::move(yystack_[1].value.as < syntax_expression_t > ()) } } };
         }
-#line 3867 "annium.tab.cpp"
+#line 3920 "annium.tab.cpp"
     break;
 
-  case 172: // syntax-expression-wo-ii: "`(`" pack-expression "`)`"
-#line 937 "annium.y"
+  case 174: // syntax-expression-wo-ii: "`(`" pack-expression "`)`"
+#line 948 "annium.y"
         {
             if (yystack_[1].value.as < named_expression_list_t > ().size() == 1 && !yystack_[1].value.as < named_expression_list_t > ().front().has_name()) { // single unnamed expression => extract
                 yylhs.value.as < syntax_expression_t > () = std::move(yystack_[1].value.as < named_expression_list_t > ().front().value());
             } else {
                 BOOST_ASSERT(!yystack_[1].value.as < named_expression_list_t > ().empty());
-                yylhs.value.as < syntax_expression_t > () = function_call_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), variable_reference{}, std::move(yystack_[1].value.as < named_expression_list_t > ()) };
+                yylhs.value.as < syntax_expression_t > () = function_call_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), qname_reference{}, std::move(yystack_[1].value.as < named_expression_list_t > ()) };
             }
         }
-#line 3880 "annium.tab.cpp"
+#line 3933 "annium.tab.cpp"
     break;
 
-  case 173: // syntax-expression-wo-ii: "`[`" expression-list "`]`"
-#line 946 "annium.y"
+  case 175: // syntax-expression-wo-ii: "`[`" expression-list "`]`"
+#line 957 "annium.y"
         { 
             if (yystack_[1].value.as < expression_list_t > ().size() == 1) {
                 yylhs.value.as < syntax_expression_t > () = annium_vector_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), std::move(yystack_[1].value.as < expression_list_t > ().front()) };
@@ -3888,220 +3941,220 @@ namespace annium_lang {
                 yylhs.value.as < syntax_expression_t > () = array_expression_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), std::move(yystack_[1].value.as < expression_list_t > () )};
             }
         }
-#line 3892 "annium.tab.cpp"
+#line 3945 "annium.tab.cpp"
     break;
 
-  case 174: // syntax-expression-wo-ii: "`[[`" expression-list "`]]`"
-#line 954 "annium.y"
+  case 176: // syntax-expression-wo-ii: "`[[`" expression-list "`]]`"
+#line 965 "annium.y"
         { yylhs.value.as < syntax_expression_t > () = array_expression_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), std::move(yystack_[1].value.as < expression_list_t > () )}; }
-#line 3898 "annium.tab.cpp"
+#line 3951 "annium.tab.cpp"
     break;
 
-  case 175: // syntax-expression-wo-ii: syntax-expression "`[`" syntax-expression "`]`"
-#line 956 "annium.y"
+  case 177: // syntax-expression-wo-ii: syntax-expression "`[`" syntax-expression "`]`"
+#line 967 "annium.y"
         { yylhs.value.as < syntax_expression_t > () = index_expression_t{ std::move(yystack_[3].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < syntax_expression_t > ()), std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()) }; }
-#line 3904 "annium.tab.cpp"
+#line 3957 "annium.tab.cpp"
     break;
 
-  case 176: // syntax-expression-wo-ii: "`.`" identifier
-#line 958 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = std::move(yystack_[0].value.as < annium::annotated_identifier > ()); IGNORE_TERM(yystack_[1].value.as < sonia::lang::lex::resource_location > ()); }
-#line 3910 "annium.tab.cpp"
-    break;
-
-  case 177: // syntax-expression-wo-ii: syntax-expression "`.`" identifier
-#line 962 "annium.y"
-         { yylhs.value.as < syntax_expression_t > () = member_expression_t{ std::move(yystack_[2].value.as < syntax_expression_t > ()), std::move(yystack_[0].value.as < annium::annotated_identifier > ()) }; IGNORE_TERM(yystack_[1].value.as < sonia::lang::lex::resource_location > ()); }
-#line 3916 "annium.tab.cpp"
-    break;
-
-  case 178: // syntax-expression-wo-ii: syntax-expression "`.`" apostrophe-expression
-#line 964 "annium.y"
-         { yylhs.value.as < syntax_expression_t > () = member_expression_t{ std::move(yystack_[2].value.as < syntax_expression_t > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()) }; IGNORE_TERM(yystack_[1].value.as < sonia::lang::lex::resource_location > ()); }
-#line 3922 "annium.tab.cpp"
-    break;
-
-  case 179: // syntax-expression-wo-ii: syntax-expression INTEGER_INDEX
-#line 966 "annium.y"
-         { yylhs.value.as < syntax_expression_t > () = member_expression_t{ std::move(yystack_[1].value.as < syntax_expression_t > ()), annotated_integer{ ctx.make_integer(yystack_[0].value.as < annium::annotated_string_view > ().value.substr(1)), yystack_[0].value.as < annium::annotated_string_view > ().location } }; IGNORE_TERM(yystack_[0].value.as < annium::annotated_string_view > ()); }
-#line 3928 "annium.tab.cpp"
-    break;
-
-  case 180: // syntax-expression-wo-ii: "`!`" syntax-expression
+  case 178: // syntax-expression-wo-ii: "`.`" identifier
 #line 969 "annium.y"
+        { yylhs.value.as < syntax_expression_t > () = std::move(yystack_[0].value.as < annium::annotated_identifier > ()); IGNORE_TERM(yystack_[1].value.as < sonia::lang::lex::resource_location > ()); }
+#line 3963 "annium.tab.cpp"
+    break;
+
+  case 179: // syntax-expression-wo-ii: syntax-expression "`.`" identifier
+#line 973 "annium.y"
+         { yylhs.value.as < syntax_expression_t > () = member_expression_t{ std::move(yystack_[2].value.as < syntax_expression_t > ()), std::move(yystack_[0].value.as < annium::annotated_identifier > ()) }; IGNORE_TERM(yystack_[1].value.as < sonia::lang::lex::resource_location > ()); }
+#line 3969 "annium.tab.cpp"
+    break;
+
+  case 180: // syntax-expression-wo-ii: syntax-expression "`.`" apostrophe-expression
+#line 975 "annium.y"
+         { yylhs.value.as < syntax_expression_t > () = member_expression_t{ std::move(yystack_[2].value.as < syntax_expression_t > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()) }; IGNORE_TERM(yystack_[1].value.as < sonia::lang::lex::resource_location > ()); }
+#line 3975 "annium.tab.cpp"
+    break;
+
+  case 181: // syntax-expression-wo-ii: syntax-expression INTEGER_INDEX
+#line 977 "annium.y"
+         { yylhs.value.as < syntax_expression_t > () = member_expression_t{ std::move(yystack_[1].value.as < syntax_expression_t > ()), annotated_integer{ ctx.make_integer(yystack_[0].value.as < annium::annotated_string_view > ().value.substr(1)), yystack_[0].value.as < annium::annotated_string_view > ().location } }; IGNORE_TERM(yystack_[0].value.as < annium::annotated_string_view > ()); }
+#line 3981 "annium.tab.cpp"
+    break;
+
+  case 182: // syntax-expression-wo-ii: "`!`" syntax-expression
+#line 980 "annium.y"
                 { yylhs.value.as < syntax_expression_t > () = unary_expression_t{ unary_operator_type::NEGATE, true, std::move(yystack_[0].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }; }
-#line 3934 "annium.tab.cpp"
+#line 3987 "annium.tab.cpp"
     break;
 
-  case 181: // syntax-expression-wo-ii: "`*`" syntax-expression
-#line 971 "annium.y"
-                { yylhs.value.as < syntax_expression_t > () = unary_expression_t{ unary_operator_type::DEREF, true, std::move(yystack_[0].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }; }
-#line 3940 "annium.tab.cpp"
-    break;
-
-  case 182: // syntax-expression-wo-ii: syntax-expression "`+`" syntax-expression
-#line 976 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = binary_expression_t{ binary_operator_type::PLUS, std::move(yystack_[2].value.as < syntax_expression_t > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }; }
-#line 3946 "annium.tab.cpp"
-    break;
-
-  case 183: // syntax-expression-wo-ii: syntax-expression "`-`" syntax-expression
-#line 978 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = binary_expression_t{ binary_operator_type::MINUS, std::move(yystack_[2].value.as < syntax_expression_t > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }; }
-#line 3952 "annium.tab.cpp"
-    break;
-
-  case 184: // syntax-expression-wo-ii: syntax-expression "`==`" syntax-expression
+  case 183: // syntax-expression-wo-ii: "`*`" syntax-expression
 #line 982 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = binary_expression_t{ binary_operator_type::EQ, std::move(yystack_[2].value.as < syntax_expression_t > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }; }
-#line 3958 "annium.tab.cpp"
+                { yylhs.value.as < syntax_expression_t > () = unary_expression_t{ unary_operator_type::DEREF, true, std::move(yystack_[0].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }; }
+#line 3993 "annium.tab.cpp"
     break;
 
-  case 185: // syntax-expression-wo-ii: syntax-expression "`!=`" syntax-expression
-#line 984 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = binary_expression_t{ binary_operator_type::NE, std::move(yystack_[2].value.as < syntax_expression_t > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }; }
-#line 3964 "annium.tab.cpp"
+  case 184: // syntax-expression-wo-ii: syntax-expression "`+`" syntax-expression
+#line 987 "annium.y"
+        { yylhs.value.as < syntax_expression_t > () = binary_expression_t{ binary_operator_type::PLUS, std::move(yystack_[2].value.as < syntax_expression_t > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }; }
+#line 3999 "annium.tab.cpp"
     break;
 
-  case 186: // syntax-expression-wo-ii: syntax-expression "`..`" syntax-expression
-#line 986 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = binary_expression_t{ binary_operator_type::CONCAT, std::move(yystack_[2].value.as < syntax_expression_t > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }; }
-#line 3970 "annium.tab.cpp"
-    break;
-
-  case 187: // syntax-expression-wo-ii: syntax-expression "`&`" syntax-expression
+  case 185: // syntax-expression-wo-ii: syntax-expression "`-`" syntax-expression
 #line 989 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = binary_expression_t{ binary_operator_type::BIT_AND, std::move(yystack_[2].value.as < syntax_expression_t > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }; }
-#line 3976 "annium.tab.cpp"
+        { yylhs.value.as < syntax_expression_t > () = binary_expression_t{ binary_operator_type::MINUS, std::move(yystack_[2].value.as < syntax_expression_t > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }; }
+#line 4005 "annium.tab.cpp"
     break;
 
-  case 188: // syntax-expression-wo-ii: syntax-expression "`|`" syntax-expression
+  case 186: // syntax-expression-wo-ii: syntax-expression "`==`" syntax-expression
 #line 993 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = binary_expression_t{ binary_operator_type::BIT_OR, std::move(yystack_[2].value.as < syntax_expression_t > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }; }
-#line 3982 "annium.tab.cpp"
+        { yylhs.value.as < syntax_expression_t > () = binary_expression_t{ binary_operator_type::EQ, std::move(yystack_[2].value.as < syntax_expression_t > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }; }
+#line 4011 "annium.tab.cpp"
     break;
 
-  case 189: // syntax-expression-wo-ii: syntax-expression "`&&`" syntax-expression
-#line 996 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = binary_expression_t{ binary_operator_type::LOGIC_AND, std::move(yystack_[2].value.as < syntax_expression_t > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }; }
-#line 3988 "annium.tab.cpp"
+  case 187: // syntax-expression-wo-ii: syntax-expression "`!=`" syntax-expression
+#line 995 "annium.y"
+        { yylhs.value.as < syntax_expression_t > () = binary_expression_t{ binary_operator_type::NE, std::move(yystack_[2].value.as < syntax_expression_t > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }; }
+#line 4017 "annium.tab.cpp"
     break;
 
-  case 190: // syntax-expression-wo-ii: syntax-expression "`||`" syntax-expression
-#line 999 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = binary_expression_t{ binary_operator_type::LOGIC_OR, std::move(yystack_[2].value.as < syntax_expression_t > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }; }
-#line 3994 "annium.tab.cpp"
+  case 188: // syntax-expression-wo-ii: syntax-expression "`..`" syntax-expression
+#line 997 "annium.y"
+        { yylhs.value.as < syntax_expression_t > () = binary_expression_t{ binary_operator_type::CONCAT, std::move(yystack_[2].value.as < syntax_expression_t > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }; }
+#line 4023 "annium.tab.cpp"
     break;
 
-  case 191: // syntax-expression-wo-ii: apostrophe-expression
-#line 1001 "annium.y"
-      { yylhs.value.as < syntax_expression_t > () = yystack_[0].value.as < syntax_expression_t > (); }
-#line 4000 "annium.tab.cpp"
+  case 189: // syntax-expression-wo-ii: syntax-expression "`&`" syntax-expression
+#line 1000 "annium.y"
+        { yylhs.value.as < syntax_expression_t > () = binary_expression_t{ binary_operator_type::BIT_AND, std::move(yystack_[2].value.as < syntax_expression_t > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }; }
+#line 4029 "annium.tab.cpp"
     break;
 
-  case 192: // syntax-expression-wo-ii: new-expression
-#line 1002 "annium.y"
-      { yylhs.value.as < syntax_expression_t > () = yystack_[0].value.as < syntax_expression_t > (); }
-#line 4006 "annium.tab.cpp"
-    break;
-
-  case 193: // syntax-expression-wo-ii: compound-expression
-#line 1003 "annium.y"
-      { yylhs.value.as < syntax_expression_t > () = yystack_[0].value.as < syntax_expression_t > (); }
-#line 4012 "annium.tab.cpp"
-    break;
-
-  case 194: // syntax-expression-wo-ii: lambda-expression
+  case 190: // syntax-expression-wo-ii: syntax-expression "`|`" syntax-expression
 #line 1004 "annium.y"
+        { yylhs.value.as < syntax_expression_t > () = binary_expression_t{ binary_operator_type::BIT_OR, std::move(yystack_[2].value.as < syntax_expression_t > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }; }
+#line 4035 "annium.tab.cpp"
+    break;
+
+  case 191: // syntax-expression-wo-ii: syntax-expression "`&&`" syntax-expression
+#line 1007 "annium.y"
+        { yylhs.value.as < syntax_expression_t > () = binary_expression_t{ binary_operator_type::LOGIC_AND, std::move(yystack_[2].value.as < syntax_expression_t > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }; }
+#line 4041 "annium.tab.cpp"
+    break;
+
+  case 192: // syntax-expression-wo-ii: syntax-expression "`||`" syntax-expression
+#line 1010 "annium.y"
+        { yylhs.value.as < syntax_expression_t > () = binary_expression_t{ binary_operator_type::LOGIC_OR, std::move(yystack_[2].value.as < syntax_expression_t > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }; }
+#line 4047 "annium.tab.cpp"
+    break;
+
+  case 193: // syntax-expression-wo-ii: apostrophe-expression
+#line 1012 "annium.y"
       { yylhs.value.as < syntax_expression_t > () = yystack_[0].value.as < syntax_expression_t > (); }
-#line 4018 "annium.tab.cpp"
+#line 4053 "annium.tab.cpp"
     break;
 
-  case 195: // apostrophe-expression: "APOSTROPHE" syntax-expression "APOSTROPHE"
-#line 1009 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = std::move(yystack_[1].value.as < syntax_expression_t > ()); }
-#line 4024 "annium.tab.cpp"
+  case 194: // syntax-expression-wo-ii: new-expression
+#line 1013 "annium.y"
+      { yylhs.value.as < syntax_expression_t > () = yystack_[0].value.as < syntax_expression_t > (); }
+#line 4059 "annium.tab.cpp"
     break;
 
-  case 196: // new-expression: "`new`" qname
+  case 195: // syntax-expression-wo-ii: compound-expression
 #line 1014 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = new_expression_t{ std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()), variable_reference{ std::move(yystack_[0].value.as < annium::annotated_qname > ()) } }; }
-#line 4030 "annium.tab.cpp"
+      { yylhs.value.as < syntax_expression_t > () = yystack_[0].value.as < syntax_expression_t > (); }
+#line 4065 "annium.tab.cpp"
     break;
 
-  case 197: // new-expression: "`new`" apostrophe-expression
-#line 1016 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = new_expression_t{ std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()) }; }
-#line 4036 "annium.tab.cpp"
+  case 196: // syntax-expression-wo-ii: lambda-expression
+#line 1015 "annium.y"
+      { yylhs.value.as < syntax_expression_t > () = yystack_[0].value.as < syntax_expression_t > (); }
+#line 4071 "annium.tab.cpp"
     break;
 
-  case 198: // new-expression: "`new`" qname "`(`" argument-list-opt "`)`"
-#line 1018 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = new_expression_t{ std::move(yystack_[4].value.as < sonia::lang::lex::resource_location > ()), variable_reference{ std::move(yystack_[3].value.as < annium::annotated_qname > ()) }, std::move(yystack_[1].value.as < named_expression_list_t > ()) }; IGNORE_TERM(yystack_[2].value.as < sonia::lang::lex::resource_location > ()); }
-#line 4042 "annium.tab.cpp"
-    break;
-
-  case 199: // new-expression: "`new`" apostrophe-expression "`(`" argument-list-opt "`)`"
+  case 197: // apostrophe-expression: "APOSTROPHE" syntax-expression "APOSTROPHE"
 #line 1020 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = new_expression_t{ std::move(yystack_[4].value.as < sonia::lang::lex::resource_location > ()), std::move(yystack_[3].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < named_expression_list_t > ()) }; IGNORE_TERM(yystack_[2].value.as < sonia::lang::lex::resource_location > ()); }
-#line 4048 "annium.tab.cpp"
+        { yylhs.value.as < syntax_expression_t > () = std::move(yystack_[1].value.as < syntax_expression_t > ()); }
+#line 4077 "annium.tab.cpp"
     break;
 
-  case 200: // call-expression: qname "`(`" pack-expression-opt "`)`"
+  case 198: // new-expression: "`new`" qname
 #line 1025 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = function_call_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), variable_reference{ std::move(yystack_[3].value.as < annium::annotated_qname > ()), false }, std::move(yystack_[1].value.as < named_expression_list_t > ()) }; }
-#line 4054 "annium.tab.cpp"
+        { yylhs.value.as < syntax_expression_t > () = new_expression_t{ std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()), qname_reference{ std::move(yystack_[0].value.as < annium::annotated_qname > ()) } }; }
+#line 4083 "annium.tab.cpp"
     break;
 
-  case 201: // call-expression: CONTEXT_IDENTIFIER "`(`" pack-expression-opt "`)`"
+  case 199: // new-expression: "`new`" apostrophe-expression
 #line 1027 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = function_call_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), variable_reference{ ctx.make_qname(std::move(yystack_[3].value.as < annium::annotated_string_view > ())), true }, std::move(yystack_[1].value.as < named_expression_list_t > ()) }; }
-#line 4060 "annium.tab.cpp"
+        { yylhs.value.as < syntax_expression_t > () = new_expression_t{ std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()) }; }
+#line 4089 "annium.tab.cpp"
     break;
 
-  case 202: // call-expression: call-expression "`(`" pack-expression "`)`"
+  case 200: // new-expression: "`new`" qname "`(`" argument-list-opt "`)`"
 #line 1029 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = function_call_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), std::move(yystack_[3].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < named_expression_list_t > ()) }; }
-#line 4066 "annium.tab.cpp"
+        { yylhs.value.as < syntax_expression_t > () = new_expression_t{ std::move(yystack_[4].value.as < sonia::lang::lex::resource_location > ()), qname_reference{ std::move(yystack_[3].value.as < annium::annotated_qname > ()) }, std::move(yystack_[1].value.as < named_expression_list_t > ()) }; IGNORE_TERM(yystack_[2].value.as < sonia::lang::lex::resource_location > ()); }
+#line 4095 "annium.tab.cpp"
     break;
 
-  case 203: // call-expression: apostrophe-expression "`(`" pack-expression "`)`"
+  case 201: // new-expression: "`new`" apostrophe-expression "`(`" argument-list-opt "`)`"
 #line 1031 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = function_call_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), std::move(yystack_[3].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < named_expression_list_t > ()) }; }
-#line 4072 "annium.tab.cpp"
+        { yylhs.value.as < syntax_expression_t > () = new_expression_t{ std::move(yystack_[4].value.as < sonia::lang::lex::resource_location > ()), std::move(yystack_[3].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < named_expression_list_t > ()) }; IGNORE_TERM(yystack_[2].value.as < sonia::lang::lex::resource_location > ()); }
+#line 4101 "annium.tab.cpp"
     break;
 
-  case 204: // call-expression: lambda-expression "`(`" pack-expression "`)`"
-#line 1033 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = function_call_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), std::move(yystack_[3].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < named_expression_list_t > ()) }; }
-#line 4078 "annium.tab.cpp"
+  case 202: // call-expression: qname "`(`" pack-expression-opt "`)`"
+#line 1036 "annium.y"
+        { yylhs.value.as < syntax_expression_t > () = function_call_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), qname_reference{ std::move(yystack_[3].value.as < annium::annotated_qname > ()) }, std::move(yystack_[1].value.as < named_expression_list_t > ()) }; }
+#line 4107 "annium.tab.cpp"
     break;
 
-  case 205: // lambda-start-decl: fn-start-decl
-#line 1039 "annium.y"
+  case 203: // call-expression: CONTEXT_IDENTIFIER "`(`" pack-expression-opt "`)`"
+#line 1038 "annium.y"
+        { yylhs.value.as < syntax_expression_t > () = function_call_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), name_reference{ ctx.make_identifier(std::move(yystack_[3].value.as < annium::annotated_string_view > ())) }, std::move(yystack_[1].value.as < named_expression_list_t > ()) }; }
+#line 4113 "annium.tab.cpp"
+    break;
+
+  case 204: // call-expression: call-expression "`(`" pack-expression "`)`"
+#line 1040 "annium.y"
+        { yylhs.value.as < syntax_expression_t > () = function_call_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), std::move(yystack_[3].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < named_expression_list_t > ()) }; }
+#line 4119 "annium.tab.cpp"
+    break;
+
+  case 205: // call-expression: apostrophe-expression "`(`" pack-expression "`)`"
+#line 1042 "annium.y"
+        { yylhs.value.as < syntax_expression_t > () = function_call_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), std::move(yystack_[3].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < named_expression_list_t > ()) }; }
+#line 4125 "annium.tab.cpp"
+    break;
+
+  case 206: // call-expression: lambda-expression "`(`" pack-expression "`)`"
+#line 1044 "annium.y"
+        { yylhs.value.as < syntax_expression_t > () = function_call_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), std::move(yystack_[3].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < named_expression_list_t > ()) }; }
+#line 4131 "annium.tab.cpp"
+    break;
+
+  case 207: // lambda-start-decl: fn-start-decl
+#line 1050 "annium.y"
         { yylhs.value.as < lambda_t > () = lambda_t{ fn_pure_t{ .location = std::move(get<0>(yystack_[0].value.as < std::pair<sonia::lang::lex::resource_location, fn_kind> > ())), .result = nullptr, .kind = get<1>(yystack_[0].value.as < std::pair<sonia::lang::lex::resource_location, fn_kind> > ()) } }; }
-#line 4084 "annium.tab.cpp"
+#line 4137 "annium.tab.cpp"
     break;
 
-  case 206: // lambda-start-decl: fn-start-decl "`[`" pack-expression-opt "`]`"
-#line 1041 "annium.y"
+  case 208: // lambda-start-decl: fn-start-decl "`[`" pack-expression-opt "`]`"
+#line 1052 "annium.y"
         { yylhs.value.as < lambda_t > () = lambda_t{ fn_pure_t{ .location = std::move(get<0>(yystack_[3].value.as < std::pair<sonia::lang::lex::resource_location, fn_kind> > ())), .result = nullptr, .kind = get<1>(yystack_[3].value.as < std::pair<sonia::lang::lex::resource_location, fn_kind> > ()) }, {}, std::move(yystack_[1].value.as < named_expression_list_t > ()) }; IGNORE_TERM(yystack_[2].value.as < sonia::lang::lex::resource_location > ()); }
-#line 4090 "annium.tab.cpp"
+#line 4143 "annium.tab.cpp"
     break;
 
-  case 207: // lambda-expression: lambda-start-decl "`(`" parameter-list-opt "`)`" function-body
-#line 1046 "annium.y"
+  case 209: // lambda-expression: lambda-start-decl "`(`" parameter-list-opt "`)`" function-body
+#line 1057 "annium.y"
         { 
             yystack_[4].value.as < lambda_t > ().parameters = std::move(yystack_[2].value.as < parameter_list_t > ());
             yystack_[4].value.as < lambda_t > ().body = ctx.push(std::move(yystack_[0].value.as < managed_statement_list > ()));
             yylhs.value.as < syntax_expression_t > () = std::move(yystack_[4].value.as < lambda_t > ());
             IGNORE_TERM(yystack_[3].value.as < sonia::lang::lex::resource_location > ());
         }
-#line 4101 "annium.tab.cpp"
+#line 4154 "annium.tab.cpp"
     break;
 
-  case 208: // lambda-expression: lambda-start-decl "`(`" parameter-list-opt "`)`" "`->`" type-expr function-body
-#line 1053 "annium.y"
+  case 210: // lambda-expression: lambda-start-decl "`(`" parameter-list-opt "`)`" "`->`" type-expr function-body
+#line 1064 "annium.y"
         {
             yystack_[6].value.as < lambda_t > ().parameters = std::move(yystack_[4].value.as < parameter_list_t > ());
             yystack_[6].value.as < lambda_t > ().result = std::move(yystack_[1].value.as < syntax_expression_t > ());
@@ -4109,11 +4162,11 @@ namespace annium_lang {
             yylhs.value.as < syntax_expression_t > () = std::move(yystack_[6].value.as < lambda_t > ());
             IGNORE_TERM(yystack_[5].value.as < sonia::lang::lex::resource_location > ());
         }
-#line 4113 "annium.tab.cpp"
+#line 4166 "annium.tab.cpp"
     break;
 
-  case 209: // lambda-expression: lambda-start-decl "`(`" parameter-list-opt "`)`" "`~>`" pattern function-body
-#line 1061 "annium.y"
+  case 211: // lambda-expression: lambda-start-decl "`(`" parameter-list-opt "`)`" "`~>`" pattern function-body
+#line 1072 "annium.y"
         {
             yystack_[6].value.as < lambda_t > ().parameters = std::move(yystack_[4].value.as < parameter_list_t > ());
             yystack_[6].value.as < lambda_t > ().result = std::move(yystack_[1].value.as < pattern_t > ());
@@ -4121,132 +4174,126 @@ namespace annium_lang {
             yylhs.value.as < syntax_expression_t > () = std::move(yystack_[6].value.as < lambda_t > ());
             IGNORE_TERM(yystack_[5].value.as < sonia::lang::lex::resource_location > ());
         }
-#line 4125 "annium.tab.cpp"
+#line 4178 "annium.tab.cpp"
     break;
 
-  case 210: // pack-expression-opt: %empty
-#line 1072 "annium.y"
+  case 212: // pack-expression-opt: %empty
+#line 1083 "annium.y"
         { yylhs.value.as < named_expression_list_t > () = named_expression_list_t{}; }
-#line 4131 "annium.tab.cpp"
+#line 4184 "annium.tab.cpp"
     break;
 
-  case 211: // pack-expression-opt: pack-expression
-#line 1074 "annium.y"
+  case 213: // pack-expression-opt: pack-expression
+#line 1085 "annium.y"
         { yylhs.value.as < named_expression_list_t > () = std::move(yystack_[0].value.as < named_expression_list_t > ()); }
-#line 4137 "annium.tab.cpp"
+#line 4190 "annium.tab.cpp"
     break;
 
-  case 212: // pack-expression: syntax-expression
-#line 1079 "annium.y"
+  case 214: // pack-expression: syntax-expression
+#line 1090 "annium.y"
         { yylhs.value.as < named_expression_list_t > () = named_expression_list_t{ named_expression_t{ std::move(yystack_[0].value.as < syntax_expression_t > ()) } }; }
-#line 4143 "annium.tab.cpp"
+#line 4196 "annium.tab.cpp"
     break;
 
-  case 213: // pack-expression: identifier "`:`" syntax-expression
-#line 1081 "annium.y"
+  case 215: // pack-expression: identifier "`:`" syntax-expression
+#line 1092 "annium.y"
         {
             named_expression_list_t list{};
             list.emplace_back(std::move(yystack_[2].value.as < annium::annotated_identifier > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()));
             yylhs.value.as < named_expression_list_t > () = std::move(list);
         }
-#line 4153 "annium.tab.cpp"
+#line 4206 "annium.tab.cpp"
     break;
 
-  case 214: // pack-expression: pack-expression "," syntax-expression
-#line 1087 "annium.y"
+  case 216: // pack-expression: pack-expression "," syntax-expression
+#line 1098 "annium.y"
         {
             yystack_[2].value.as < named_expression_list_t > ().emplace_back(std::move(yystack_[0].value.as < syntax_expression_t > ()));
             yylhs.value.as < named_expression_list_t > () = std::move(yystack_[2].value.as < named_expression_list_t > ());
         }
-#line 4162 "annium.tab.cpp"
+#line 4215 "annium.tab.cpp"
     break;
 
-  case 215: // pack-expression: pack-expression "," identifier "`:`" syntax-expression
-#line 1092 "annium.y"
+  case 217: // pack-expression: pack-expression "," identifier "`:`" syntax-expression
+#line 1103 "annium.y"
         {
             yystack_[4].value.as < named_expression_list_t > ().emplace_back(std::move(yystack_[2].value.as < annium::annotated_identifier > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()));
             yylhs.value.as < named_expression_list_t > () = std::move(yystack_[4].value.as < named_expression_list_t > ());
         }
-#line 4171 "annium.tab.cpp"
+#line 4224 "annium.tab.cpp"
     break;
 
-  case 216: // compound-expression: syntax-expression "`...`"
-#line 1100 "annium.y"
+  case 218: // compound-expression: syntax-expression "`...`"
+#line 1111 "annium.y"
         { yylhs.value.as < syntax_expression_t > () = unary_expression_t{ unary_operator_type::ELLIPSIS, false, std::move(yystack_[1].value.as < syntax_expression_t > ()), std::move(yystack_[0].value.as < sonia::lang::lex::resource_location > ()) }; }
-#line 4177 "annium.tab.cpp"
+#line 4230 "annium.tab.cpp"
     break;
 
-  case 217: // compound-expression: call-expression
-#line 1101 "annium.y"
+  case 219: // compound-expression: call-expression
+#line 1112 "annium.y"
         { yylhs.value.as < syntax_expression_t > () = yystack_[0].value.as < syntax_expression_t > (); }
-#line 4183 "annium.tab.cpp"
+#line 4236 "annium.tab.cpp"
     break;
 
-  case 218: // type-expr: qname
-#line 1143 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = variable_reference{ std::move(yystack_[0].value.as < annium::annotated_qname > ()) }; }
-#line 4189 "annium.tab.cpp"
-    break;
-
-  case 219: // type-expr: call-expression
-#line 1144 "annium.y"
-      { yylhs.value.as < syntax_expression_t > () = yystack_[0].value.as < syntax_expression_t > (); }
-#line 4195 "annium.tab.cpp"
-    break;
-
-  case 220: // type-expr: CONTEXT_IDENTIFIER
-#line 1146 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = variable_reference{ ctx.make_qname(std::move(yystack_[0].value.as < annium::annotated_string_view > ())), true }; }
-#line 4201 "annium.tab.cpp"
-    break;
-
-  case 221: // type-expr: "`[`" type-expr "`]`"
-#line 1150 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = annium_vector_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), std::move(yystack_[1].value.as < syntax_expression_t > ())}; }
-#line 4207 "annium.tab.cpp"
-    break;
-
-  case 222: // type-expr: "`(`" "`)`"
-#line 1152 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = ctx.make_void(std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ())); }
-#line 4213 "annium.tab.cpp"
-    break;
-
-  case 223: // type-expr: "`(`" pack-expression "`)`"
+  case 220: // type-expr: qname
 #line 1154 "annium.y"
-        { yylhs.value.as < syntax_expression_t > () = function_call_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), variable_reference{}, std::move(yystack_[1].value.as < named_expression_list_t > ()) }; }
-#line 4219 "annium.tab.cpp"
+        { yylhs.value.as < syntax_expression_t > () = qname_reference{ std::move(yystack_[0].value.as < annium::annotated_qname > ()) }; }
+#line 4242 "annium.tab.cpp"
     break;
 
-  case 224: // type-expr: type-expr "`[`" syntax-expression "`]`"
-#line 1156 "annium.y"
+  case 221: // type-expr: call-expression
+#line 1155 "annium.y"
+      { yylhs.value.as < syntax_expression_t > () = yystack_[0].value.as < syntax_expression_t > (); }
+#line 4248 "annium.tab.cpp"
+    break;
+
+  case 222: // type-expr: CONTEXT_IDENTIFIER
+#line 1157 "annium.y"
+        { yylhs.value.as < syntax_expression_t > () = name_reference{ ctx.make_identifier(std::move(yystack_[0].value.as < annium::annotated_string_view > ())) }; }
+#line 4254 "annium.tab.cpp"
+    break;
+
+  case 223: // type-expr: "`[`" type-expr "`]`"
+#line 1161 "annium.y"
+        { yylhs.value.as < syntax_expression_t > () = annium_vector_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), std::move(yystack_[1].value.as < syntax_expression_t > ())}; }
+#line 4260 "annium.tab.cpp"
+    break;
+
+  case 224: // type-expr: "`(`" "`)`"
+#line 1163 "annium.y"
+        { yylhs.value.as < syntax_expression_t > () = ctx.make_void(std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ())); }
+#line 4266 "annium.tab.cpp"
+    break;
+
+  case 225: // type-expr: "`(`" pack-expression "`)`"
+#line 1165 "annium.y"
+        { yylhs.value.as < syntax_expression_t > () = function_call_t{ std::move(yystack_[2].value.as < sonia::lang::lex::resource_location > ()), qname_reference{}, std::move(yystack_[1].value.as < named_expression_list_t > ()) }; }
+#line 4272 "annium.tab.cpp"
+    break;
+
+  case 226: // type-expr: type-expr "`[`" syntax-expression "`]`"
+#line 1167 "annium.y"
         { yylhs.value.as < syntax_expression_t > () = index_expression_t{ std::move(yystack_[3].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < syntax_expression_t > ()) }; IGNORE_TERM(yystack_[2].value.as < sonia::lang::lex::resource_location > ()); }
-#line 4225 "annium.tab.cpp"
+#line 4278 "annium.tab.cpp"
     break;
 
-  case 225: // type-expr: type-expr "`|`" type-expr
-#line 1158 "annium.y"
-        {
-            annium_union_t uni{};
-            uni.members.emplace_back(std::move(yystack_[2].value.as < syntax_expression_t > ()));
-            uni.members.emplace_back(std::move(yystack_[0].value.as < syntax_expression_t > ()));
-            yylhs.value.as < syntax_expression_t > () = std::move(uni);
-            IGNORE_TERM(yystack_[1].value.as < sonia::lang::lex::resource_location > ());
-        }
-#line 4237 "annium.tab.cpp"
+  case 227: // type-expr: type-expr "`|`" type-expr
+#line 1169 "annium.y"
+        { yylhs.value.as < syntax_expression_t > () = binary_expression_t{ binary_operator_type::BIT_OR, std::move(yystack_[2].value.as < syntax_expression_t > ()), std::move(yystack_[0].value.as < syntax_expression_t > ()), std::move(yystack_[1].value.as < sonia::lang::lex::resource_location > ()) }; }
+#line 4284 "annium.tab.cpp"
     break;
 
-  case 226: // type-expr: type-expr "`->`" type-expr
-#line 1166 "annium.y"
+  case 228: // type-expr: type-expr "`->`" type-expr
+#line 1171 "annium.y"
         { 
             auto loc = get_start_location(yystack_[2].value.as < syntax_expression_t > ());
             yylhs.value.as < syntax_expression_t > () = annium_fn_type_t{ named_expression_list_t{ named_expression_t{ std::move(yystack_[2].value.as < syntax_expression_t > ()) } }, std::move(yystack_[0].value.as < syntax_expression_t > ()), std::move(loc) };
         }
-#line 4246 "annium.tab.cpp"
+#line 4293 "annium.tab.cpp"
     break;
 
 
-#line 4250 "annium.tab.cpp"
+#line 4297 "annium.tab.cpp"
 
             default:
               break;
@@ -4651,47 +4698,47 @@ namespace annium_lang {
   const unsigned char
   parser::yydefact_[] =
   {
-       4,   167,    53,   157,   168,   158,   166,   163,   164,   165,
+       4,   169,    53,   159,   170,   160,   168,   165,   166,   167,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,    58,     0,     0,
-     160,   161,   162,     0,     0,     0,     5,     7,    14,    56,
-     169,   205,     0,   159,   191,   192,   217,     0,   194,   193,
-     210,   205,     0,   193,    55,     0,   170,    56,   212,     0,
-       0,    75,     0,   176,   181,   180,     0,    44,    20,    16,
-      18,     0,     0,   196,   197,     0,     0,     0,     0,    45,
+     162,   163,   164,     0,     0,     0,     5,     7,    14,    56,
+     171,   207,     0,   161,   193,   194,   219,     0,   196,   195,
+     212,   207,     0,   195,    55,     0,   172,    56,   214,     0,
+       0,    75,     0,   178,   183,   182,     0,    44,    20,    16,
+      18,     0,     0,   198,   199,     0,     0,     0,     0,    45,
       13,    59,     0,    41,     0,    15,     1,     2,    10,     3,
-       8,     6,     9,     0,   210,   210,    61,    60,     0,     0,
-     179,     0,     0,     0,     0,     0,     0,   216,     0,     0,
-       0,     0,     0,     0,     0,     0,    93,     0,     0,   211,
-     195,     0,     0,   172,     0,   173,     0,   174,    19,     0,
+       8,     6,     9,     0,   212,   212,    61,    60,     0,     0,
+     181,     0,     0,     0,     0,     0,     0,   218,     0,     0,
+       0,     0,     0,     0,     0,     0,    93,     0,     0,   213,
+     197,     0,     0,   174,     0,   175,     0,   176,    19,     0,
        0,     0,    12,    77,    77,    22,     0,    32,     0,    35,
        0,    93,    66,     0,    93,    39,    57,     0,     0,    93,
-       0,    37,    47,   184,   185,   189,   190,   186,     0,   177,
-     178,   182,   183,   187,   188,     0,     0,    54,    99,    99,
-     119,     0,   114,   115,    97,    99,     0,    94,    95,     0,
-      99,    99,     0,   201,   171,   213,    56,   214,    76,   220,
-       0,     0,   218,     0,   219,     0,    21,    17,     0,    56,
+       0,    37,    47,   186,   187,   191,   192,   188,     0,   179,
+     180,   184,   185,   189,   190,     0,     0,    54,    99,    99,
+     120,     0,   114,   115,    97,    99,     0,    94,    95,   118,
+      99,    99,     0,   203,   173,   215,    56,   216,    76,   222,
+       0,     0,   220,     0,   221,     0,    21,    17,     0,    56,
        0,    78,    79,     0,    82,     0,    50,    49,    51,     0,
       42,    43,    25,     0,    48,    23,     0,     0,     0,    73,
-       0,    70,     0,    67,    68,    85,     0,   200,   206,     0,
-       0,   175,   203,   202,     0,   107,   109,   120,     0,    99,
-      99,     0,   153,   143,     0,     0,     0,     0,   153,   144,
-     137,   141,   155,   151,    99,     0,    99,   119,   106,     0,
-       0,   118,   116,   113,   104,   204,     0,   222,     0,     0,
-       0,     0,     0,    11,    83,    84,   198,     0,    81,   199,
+       0,    70,     0,    67,    68,    85,     0,   202,   208,     0,
+       0,   177,   205,   204,     0,   107,   109,   121,   124,    99,
+      99,     0,   155,   145,     0,     0,     0,     0,   155,   146,
+     139,   143,   157,   153,    99,     0,    99,   120,   106,     0,
+       0,   119,   116,   113,   104,   206,     0,   224,     0,     0,
+       0,     0,     0,    11,    83,    84,   200,     0,    81,   201,
       52,     0,    28,    26,    27,    24,    31,    33,    34,    36,
        0,    65,     0,     0,     0,    86,    87,     0,    62,    38,
-     100,   123,   121,   112,   103,   152,   153,   153,   147,   154,
-       0,   140,   138,   139,   146,   153,   142,   156,   105,   119,
-     108,    99,    99,     0,     0,     0,   207,    29,    96,   117,
-     215,   223,   221,   226,     0,   225,    80,    93,     0,    69,
-       0,     0,    71,     0,     0,    40,     0,     0,   122,     0,
-     153,     0,   153,   153,     0,   135,   125,   127,   148,   153,
-     145,    99,    99,   111,   102,     0,     0,     0,   224,     0,
-      74,    92,    89,    88,    85,    63,    64,   131,   136,   153,
-     133,     0,   129,   124,   153,   128,   153,   149,   110,   101,
-     208,    30,   209,     0,     0,    91,     0,   134,   132,   130,
-     126,   150,    90,    72
+     100,   125,   122,   112,   103,   154,   155,   155,   149,   156,
+       0,   142,   140,   141,   148,   155,   144,   158,   105,   120,
+     108,    99,    99,     0,     0,     0,   209,    29,    96,   117,
+     217,   225,   223,   228,     0,   227,    80,    93,     0,    69,
+       0,     0,    71,     0,     0,    40,     0,     0,   123,     0,
+     155,     0,   155,   155,     0,   137,   127,   129,   150,   155,
+     147,    99,    99,   111,   102,     0,     0,     0,   226,     0,
+      74,    92,    89,    88,    85,    63,    64,   133,   138,   155,
+     135,     0,   131,   126,   155,   130,   155,   151,   110,   101,
+     210,    30,   211,     0,     0,    91,     0,   136,   134,   132,
+     128,   152,    90,    72
   };
 
   const short
@@ -5032,18 +5079,18 @@ namespace annium_lang {
      135,   136,   136,   137,   137,   138,   138,   139,   139,   140,
      140,   141,   141,   142,   142,   143,   143,   144,   144,   145,
      145,   146,   146,   146,   146,   146,   146,   146,   146,   146,
-     146,   146,   146,   146,   147,   147,   148,   148,   148,   149,
-     149,   150,   150,   150,   151,   152,   152,   153,   153,   153,
-     153,   153,   153,   154,   154,   154,   154,   155,   155,   155,
-     155,   156,   156,   156,   157,   157,   157,   157,   157,   157,
-     157,   157,   158,   159,   159,   160,   160,   161,   161,   161,
+     146,   146,   146,   146,   147,   147,   148,   148,   148,   148,
+     149,   149,   150,   150,   150,   150,   151,   152,   152,   153,
+     153,   153,   153,   153,   153,   154,   154,   154,   154,   155,
+     155,   155,   155,   156,   156,   156,   157,   157,   157,   157,
+     157,   157,   157,   157,   158,   159,   159,   160,   160,   161,
+     161,   161,   162,   162,   162,   162,   162,   162,   162,   162,
      162,   162,   162,   162,   162,   162,   162,   162,   162,   162,
      162,   162,   162,   162,   162,   162,   162,   162,   162,   162,
-     162,   162,   162,   162,   162,   162,   162,   162,   162,   162,
-     162,   162,   162,   162,   162,   163,   164,   164,   164,   164,
-     165,   165,   165,   165,   165,   166,   166,   167,   167,   167,
-     168,   168,   169,   169,   169,   169,   170,   170,   171,   171,
-     171,   171,   171,   171,   171,   171,   171
+     162,   162,   162,   162,   162,   162,   162,   163,   164,   164,
+     164,   164,   165,   165,   165,   165,   165,   166,   166,   167,
+     167,   167,   168,   168,   169,   169,   169,   169,   170,   170,
+     171,   171,   171,   171,   171,   171,   171,   171,   171
   };
 
   const signed char
@@ -5060,18 +5107,18 @@ namespace annium_lang {
        3,     2,     1,     2,     2,     0,     1,     1,     3,     0,
        2,     4,     3,     0,     1,     1,     3,     0,     1,     0,
        2,     5,     4,     3,     2,     3,     2,     2,     3,     2,
-       5,     4,     3,     2,     1,     1,     2,     3,     2,     0,
-       1,     2,     3,     2,     3,     1,     3,     1,     2,     2,
-       3,     2,     3,     2,     3,     1,     2,     2,     3,     3,
-       3,     1,     2,     1,     1,     3,     2,     2,     3,     4,
-       5,     1,     2,     0,     1,     1,     2,     1,     1,     1,
+       5,     4,     3,     2,     1,     1,     2,     3,     1,     2,
+       0,     1,     2,     3,     1,     2,     3,     1,     3,     1,
+       2,     2,     3,     2,     3,     2,     3,     1,     2,     2,
+       3,     3,     3,     1,     2,     1,     1,     3,     2,     2,
+       3,     4,     5,     1,     2,     0,     1,     1,     2,     1,
        1,     1,     1,     1,     1,     1,     1,     1,     1,     1,
-       2,     4,     3,     3,     3,     4,     2,     3,     3,     2,
-       2,     2,     3,     3,     3,     3,     3,     3,     3,     3,
-       3,     1,     1,     1,     1,     3,     2,     2,     5,     5,
-       4,     4,     4,     4,     4,     1,     4,     5,     7,     7,
-       0,     1,     1,     3,     3,     5,     2,     1,     1,     1,
-       1,     3,     2,     3,     4,     3,     3
+       1,     1,     2,     4,     3,     3,     3,     4,     2,     3,
+       3,     2,     2,     2,     3,     3,     3,     3,     3,     3,
+       3,     3,     3,     1,     1,     1,     1,     3,     2,     2,
+       5,     5,     4,     4,     4,     4,     4,     1,     4,     5,
+       7,     7,     0,     1,     1,     3,     3,     5,     2,     1,
+       1,     1,     1,     3,     2,     3,     4,     3,     3
   };
 
 
@@ -5130,29 +5177,29 @@ namespace annium_lang {
   const short
   parser::yyrline_[] =
   {
-       0,   336,   336,   337,   341,   343,   345,   362,   364,   365,
-     367,   372,   374,   376,   389,   391,   396,   398,   403,   405,
-     410,   411,   416,   418,   420,   425,   427,   428,   430,   436,
-     438,   448,   453,   455,   457,   459,   461,   463,   469,   478,
-     480,   482,   487,   489,   494,   496,   498,   500,   505,   507,
-     509,   511,   513,   518,   526,   541,   543,   545,   551,   553,
-     558,   559,   563,   565,   567,   573,   578,   579,   583,   585,
-     590,   596,   598,   621,   628,   646,   648,   654,   655,   659,
-     661,   666,   668,   673,   675,   681,   682,   686,   688,   693,
-     694,   698,   700,   707,   708,   712,   714,   719,   720,   724,
-     725,   729,   731,   733,   735,   738,   740,   742,   744,   746,
-     751,   753,   755,   757,   762,   763,   767,   769,   771,   776,
-     777,   781,   783,   785,   791,   796,   798,   804,   806,   809,
-     811,   815,   818,   824,   827,   840,   843,   848,   849,   850,
-     851,   855,   856,   857,   861,   863,   865,   867,   869,   871,
-     873,   875,   880,   885,   887,   891,   893,   900,   902,   904,
-     909,   911,   913,   915,   917,   919,   921,   923,   925,   927,
-     929,   931,   936,   945,   953,   955,   957,   961,   963,   965,
-     968,   970,   975,   977,   981,   983,   985,   988,   992,   995,
-     998,  1001,  1002,  1003,  1004,  1008,  1013,  1015,  1017,  1019,
-    1024,  1026,  1028,  1030,  1032,  1038,  1040,  1045,  1052,  1060,
-    1071,  1073,  1078,  1080,  1086,  1091,  1099,  1101,  1142,  1144,
-    1145,  1149,  1151,  1153,  1155,  1157,  1165
+       0,   335,   335,   336,   340,   342,   344,   361,   363,   364,
+     366,   371,   373,   375,   388,   390,   395,   397,   402,   404,
+     409,   410,   415,   417,   419,   424,   426,   427,   429,   435,
+     437,   447,   452,   454,   456,   458,   460,   462,   468,   477,
+     479,   481,   486,   488,   493,   495,   497,   499,   504,   506,
+     508,   510,   512,   517,   525,   540,   542,   544,   550,   552,
+     557,   558,   562,   564,   566,   572,   577,   578,   582,   584,
+     589,   595,   597,   620,   627,   645,   647,   653,   654,   658,
+     660,   665,   667,   672,   674,   680,   681,   685,   687,   692,
+     693,   697,   699,   706,   707,   711,   713,   718,   719,   723,
+     724,   728,   730,   732,   734,   737,   739,   741,   743,   745,
+     750,   752,   754,   756,   761,   762,   766,   768,   772,   774,
+     779,   784,   788,   790,   794,   796,   802,   807,   809,   815,
+     817,   820,   822,   826,   829,   835,   838,   851,   854,   859,
+     860,   861,   862,   866,   867,   868,   872,   874,   876,   878,
+     880,   882,   884,   886,   891,   896,   898,   902,   904,   911,
+     913,   915,   920,   922,   924,   926,   928,   930,   932,   934,
+     936,   938,   940,   942,   947,   956,   964,   966,   968,   972,
+     974,   976,   979,   981,   986,   988,   992,   994,   996,   999,
+    1003,  1006,  1009,  1012,  1013,  1014,  1015,  1019,  1024,  1026,
+    1028,  1030,  1035,  1037,  1039,  1041,  1043,  1049,  1051,  1056,
+    1063,  1071,  1082,  1084,  1089,  1091,  1097,  1102,  1110,  1112,
+    1153,  1155,  1156,  1160,  1162,  1164,  1166,  1168,  1170
   };
 
   void
@@ -5240,7 +5287,7 @@ namespace annium_lang {
   }
 
 } // annium_lang
-#line 5244 "annium.tab.cpp"
+#line 5291 "annium.tab.cpp"
 
-#line 1492 "annium.y"
+#line 1497 "annium.y"
 

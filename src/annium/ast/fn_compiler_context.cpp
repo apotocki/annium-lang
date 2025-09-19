@@ -87,7 +87,7 @@ struct parameter_visitor : static_visitor<std::expected<pattern_expression_t, er
         return ee.value;
     }
 
-    result_type operator()(variable_reference const& var)
+    result_type operator()(qname_reference const& var)
     {
         if (var.implicit || (var.name.value.is_relative() && var.name.value.size() == 1)) {
             // check for function parameter
@@ -486,7 +486,24 @@ std::expected<qname_identifier, error_storage> fn_compiler_context::lookup_qname
     return std::unexpected(make_error<undeclared_identifier_error>(name));
 }
 
-variant<entity_identifier, local_variable const&> fn_compiler_context::lookup_entity(annotated_qname const& name)
+variant<entity_identifier, local_variable const&> fn_compiler_context::lookup_entity(annotated_identifier const& name) const
+{
+    auto optbv = get_bound(name.value);
+    if (optbv) return std::move(*optbv);
+
+    qname checkns = ns_;
+    size_t sz = checkns.parts().size();
+    for (;;) {
+        checkns.append(name.value);
+        functional* f = environment_.fregistry_find(checkns);
+        if (f || !sz) return f->default_entity(const_cast<fn_compiler_context&>(*this));
+        --sz;
+        checkns.truncate(sz);
+    }
+    return entity_identifier{}; // undeclared
+}
+
+variant<entity_identifier, local_variable const&> fn_compiler_context::lookup_entity(annotated_qname const& name) const
 {
     //using result_t = variant<entity_identifier, local_variable>;
     if (name.value.is_relative() && name.value.size() == 1) {
@@ -497,7 +514,7 @@ variant<entity_identifier, local_variable const&> fn_compiler_context::lookup_en
 
     functional const* pfn = lookup_functional(name.value);
     if (pfn) 
-        return pfn->default_entity(*this);
+        return pfn->default_entity(const_cast<fn_compiler_context&>(*this));
     return entity_identifier{}; // undeclared
 }
 
@@ -505,6 +522,13 @@ std::expected<functional::match, error_storage> fn_compiler_context::find(builti
 {
     functional const& fn = env().fget(qnid);
     return fn.find(*this, nullptr, call, el, expected_result);
+}
+
+std::expected<syntax_expression_result_t, error_storage> fn_compiler_context::find_and_apply(builtin_qnid qnid, pure_call_t const& call, semantic::expression_list_t& el, expected_result_t const& expected_result)
+{
+    auto match = find(qnid, call, el, expected_result);
+    if (!match) return std::unexpected(std::move(match.error()));
+    return match->apply(*this);
 }
 
 std::expected<functional::match, error_storage> fn_compiler_context::find(qname_identifier qnid, pure_call_t const& call, semantic::expression_list_t& el, expected_result_t const& expected_result)

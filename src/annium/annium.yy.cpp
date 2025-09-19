@@ -6812,17 +6812,17 @@ YY_RULE_SETUP
 case 37:
 YY_RULE_SETUP
 #line 334 "annium.l"
-{ return (annium_lang::parser::token::TYPENAME); }
+{ variant_emplace(location); return (annium_lang::parser::token::TYPENAME); }
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
 #line 335 "annium.l"
-{ return (annium_lang::parser::token::CONSTEXPR); }
+{ variant_emplace(location); return (annium_lang::parser::token::CONSTEXPR); }
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
 #line 336 "annium.l"
-{ return (annium_lang::parser::token::RUNTIME); }
+{ variant_emplace(location); return (annium_lang::parser::token::RUNTIME); }
 	YY_BREAK
 case 40:
 YY_RULE_SETUP

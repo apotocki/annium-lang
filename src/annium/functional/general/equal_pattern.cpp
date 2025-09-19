@@ -4,9 +4,9 @@
 #include "sonia/config.hpp"
 #include "equal_pattern.hpp"
 
-#include "annium/functional/generic_pattern_base.ipp"
-
 #include "annium/ast/fn_compiler_context.hpp"
+
+#include "annium/entities/prepared_call.hpp"
 
 #include "annium/entities/signatured_entity.hpp"
 #include "annium/entities/literals/literal_entity.hpp"

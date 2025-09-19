@@ -14,14 +14,12 @@ $(LocalDebuggerEnvironment)</LocalDebuggerEnvironment>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LocalDebuggerEnvironment>PATH=%PATH%;$(SolutionDir)vcpkg_installed\x64-windows-cpp23\debug\bin
-TESTS_HOME=$(SolutionDir)tests
-$(LocalDebuggerEnvironment)</LocalDebuggerEnvironment>
+TESTS_HOME=$(ProjectDir)..\..\..\tests</LocalDebuggerEnvironment>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerEnvironment>PATH=%PATH%;$(SolutionDir)vcpkg_installed\x64-windows-cpp23\bin
-TESTS_HOME=$(SolutionDir)tests
-$(LocalDebuggerEnvironment)</LocalDebuggerEnvironment>
+    <LocalDebuggerEnvironment>PATH=%PATH%;$(SolutionDir)vcpkg_installed\x64-windows-cpp23\release\bin
+TESTS_HOME=$(ProjectDir)..\..\..\tests</LocalDebuggerEnvironment>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

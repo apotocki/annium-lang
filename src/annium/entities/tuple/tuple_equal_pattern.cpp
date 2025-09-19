@@ -160,7 +160,7 @@ tuple_equal_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
             }
             pure_call_t get_call{ md.call_location };
             get_call.emplace_back(annotated_identifier{ e.get(builtin_id::self), md.call_location },
-                variable_reference{ annotated_qname{ qname{ tuple_var_name, false } }, false });
+                name_reference{ annotated_identifier{ tuple_var_name } });
             get_call.emplace_back(annotated_identifier{ e.get(builtin_id::property) }, annotated_integer{ numetron::integer{ fidx } });
             auto match = ctx.find(builtin_qnid::get, get_call, el);
             if (!match) {

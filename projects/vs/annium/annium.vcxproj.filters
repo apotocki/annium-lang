@@ -384,6 +384,9 @@
     <ClCompile Include="..\..\..\src\sonia\mvvm\bunch_builder_view_model.cpp">
       <Filter>sonia.mvvm</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\annium-lang\src\annium\entities\vector\vector_implicit_cast_pattern.cpp">
+      <Filter>annium\entities\vector</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\annium\location.hh">
@@ -734,12 +737,6 @@
     <ClInclude Include="..\..\..\src\annium\functional\external_fn_pattern.hpp">
       <Filter>annium\functional</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\functional\generic_pattern_base.hpp">
-      <Filter>annium\functional</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\functional\generic_pattern_base.ipp">
-      <Filter>annium\functional</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\src\annium\functional\internal_fn_pattern.hpp">
       <Filter>annium\functional</Filter>
     </ClInclude>
@@ -781,6 +778,12 @@
     </ClInclude>
     <ClInclude Include="..\..\..\src\sonia\mvvm\bunch_builder_view_model.hpp">
       <Filter>sonia.mvvm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\annium-lang\src\annium\ast\base_expression_visitor.ipp">
+      <Filter>annium\ast</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\annium-lang\src\annium\entities\vector\vector_implicit_cast_pattern.hpp">
+      <Filter>annium\entities\vector</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

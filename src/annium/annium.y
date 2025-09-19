@@ -17,7 +17,6 @@
 %define parse.error verbose
 
 %parse-param { void * scanner }
-//%parse-param { parser_context & ctx }
 %param { parser_context & ctx }
 %lex-param { void * scanner }
 
@@ -40,7 +39,6 @@ using YYSTYPE = annium_lang::parser::semantic_type;
 using YYLTYPE = annium_lang::parser::location_type;
 
 int annium_langlex(YYSTYPE * yylval_param, YYLTYPE * yylloc_param, parser_context & ctx, void* yyscanner);
-//#include "annium.yy.hpp"
 
 void annium_lang::parser::error(const location_type& loc, const std::string& msg)
 {
@@ -291,9 +289,9 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 %type <sonia::optional<syntax_expression_t>> parameter-default-value-opt
 
 %token WEAK "weak modifier"
-%token TYPENAME "typename modifier"
-%token CONSTEXPR "constexpr modifier"
-%token RUNTIME "runctime modifier"
+%token <sonia::lang::lex::resource_location> TYPENAME "typename modifier"
+%token <sonia::lang::lex::resource_location> CONSTEXPR "constexpr modifier"
+%token <sonia::lang::lex::resource_location> RUNTIME "runctime modifier"
 
 // EXPRESSIONS
 %token <annotated_nil> NIL_WORD "nil"
@@ -318,7 +316,8 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 
 
 // PATTERNS
-%type <parameter_constraint_modifier_t> constraint-expression-mod constraint-expression-specified-mod
+//%type <parameter_constraint_modifier_t> constraint-expression-mod
+%type <std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t>> constraint-expression-mod constraint-expression-specified-mod
 %type <std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t>> constraint-expression constraint-expression-specified
 %type <std::pair<pattern_t, parameter_constraint_modifier_t>> pattern-mod pattern-sfx
 %type <pattern_t> pattern
@@ -759,31 +758,43 @@ parameter-decl:
     ;
 
 constraint-expression-specified-mod:
-      CONSTEXPR { $$ = parameter_constraint_modifier_t::any_constexpr_type; }
-    | RUNTIME { $$ = parameter_constraint_modifier_t::runtime_type; }
+      CONSTEXPR { $$ = std::pair{ std::move($CONSTEXPR), parameter_constraint_modifier_t::any_constexpr_type }; }
+    | RUNTIME { $$ = std::pair{ std::move($RUNTIME), parameter_constraint_modifier_t::runtime_type }; }
     ;
 
 constraint-expression-specified:
       constraint-expression-specified-mod[mod] type-expr[match]
-        { $$ = std::pair{ std::move($match), $mod }; }
+        { $$ = std::pair{ std::move($match), get<1>($mod) }; }
     | constraint-expression-specified-mod[mod] type-expr[match] ELLIPSIS
-        { $$ = std::pair{ std::move($match), $mod | parameter_constraint_modifier_t::ellipsis }; IGNORE_TERM($ELLIPSIS); }
-    | constraint-expression-specified-mod[mod] ELLIPSIS // all of sudden, it's the ellipsis pattern
-        { $$ = std::pair{ pattern_t{ .descriptor = placeholder{ std::move($ELLIPSIS) }}, $mod | parameter_constraint_modifier_t::ellipsis }; }
+        { $$ = std::pair{ std::move($match), get<1>($mod) | parameter_constraint_modifier_t::ellipsis }; IGNORE_TERM($ELLIPSIS); }
+    
+    // not a type expression, but a placeholders
+    | constraint-expression-specified-mod[mod]
+        { $$ = std::pair{ pattern_t{ .descriptor = placeholder{ std::move(get<0>($mod)) }}, get<1>($mod) }; }
+    | constraint-expression-specified-mod[mod] ELLIPSIS
+        { $$ = std::pair{ pattern_t{ .descriptor = placeholder{ std::move($ELLIPSIS) }}, get<1>($mod) | parameter_constraint_modifier_t::ellipsis }; }
     ;
 
 constraint-expression-mod:
-      %empty { $$ = parameter_constraint_modifier_t::const_or_runtime_type; }
+      %empty
+        {
+            location_type const& loc = @-1;
+            $$ = std::pair{ sonia::lang::lex::resource_location{ loc.begin.line, loc.begin.column, ctx.get_resource() }, parameter_constraint_modifier_t::const_or_runtime_type };
+        }
     | constraint-expression-specified-mod
     ;
 
 constraint-expression:
       constraint-expression-mod[mod] type-expr[match]
-        { $$ = std::pair{ std::move($match), $mod }; }
+        { $$ = std::pair{ std::move($match), get<1>($mod) }; }
     | constraint-expression-mod[mod] type-expr[match] ELLIPSIS
-        { $$ = std::pair{ std::move($match), $mod | parameter_constraint_modifier_t::ellipsis }; IGNORE_TERM($ELLIPSIS); }
-    | constraint-expression-mod[mod] ELLIPSIS // all of sudden, it's the ellipsis pattern
-        { $$ = std::pair{ pattern_t{ .descriptor = placeholder{ std::move($ELLIPSIS) }}, $mod | parameter_constraint_modifier_t::ellipsis }; }
+        { $$ = std::pair{ std::move($match), get<1>($mod) | parameter_constraint_modifier_t::ellipsis }; IGNORE_TERM($ELLIPSIS); }
+
+    // not a type expression, but a placeholders
+    | constraint-expression-mod[mod]
+        { $$ = std::pair{ pattern_t{ .descriptor = placeholder{ get<0>($mod) } }, get<1>($mod) }; }
+    | constraint-expression-mod[mod] ELLIPSIS
+        { $$ = std::pair{ pattern_t{ .descriptor = placeholder{ std::move($ELLIPSIS) }}, get<1>($mod) | parameter_constraint_modifier_t::ellipsis }; }
     ;
 
 /////////////////////////// PATTERNS
@@ -846,9 +857,9 @@ pattern-field:
 
 pattern-mod:
       TILDA pattern-sfx[ps]                   { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::const_or_runtime_type }; }
-    | TILDA CONSTEXPR pattern-sfx[ps]         { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::constexpr_value_type }; }
-    | TILDA RUNTIME pattern-sfx[ps]           { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::runtime_type }; }
-    | TILDA TYPENAME pattern-sfx[ps]          { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::typename_type }; }
+    | TILDA CONSTEXPR pattern-sfx[ps]         { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::constexpr_value_type }; IGNORE_TERM($CONSTEXPR); }
+    | TILDA RUNTIME pattern-sfx[ps]           { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::runtime_type }; IGNORE_TERM($RUNTIME); }
+    | TILDA TYPENAME pattern-sfx[ps]          { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::typename_type }; IGNORE_TERM($TYPENAME); }
     ;
 
 pattern-sfx:
@@ -878,7 +889,7 @@ pattern:
 
 concept-expression:
     AT_SYMBOL qname
-        { $$ = syntax_expression_t{ variable_reference{std::move($2), false} }; }
+        { $$ = syntax_expression_t{ qname_reference{ std::move($2) } }; }
     ;
 
 concept-expression-list-opt:
@@ -898,9 +909,9 @@ concept-expression-list:
 
 syntax-expression:
       CONTEXT_IDENTIFIER[id]
-        { $$ = variable_reference{ ctx.make_qname(std::move($id)), true }; }
+        { $$ = name_reference{ ctx.make_identifier(std::move($id)) }; }
     | CT_IDENTIFIER[id]
-        { $$ = variable_reference{ ctx.make_qname(std::move($id)), true }; }
+        { $$ = name_reference{ ctx.make_identifier(std::move($id)) }; }
     | syntax-expression-wo-ii
     ;
 
@@ -923,15 +934,15 @@ syntax-expression-wo-ii:
     | STRING
         { $$ = ctx.make_string(std::move($STRING)); }
     | RESERVED_IDENTIFIER
-        { $$ = variable_reference{ ctx.make_qname(std::move($RESERVED_IDENTIFIER)), true }; }
+        { $$ = name_reference{ ctx.make_identifier(std::move($RESERVED_IDENTIFIER)) }; }
     | qname
-        { $$ = variable_reference{ std::move($qname) }; }
+        { $$ = qname_reference{ std::move($qname) }; }
     | OPEN_PARENTHESIS[start] CLOSE_PARENTHESIS
         { $$ = ctx.make_void(std::move($start)); }
     | OPEN_PARENTHESIS[start] COLON syntax-expression[expr] CLOSE_PARENTHESIS
         {
             // one element tuple
-            $$ = function_call_t{ std::move($start), variable_reference{}, named_expression_list_t{ named_expression_t{ std::move($expr) } } };
+            $$ = function_call_t{ std::move($start), qname_reference{}, named_expression_list_t{ named_expression_t{ std::move($expr) } } };
         }
     | OPEN_PARENTHESIS[start] pack-expression[list] CLOSE_PARENTHESIS
         {
@@ -939,7 +950,7 @@ syntax-expression-wo-ii:
                 $$ = std::move($list.front().value());
             } else {
                 BOOST_ASSERT(!$list.empty());
-                $$ = function_call_t{ std::move($start), variable_reference{}, std::move($list) };
+                $$ = function_call_t{ std::move($start), qname_reference{}, std::move($list) };
             }
         }
     | OPEN_SQUARE_BRACKET expression-list[list] CLOSE_SQUARE_BRACKET
@@ -1011,20 +1022,20 @@ apostrophe-expression:
 
 new-expression:
       NEW qname[type]
-        { $$ = new_expression_t{ std::move($NEW), variable_reference{ std::move($type) } }; }
+        { $$ = new_expression_t{ std::move($NEW), qname_reference{ std::move($type) } }; }
     | NEW apostrophe-expression[typeExpr]
         { $$ = new_expression_t{ std::move($NEW), std::move($typeExpr) }; }
     | NEW qname[type] OPEN_PARENTHESIS argument-list-opt[arguments] CLOSE_PARENTHESIS
-        { $$ = new_expression_t{ std::move($NEW), variable_reference{ std::move($type) }, std::move($arguments) }; IGNORE_TERM($OPEN_PARENTHESIS); }
+        { $$ = new_expression_t{ std::move($NEW), qname_reference{ std::move($type) }, std::move($arguments) }; IGNORE_TERM($OPEN_PARENTHESIS); }
     | NEW apostrophe-expression[typeExpr] OPEN_PARENTHESIS argument-list-opt[arguments] CLOSE_PARENTHESIS
         { $$ = new_expression_t{ std::move($NEW), std::move($typeExpr), std::move($arguments) }; IGNORE_TERM($OPEN_PARENTHESIS); }
     ;
 
 call-expression:
       qname[name] OPEN_PARENTHESIS[start] pack-expression-opt[arguments] CLOSE_PARENTHESIS
-        { $$ = function_call_t{ std::move($start), variable_reference{ std::move($name), false }, std::move($arguments) }; }
+        { $$ = function_call_t{ std::move($start), qname_reference{ std::move($name) }, std::move($arguments) }; }
     | CONTEXT_IDENTIFIER[id] OPEN_PARENTHESIS[start] pack-expression-opt[arguments] CLOSE_PARENTHESIS
-        { $$ = function_call_t{ std::move($start), variable_reference{ ctx.make_qname(std::move($id)), true }, std::move($arguments) }; }
+        { $$ = function_call_t{ std::move($start), name_reference{ ctx.make_identifier(std::move($id)) }, std::move($arguments) }; }
     | call-expression[nameExpr] OPEN_PARENTHESIS[start] pack-expression[arguments] CLOSE_PARENTHESIS
         { $$ = function_call_t{ std::move($start), std::move($nameExpr), std::move($arguments) }; }
     | apostrophe-expression[nameExpr] OPEN_PARENTHESIS[start] pack-expression[arguments] CLOSE_PARENTHESIS
@@ -1140,10 +1151,10 @@ opt-named-expr:
 // TYPE EXPRESSIONS
 type-expr:
       qname
-        { $$ = variable_reference{ std::move($qname) }; }
+        { $$ = qname_reference{ std::move($qname) }; }
     | call-expression
     | CONTEXT_IDENTIFIER[id]
-        { $$ = variable_reference{ ctx.make_qname(std::move($id)), true }; }
+        { $$ = name_reference{ ctx.make_identifier(std::move($id)) }; }
     //| internal-identifier[id] OPEN_PARENTHESIS opt-named-expr-list-any CLOSE_PARENTHESIS
     //    { $$ = std::move($id); IGNORE_TERM($2); IGNORE_TERM($3); }
     | OPEN_SQUARE_BRACKET type-expr[type] CLOSE_SQUARE_BRACKET
@@ -1151,17 +1162,11 @@ type-expr:
     | OPEN_PARENTHESIS[start] CLOSE_PARENTHESIS
         { $$ = ctx.make_void(std::move($start)); }
     | OPEN_PARENTHESIS[start] pack-expression[elements] CLOSE_PARENTHESIS
-        { $$ = function_call_t{ std::move($start), variable_reference{}, std::move($elements) }; } 
+        { $$ = function_call_t{ std::move($start), qname_reference{}, std::move($elements) }; } 
     | type-expr[type] OPEN_SQUARE_BRACKET syntax-expression[index] CLOSE_SQUARE_BRACKET
         { $$ = index_expression_t{ std::move($type), std::move($index) }; IGNORE_TERM($OPEN_SQUARE_BRACKET); }
     | type-expr[ltype] BITOR type-expr[rtype]
-        {
-            annium_union_t uni{};
-            uni.members.emplace_back(std::move($ltype));
-            uni.members.emplace_back(std::move($rtype));
-            $$ = std::move(uni);
-            IGNORE_TERM($BITOR);
-        }
+        { $$ = binary_expression_t{ binary_operator_type::BIT_OR, std::move($ltype), std::move($rtype), std::move($BITOR) }; }
     | type-expr[argexpr] ARROW type-expr[rexpr]
         { 
             auto loc = get_start_location($argexpr);

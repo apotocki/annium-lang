@@ -75,7 +75,7 @@ std::expected<syntax_expression_t, error_storage> deref(fn_compiler_context& ctx
             if (!eid_or_var) return std::unexpected(make_error<undeclared_identifier_error>(std::move(aqn)));
             return annotated_entity_identifier{ eid_or_var, aqn.location };
         } else {
-            return variable_reference{ aqn, false };
+            return qname_reference{ aqn };
         }
     }), optent);
 }
@@ -173,7 +173,7 @@ error_storage prepared_call::prepare()
                 BOOST_ASSERT(ptuple_object_var);
                 pure_call_t get_call{ arg_expr_loc };
                 get_call.emplace_back(annotated_identifier{ e.get(builtin_id::self), arg_expr_loc },
-                    variable_reference{ annotated_qname{ qname{ tuple_name, false } }, false });
+                    name_reference{ annotated_identifier{ tuple_name } });
                 get_call.emplace_back(annotated_identifier{ e.get(builtin_id::property) }, annotated_integer{ numetron::integer{ argpos } });
                 
                 auto match = caller_ctx.find(builtin_qnid::get, get_call, expressions);

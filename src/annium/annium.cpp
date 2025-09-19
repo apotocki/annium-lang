@@ -146,12 +146,12 @@ inline fn size(~array(of, size $size)) => $size;
 inline fn __bit_and(:~ typename tuple($l...), :~ typename tuple($r...)) => tuple($l..., $r...);
 
 inline fn foldl($f, $z) => $z;
-inline fn foldl($f, $z, $elements ...) => foldl($f, $f($z, head($elements)), tail($elements)...);
+inline fn foldl($f, $z, $elements ...) => foldl($f, $f($z, head($elements)...), tail($elements)...);
 
 inline fn foldr($f, $z) => $z;
-inline fn foldr($f, $z, $elements ...) => $f(head($elements), foldr($f, $z, tail($elements)...));
+inline fn foldr($f, $z, $elements ...) => $f(head($elements)..., foldr($f, $z, tail($elements)...));
 
-inline fn ::set(self: runtime object, property: constexpr __identifier, : runtime any) => set(self: self, property: to_string(property), $0);
+inline fn ::set(self: runtime object, property: constexpr __identifier, $value: runtime) => set(self: self, property: to_string(property), $value);
 )#";
 
 annium_impl::annium_impl()

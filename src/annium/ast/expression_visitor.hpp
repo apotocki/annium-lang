@@ -45,7 +45,7 @@ struct expression_visitor
 
     result_type operator()(context_value const&) const;
 
-    result_type operator()(variable_reference const&) const;
+    result_type operator()(qname_reference const&) const;
 
     result_type operator()(member_expression_t const&) const;
 

@@ -336,7 +336,6 @@ std::expected<functional::match, error_storage> functional::find(
     semantic::expression_list_t& ael,
     expected_result_t const& expected_result) const
 {
-    alt_error err;
     numetron::decimal major_weight = 0;
     int minor_weight = 0;
     using alternative_t = std::pair<pattern const*, functional_match_descriptor_ptr>;
@@ -347,6 +346,7 @@ std::expected<functional::match, error_storage> functional::find(
     prepared_call pcall{ ctx, this, call.args, call.location, ael };
     if (auto err = pcall.prepare(); err) return std::unexpected(std::move(err));
 
+    alt_error err;
     for (auto const& p : patterns_) {
         auto cmp = major_weight <=> p->get_weight();
         if (cmp == std::strong_ordering::greater) continue;

@@ -59,6 +59,7 @@
 #include "entities/enum/enum_implicit_cast_pattern.hpp"
 
 #include "entities/vector/vector_make_pattern.hpp"
+#include "entities/vector/vector_implicit_cast_pattern.hpp"
 
 #include "entities/array/array_make_pattern.hpp"
 #include "entities/array/array_head_pattern.hpp"
@@ -632,14 +633,14 @@ struct type_printer_visitor : static_visitor<void>
     //    }
     //}
 
-    template <typename FamilyT>
-    inline void operator()(annium_union<FamilyT> const& tpl) const
-    {
-        for (auto const& f : tpl.members) {
-            if (&f != &tpl.members.front()) ss << "||";
-            apply_visitor(*this, f);
-        }
-    }
+    //template <typename FamilyT>
+    //inline void operator()(annium_union<FamilyT> const& tpl) const
+    //{
+    //    for (auto const& f : tpl.members) {
+    //        if (&f != &tpl.members.front()) ss << "||";
+    //        apply_visitor(*this, f);
+    //    }
+    //}
 };
 
 //std::string environment::print(annium_preliminary_type const& tp) const
@@ -786,7 +787,16 @@ struct expr_printer_visitor : static_visitor<void>
         ss << ')';
     }
 
-    void operator()(variable_reference const& vi) const
+    void operator()(name_reference const& vi) const
+    {
+        //if (vi.implicit) {
+        //    ss << "IMPLICIT"sv;
+        //}
+        //ss << "VAR("sv << e_.print(vi.name.value) << ")"sv;
+        e_.print_to(ss, vi.name.value);
+    }
+
+    void operator()(qname_reference const& vi) const
     {
         //if (vi.implicit) {
         //    ss << "IMPLICIT"sv;
@@ -1352,7 +1362,8 @@ environment::environment()
     functional& implicit_cast_fnl = fregistry_resolve(get(builtin_qnid::implicit_cast));
     implicit_cast_fnl.push(make_shared<struct_implicit_cast_pattern>());
     implicit_cast_fnl.push(make_shared<enum_implicit_cast_pattern>());
-    implicit_cast_fnl.push(make_shared<array_implicit_cast_pattern>());
+    //implicit_cast_fnl.push(make_shared<array_implicit_cast_pattern>()); // array to vector
+    implicit_cast_fnl.push(make_shared<vector_implicit_cast_pattern>()); // vector to vector
     //implicit_cast_fnl.push(make_shared<array_elements_implicit_cast_pattern>());
     implicit_cast_fnl.push(make_shared<to_union_implicit_cast_pattern>());
     //implicit_cast_fnl.push(make_shared<numeric_implicit_cast_pattern>());
@@ -1462,7 +1473,7 @@ environment::environment()
 
     //set_extern<external_fn_pattern>("set(self: object, property: const __identifier, any)"sv, &annium_set_object_property);
 
-    set_builtin_extern("set(self: object, property: runtime string, runtime any)->object"sv, &annium_set_object_property);
+    set_builtin_extern("set(self: object, property: runtime string, runtime)->object"sv, &annium_set_object_property);
 
     //set_extern("string(any)->string"sv, &annium_tostring);
     //set_extern<external_fn_pattern>("assert(bool)"sv, &annium_assert);

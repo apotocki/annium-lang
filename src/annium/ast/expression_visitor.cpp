@@ -114,9 +114,9 @@ expression_visitor::result_type expression_visitor::operator()(annotated_identif
 //    THROW_NOT_IMPLEMENTED_ERROR("expression_visitor annotated_qname");
 //}
 
-expression_visitor::result_type expression_visitor::operator()(variable_reference const& var) const
+expression_visitor::result_type expression_visitor::operator()(qname_reference const& var) const
 {
- //   THROW_NOT_IMPLEMENTED_ERROR("expression_visitor variable_reference");
+ //   THROW_NOT_IMPLEMENTED_ERROR("expression_visitor qname_reference");
 #if 1
     auto optent = ctx.lookup_entity(var.name);
     return apply_visitor(make_functional_visitor<result_type>([this, &var](auto eid_or_var) -> result_type
@@ -239,7 +239,7 @@ expression_visitor::result_type expression_visitor::do_assign(binary_expression_
 #endif
 
     /*
-    if (variable_reference const* varnm = get<variable_reference>(&op.left); varnm) {
+    if (qname_reference const* varnm = get<qname_reference>(&op.left); varnm) {
         auto optvar = ctx.resolve_variable(varnm->name);
         if (!optvar) {
             ctx.throw_undeclared_identifier(varnm->name, varnm->location);

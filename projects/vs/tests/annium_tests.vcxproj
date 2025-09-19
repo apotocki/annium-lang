@@ -34,7 +34,10 @@
     <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\fibers\postponer.cpp" />
     <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\fibers\scheduler.cpp" />
     <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\logger\logger.cpp" />
-    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\sal\windows_sal.cpp" />
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\sal\windows_sal.cpp">
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">_SILENCE_CXX23_ALIGNED_STORAGE_DEPRECATION_WARNING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">_SILENCE_CXX23_ALIGNED_STORAGE_DEPRECATION_WARNING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
     <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\services\basic_service_factory.cpp" />
     <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\services\bundle.cpp" />
     <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\services\durable_type_registry.cpp" />
@@ -273,7 +276,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\vcpkg_installed\x64-windows-cpp23\debug\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)vcpkg_installed\x64-windows-cpp23\debug\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -295,7 +298,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\vcpkg_installed\x64-windows-cpp23\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)vcpkg_installed\x64-windows-cpp23\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

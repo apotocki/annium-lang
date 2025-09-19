@@ -43,6 +43,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_implicit_cast
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
+    resource_location const& argloc = get_start_location(*get<0>(arg_expr));
     syntax_expression_result_t& arg_er = arg->first;
     entity const& ent = get_entity(e, arg_er.value());
     identifier_entity const* pident = dynamic_cast<identifier_entity const*>(&ent);
@@ -50,11 +51,11 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_implicit_cast
     
     // check identifier value
     if (auto optpos = penum->find(pident->value()); !optpos) {
-        return std::unexpected(make_error<basic_general_error>(get_start_location(*get<0>(arg_expr)), "not an enumeration identifier"sv, pident->id));
+        return std::unexpected(make_error<basic_general_error>(argloc, "not an enumeration identifier"sv, pident->id));
     }
 
     functional_match_descriptor_ptr pmd = make_shared<functional_match_descriptor>(call);
-    pmd->emplace_back(0, arg_er);
+    pmd->emplace_back(0, arg_er, argloc);
     bool is_runtime = can_be_only_runtime(exp.modifier);
     pmd->signature.result.emplace(is_runtime ? exp.type : e.make_string_entity(e.print(pident->value()), exp.type).id, !can_be_only_runtime(exp.modifier));
     return pmd;

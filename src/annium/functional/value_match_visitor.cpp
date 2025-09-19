@@ -94,7 +94,7 @@ value_match_visitor::result_type value_match_visitor::operator()(function_call_t
     return type_ent.id;
 }
 
-value_match_visitor::result_type value_match_visitor::operator()(variable_reference const& var) const
+value_match_visitor::result_type value_match_visitor::operator()(qname_reference const& var) const
 {
     auto optent = callee_ctx.lookup_entity(var.name);
 

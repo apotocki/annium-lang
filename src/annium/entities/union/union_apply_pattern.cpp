@@ -111,7 +111,7 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
         visitor_expr.emplace(annotated_entity_identifier{ visitor_er.value(), get<2>(md.matches[1]) });
     } else {
         identifier visitor_var_name = fn_scope.push_scope_variable(visitor_er.type()).first;
-        visitor_expr.emplace(variable_reference{ annotated_qname{ qname{ visitor_var_name, false } }, false });
+        visitor_expr.emplace(name_reference{ annotated_identifier{ visitor_var_name } });
         //identifier visitor_var_name = env.new_identifier();
         //visitor_var = &fn_scope.new_temporary(visitor_var_name, visitor_er.type());
         //append_semantic_result(el, result, visitor_er);
@@ -150,7 +150,7 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
         if (!union_field.is_const()) {
             // set union_value_var_pair type for this branch
             union_value_var_pair.second.type = union_field.entity_id();
-            visitor_call.emplace_back(variable_reference{ annotated_qname{ qname{ union_value_var_pair.first, false } }, false });
+            visitor_call.emplace_back(name_reference{ annotated_identifier{ union_value_var_pair.first } });
         } else {
             visitor_call.emplace_back(annotated_entity_identifier { union_field.entity_id() });
         }

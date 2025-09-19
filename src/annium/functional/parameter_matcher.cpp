@@ -122,6 +122,7 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
                         std::move(err)
                     );
                 }
+                md.weight -= 1; // pattern match decreases weight
             } else {
                 return make_error<basic_general_error>(param_name.location, "unsupported parameter constraint type"sv, param_name.value);
             }

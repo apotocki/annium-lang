@@ -18,8 +18,10 @@ struct expression_location_visitor : static_visitor<resource_location const&>
 {
     expression_location_visitor() = default;
 
-    inline result_type operator()(variable_reference const& v) const noexcept { return v.name.location; }
-    
+    inline result_type operator()(name_reference const& v) const noexcept { return v.name.location; }
+    inline result_type operator()(qname_reference const& v) const noexcept { return v.name.location; }
+    inline result_type operator()(stack_value_reference const& v) const noexcept { return v.name.location; }
+
     //inline result_type operator()(annium_fn_type_t const& b) const noexcept
     //{
     //    return this->operator()(b.arg);
@@ -30,10 +32,10 @@ struct expression_location_visitor : static_visitor<resource_location const&>
     //    return apply_visitor(*this, ie.base);
     //}
 
-    inline result_type operator()(annium_union_t const& bu) const noexcept
-    {
-        return apply_visitor(*this, bu.members.front());
-    }
+    //inline result_type operator()(annium_union_t const& bu) const noexcept
+    //{
+    //    return apply_visitor(*this, bu.members.front());
+    //}
 
     inline result_type operator()(not_empty_expression_t const& me) const noexcept { return apply_visitor(*this, me.value); }
     inline result_type operator()(member_expression_t const& me) const noexcept { return me.start(); }

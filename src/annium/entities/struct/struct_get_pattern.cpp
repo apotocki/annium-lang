@@ -129,7 +129,7 @@ std::expected<syntax_expression_result_t, error_storage> struct_get_pattern::app
         tuple_var = &fn_scope.new_temporary(tuple_var_name, tmd.tpl_entity.id); // here we substitute the tuple entity id instead of the original struct type id
         get_call.emplace_back(
             annotated_identifier{ e.get(builtin_id::self), md.call_location },
-            variable_reference{ annotated_qname{ qname{ tuple_var_name, false } }, false });
+            name_reference{ annotated_identifier{ tuple_var_name } });
     }
     if (proper.is_const_result) {
         // if property is a constant, then we can use it directly
@@ -141,7 +141,7 @@ std::expected<syntax_expression_result_t, error_storage> struct_get_pattern::app
         property_var = &fn_scope.new_temporary(property_var_name, proper.type());
         get_call.emplace_back(
             annotated_identifier{ e.get(builtin_id::property), md.call_location },
-            variable_reference{ annotated_qname{ qname{ property_var_name, false } }, false });
+            name_reference{ annotated_identifier{ property_var_name } });
     }
 
     auto match = ctx.find(builtin_qnid::get, get_call, el);

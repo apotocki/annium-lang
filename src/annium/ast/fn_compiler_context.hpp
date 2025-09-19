@@ -116,10 +116,13 @@ public:
 
     functional const* lookup_functional(qname_view) const;
     std::expected<qname_identifier, error_storage> lookup_qname(annotated_qname const&) const;
-    variant<entity_identifier, local_variable const&> lookup_entity(annotated_qname const&);
-    std::expected<functional::match, error_storage> find(builtin_qnid, pure_call_t const&, semantic::expression_list_t&, expected_result_t const& expected_result = expected_result_t{});
-    std::expected<functional::match, error_storage> find(qname_identifier, pure_call_t const&, semantic::expression_list_t&, expected_result_t const& expected_result = expected_result_t{});
+    variant<entity_identifier, local_variable const&> lookup_entity(annotated_identifier const&) const;
+    variant<entity_identifier, local_variable const&> lookup_entity(annotated_qname const&) const;
+    std::expected<functional::match, error_storage> find(builtin_qnid, pure_call_t const&, semantic::expression_list_t&, expected_result_t const& = expected_result_t{});
+    std::expected<functional::match, error_storage> find(qname_identifier, pure_call_t const&, semantic::expression_list_t&, expected_result_t const& = expected_result_t{});
     
+    std::expected<syntax_expression_result_t, error_storage> find_and_apply(builtin_qnid, pure_call_t const&, semantic::expression_list_t&, expected_result_t const& = expected_result_t{});
+
 #if 0
     // to do: resolving depends on qname
     shared_ptr<entity> resolve_entity(qname_identifier name) const

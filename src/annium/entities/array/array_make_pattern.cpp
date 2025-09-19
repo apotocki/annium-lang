@@ -146,6 +146,14 @@ std::expected<syntax_expression_result_t, error_storage> array_make_pattern::app
     entity_identifier array_type_id = env.make_array_type_entity(amd.element_type, amd.matches.size()).id;
 
     if (amd.all_const) {
+        if (!amd.need_cast) {
+            entity_signature array_data{ env.get(builtin_qnid::data), array_type_id };
+            for (auto& [_, er, loc] : amd.matches) {
+                array_data.emplace_back(er.value(), true);
+            }
+            result.value_or_type = env.make_basic_signatured_entity(std::move(array_data)).id;
+            return result;
+        }
         // to do: make a literal array entity
         // but for now, create runtime array
         result.is_const_result = false;
@@ -168,7 +176,9 @@ std::expected<syntax_expression_result_t, error_storage> array_make_pattern::app
             auto match = ctx.find(builtin_qnid::implicit_cast, cast_call, el,
                 expected_result_t{ .type = amd.element_type, .location = loc, .modifier = value_modifier_t::runtime_value });
             if (!match) {
-                return std::unexpected(std::move(match.error()));
+                return std::unexpected(append_cause(
+                    make_error<basic_general_error>(loc, "cannot cast array element to the specified element type"sv),
+                    match.error()));
             }
             auto res = match->apply(ctx);
             if (!res) {

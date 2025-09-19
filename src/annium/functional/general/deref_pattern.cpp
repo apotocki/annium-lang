@@ -4,10 +4,10 @@
 #include "sonia/config.hpp"
 #include "deref_pattern.hpp"
 
-#include "annium/functional/generic_pattern_base.ipp"
-
 #include "annium/ast/fn_compiler_context.hpp"
+#include "annium/ast/base_expression_visitor.hpp"
 
+#include "annium/entities/prepared_call.hpp"
 #include "annium/entities/signatured_entity.hpp"
 #include "annium/entities/literals/literal_entity.hpp"
 
@@ -47,7 +47,7 @@ std::expected<syntax_expression_result_t, error_storage> deref_pattern::apply(fn
     qname_entity const& argent = static_cast<qname_entity const&>(get_entity(ctx.env(), ser.value()));
 
     base_expression_visitor evis{ ctx, el };
-    auto res = evis(variable_reference{ annotated_qname{ argent.value(), md.call_location }, false });
+    auto res = evis(qname_reference{ annotated_qname{ argent.value(), md.call_location } });
     if (!res) return std::unexpected(res.error());
     auto& er = res->first;
     er.expressions = el.concat(ser.expressions, er.expressions);

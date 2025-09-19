@@ -234,15 +234,15 @@ template <typename T> struct annium_vector
     inline auto operator<=>(annium_vector const& r) const noexcept { return variant_compare_three_way{}(type, r.type); }
 };
 
-template <typename T> struct annium_union
-{
-    small_vector<T, 8> members;
-    inline bool operator==(annium_union const&) const = default;
-    inline auto operator<=>(annium_union const& r) const
-    {
-        return std::lexicographical_compare_three_way(members.begin(), members.end(), r.members.begin(), r.members.end(), variant_compare_three_way{});
-    }
-};
+//template <typename T> struct annium_union
+//{
+//    small_vector<T, 8> members;
+//    inline bool operator==(annium_union const&) const = default;
+//    inline auto operator<=>(annium_union const& r) const
+//    {
+//        return std::lexicographical_compare_three_way(members.begin(), members.end(), r.members.begin(), r.members.end(), variant_compare_three_way{});
+//    }
+//};
 
 // ========================================================================
 
@@ -455,10 +455,16 @@ struct member_expression
     resource_location const& start() const { return get_start_location(object); }
 };
 
-struct variable_reference
+// e.g. for identifiers started with $ or #, e.g.: $0, $$, #call_location
+struct name_reference
+{
+    annotated_identifier name;
+};
+
+struct qname_reference
 {
     annotated_qname name;
-    bool implicit; // true for identifiers started with $ or #, e.g.: $0, $$, #call_location
+    //bool implicit; // true for identifiers started with $ or #, e.g.: $0, $$, #call_location
 };
 
 struct placeholder
@@ -614,21 +620,46 @@ struct fn_decl : fn_pure<ExprT>
     resource_location captures_location;
 };
 
+struct stack_value_reference
+{
+    annotated_identifier name;
+    entity_identifier type;
+    size_t offset; // offset from the stack top
+};
+
 using syntax_expression_t = make_recursive_variant<
-    variable_reference,
+    // literals
     annotated_nil, annotated_bool, annotated_integer, annotated_decimal, annotated_string, annotated_identifier,
-    array_expression<recursive_variant_>, index_expression<recursive_variant_>,
-    annium_fn_type<recursive_variant_>,
-    annium_vector<recursive_variant_>,
-    annium_union<recursive_variant_>,
-    indirect_value, not_empty_expression<recursive_variant_>, member_expression<recursive_variant_>,
-    fn_decl<recursive_variant_>, // aka lambda
-    unary_expression<recursive_variant_>,
-    binary_expression<recursive_variant_>,
+    
+    // named references
+    name_reference, qname_reference,
+    
+    // on stack reference
+    stack_value_reference,
+
+    // constructors
+    array_expression<recursive_variant_>, // like [value1, value2, ...]
+    
+    // types
+    annium_vector<recursive_variant_>, // like [ElementType]
+    fn_decl<recursive_variant_>, // like fn (args) -> result { body }
+    annium_fn_type<recursive_variant_>, // like (args) -> result
+
+    // sugar
+    index_expression<recursive_variant_>, // like base[index]
+    member_expression<recursive_variant_>, // like object.property
+    new_expression<recursive_variant_>, // like new Type(args)
+    unary_expression<recursive_variant_>, // like -value
+    binary_expression<recursive_variant_>, // like left + right
+    not_empty_expression<recursive_variant_>, // like value?
+
+    // auxiliary
+    indirect_value, 
+    
     //assign_expression<>, logic_and_expression<>, logic_or_expression<>, concat_expression<>,
     //expression_vector<recursive_variant_>,
     function_call<recursive_variant_>,
-    new_expression<recursive_variant_>,
+    
     annotated_entity_identifier
     //, opt_named_term_list<recursive_variant_>
     //, chained_expression<recursive_variant_>
@@ -677,7 +708,7 @@ using function_call_t = function_call<syntax_expression_t>;
 using annium_fn_type_t = annium_fn_type<syntax_expression_t>;
 //using annium_tuple_t = annium_tuple<syntax_expression_t>;
 using annium_vector_t = annium_vector<syntax_expression_t>;
-using annium_union_t = annium_union<syntax_expression_t>;
+//using annium_union_t = annium_union<syntax_expression_t>;
 //template <unary_operator_type Op> using unary_expression_t = unary_expression<Op, syntax_expression_t>;
 
 template <typename T> struct is_unary_expression : false_type {};

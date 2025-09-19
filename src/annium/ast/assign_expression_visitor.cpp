@@ -10,7 +10,7 @@ namespace annium {
 
 inline environment& assign_expression_visitor::env() const noexcept { return ctx_.env(); }
 
-assign_expression_visitor::result_type assign_expression_visitor::operator()(variable_reference const& v) const
+assign_expression_visitor::result_type assign_expression_visitor::operator()(qname_reference const& v) const
 {
     auto e = ctx_.lookup_entity(v.name);
     return apply_visitor(make_functional_visitor<result_type>([this, &v](auto & eid_or_var) -> result_type
@@ -114,7 +114,7 @@ assign_expression_visitor::result_type assign_expression_visitor::operator()(mem
 //    THROW_NOT_IMPLEMENTED_ERROR("lvalue_expression_visitor annotated_qname");
 //}
 
-lvalue_expression_visitor::result_type lvalue_expression_visitor::operator()(variable_reference const& v) const
+lvalue_expression_visitor::result_type lvalue_expression_visitor::operator()(qname_reference const& v) const
 {
     functional const* pfn = ctx.lookup_functional(v.name.value);
     if (pfn && pfn->default_entity()) {

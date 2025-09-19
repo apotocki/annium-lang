@@ -25,7 +25,7 @@ public:
     {}
 
     result_type operator()(annotated_entity_identifier const&);
-    result_type operator()(variable_reference const&);
+    result_type operator()(qname_reference const&);
     result_type operator()(annium_parameter_pack_t const&);
     
 

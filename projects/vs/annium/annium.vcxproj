@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\..\annium-lang\src\annium\entities\vector\vector_implicit_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\annium.cpp" />
     <ClCompile Include="..\..\..\src\annium\annium.tab.cpp" />
     <ClCompile Include="..\..\..\src\annium\annium.yy.cpp" />
@@ -163,7 +164,12 @@
     <ClCompile Include="..\..\..\src\annium\functional\internal_fn_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\parameter_matcher.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\pattern_matcher.cpp" />
-    <ClCompile Include="..\..\..\src\annium\functional\signature_matcher.cpp" />
+    <ClCompile Include="..\..\..\src\annium\functional\signature_matcher.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\functional\value_match_visitor.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
@@ -184,6 +190,8 @@
     <ClCompile Include="..\..\..\src\sonia\mvvm\bunch_builder_view_model.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\..\annium-lang\src\annium\ast\base_expression_visitor.ipp" />
+    <ClInclude Include="..\..\..\..\..\..\annium-lang\src\annium\entities\vector\vector_implicit_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\annium.hpp" />
     <ClInclude Include="..\..\..\src\annium\annium.tab.hpp" />
     <ClInclude Include="..\..\..\src\annium\annium.yy.hpp" />
@@ -290,8 +298,6 @@
     <ClInclude Include="..\..\..\src\annium\functional\general\runtime_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\to_string_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\typeof_pattern.hpp" />
-    <ClInclude Include="..\..\..\src\annium\functional\generic_pattern_base.hpp" />
-    <ClInclude Include="..\..\..\src\annium\functional\generic_pattern_base.ipp" />
     <ClInclude Include="..\..\..\src\annium\functional\internal_fn_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\match_utility.ipp" />
     <ClInclude Include="..\..\..\src\annium\functional\parameter_matcher.hpp" />

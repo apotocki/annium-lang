@@ -137,7 +137,7 @@ public:
     void visit(error_visitor& vis) const override { vis(*this); }
 
     location_t location() const noexcept override { return location_; }
-    string_t object(environment const&) const noexcept override;
+    string_t object(environment const&) const override;
     string_t description(environment const&) const noexcept override { return description_; }
     resource_location const* ref_location() const noexcept override { return reflocation_ ? &reflocation_ : nullptr; }
 };
@@ -163,9 +163,9 @@ public:
 
     void visit(error_visitor& vis) const override { vis(*this); }
     resource_location const& location() const noexcept { return location_; }
-    string_t left_object(environment const&) const noexcept;
-    string_t right_object(environment const&) const noexcept;
-    string_t description(environment const&) const noexcept { return description_; }
+    string_t left_object(environment const&) const;
+    string_t right_object(environment const&) const;
+    string_t description(environment const&) const { return description_; }
     resource_location const* ref_location() const noexcept { return reflocation_ ? &reflocation_ : nullptr; }
 };
 
@@ -174,6 +174,10 @@ class undeclared_identifier_error : public general_error
     annotated_qname idname_;
 
 public:
+    inline explicit undeclared_identifier_error(annotated_identifier idname) noexcept
+        : idname_{ qname{ std::move(idname.value), false }, idname.location }
+    {}
+
     inline explicit undeclared_identifier_error(annotated_qname idname) noexcept
         : idname_{ std::move(idname) }
     {}

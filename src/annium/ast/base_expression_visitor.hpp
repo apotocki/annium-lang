@@ -36,7 +36,9 @@ public:
     result_type operator()(annotated_entity_identifier const&) const;
     //result_type operator()(annotated_qname const&) const;
 
-    result_type operator()(variable_reference const&) const;
+    result_type operator()(name_reference const&) const;
+    result_type operator()(qname_reference const&) const;
+    result_type operator()(stack_value_reference const&) const;
 
     result_type operator()(array_expression_t const&) const;
 
@@ -58,16 +60,13 @@ public:
     template <typename FnIdT, std::derived_from<pure_call_t> ExprT>
     result_type operator()(FnIdT&& fnid, ExprT const& call) const;
     
-    template <typename T>
-    result_type operator()(T const& v) const
-    {
-        (void)v;
-        THROW_NOT_IMPLEMENTED_ERROR("base_expression_visitor not implemented expression");
-    }
+    result_type operator()(annium_fn_type_t const&) const;
+    result_type operator()(not_empty_expression_t const&) const;
 
 protected:
     environment& env() const noexcept;
 
+    result_type operator()(variant<entity_identifier, local_variable const&> const&);
 
     result_type do_logic_and(binary_expression_t const&) const;
     result_type do_logic_or(binary_expression_t const&) const;

@@ -51,24 +51,21 @@ base_expression_visitor::result_type base_expression_visitor::apply_cast(entity 
     pure_call_t cast_call{ expected_result.location | expr_location };
     cast_call.emplace_back(annotated_entity_identifier{ ent.id, expr_location });
 
-    auto match = ctx.find(builtin_qnid::implicit_cast, cast_call, expressions, expected_result_t {
+    auto res = ctx.find_and_apply(builtin_qnid::implicit_cast, cast_call, expressions, expected_result_t {
         .type = expected_result.type ? expected_result.type : ent.get_type(),
         .location = expected_result.location,
         .modifier = expected_result.modifier
     });
 
-    if (!match) {
+    if (!res) {
         // ignore casting error details
         //return std::unexpected(make_error<cast_error>(expected_result.location, expected_result.type, typeeid, e));
         return std::unexpected(append_cause(
             make_error<cast_error>(cast_call.location, ent.get_type(), expected_result.type), //, e),
-            std::move(match.error())
+            std::move(res.error())
         ));
     }
 
-    auto res = match->apply(ctx);
-    if (!res)
-        return std::unexpected(std::move(res.error()));
     res->expressions = expressions.concat(er.expressions, res->expressions);
     res->temporaries.insert(res->temporaries.begin(), er.temporaries.begin(), er.temporaries.end());
     return std::pair{ std::move(*res), true };
@@ -92,24 +89,32 @@ base_expression_visitor::result_type base_expression_visitor::apply_cast(syntax_
     pure_call_t cast_call{ expected_result.location };
     cast_call.emplace_back(make_indirect_value(env(), expressions, std::move(er), expr_location));
 
-    auto match = ctx.find(builtin_qnid::implicit_cast, cast_call, expressions, expected_result);
-    if (!match) {
+    auto res = ctx.find_and_apply(builtin_qnid::implicit_cast, cast_call, expressions, expected_result);
+    if (!res) {
         // ignore casting error details
         //return std::unexpected(make_error<cast_error>(expected_result.location, er.type(), expected_result.type)); // , e));
         return std::unexpected(append_cause(
             make_error<cast_error>(expected_result.location | expr_location, er.type(), expected_result.type), // , e)),
-            std::move(match.error())
+            std::move(res.error())
         ));
     }
 
-    auto res = match->apply(ctx);
-    if (!res) return std::unexpected(std::move(res.error()));
     return std::pair{ std::move(*res), true };
 }
 
 base_expression_visitor::result_type base_expression_visitor::operator()(indirect_value const& v) const
 {
     return apply_cast(retrieve_indirect_value(env(), expressions, v), v);
+}
+
+base_expression_visitor::result_type base_expression_visitor::operator()(stack_value_reference const& svr) const
+{
+    syntax_expression_result_t result{
+        .value_or_type = svr.type,
+        .is_const_result = false
+    };
+    env().push_back_expression(expressions, result.expressions, semantic::push_by_offset{ svr.offset });
+    return apply_cast(std::move(result), svr);
 }
 
 base_expression_visitor::result_type base_expression_visitor::operator()(annotated_nil const&) const
@@ -528,25 +533,39 @@ base_expression_visitor::result_type base_expression_visitor::operator()(array_e
 #endif
 }
 
-base_expression_visitor::result_type base_expression_visitor::operator()(variable_reference const& var) const
+base_expression_visitor::result_type base_expression_visitor::operator()(name_reference const& var) const
+{
+    auto optent = ctx.lookup_entity(var.name);
+    if (entity_identifier const* entid = get<entity_identifier>(&optent); entid) {
+        if (*entid) {
+            return apply_cast(*entid, var);
+        }
+        return std::unexpected(make_error<undeclared_identifier_error>(var.name));
+    } else {
+        local_variable const& lvar = get<local_variable const&>(optent);
+        semantic::expression_span exprs_span;
+        env().push_back_expression(expressions, exprs_span, semantic::push_local_variable{ lvar });
+        return apply_cast(syntax_expression_result_t{ .expressions = std::move(exprs_span), .value_or_type = lvar.type, .is_const_result = false }, var);
+    }
+}
+
+base_expression_visitor::result_type base_expression_visitor::operator()(qname_reference const& var) const
 {
     if (!var.name) { // hardcoded tuple constructor
         return apply_cast(env().make_functional_identifier_entity(env().get(builtin_qnid::make_tuple)), var);
     }
     auto optent = ctx.lookup_entity(var.name);
-    return apply_visitor(make_functional_visitor<result_type>([this, &var](auto eid_or_var) -> result_type
-    {
-        if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, entity_identifier>) {
-            if (eid_or_var) {
-                return apply_cast(eid_or_var, var);
-            }
-            return std::unexpected(make_error<undeclared_identifier_error>(var.name));
-        } else { // if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, local_variable>) {
-            semantic::expression_span exprs_span;
-            env().push_back_expression(expressions, exprs_span, semantic::push_local_variable{ eid_or_var });
-            return apply_cast(syntax_expression_result_t{ .expressions = std::move(exprs_span), .value_or_type = eid_or_var.type, .is_const_result = false }, var);
+    if (entity_identifier const* entid = get<entity_identifier>(&optent); entid) {
+        if (*entid) {
+            return apply_cast(*entid, var);
         }
-    }), optent);
+        return std::unexpected(make_error<undeclared_identifier_error>(var.name));
+    } else {
+        local_variable const& lvar = get<local_variable const&>(optent);
+        semantic::expression_span exprs_span;
+        env().push_back_expression(expressions, exprs_span, semantic::push_local_variable{ lvar });
+        return apply_cast(syntax_expression_result_t{ .expressions = std::move(exprs_span), .value_or_type = lvar.type, .is_const_result = false }, var);
+    }
 }
 
 base_expression_visitor::result_type base_expression_visitor::operator()(member_expression_t const& me) const
@@ -792,7 +811,7 @@ base_expression_visitor::result_type base_expression_visitor::do_logic_and(binar
     } else {
         first_expr_var_name = env().new_identifier();
         first_expr_var = &fn_scope.new_temporary(first_expr_var_name, firstarg->type());
-        bool_cast_call.emplace_back(variable_reference{ annotated_qname{ qname{ first_expr_var_name, false } }, false });
+        bool_cast_call.emplace_back(qname_reference{ annotated_qname{ qname{ first_expr_var_name, false } }, false });
     }
     auto match = ctx.find(builtin_qnid::implicit_cast, bool_cast_call, expressions, expected_result_t{ env().get(builtin_eid::boolean), first_expr_loc });
     if (!match) {
@@ -865,7 +884,7 @@ base_expression_visitor::result_type base_expression_visitor::do_logic_and(binar
     semantic::conditional_t& cond = get<semantic::conditional_t>(result.expressions.back());
     if (result_is_union) {
         pure_call_t union_first_arg_cast_call{ first_expr_loc };
-        union_first_arg_cast_call.emplace_back(variable_reference{ annotated_qname{ qname{ first_expr_var_name, false } }, false });
+        union_first_arg_cast_call.emplace_back(qname_reference{ annotated_qname{ qname{ first_expr_var_name, false } }, false });
         auto match = ctx.find(builtin_qnid::implicit_cast, union_first_arg_cast_call, expressions, expected_result_t{ result_type, first_expr_loc });
         if (!match) {
             // ignore casting error details
@@ -996,13 +1015,17 @@ base_expression_visitor::result_type base_expression_visitor::operator()(lambda_
                     name = pname->value;
                     break;
                 }
-                if (variable_reference const* vid = get<variable_reference>(&expr); vid) {
-                    qname const& qn = vid->name.value;
-                    if (qn.size() == 1 && qn.is_relative()) {
-                        name = *qn.begin();
-                        break;
-                    }
+                if (name_reference const* vid = get<name_reference>(&expr); vid) {
+                    name = vid->name.value;
+                    break;
                 }
+                //if (qname_reference const* vid = get<qname_reference>(&expr); vid) {
+                //    qname const& qn = vid->name.value;
+                //    if (qn.size() == 1 && qn.is_relative()) {
+                //        name = *qn.begin();
+                //        break;
+                //    }
+                //}
                 return std::unexpected(make_error<basic_general_error>(get_start_location(expr), "can't deduce capture name"sv, expr));
             }
 
@@ -1029,6 +1052,18 @@ base_expression_visitor::result_type base_expression_visitor::operator()(lambda_
     }
     
     return apply_cast(lambda_ent, l);
+}
+
+base_expression_visitor::result_type base_expression_visitor::operator()(annium_fn_type_t const& v) const
+{
+    (void)v;
+    THROW_NOT_IMPLEMENTED_ERROR("base_expression_visitor annium_fn_type_t");
+}
+
+base_expression_visitor::result_type base_expression_visitor::operator()(not_empty_expression_t const& v) const
+{
+    (void)v;
+    THROW_NOT_IMPLEMENTED_ERROR("base_expression_visitor not_empty_expression_t");
 }
 
 } // namespace annium
