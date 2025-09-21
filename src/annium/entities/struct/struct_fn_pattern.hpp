@@ -16,7 +16,7 @@ public:
 
     error_storage init(fn_compiler_context&, annotated_qname const&, parameter_list_t const&);
 
-    std::expected<syntax_expression_result_t, error_storage> apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const override;
+    std::expected<syntax_expression_result, error_storage> apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const override;
 };
 
 }

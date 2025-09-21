@@ -64,7 +64,7 @@ tuple_implicit_cast_pattern::try_match(fn_compiler_context& ctx, prepared_call c
 
     // Both must be tuple types
     entity_identifier src_type;
-    syntax_expression_result_t& src_arg_er = src_arg->first;
+    syntax_expression_result& src_arg_er = src_arg->first;
     if (src_arg_er.is_const_result) {
         entity const& src_entity = get_entity(e, src_arg_er.value());
         src_type = src_entity.get_type();
@@ -104,7 +104,7 @@ tuple_implicit_cast_pattern::try_match(fn_compiler_context& ctx, prepared_call c
     return pmd;
 }
 
-std::expected<syntax_expression_result_t, error_storage>
+std::expected<syntax_expression_result, error_storage>
 tuple_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& e = ctx.env();

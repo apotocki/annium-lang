@@ -69,11 +69,11 @@ struct parameter_match_result
     parameter_match_result() = default;
     //inline explicit parameter_match_result(std::nullptr_t) noexcept {}
 
-    small_vector<syntax_expression_result_t, 4> results;
+    small_vector<syntax_expression_result, 4> results;
     //uint8_t mod = (uint8_t)modifier::undefined;
 
     //void append_result(entity_identifier, se_iterator before_start_it, semantic::expression_list_t&);
-    inline void append_result(syntax_expression_result_t& er)
+    inline void append_result(syntax_expression_result& er)
     {
         results.emplace_back(std::move(er));
         //results.emplace_back(er.expressions, er.value_or_type, er.is_const_result);
@@ -81,7 +81,7 @@ struct parameter_match_result
 
     inline void append_result(syntax_expression_const_result& er)
     {
-        results.emplace_back(syntax_expression_result_t{ .expressions = std::move(er.expressions), .value_or_type = er.value, .is_const_result = true });
+        results.emplace_back(syntax_expression_result{ .expressions = std::move(er.expressions), .value_or_type = er.value, .is_const_result = true });
     }
 
     void append_result(entity_identifier, semantic::expression_span);
@@ -225,7 +225,7 @@ private:
 class functional_match_descriptor
 {
     // { implementation defined index(e.g. function parameter index), argument expression result }
-    using mr_t = std::tuple<intptr_t, syntax_expression_result_t, resource_location>;
+    using mr_t = std::tuple<intptr_t, syntax_expression_result, resource_location>;
 
 public:
     small_vector<mr_t, 8> matches;
@@ -248,7 +248,7 @@ public:
 
     virtual ~functional_match_descriptor() = default;
 
-    void emplace_back(intptr_t idx, syntax_expression_result_t result, resource_location loc = {})
+    void emplace_back(intptr_t idx, syntax_expression_result result, resource_location loc = {})
     {
         matches.emplace_back(idx, std::move(result), std::move(loc));
     }
@@ -269,7 +269,7 @@ struct expected_result_t
         return !!type || !can_be_constexpr_and_runtime(modifier);
     }
 
-    inline bool is_modifier_compatible(syntax_expression_result_t const& er) const noexcept
+    inline bool is_modifier_compatible(syntax_expression_result const& er) const noexcept
     {
         return er.is_const_result ? can_be_constexpr(modifier) : can_be_runtime(modifier);
     }
@@ -291,7 +291,7 @@ public:
 
     public:
         virtual std::expected<functional_match_descriptor_ptr, error_storage> try_match(fn_compiler_context&, prepared_call const&, expected_result_t const&) const = 0;
-        virtual std::expected<syntax_expression_result_t, error_storage> apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const = 0;
+        virtual std::expected<syntax_expression_result, error_storage> apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const = 0;
 
         inline numetron::decimal const& get_weight() const noexcept { return weight_; }
         inline resource_location const& location() const noexcept { return location_; }
@@ -312,7 +312,7 @@ public:
         semantic::expression_list_t& expressions;
         syntax_expression_result pre_ser;
 
-        std::expected<syntax_expression_result_t, error_storage> apply(fn_compiler_context&);
+        std::expected<syntax_expression_result, error_storage> apply(fn_compiler_context&);
 
     private:
         pattern const* ptrn_;
@@ -352,7 +352,7 @@ public:
     // looking by argument expressions (pattern matching)
     std::expected<match, error_storage> find(
         fn_compiler_context&,
-        syntax_expression_result_t* capture_result,
+        syntax_expression_result* capture_result,
         pure_call_t const&, semantic::expression_list_t&, expected_result_t const& expected_result = expected_result_t{}) const;
 
 private:

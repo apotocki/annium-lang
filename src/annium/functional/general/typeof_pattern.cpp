@@ -27,11 +27,11 @@ std::expected<functional_match_descriptor_ptr, error_storage> typeof_pattern::tr
     return std::move(pmd);
 }
 
-std::expected<syntax_expression_result_t, error_storage> typeof_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> typeof_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     auto & er = get<1>(md.matches.front());
 
-    return syntax_expression_result_t {
+    return syntax_expression_result {
         .value_or_type = er.is_const_result ? get_entity(ctx.env(), er.value()).get_type() : er.type(),
         .is_const_result = true
     };

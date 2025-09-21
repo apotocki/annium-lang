@@ -46,12 +46,12 @@ string_concat_pattern::try_match(fn_compiler_context& ctx, prepared_call const& 
     return pmd;
 }
 
-std::expected<syntax_expression_result_t, error_storage>
+std::expected<syntax_expression_result, error_storage>
 string_concat_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& e = ctx.env();
     
-    syntax_expression_result_t result{ };
+    syntax_expression_result result{ };
     size_t concat_runtime_arg_count = 0;
     std::ostringstream concat_stream;
     for (auto& [idx, er, loc] : md.matches) {

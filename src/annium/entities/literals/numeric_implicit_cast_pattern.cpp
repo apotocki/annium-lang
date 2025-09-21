@@ -55,7 +55,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> numeric_implicit_c
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    syntax_expression_result_t& src_arg_er = src_arg->first;
+    syntax_expression_result& src_arg_er = src_arg->first;
     // Only allow compatible argument
     if (!exp.is_modifier_compatible(src_arg_er)) {
         return std::unexpected(make_error<basic_general_error>(get_start_location(*get<0>(self_expr)), "argument and result must be both constexpr or both runtime"sv));
@@ -105,7 +105,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> numeric_implicit_c
     return std::move(pmd);
 }
 
-std::expected<syntax_expression_result_t, error_storage> numeric_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> numeric_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     auto& nmd = static_cast<numeric_implicit_cast_match_descriptor&>(md);
     auto& [_, src, loc] = md.matches.front();
@@ -124,7 +124,7 @@ std::expected<syntax_expression_result_t, error_storage> numeric_implicit_cast_p
         }), nmd.arg);
         src.value_or_type = rid;
         src.is_const_result = true;
-        return syntax_expression_result_t {
+        return syntax_expression_result {
             .temporaries = std::move(src.temporaries),
             .expressions = md.merge_void_spans(el),
             .value_or_type = rid,

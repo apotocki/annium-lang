@@ -33,7 +33,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_head_pattern
     return try_match_tuple(ctx, call, {});
 }
 
-std::expected<syntax_expression_result_t, error_storage> tuple_head_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> tuple_head_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& e = ctx.env();
     auto& tmd = static_cast<tuple_pattern_match_descriptor&>(md);
@@ -51,13 +51,13 @@ std::expected<syntax_expression_result_t, error_storage> tuple_head_pattern::app
     }
 
     if (tmd.is_argument_typename) {
-        return syntax_expression_result_t{
+        return syntax_expression_result{
             .value_or_type = rtype,
             .is_const_result = true
         };
     }
     if (ser.is_const_result || head_field.is_const()) {
-        return syntax_expression_result_t{
+        return syntax_expression_result{
             .value_or_type = head_field.name() ? e.make_empty_entity(rtype).id : rtype,
             .is_const_result = true
         };

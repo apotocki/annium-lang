@@ -32,7 +32,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> assert_pattern::tr
     auto pmd = make_shared<assert_match_descriptor>(call);
     size_t argnum = 0;
 
-    auto append_arg = [&pmd, &argnum, &argexpr](environment& e, syntax_expression_result_t& res) {
+    auto append_arg = [&pmd, &argnum, &argexpr](environment& e, syntax_expression_result& res) {
         pmd->emplace_back(argnum++, res);
         if (res.is_const_result && res.value() == e.get(builtin_eid::true_)) {
             pmd->reserved_errors.emplace_back(); // just dummy, no error doesn't need details
@@ -58,12 +58,12 @@ std::expected<functional_match_descriptor_ptr, error_storage> assert_pattern::tr
     return std::move(pmd);
 }
 
-std::expected<syntax_expression_result_t, error_storage> assert_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> assert_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& e = ctx.env();
     assert_match_descriptor& amd = static_cast<assert_match_descriptor&>(md);
     alt_error errs;
-    syntax_expression_result_t res{
+    syntax_expression_result res{
         .value_or_type = e.get(builtin_eid::void_),
         .is_const_result = true
     };

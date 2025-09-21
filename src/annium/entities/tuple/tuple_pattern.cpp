@@ -53,7 +53,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_pattern::try
     return pmd;
 }
 
-std::expected<syntax_expression_result_t, error_storage> tuple_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t&, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> tuple_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t&, functional_match_descriptor& md) const
 {
     environment& e = ctx.env();
     entity_identifier typename_eid = e.get(builtin_eid::typename_);
@@ -70,7 +70,7 @@ std::expected<syntax_expression_result_t, error_storage> tuple_pattern::apply(fn
         return make_shared<basic_signatured_entity>(std::move(result_signature));
     });
     
-    return syntax_expression_result_t{
+    return syntax_expression_result{
         .value_or_type = entres.id,
         .is_const_result = true
     };

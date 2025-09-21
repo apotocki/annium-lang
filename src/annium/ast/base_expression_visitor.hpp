@@ -11,7 +11,7 @@
 
 namespace annium {
 
-class base_expression_visitor : public static_visitor<std::expected<std::pair<syntax_expression_result_t, bool>, error_storage>>
+class base_expression_visitor : public static_visitor<std::expected<std::pair<syntax_expression_result, bool>, error_storage>>
 {
     friend struct array_expression_processor;
 
@@ -72,8 +72,8 @@ protected:
     result_type do_logic_or(binary_expression_t const&) const;
     result_type do_assign(binary_expression_t const&) const;
 
-    result_type apply_cast(entity const&, syntax_expression_result_t, syntax_expression_t const&) const;
-    result_type apply_cast(syntax_expression_result_t, syntax_expression_t const&) const;
+    result_type apply_cast(entity const&, syntax_expression_result, syntax_expression_t const&) const;
+    result_type apply_cast(syntax_expression_result, syntax_expression_t const&) const;
 
     template <typename ExprT>
     result_type apply_cast(entity_identifier eid, ExprT const& e) const;
@@ -82,10 +82,10 @@ protected:
     result_type apply_cast(entity const& ent, ExprT const& e) const;
     
     template <typename ExprT>
-    result_type apply_cast(syntax_expression_result_t er, ExprT const& e) const;
+    result_type apply_cast(syntax_expression_result er, ExprT const& e) const;
     
     template <typename ExprT>
-    inline result_type apply_cast(std::expected<syntax_expression_result_t, error_storage>, ExprT const&) const;
+    inline result_type apply_cast(std::expected<syntax_expression_result, error_storage>, ExprT const&) const;
 };
 
 }

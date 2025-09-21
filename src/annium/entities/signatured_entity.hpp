@@ -184,7 +184,7 @@ class signatured_entity : public entity
 public:
     using entity::entity;
 
-    inline size_t hash() const noexcept override final
+    inline size_t hash() const noexcept override
     {
         return hash_value(*signature());
     }
@@ -194,7 +194,7 @@ public:
         return *rhs.signature() == *signature();
     }
 
-    bool equal(entity const& rhs) const noexcept override final
+    bool equal(entity const& rhs) const noexcept override
     {
         entity_signature const* prhssig = rhs.signature();
         if (!prhssig) return false;

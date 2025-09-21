@@ -65,8 +65,8 @@ tuple_equal_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "tuple equality comparison accepts exactly two arguments, but more were provided"sv, std::move(argterm.value())));
     }
 
-    syntax_expression_result_t & lhs_arg_er = lhs_arg->first;
-    syntax_expression_result_t & rhs_arg_er = rhs_arg->first;
+    syntax_expression_result & lhs_arg_er = lhs_arg->first;
+    syntax_expression_result & rhs_arg_er = rhs_arg->first;
 
     // Both must be tuple types
     entity_identifier lhs_type = lhs_arg_er.is_const_result
@@ -95,7 +95,7 @@ tuple_equal_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
     return pmd;
 }
 
-std::expected<syntax_expression_result_t, error_storage>
+std::expected<syntax_expression_result, error_storage>
 tuple_equal_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& e = ctx.env();
@@ -108,7 +108,7 @@ tuple_equal_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
 
     // Check field count and names
     if (lhs_sig.field_count() != rhs_sig.field_count()) {
-        return syntax_expression_result_t{
+        return syntax_expression_result{
             .value_or_type = e.get(builtin_eid::false_),
             .is_const_result = true
         };
@@ -117,20 +117,20 @@ tuple_equal_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
         auto const& lhs_field = *lhs_sig.get_field(i);
         auto const& rhs_field = *rhs_sig.get_field(i);
         if (lhs_field.name() != rhs_field.name()) {
-            return syntax_expression_result_t{
+            return syntax_expression_result{
                 .value_or_type = e.get(builtin_eid::false_),
                 .is_const_result = true
             };
         }
     }
 
-    syntax_expression_result_t result{ };
+    syntax_expression_result result{ };
 
     fn_compiler_context_scope fn_scope{ ctx };
 
     //lhs_er.temporaries.insert(lhs_er.temporaries.end(), rhs_er.temporaries.begin(), rhs_er.temporaries.end());
 
-    //syntax_expression_result_t result{
+    //syntax_expression_result result{
     //    .temporaries = std::move(lhs_er.temporaries),
     //    .branches_expressions = el.concat(lhs_er.branches_expressions, rhs_er.branches_expressions),
     //    .value_or_type = e.get(builtin_eid::boolean),

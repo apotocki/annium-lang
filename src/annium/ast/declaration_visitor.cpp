@@ -187,16 +187,26 @@ error_storage declaration_visitor::operator()(struct_decl const& sd) const
 
 error_storage declaration_visitor::operator()(enum_decl const& ed) const
 {
-    environment& e = ctx.env();
-    functional& fnl = e.fregistry_resolve(ctx.ns() / ed.name.value);
-    auto eent = make_shared<enum_entity>(e, fnl, ed.cases);
-    e.eregistry_insert(eent);
+    environment& env = ctx.env();
+    functional& fnl = env.fregistry_resolve(ctx.ns() / ed.name.value);
+    auto eent = make_shared<enum_entity>(env, fnl, ed.cases);
+    env.eregistry_insert(eent);
     annotated_entity_identifier aeid{ eent->id, ed.name.location };
     fnl.set_default_entity(aeid);
     return {};
+
+    //entity_signature enum_sig{ env.get(builtin_qnid::enum_), env.get(builtin_eid::typename_) };
+    //size_t ival = 0;
+    //for (identifier cid : ed.cases) {
+    //    entity_identifier value = env.make_integer_entity(ival++).id;
+    //    enum_sig.emplace_back(cid, value, true);
+    //}
+    //auto eent = env.make_basic_signatured_entity(std::move(enum_sig)); // register enum signatured entity
+
+    //annotated_entity_identifier aeid{ eent.id, ed.name.location };
 }
 
-size_t declaration_visitor::append_result(semantic::expression_list_t& el, syntax_expression_result_t& er) const
+size_t declaration_visitor::append_result(semantic::expression_list_t& el, syntax_expression_result& er) const
 {
     ctx.append_stored_expressions(el, er.branches_expressions);
 
@@ -274,7 +284,7 @@ error_storage declaration_visitor::operator()(if_decl const& stm) const
     base_expression_visitor vis{ ctx, el, { env().get(builtin_eid::boolean), get_start_location(stm.condition) } };
     auto res = apply_visitor(vis, stm.condition);
     if (!res) return std::move(res.error());
-    syntax_expression_result_t& er = res->first;
+    syntax_expression_result& er = res->first;
     
     //GLOBAL_LOG_INFO() << "-----------------";
     //er.expressions.for_each([this](semantic::expression const& e) {
@@ -318,7 +328,7 @@ error_storage declaration_visitor::operator()(while_decl const& wd) const
     if (wd.continue_expression) {
         auto res = apply_visitor(base_expression_visitor{ ctx, el }, *wd.continue_expression);
         if (!res) return std::move(res.error());
-        syntax_expression_result_t& er = res->first;
+        syntax_expression_result& er = res->first;
 
         ctx.push_chain();
         size_t scope_sz = append_result(el, er);
@@ -335,7 +345,7 @@ error_storage declaration_visitor::operator()(while_decl const& wd) const
     base_expression_visitor vis{ ctx, el, { env().get(builtin_eid::boolean), get_start_location(wd.condition) } };
     auto res = apply_visitor(vis, wd.condition);
     if (!res) return std::move(res.error());
-    syntax_expression_result_t& er = res->first;
+    syntax_expression_result& er = res->first;
     
     size_t scope_sz = append_result(el, er);
 
@@ -649,7 +659,7 @@ error_storage declaration_visitor::operator()(let_statement const& ld) const
         vartype = optvartype->first.value();
     }
 
-    small_vector<std::pair<identifier, syntax_expression_result_t>, 8> results;
+    small_vector<std::pair<identifier, syntax_expression_result>, 8> results;
 
     prepared_call pcall{ ctx, nullptr, {}, ld.location(), el };
     for (auto const& e : ld.expressions) {
@@ -761,7 +771,7 @@ error_storage declaration_visitor::operator()(let_statement const& ld) const
             if (!match) return std::move(match.error());
             auto res = match->apply(ctx);
             if (!res) return std::move(res.error());
-            syntax_expression_result_t& fer = *res;
+            syntax_expression_result& fer = *res;
             if (fer.is_const_result) {
                 ctx.new_constant(ld.aname, fer.value());
             } else {
@@ -782,7 +792,7 @@ error_storage declaration_visitor::operator()(let_statement const& ld) const
 
 
     if (results.size() == 1 && !results.front().first) {
-        syntax_expression_result_t& er = results.front().second;
+        syntax_expression_result& er = results.front().second;
         ctx.push_scope();
         push_temporaries(er.temporaries);
         ctx.append_expressions(el, er.expressions);
@@ -898,7 +908,7 @@ error_storage declaration_visitor::operator()(return_decl_t const& rd) const
         
         auto res = apply_visitor(base_expression_visitor{ ctx, el, exp }, *rd.expression);
         if (!res) return std::move(res.error());
-        syntax_expression_result_t& er = res->first;
+        syntax_expression_result& er = res->first;
 
         ctx.push_chain();
         size_t scope_sz = append_result(el, er);

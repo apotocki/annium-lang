@@ -22,9 +22,6 @@
     <Filter Include="annium\ast\casts">
       <UniqueIdentifier>{f59ccaea-9648-41e7-b67a-38c0a88c13ce}</UniqueIdentifier>
     </Filter>
-    <Filter Include="annium\entities\array">
-      <UniqueIdentifier>{efe21bdd-4f68-4974-b2ca-2e4b32a0140b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="annium\entities\ellipsis">
       <UniqueIdentifier>{3983bf7b-fb40-4177-b727-6a0f2171194c}</UniqueIdentifier>
     </Filter>
@@ -37,9 +34,6 @@
     <Filter Include="annium\entities\literals">
       <UniqueIdentifier>{d3da3022-de98-402c-ae87-d9d48ecd8928}</UniqueIdentifier>
     </Filter>
-    <Filter Include="annium\entities\metaobject">
-      <UniqueIdentifier>{54e56fad-39dd-43d3-9f6e-07cf3a3b2c84}</UniqueIdentifier>
-    </Filter>
     <Filter Include="annium\entities\struct">
       <UniqueIdentifier>{319add42-863a-4f11-b1b3-699ca31b01e4}</UniqueIdentifier>
     </Filter>
@@ -48,9 +42,6 @@
     </Filter>
     <Filter Include="annium\entities\union">
       <UniqueIdentifier>{37e33f60-ea29-4238-bc6c-1fca888d5fa3}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="annium\entities\vector">
-      <UniqueIdentifier>{38f20b4b-4b4e-4d1a-a367-d4b686f68d35}</UniqueIdentifier>
     </Filter>
     <Filter Include="annium\errors">
       <UniqueIdentifier>{9e403601-1a7e-4462-bda6-8499211643b4}</UniqueIdentifier>
@@ -72,6 +63,12 @@
     </Filter>
     <Filter Include="sonia.mvvm">
       <UniqueIdentifier>{a5c240f5-b658-4b09-a065-8c09ffe0f349}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="annium\entities\fixed_array">
+      <UniqueIdentifier>{efe21bdd-4f68-4974-b2ca-2e4b32a0140b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="annium\entities\array">
+      <UniqueIdentifier>{38f20b4b-4b4e-4d1a-a367-d4b686f68d35}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -135,21 +132,6 @@
     <ClCompile Include="..\..\..\src\annium\ast\casts\expression_cast_utility.cpp">
       <Filter>annium\ast\casts</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\array\array_elements_implicit_cast_pattern.cpp">
-      <Filter>annium\entities\array</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\array\array_head_pattern.cpp">
-      <Filter>annium\entities\array</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\array\array_implicit_cast_pattern.cpp">
-      <Filter>annium\entities\array</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\array\array_make_pattern.cpp">
-      <Filter>annium\entities\array</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\array\array_tail_pattern.cpp">
-      <Filter>annium\entities\array</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\ellipsis\ellipsis_pattern.cpp">
       <Filter>annium\entities\ellipsis</Filter>
     </ClCompile>
@@ -179,30 +161,6 @@
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\literals\string_concat_pattern.cpp">
       <Filter>annium\entities\literals</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\metaobject\metaobject_argument_pattern.cpp">
-      <Filter>annium\entities\metaobject</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\metaobject\metaobject_bit_and_pattern.cpp">
-      <Filter>annium\entities\metaobject</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\metaobject\metaobject_empty_pattern.cpp">
-      <Filter>annium\entities\metaobject</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\metaobject\metaobject_head_pattern.cpp">
-      <Filter>annium\entities\metaobject</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\metaobject\metaobject_pattern.cpp">
-      <Filter>annium\entities\metaobject</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\metaobject\metaobject_tail_pattern.cpp">
-      <Filter>annium\entities\metaobject</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\metaobject\metaobject_typeof_pattern.cpp">
-      <Filter>annium\entities\metaobject</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\vector\vector_make_pattern.cpp">
-      <Filter>annium\entities\vector</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\union\union_bit_or_pattern.cpp">
       <Filter>annium\entities\union</Filter>
@@ -363,9 +321,6 @@
     <ClCompile Include="..\..\..\src\annium\semantic\semantic_expression_printer.cpp">
       <Filter>annium\semantic</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\array\array_get_pattern.cpp">
-      <Filter>annium\entities\array</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\union\union_apply_pattern.cpp">
       <Filter>annium\entities\union</Filter>
     </ClCompile>
@@ -384,8 +339,32 @@
     <ClCompile Include="..\..\..\src\sonia\mvvm\bunch_builder_view_model.cpp">
       <Filter>sonia.mvvm</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\annium-lang\src\annium\entities\vector\vector_implicit_cast_pattern.cpp">
-      <Filter>annium\entities\vector</Filter>
+    <ClCompile Include="..\..\..\src\annium\entities\enum\enum_to_string_pattern.cpp">
+      <Filter>annium\entities\enum</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\fixed_array\fixed_array_elements_implicit_cast_pattern.cpp">
+      <Filter>annium\entities\fixed_array</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\fixed_array\fixed_array_get_pattern.cpp">
+      <Filter>annium\entities\fixed_array</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\fixed_array\fixed_array_head_pattern.cpp">
+      <Filter>annium\entities\fixed_array</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\fixed_array\fixed_array_implicit_cast_pattern.cpp">
+      <Filter>annium\entities\fixed_array</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\fixed_array\fixed_array_make_pattern.cpp">
+      <Filter>annium\entities\fixed_array</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\fixed_array\fixed_array_tail_pattern.cpp">
+      <Filter>annium\entities\fixed_array</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\array\array_implicit_cast_pattern.cpp">
+      <Filter>annium\entities\array</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\array\array_make_pattern.cpp">
+      <Filter>annium\entities\array</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -518,21 +497,6 @@
     <ClInclude Include="..\..\..\src\annium\ast\casts\utility.hpp">
       <Filter>annium\ast\casts</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\array\array_elements_implicit_cast_pattern.hpp">
-      <Filter>annium\entities\array</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\array\array_head_pattern.hpp">
-      <Filter>annium\entities\array</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\array\array_implicit_cast_pattern.hpp">
-      <Filter>annium\entities\array</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\array\array_make_pattern.hpp">
-      <Filter>annium\entities\array</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\array\array_tail_pattern.hpp">
-      <Filter>annium\entities\array</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\ellipsis\ellipsis_pattern.hpp">
       <Filter>annium\entities\ellipsis</Filter>
     </ClInclude>
@@ -565,30 +529,6 @@
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\literals\string_concat_pattern.hpp">
       <Filter>annium\entities\literals</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\metaobject\metaobject_argument_pattern.hpp">
-      <Filter>annium\entities\metaobject</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\metaobject\metaobject_bit_and_pattern.hpp">
-      <Filter>annium\entities\metaobject</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\metaobject\metaobject_empty_pattern.hpp">
-      <Filter>annium\entities\metaobject</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\metaobject\metaobject_head_pattern.hpp">
-      <Filter>annium\entities\metaobject</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\metaobject\metaobject_pattern.hpp">
-      <Filter>annium\entities\metaobject</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\metaobject\metaobject_tail_pattern.hpp">
-      <Filter>annium\entities\metaobject</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\metaobject\metaobject_typeof_pattern.hpp">
-      <Filter>annium\entities\metaobject</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\vector\vector_make_pattern.hpp">
-      <Filter>annium\entities\vector</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\union\union_bit_or_pattern.hpp">
       <Filter>annium\entities\union</Filter>
@@ -758,9 +698,6 @@
     <ClInclude Include="..\..\..\src\annium\semantic\expression_printer.hpp">
       <Filter>annium\semantic</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\array\array_get_pattern.hpp">
-      <Filter>annium\entities\array</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\union\union_apply_pattern.hpp">
       <Filter>annium\entities\union</Filter>
     </ClInclude>
@@ -779,11 +716,35 @@
     <ClInclude Include="..\..\..\src\sonia\mvvm\bunch_builder_view_model.hpp">
       <Filter>sonia.mvvm</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\..\annium-lang\src\annium\ast\base_expression_visitor.ipp">
+    <ClInclude Include="..\..\..\src\annium\ast\base_expression_visitor.ipp">
       <Filter>annium\ast</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\..\annium-lang\src\annium\entities\vector\vector_implicit_cast_pattern.hpp">
-      <Filter>annium\entities\vector</Filter>
+    <ClInclude Include="..\..\..\src\annium\entities\enum\enum_to_string_pattern.hpp">
+      <Filter>annium\entities\enum</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\fixed_array\fixed_array_elements_implicit_cast_pattern.hpp">
+      <Filter>annium\entities\fixed_array</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\fixed_array\fixed_array_get_pattern.hpp">
+      <Filter>annium\entities\fixed_array</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\fixed_array\fixed_array_head_pattern.hpp">
+      <Filter>annium\entities\fixed_array</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\fixed_array\fixed_array_implicit_cast_pattern.hpp">
+      <Filter>annium\entities\fixed_array</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\fixed_array\fixed_array_make_pattern.hpp">
+      <Filter>annium\entities\fixed_array</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\fixed_array\fixed_array_tail_pattern.hpp">
+      <Filter>annium\entities\fixed_array</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\array\array_implicit_cast_pattern.hpp">
+      <Filter>annium\entities\array</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\array\array_make_pattern.hpp">
+      <Filter>annium\entities\array</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

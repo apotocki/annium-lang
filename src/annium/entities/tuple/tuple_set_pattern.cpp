@@ -119,13 +119,13 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_set_pattern:
 #endif
 }
 
-std::expected<syntax_expression_result_t, error_storage> tuple_set_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> tuple_set_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& e = ctx.env();
 
     // push call expressions in the right order
     //semantic::managed_expression_list exprs{ e };
-    syntax_expression_result_t result{ .value_or_type = md.signature.result->entity_id(), .is_const_result = false };
+    syntax_expression_result result{ .value_or_type = md.signature.result->entity_id(), .is_const_result = false };
 
     // only one named argument is expected
     result.expressions = el.concat(result.expressions, get<1>(md.matches.front()).expressions);

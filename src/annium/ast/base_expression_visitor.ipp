@@ -22,23 +22,23 @@ inline base_expression_visitor::result_type base_expression_visitor::operator()(
 template <typename ExprT>
 inline base_expression_visitor::result_type base_expression_visitor::apply_cast(entity_identifier eid, ExprT const& e) const
 {
-    return apply_cast(get_entity(env(), eid), syntax_expression_result_t{ .value_or_type = eid, .is_const_result = true }, e);
+    return apply_cast(get_entity(env(), eid), syntax_expression_result{ .value_or_type = eid, .is_const_result = true }, e);
 }
 
 template <typename ExprT>
 inline base_expression_visitor::result_type base_expression_visitor::apply_cast(entity const& ent, ExprT const& e) const
 {
-    return apply_cast(ent, syntax_expression_result_t{ .value_or_type = ent.id, .is_const_result = true }, syntax_expression_t{ e });
+    return apply_cast(ent, syntax_expression_result{ .value_or_type = ent.id, .is_const_result = true }, syntax_expression_t{ e });
 }
 
 template <typename ExprT>
-inline base_expression_visitor::result_type base_expression_visitor::apply_cast(syntax_expression_result_t er, ExprT const& e) const
+inline base_expression_visitor::result_type base_expression_visitor::apply_cast(syntax_expression_result er, ExprT const& e) const
 {
     return apply_cast(std::move(er), syntax_expression_t{ e });
 }
 
 template <typename ExprT>
-inline base_expression_visitor::result_type base_expression_visitor::apply_cast(std::expected<syntax_expression_result_t, error_storage> r, ExprT const& e) const
+inline base_expression_visitor::result_type base_expression_visitor::apply_cast(std::expected<syntax_expression_result, error_storage> r, ExprT const& e) const
 {
     if (!r) return std::unexpected(std::move(r.error()));
     syntax_expression_t se = e;

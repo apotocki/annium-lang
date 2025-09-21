@@ -58,22 +58,15 @@
 
 #include "entities/enum/enum_implicit_cast_pattern.hpp"
 
-#include "entities/vector/vector_make_pattern.hpp"
-#include "entities/vector/vector_implicit_cast_pattern.hpp"
-
 #include "entities/array/array_make_pattern.hpp"
-#include "entities/array/array_head_pattern.hpp"
-#include "entities/array/array_tail_pattern.hpp"
-#include "entities/array/array_get_pattern.hpp"
 #include "entities/array/array_implicit_cast_pattern.hpp"
-#include "entities/array/array_elements_implicit_cast_pattern.hpp"
 
-//#include "entities/metaobject/metaobject_pattern.hpp"
-//#include "entities/metaobject/metaobject_typeof_pattern.hpp"
-//#include "entities/metaobject/metaobject_head_pattern.hpp"
-//#include "entities/metaobject/metaobject_tail_pattern.hpp"
-//#include "entities/metaobject/metaobject_empty_pattern.hpp"
-//#include "entities/metaobject/metaobject_bit_and_pattern.hpp"
+#include "entities/fixed_array/fixed_array_make_pattern.hpp"
+#include "entities/fixed_array/fixed_array_head_pattern.hpp"
+#include "entities/fixed_array/fixed_array_tail_pattern.hpp"
+#include "entities/fixed_array/fixed_array_get_pattern.hpp"
+#include "entities/fixed_array/fixed_array_implicit_cast_pattern.hpp"
+#include "entities/fixed_array/fixed_array_elements_implicit_cast_pattern.hpp"
 
 #include "semantic/expression_printer.hpp"
 #include "auxiliary.hpp"
@@ -1362,9 +1355,9 @@ environment::environment()
     functional& implicit_cast_fnl = fregistry_resolve(get(builtin_qnid::implicit_cast));
     implicit_cast_fnl.push(make_shared<struct_implicit_cast_pattern>());
     implicit_cast_fnl.push(make_shared<enum_implicit_cast_pattern>());
-    //implicit_cast_fnl.push(make_shared<array_implicit_cast_pattern>()); // array to vector
-    implicit_cast_fnl.push(make_shared<vector_implicit_cast_pattern>()); // vector to vector
-    //implicit_cast_fnl.push(make_shared<array_elements_implicit_cast_pattern>());
+    //implicit_cast_fnl.push(make_shared<fixed_array_implicit_cast_pattern>()); // array to vector
+    implicit_cast_fnl.push(make_shared<array_implicit_cast_pattern>()); // vector to vector
+    //implicit_cast_fnl.push(make_shared<fixed_array_elements_implicit_cast_pattern>());
     implicit_cast_fnl.push(make_shared<to_union_implicit_cast_pattern>());
     //implicit_cast_fnl.push(make_shared<numeric_implicit_cast_pattern>());
     implicit_cast_fnl.push(make_shared<tuple_implicit_cast_pattern>());
@@ -1391,16 +1384,16 @@ environment::environment()
 
     // make_vector(...) -> vector(...)
     functional& make_vector_fnl = fregistry_resolve(get(builtin_qnid::make_vector));
-    make_vector_fnl.push(make_shared<vector_make_pattern>());
+    make_vector_fnl.push(make_shared<array_make_pattern>());
 
     // make_vector(...) -> vector(...)
     functional& make_array_fnl = fregistry_resolve(get(builtin_qnid::make_array));
-    make_array_fnl.push(make_shared<array_make_pattern>());
+    make_array_fnl.push(make_shared<fixed_array_make_pattern>());
 
     functional& get_fnl = fregistry_resolve(get(builtin_qnid::get));
     get_fnl.push(make_shared<tuple_typename_get_pattern>());
     get_fnl.push(make_shared<tuple_get_pattern>());
-    get_fnl.push(make_shared<array_get_pattern>());
+    get_fnl.push(make_shared<fixed_array_get_pattern>());
     get_fnl.push(make_shared<tuple_project_get_pattern>());
     get_fnl.push(make_shared<struct_get_pattern>());
 
@@ -1419,12 +1412,12 @@ environment::environment()
     // head(tuple(...)|array(...)) -> ???
     functional& head_fnl = fregistry_resolve(get(builtin_qnid::head));
     head_fnl.push(make_shared<tuple_head_pattern>());
-    head_fnl.push(make_shared<array_head_pattern>());
+    head_fnl.push(make_shared<fixed_array_head_pattern>());
 
     // tail(metaobject) -> @metaobject
     functional& tail_fnl = fregistry_resolve(get(builtin_qnid::tail));
     tail_fnl.push(make_shared<tuple_tail_pattern>());
-    tail_fnl.push(make_shared<array_tail_pattern>());
+    tail_fnl.push(make_shared<fixed_array_tail_pattern>());
 
     // empty(metaobject) -> bool
     functional& empty_fnl = fregistry_resolve(get(builtin_qnid::empty));

@@ -214,7 +214,7 @@ numeric_literal_implicit_cast_pattern::try_match(fn_compiler_context& ctx, prepa
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    syntax_expression_result_t & src_arg_er = src_arg->first;
+    syntax_expression_result & src_arg_er = src_arg->first;
     
     entity_identifier source_type_id;
     entity const* source_type_entity = nullptr;
@@ -389,7 +389,7 @@ smart_blob floating_point_to_numeric(T source_val, builtin_eid target_type)
     }
 }
 
-std::expected<syntax_expression_result_t, error_storage>
+std::expected<syntax_expression_result, error_storage>
 numeric_literal_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     auto& nmd = static_cast<numeric_literal_implicit_cast_match_descriptor&>(md);

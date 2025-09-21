@@ -524,7 +524,7 @@ std::expected<functional::match, error_storage> fn_compiler_context::find(builti
     return fn.find(*this, nullptr, call, el, expected_result);
 }
 
-std::expected<syntax_expression_result_t, error_storage> fn_compiler_context::find_and_apply(builtin_qnid qnid, pure_call_t const& call, semantic::expression_list_t& el, expected_result_t const& expected_result)
+std::expected<syntax_expression_result, error_storage> fn_compiler_context::find_and_apply(builtin_qnid qnid, pure_call_t const& call, semantic::expression_list_t& el, expected_result_t const& expected_result)
 {
     auto match = find(qnid, call, el, expected_result);
     if (!match) return std::unexpected(std::move(match.error()));
@@ -742,7 +742,7 @@ void fn_compiler_context::append_return(semantic::expression_span return_express
     return_statements_.emplace_back(pretst);
 }
 
-//void fn_compiler_context::adopt_and_append(semantic::expression_list_t& el, syntax_expression_result_t& er)
+//void fn_compiler_context::adopt_and_append(semantic::expression_list_t& el, syntax_expression_result& er)
 //{
 //    append_stored_expressions(el, er.branches_expressions);
 //    append_expressions(el, er.expressions);

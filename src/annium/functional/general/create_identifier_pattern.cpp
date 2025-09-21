@@ -36,7 +36,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> create_identifier_
     return pmd;
 }
 
-std::expected<syntax_expression_result_t, error_storage> create_identifier_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> create_identifier_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& e = ctx.env();
     auto& [_, ser, loc] = md.matches.front();
@@ -46,7 +46,7 @@ std::expected<syntax_expression_result_t, error_storage> create_identifier_patte
     semantic::managed_expression_list rel{ e };
     rel.splice_back(el, ser.expressions);
         
-    return syntax_expression_result_t{
+    return syntax_expression_result{
         .expressions = std::move(rel),
         .value_or_type = e.make_identifier_entity(id).id,
         .is_const_result = true

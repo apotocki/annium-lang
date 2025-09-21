@@ -410,9 +410,6 @@
     <None Include="..\..\..\tests\test-suite\draft.ann">
       <Filter>test-suite</Filter>
     </None>
-    <None Include="..\..\..\tests\test-suite\file0.ann">
-      <Filter>test-suite</Filter>
-    </None>
     <None Include="..\..\..\tests\test-suite\file1.ann">
       <Filter>test-suite</Filter>
     </None>
@@ -432,6 +429,12 @@
       <Filter>test-suite</Filter>
     </None>
     <None Include="..\..\..\tests\test-suite\unions_test.ann">
+      <Filter>test-suite</Filter>
+    </None>
+    <None Include="..\..\..\tests\test-suite\basic_print.ann">
+      <Filter>test-suite</Filter>
+    </None>
+    <None Include="..\..\..\tests\test-suite\enums.ann">
       <Filter>test-suite</Filter>
     </None>
   </ItemGroup>

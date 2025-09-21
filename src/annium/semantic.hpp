@@ -585,17 +585,16 @@ struct syntax_expression_const_result
     entity_identifier value;
 };
 
-using syntax_expression_result_t = syntax_expression_result;
-//using syntax_expression_result_t = syntax_expression_result<semantic::managed_expression_list>;
+//using syntax_expression_result = syntax_expression_result<semantic::managed_expression_list>;
 //using syntax_expression_result_reference_t = syntax_expression_result<semantic::expression_span>;
 
 using syntax_expression_const_result_t = syntax_expression_const_result; // syntax_expression_const_result<semantic::managed_expression_list>;
 
-void append_semantic_result(semantic::expression_list_t & el, syntax_expression_result_t& dest, syntax_expression_result_t& src);
+void append_semantic_result(semantic::expression_list_t & el, syntax_expression_result& dest, syntax_expression_result& src);
 
 
-indirect_value make_indirect_value(environment&, semantic::expression_list_t&, syntax_expression_result_t && res, resource_location loc);
-syntax_expression_result_t retrieve_indirect_value(environment&, semantic::expression_list_t&, indirect_value const&);
+indirect_value make_indirect_value(environment&, semantic::expression_list_t&, syntax_expression_result && res, resource_location loc);
+syntax_expression_result retrieve_indirect_value(environment&, semantic::expression_list_t&, indirect_value const&);
 
 }
 

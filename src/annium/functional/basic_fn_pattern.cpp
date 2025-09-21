@@ -211,7 +211,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> basic_fn_pattern::
             }
         }
         
-        syntax_expression_result_t& arg_er = res->first;
+        syntax_expression_result& arg_er = res->first;
         if (pconstraint) {
             if (argexp.is_const_result) {
                 // check exact value match
@@ -286,7 +286,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> basic_fn_pattern::
                 std::move(res.error())
             ));
         }
-        syntax_expression_result_t& res_er = res->first;
+        syntax_expression_result& res_er = res->first;
         entity const& res_ent = get_entity(e, res_er.value());
         call_sig.result.emplace(res_er.value(), res_ent.get_type() != e.get(builtin_eid::typename_));
     }
@@ -294,10 +294,10 @@ std::expected<functional_match_descriptor_ptr, error_storage> basic_fn_pattern::
     return pmd;
 }
 
-std::pair<syntax_expression_result_t, size_t> basic_fn_pattern::apply_arguments(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::pair<syntax_expression_result, size_t> basic_fn_pattern::apply_arguments(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     size_t count = 0;
-    syntax_expression_result_t result{ };
+    syntax_expression_result result{ };
     for (auto& [_, mr, loc] : md.matches) {
         append_semantic_result(el, result, mr);
         if (!mr.is_const_result) ++count;

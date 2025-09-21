@@ -16,7 +16,7 @@ namespace annium {
 
 class variable_entity;
 
-struct assign_expression_visitor : static_visitor<std::expected<syntax_expression_result_t, error_storage>>
+struct assign_expression_visitor : static_visitor<std::expected<syntax_expression_result, error_storage>>
 {
     fn_compiler_context& ctx_;
     semantic::expression_list_t& expressions;

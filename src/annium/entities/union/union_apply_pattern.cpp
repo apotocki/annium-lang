@@ -47,7 +47,7 @@ union_apply_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
     }
 
     // Union argument must be a union type
-    syntax_expression_result_t& union_arg_er = union_arg->first;
+    syntax_expression_result& union_arg_er = union_arg->first;
     if (union_arg_er.is_const_result) {
         return std::unexpected(make_error<basic_general_error>(get_start_location(*get<0>(union_expr)), "'to' argument must be a runtime value"sv));
     }
@@ -74,7 +74,7 @@ union_apply_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    syntax_expression_result_t & visitor_arg_er = visitor_arg->first;
+    syntax_expression_result & visitor_arg_er = visitor_arg->first;
 
     auto pmd = make_shared<union_apply_match_descriptor>(call, union_entity_type);
     pmd->emplace_back(0, union_arg_er, get_start_location(*get<0>(union_expr)));
@@ -84,7 +84,7 @@ union_apply_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
     return pmd;
 }
 
-std::expected<syntax_expression_result_t, error_storage>
+std::expected<syntax_expression_result, error_storage>
 union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& env = ctx.env();
@@ -93,14 +93,14 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
     auto& visitor_er = get<1>(md.matches[1]);
 
 #if 0
-    syntax_expression_result_t r{
+    syntax_expression_result r{
         .value_or_type = env.get(builtin_eid::boolean),
         .is_const_result = false
     };
     env.push_back_expression(el, r.expressions, semantic::push_value(bool_blob_result(true)));
     return r;
 #endif
-    syntax_expression_result_t result{ };
+    syntax_expression_result result{ };
 
     fn_compiler_context_scope fn_scope{ ctx };
     
@@ -162,7 +162,7 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
                 std::move(res.error())));
         }
 
-        syntax_expression_result_t & branch_call_res = res->first;
+        syntax_expression_result & branch_call_res = res->first;
 
         result.temporaries.insert(result.temporaries.begin(), branch_call_res.temporaries.begin(), branch_call_res.temporaries.end());
         result.branches_expressions = el.concat(result.branches_expressions, branch_call_res.branches_expressions);

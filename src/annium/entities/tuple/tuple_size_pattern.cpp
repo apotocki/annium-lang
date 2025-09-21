@@ -28,7 +28,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_size_pattern
     entity_identifier argtype;
     shared_ptr<functional_match_descriptor> pmd;
     if (arg) {
-        syntax_expression_result_t& er = arg->first;
+        syntax_expression_result& er = arg->first;
         if (er.is_const_result) {
             entity const& arg_entity = get_entity(e, er.value());
             if (auto psig = arg_entity.signature(); psig && psig->name == e.get(builtin_qnid::tuple)) {
@@ -59,15 +59,15 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_size_pattern
     return pmd;
 }
 
-std::expected<syntax_expression_result_t, error_storage> tuple_size_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> tuple_size_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
-    syntax_expression_result_t result {
+    syntax_expression_result result {
         .value_or_type = md.signature.result->entity_id(),
         .is_const_result = true
     };
 
     if (!md.matches.empty()) {
-        syntax_expression_result_t & arg = get<1>(md.matches.front());
+        syntax_expression_result & arg = get<1>(md.matches.front());
         result.temporaries = std::move(arg.temporaries);
         result.branches_expressions = std::move(arg.branches_expressions);
     }

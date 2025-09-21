@@ -9,9 +9,19 @@
 
 namespace annium {
 
-entity const& get_entity(environment const& e, entity_identifier const& eid)
+entity const& get_entity(environment const& env, entity_identifier const& eid)
 {
-    return e.eregistry_get(eid);
+    return env.eregistry_get(eid);
+}
+
+entity_identifier get_result_type(environment const& env, syntax_expression_result const& er, entity const** ppe)
+{
+    if (er.is_const_result) {
+        entity const& ent = get_entity(env, er.value());
+        if (ppe) *ppe = &ent;
+        return ent.get_type();
+    }
+    return er.type();
 }
 
 struct expression_location_visitor : static_visitor<resource_location const&>

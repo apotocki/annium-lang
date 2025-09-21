@@ -86,12 +86,12 @@ std::expected<field_descriptor, error_storage> push_by_name(fn_compiler_context&
     }), optent);
 }
 
-std::expected<syntax_expression_result_t, error_storage> ellipsis_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> ellipsis_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     BOOST_ASSERT(dynamic_cast<ellipsis_match_descriptor*>(&md));
 
     ellipsis_match_descriptor& nsmd = static_cast<ellipsis_match_descriptor&>(md);
-    using result_t = std::expected<syntax_expression_result_t, error_storage>;
+    using result_t = std::expected<syntax_expression_result, error_storage>;
     return apply_visitor(make_functional_visitor<result_t>([&ctx, &nsmd, &el](auto const* pe) -> result_t {
         environment& e = ctx.env();
         
@@ -100,7 +100,7 @@ std::expected<syntax_expression_result_t, error_storage> ellipsis_pattern::apply
             annotated_qname varname{ qname{ pe->value(), false }, nsmd.call_location };
             auto res = push_by_name(ctx, el, varname, l);
             if (!res) return std::unexpected(std::move(res.error()));
-            return syntax_expression_result_t{
+            return syntax_expression_result{
                 .expressions = std::move(l),
                 .value_or_type = res->entity_id(),
                 .is_const_result = res->is_const()
@@ -128,7 +128,7 @@ std::expected<syntax_expression_result_t, error_storage> ellipsis_pattern::apply
                 e.push_back_expression(el, l, semantic::invoke_function(e.get(builtin_eid::arrayify)));
             }
 
-            return syntax_expression_result_t{
+            return syntax_expression_result{
                 .expressions = std::move(l),
                 .value_or_type = e.make_basic_signatured_entity(std::move(sig)).id,
                 .is_const_result = !argcount

@@ -18,6 +18,17 @@
 
 namespace annium {
 
+class enum_implicit_cast_match_descriptor : public functional_match_descriptor
+{
+public:
+    inline enum_implicit_cast_match_descriptor(prepared_call const& call, size_t which_val) noexcept
+        : functional_match_descriptor{ call }
+        , which{ which_val }
+    {}
+
+    size_t which;
+};
+
 std::expected<functional_match_descriptor_ptr, error_storage> enum_implicit_cast_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
 {
     if (!exp.type) {
@@ -25,6 +36,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_implicit_cast
     }
     environment& e = ctx.env();
     entity const& enum_ent = get_entity(e, exp.type);
+    entity_signature const* psig = enum_ent.signature();
     enum_entity const* penum = dynamic_cast<enum_entity const*>(&enum_ent);
     if (!penum) {
         return std::unexpected(make_error<type_mismatch_error>(exp.location, exp.type, "an enumeration"sv));
@@ -44,41 +56,39 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_implicit_cast
     }
 
     resource_location const& argloc = get_start_location(*get<0>(arg_expr));
-    syntax_expression_result_t& arg_er = arg->first;
+    syntax_expression_result& arg_er = arg->first;
     entity const& ent = get_entity(e, arg_er.value());
     identifier_entity const* pident = dynamic_cast<identifier_entity const*>(&ent);
     BOOST_ASSERT(pident);
     
     // check identifier value
-    if (auto optpos = penum->find(pident->value()); !optpos) {
+    auto optpos = penum->find(pident->value());
+    if (!optpos) {
         return std::unexpected(make_error<basic_general_error>(argloc, "not an enumeration identifier"sv, pident->id));
     }
 
-    functional_match_descriptor_ptr pmd = make_shared<functional_match_descriptor>(call);
+    functional_match_descriptor_ptr pmd = make_shared<enum_implicit_cast_match_descriptor>(call, *optpos);
     pmd->emplace_back(0, arg_er, argloc);
+    pmd->signature.emplace_back(arg_er.value_or_type, arg_er.is_const_result);
     bool is_runtime = can_be_only_runtime(exp.modifier);
-    pmd->signature.result.emplace(is_runtime ? exp.type : e.make_string_entity(e.print(pident->value()), exp.type).id, !can_be_only_runtime(exp.modifier));
+    pmd->signature.result.emplace(is_runtime ? exp.type : e.make_integer_entity(*optpos, exp.type).id, !is_runtime);
     return pmd;
 }
 
 
-std::expected<syntax_expression_result_t, error_storage> enum_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> enum_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& e = ctx.env();
-    syntax_expression_result_t& ser = get<1>(md.matches.front());
+    enum_implicit_cast_match_descriptor& emd = static_cast<enum_implicit_cast_match_descriptor&>(md);
+    auto &[_, ser, argloc] = emd.matches.front();
 
-    auto const& rfd = *md.signature.result;
-    syntax_expression_result_t result{
+    auto const& rfd = *emd.signature.result;
+    syntax_expression_result result{
         .value_or_type = rfd.entity_id(),
         .is_const_result = rfd.is_const()
     };
     if (!result.is_const_result) {
-        entity const& ent = get_entity(e, ser.value());
-        identifier_entity const* pident = dynamic_cast<identifier_entity const*>(&ent);
-        BOOST_ASSERT(pident);
-        result.temporaries = std::move(ser.temporaries);
-        result.expressions = ser.expressions;
-        e.push_back_expression(el, result.expressions, semantic::push_value{ smart_blob{ string_blob_result(e.print(pident->value())) } });
+        e.push_back_expression(el, result.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(emd.which) } });
     }
     return result;
 }

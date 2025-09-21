@@ -2,7 +2,7 @@
 //  Annium is licensed under the terms of the MIT License.
 
 #include "sonia/config.hpp"
-#include "vector_implicit_cast_pattern.hpp"
+#include "fixed_array_implicit_cast_pattern.hpp"
 
 #include "annium/entities/prepared_call.hpp"
 #include "annium/entities/literals/literal_entity.hpp"
@@ -17,15 +17,7 @@
 
 namespace annium {
 
-class vector_implicit_cast_match_descriptor : public functional_match_descriptor
-{
-public:
-    using functional_match_descriptor::functional_match_descriptor;
-
-    optional<syntax_expression_result_t> result;
-};
-
-std::expected<functional_match_descriptor_ptr, error_storage> vector_implicit_cast_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
+std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_implicit_cast_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
 {
     if (!exp.type) {
         return std::unexpected(make_error<basic_general_error>(call.location, "expected a vector result"sv));
@@ -58,45 +50,34 @@ std::expected<functional_match_descriptor_ptr, error_storage> vector_implicit_ca
     }
 
     resource_location const& argloc = get_start_location(*get<0>(arg_expr));
-    syntax_expression_result_t& er = arg->first;
+    syntax_expression_result& er = arg->first;
     entity_identifier argtype = er.is_const_result ? get_entity(env, er.value()).get_type() : er.type();
     entity const& argtype_ent = get_entity(env, argtype);
     entity_signature const* type_sig = argtype_ent.signature();
-
-    if (!type_sig || (type_sig->name != env.get(builtin_qnid::array) && type_sig->name != env.get(builtin_qnid::vector))) {
-        return std::unexpected(make_error<type_mismatch_error>(argloc, argtype, "an array or vector type"sv));
+    if (!type_sig || type_sig->name != env.get(builtin_qnid::array)) {
+        return std::unexpected(make_error<type_mismatch_error>(argloc, argtype, "an array type"sv));
     }
-    bool is_arg_array = type_sig->name == env.get(builtin_qnid::array);
-    entity_identifier arg_element_type_eid = type_sig->find_field(env.get(builtin_id::of))->entity_id();
+    entity_identifier arr_element_type_eid = type_sig->find_field(env.get(builtin_id::of))->entity_id();
 
-    auto pmd = make_shared<vector_implicit_cast_match_descriptor>(call);
-    pmd->emplace_back(0, er, argloc);
-    pmd->signature.emplace_back(er.value_or_type, er.is_const_result);
-
-    if (er.is_const_result) {
-        //value_modifier_t arg_mod = can_be_only_runtime(exp.modifier) ? value_modifier_t::runtime_value : value_modifier_t::constexpr_value;
-        entity_signature const* arg_data = get_entity(env, er.value()).signature();
-        BOOST_ASSERT(arg_data && arg_data->name == env.get(builtin_qnid::data));
+    if (arr_element_type_eid != vec_element_type_eid) {
+        if (er.is_const_result) {
+            value_modifier_t arg_mod = can_be_only_runtime(exp.modifier) ? value_modifier_t::runtime_value : value_modifier_t::constexpr_value;
+            entity_signature const* array_data = get_entity(env, er.value()).signature();
+            BOOST_ASSERT(array_data && array_data->name == env.get(builtin_qnid::data));
             
-        alt_error cast_errors;
-
-        if (!can_be_only_runtime(exp.modifier)) {
+            alt_error cast_errors;
+            semantic::managed_expression_list temp_expressions{ env };
             entity_signature res_vec_sig{ ctx.env().get(builtin_qnid::data), exp.type };
 
-            if (arg_element_type_eid == vec_element_type_eid) {
-                // we can just change the type of data and return
-                for (field_descriptor const& fd : arg_data->fields()) { res_vec_sig.push_back(fd); }
-            } else {
-                // try to do constexpr casts and result
-                for (field_descriptor const& fd : arg_data->fields()) {
-                    semantic::managed_expression_list temp_expressions{ env };
+            if (!can_be_only_runtime(exp.modifier)) { // try to do constexpr casts and result
+                for (field_descriptor const& fd : array_data->fields()) {
                     pure_call_t cast_call{ call.location };
                     cast_call.emplace_back(annotated_entity_identifier{ fd.entity_id(), argloc });
                     auto res = ctx.find_and_apply(builtin_qnid::implicit_cast, cast_call, temp_expressions,
                         expected_result_t{ .type = vec_element_type_eid, .location = exp.location, .modifier = value_modifier_t::constexpr_value });
                     if (!res) {
                         error_storage err = append_cause(
-                            make_error<basic_general_error>(call.location, "cannot cast constexpr array or vector type to constexpr vector type because element types are not compatible"sv, fd.entity_id()),
+                            make_error<basic_general_error>(call.location, "cannot cast constexpr array type to constexpr vector type because element types are not compatible"sv, fd.entity_id()),
                             std::move(res.error()));
                         if (can_be_only_constexpr(exp.modifier)) return std::unexpected(std::move(err));
                         cast_errors.alternatives.emplace_back(std::move(err));
@@ -104,58 +85,44 @@ std::expected<functional_match_descriptor_ptr, error_storage> vector_implicit_ca
                     }
                     res_vec_sig.emplace_back(res->value(), true);
                 }
-            }
-            if (cast_errors.alternatives.empty()) {
-                entity_identifier rval = env.make_basic_signatured_entity(std::move(res_vec_sig)).id;
-
-                pmd->signature.result.emplace(rval, true);
-                pmd->result.emplace(syntax_expression_result_t{
-                    .value_or_type = rval,
-                    .is_const_result = true
-                });
-                return std::move(pmd);
-            }
-        }
-
-        // try runtime casts, collect expression reslults
-        // check if each element can be casted to vector element type
-
-        pmd->result.emplace(syntax_expression_result_t{
-            .value_or_type = exp.type,
-            .is_const_result = false
-        });
-        for (field_descriptor const& fd : arg_data->fields()) {
-            pure_call_t cast_call{ call.location };
-            cast_call.emplace_back(annotated_entity_identifier{ fd.entity_id(), argloc });
-            auto res = ctx.find_and_apply(builtin_qnid::implicit_cast, cast_call, call.expressions,
-                expected_result_t{ .type = vec_element_type_eid, .location = exp.location, .modifier = value_modifier_t::runtime_value });
-            if (!res) {
-                error_storage err = append_cause(
-                    make_error<basic_general_error>(call.location, "cannot cast constexpr array or vector type to runtime vector type because element types are not compatible"sv, fd.entity_id()),
-                    std::move(res.error()));
                 if (cast_errors.alternatives.empty()) {
-                    return std::unexpected(std::move(err));
+                    auto pmd = make_shared<functional_match_descriptor>();
+                    pmd->emplace_back(0, er, argloc);
+                    pmd->signature.emplace_back(er.value(), true);
+                    pmd->signature.result.emplace(env.make_basic_signatured_entity(std::move(res_vec_sig)).id, true);
+                    return pmd;
                 }
-                cast_errors.alternatives.emplace_back(std::move(err));
-                return std::unexpected(make_error<alt_error>(std::move(cast_errors)));
             }
-            append_semantic_result(call.expressions, *pmd->result, *res);
+            // try runtime casts
+            // check if each element can be casted to vector element type
+            for (field_descriptor const& fd : array_data->fields()) {
+                pure_call_t cast_call{ call.location };
+                cast_call.emplace_back(annotated_entity_identifier{ fd.entity_id(), argloc });
+                auto match = ctx.find(builtin_qnid::implicit_cast, cast_call, temp_expressions,
+                    expected_result_t{ .type = vec_element_type_eid, .location = exp.location, .modifier = value_modifier_t::runtime_value });
+                if (!match) {
+                    error_storage err = append_cause(
+                        make_error<basic_general_error>(call.location, "cannot cast constexpr array type to runtime vector type because element types are not compatible"sv, fd.entity_id()),
+                        std::move(match.error()));
+                    if (cast_errors.alternatives.empty()) {
+                        return std::unexpected(std::move(err));
+                    }
+                    cast_errors.alternatives.emplace_back(std::move(err));
+                    return std::unexpected(make_error<alt_error>(std::move(cast_errors)));
+                }
+            }
+            auto pmd = make_shared<functional_match_descriptor>();
+            pmd->emplace_back(0, er, argloc);
+            pmd->signature.emplace_back(er.value(), true);
+            pmd->signature.result.emplace(exp.type, false);
+            return pmd;
         }
-        env.push_back_expression(call.expressions, pmd->result->expressions, semantic::push_value{ smart_blob{ ui64_blob_result(arg_data->fields().size()) } });
-        env.push_back_expression(call.expressions, pmd->result->expressions, semantic::invoke_function{ env.get(builtin_eid::arrayify) });
-            
-        pmd->emplace_back(0, er, argloc);
-        pmd->signature.emplace_back(er.value(), true);
-        pmd->signature.result.emplace(exp.type, false);
-        return pmd;
-    }
 
-    if (arg_element_type_eid != vec_element_type_eid) {
         // check if element cast exists
         pure_call_t cast_call{ call.location };
         semantic::managed_expression_list temp_expressions{ env };
         // fake stack value reference for the array element
-        cast_call.emplace_back(stack_value_reference{ .name = annotated_identifier{.location = argloc }, .type = arg_element_type_eid, .offset = 0 });
+        cast_call.emplace_back(stack_value_reference{ .name = annotated_identifier{.location = argloc }, .type = arr_element_type_eid, .offset = 0 });
         auto match = ctx.find(builtin_qnid::implicit_cast, cast_call, temp_expressions,
             expected_result_t{ .type = vec_element_type_eid, .location = exp.location, .modifier = value_modifier_t::runtime_value });
         if (!match) {
@@ -164,25 +131,25 @@ std::expected<functional_match_descriptor_ptr, error_storage> vector_implicit_ca
                 match.error()));
         }
     }
-    
+
+    auto pmd = make_shared<functional_match_descriptor>();
+    pmd->emplace_back(0, er, argloc);
+    pmd->signature.emplace_back(er.value_or_type, er.is_const_result);
     pmd->signature.result.emplace(exp.type);
     return pmd;
 }
 
-std::expected<syntax_expression_result_t, error_storage> vector_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> fixed_array_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& env = ctx.env();
-    auto& vmd = static_cast<vector_implicit_cast_match_descriptor&>(md);
-    
-    if (vmd.result) return std::move(*vmd.result);
-
-    BOOST_ASSERT(false); // not implemented yet for runtime casts
     auto& [_, er, argloc] = md.matches.front();
-
-    syntax_expression_result_t result{
+    
+    syntax_expression_result result{
         .value_or_type = md.signature.result->entity_id(),
         .is_const_result = md.signature.result->is_const()
     };
+    
+    if (result.is_const_result) return result;
 
     // Get array element types
     entity_identifier argtype = er.is_const_result ? get_entity(env, er.value()).get_type() : er.type();

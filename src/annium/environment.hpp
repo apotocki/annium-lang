@@ -114,6 +114,7 @@ class external_fn_pattern;
     ((is_const, "is_const"sv))             \
     ((apply, "apply"sv))                   \
     ((empty, "empty"sv))
+//((enum_, "enum"sv))                  
 
 #define ANNIUM_PRINT_TYPE_ENUM(r, data, i, elem) BOOST_PP_TUPLE_ELEM(2, 0, elem),
 

@@ -14,12 +14,12 @@
 namespace annium {
 
 template <typename HandlerT>
-std::expected<syntax_expression_result_t, error_storage> match_type(fn_compiler_context& caller_ctx, semantic::expression_list_t& expressions,
+std::expected<syntax_expression_result, error_storage> match_type(fn_compiler_context& caller_ctx, semantic::expression_list_t& expressions,
     syntax_expression_t const& expr, entity_identifier const& eid, resource_location eidloc, HandlerT const& hf)
 {
     auto res = apply_visitor(base_expression_visitor{ caller_ctx, expressions, { eid, eidloc } }, expr);
     if (!res) return std::unexpected(std::move(res.error()));
-    syntax_expression_result_t& ser = res->first;
+    syntax_expression_result& ser = res->first;
     if (ser.is_const_result) {
         entity const& ent = get_entity(caller_ctx.env(), ser.value());
         if (auto err = hf(ent.get_type(), res->second); err) return std::unexpected(std::move(err));

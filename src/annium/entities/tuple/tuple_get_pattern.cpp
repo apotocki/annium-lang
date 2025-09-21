@@ -55,7 +55,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_get_pattern:
 
     shared_ptr<tuple_get_match_descriptor> pmd;
     entity_identifier slftype;
-    syntax_expression_result_t& slf_arg_er = slf_arg->first;
+    syntax_expression_result& slf_arg_er = slf_arg->first;
     if (slf_arg_er.is_const_result) {
         entity const& slf_entity = get_entity(e, slf_arg_er.value());
         if (auto psig = slf_entity.signature(); psig && psig->name == e.get(builtin_qnid::tuple)) {
@@ -84,7 +84,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_get_pattern:
     return pmd;
 }
 
-std::expected<syntax_expression_result_t, error_storage> tuple_get_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> tuple_get_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& e = ctx.env();
     auto& tmd = static_cast<tuple_get_match_descriptor&>(md);
@@ -174,7 +174,7 @@ std::expected<syntax_expression_result_t, error_storage> tuple_get_pattern::appl
 
         // If the field is const, return as a constant result
         if (field->is_const()) {
-            return syntax_expression_result_t{
+            return syntax_expression_result{
                 .value_or_type = field->name() ? e.make_empty_entity(result_type).id : result_type,
                 .is_const_result = true
             };
@@ -250,7 +250,7 @@ std::expected<syntax_expression_result_t, error_storage> tuple_get_pattern::appl
 
         // TODO: Insert runtime selection logic here if needed
         THROW_NOT_IMPLEMENTED_ERROR("Tuple get pattern with const `self` and non-const `property` is not implemented yet."sv);
-        return syntax_expression_result_t{
+        return syntax_expression_result{
             .temporaries = std::move(slfer.temporaries),
             .expressions = std::move(exprs),
             .value_or_type = result_type,

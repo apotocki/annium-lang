@@ -39,7 +39,7 @@ std::ostream& signatured_entity::print_to(std::ostream& os, environment const& e
     //return entity::print_to(os, e) << "<"sv << e.print(*signature()) << ">"sv;
 }
 
-void append_semantic_result(semantic::expression_list_t& el, syntax_expression_result_t& dest, syntax_expression_result_t& src)
+void append_semantic_result(semantic::expression_list_t& el, syntax_expression_result& dest, syntax_expression_result& src)
 {
     if (!src.is_const_result) {
         dest.branches_expressions = el.concat(dest.branches_expressions, src.branches_expressions);
@@ -58,7 +58,7 @@ public:
     semantic::expression_span branches_expressions;
     semantic::expression_span expressions;
 
-    managed_expression_result(environment& e, expression_list_t& el, syntax_expression_result_t&& res) noexcept
+    managed_expression_result(environment& e, expression_list_t& el, syntax_expression_result&& res) noexcept
         : store_el{ e }
         , branches_expressions{ std::move(res.branches_expressions) }
         , expressions{ std::move(res.expressions) }
@@ -93,7 +93,7 @@ class indirect_expression_result : public indirect
 public:
     SONIA_POLYMORPHIC_CLONABLE_MOVABLE_IMPL(indirect_expression_result);
 
-    inline indirect_expression_result(environment& e, expression_list_t& el, syntax_expression_result_t&& res)
+    inline indirect_expression_result(environment& e, expression_list_t& el, syntax_expression_result&& res)
         : impl{ std::make_unique<managed_expression_result>(e, el, std::move(res)) }
     {}
 
@@ -115,7 +115,7 @@ public:
 
 }
 
-indirect_value make_indirect_value(environment& e, semantic::expression_list_t & el, syntax_expression_result_t && res, resource_location loc)
+indirect_value make_indirect_value(environment& e, semantic::expression_list_t & el, syntax_expression_result && res, resource_location loc)
 {
     return indirect_value{
         .location = std::move(loc),
@@ -124,14 +124,14 @@ indirect_value make_indirect_value(environment& e, semantic::expression_list_t &
     };
 }
 
-syntax_expression_result_t retrieve_indirect_value(environment&e, semantic::expression_list_t& el, indirect_value const& iv)
+syntax_expression_result retrieve_indirect_value(environment&e, semantic::expression_list_t& el, indirect_value const& iv)
 {
     auto const* pel = dynamic_cast<semantic::indirect_expression_result const*>(iv.store.get_pointer());
     if (!pel) {
         THROW_INTERNAL_ERROR("retrieve_indirect_value : indirect_value unexpected store type");
     }
 
-    syntax_expression_result_t result{
+    syntax_expression_result result{
         .value_or_type = iv.type,
         .is_const_result = false
     };

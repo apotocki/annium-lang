@@ -29,7 +29,7 @@ tuple_pattern_base::try_match_tuple(fn_compiler_context& ctx, prepared_call cons
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
-    syntax_expression_result_t& er = arg->first;
+    syntax_expression_result& er = arg->first;
     entity_identifier argtype;
     shared_ptr<tuple_pattern_match_descriptor> pmd;
     if (er.is_const_result) {

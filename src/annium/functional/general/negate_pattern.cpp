@@ -45,13 +45,13 @@ negate_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, e
     return pmd;
 }
 
-std::expected<syntax_expression_result_t, error_storage>
+std::expected<syntax_expression_result, error_storage>
 negate_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& e = ctx.env();
     auto& [_, arg_er, loc] = md.matches.front();
     
-    syntax_expression_result_t result{
+    syntax_expression_result result{
         .temporaries = std::move(arg_er.temporaries),
         .branches_expressions = arg_er.branches_expressions,
         .is_const_result = arg_er.is_const_result

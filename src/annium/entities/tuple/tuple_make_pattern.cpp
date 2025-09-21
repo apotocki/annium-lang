@@ -42,7 +42,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_make_pattern
     return pmd;
 }
 
-std::expected<syntax_expression_result_t, error_storage> tuple_make_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> tuple_make_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& e = ctx.env();
     
@@ -50,7 +50,7 @@ std::expected<syntax_expression_result_t, error_storage> tuple_make_pattern::app
     signature.name = e.get(builtin_qnid::tuple);
     signature.result.emplace(e.get(builtin_eid::typename_));
     
-    syntax_expression_result_t result{ };
+    syntax_expression_result result{ };
     for (auto& [_, mr, loc] : md.matches) {
         append_semantic_result(el, result, mr);
     }
@@ -136,10 +136,10 @@ std::expected<syntax_expression_result_t, error_storage> tuple_make_pattern::app
 //    }
 //
 //    if (mut_argcount) {
-//        return syntax_expression_result_t{ .expressions = std::move(exprs), .value_or_type = tuple_type_ent.id, .is_const_result = false };
+//        return syntax_expression_result{ .expressions = std::move(exprs), .value_or_type = tuple_type_ent.id, .is_const_result = false };
 //    }
 //
-//    return syntax_expression_result_t{ .expressions = std::move(exprs), .value_or_type = e.make_empty_entity(tuple_type_ent).id, .is_const_result = true };
+//    return syntax_expression_result{ .expressions = std::move(exprs), .value_or_type = e.make_empty_entity(tuple_type_ent).id, .is_const_result = true };
 //}
 
 }

@@ -107,7 +107,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_get_pattern
 #endif
 }
 
-std::expected<syntax_expression_result_t, error_storage> struct_get_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> struct_get_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& e = ctx.env();
     auto& tmd = static_cast<struct_get_match_descriptor&>(md);
@@ -156,7 +156,7 @@ std::expected<syntax_expression_result_t, error_storage> struct_get_pattern::app
         return std::unexpected(std::move(res.error()));
     }
 
-    syntax_expression_result_t result{
+    syntax_expression_result result{
         .temporaries = std::move(slfer.temporaries),
         .branches_expressions = el.concat(slfer.branches_expressions, proper.branches_expressions),
         .expressions = res->expressions,

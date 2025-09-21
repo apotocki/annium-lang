@@ -30,7 +30,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> equal_pattern::try
             return std::unexpected(make_error<basic_general_error>(call.location, "equality comparison requires two arguments: missing first argument"sv));
         }
     }
-    syntax_expression_result_t& lhs_arg_er = lhs_arg->first;
+    syntax_expression_result& lhs_arg_er = lhs_arg->first;
     resource_location lhs_loc = get_start_location(*get<0>(lhs_expr));
     entity_identifier lhs_type = lhs_arg_er.is_const_result ? get_entity(ctx.env(), lhs_arg_er.value()).get_type() : lhs_arg_er.type();
 
@@ -54,20 +54,20 @@ std::expected<functional_match_descriptor_ptr, error_storage> equal_pattern::try
     return std::move(pmd);
 }
 
-std::expected<syntax_expression_result_t, error_storage> equal_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> equal_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& e = ctx.env();
     auto& [_, lhs_er, lhs_loc] = md.matches.front();
     auto& [__, rhs_er, rhs_loc] = md.matches.back();
 
     if (lhs_er.is_const_result && rhs_er.is_const_result) {
-        return syntax_expression_result_t{
+        return syntax_expression_result{
             .value_or_type = e.make_bool_entity(lhs_er.value() == rhs_er.value()).id,
             .is_const_result = true
         };
     }
 
-    syntax_expression_result_t result{
+    syntax_expression_result result{
         .value_or_type = e.get(builtin_eid::boolean),
         .is_const_result = false
     };

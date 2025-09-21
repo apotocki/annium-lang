@@ -25,7 +25,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> deref_pattern::try
     auto argerror = [&arg_expr] {
         return std::unexpected(make_error<basic_general_error>(get_start_location(*get<0>(arg_expr)), "argument mismatch"sv, *get<0>(arg_expr)));
     };
-    syntax_expression_result_t& arg_er = arg->first;
+    syntax_expression_result& arg_er = arg->first;
     if (!arg_er.is_const_result) return argerror();
     entity const& argent = get_entity(ctx.env(), arg_er.value());
     if (argent.get_type() != ctx.env().get(builtin_eid::qname)) return argerror();
@@ -38,7 +38,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> deref_pattern::try
     return std::move(pmd);
 }
 
-std::expected<syntax_expression_result_t, error_storage> deref_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> deref_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& e = ctx.env();
     auto & [_, ser, loc] = md.matches.front();

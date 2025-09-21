@@ -10,7 +10,7 @@ namespace annium {
 class fn_compiler_context;
 
 // if result entity_identifier is empty -> ignore  (void argument case)
-struct value_type_match_visitor : static_visitor<std::expected<syntax_expression_result_t, error_storage>>
+struct value_type_match_visitor : static_visitor<std::expected<syntax_expression_result, error_storage>>
 {
     fn_compiler_context& caller_ctx;
     fn_compiler_context& callee_ctx;

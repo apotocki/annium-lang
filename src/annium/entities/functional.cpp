@@ -79,12 +79,12 @@ functional_binding::value_type& functional_binding_set::emplace_back(annotated_i
 
 //void parameter_match_result::append_result(entity_identifier type, semantic::expression_span sp)
 //{
-//    results.emplace_back(syntax_expression_result_t{ .expressions = std::move(sp), .value_or_type = type, .is_const_result = false });
+//    results.emplace_back(syntax_expression_result{ .expressions = std::move(sp), .value_or_type = type, .is_const_result = false });
 //}
 //
 //void parameter_match_result::append_const_result(entity_identifier value, semantic::expression_span sp)
 //{
-//    results.emplace_back(syntax_expression_result_t{ .expressions = std::move(sp), .value_or_type = value, .is_const_result = true });
+//    results.emplace_back(syntax_expression_result{ .expressions = std::move(sp), .value_or_type = value, .is_const_result = true });
 //}
 
 //void parameter_match_result::set_constexpr(bool ce_val)
@@ -179,7 +179,7 @@ entity_signature functional_match_descriptor::build_signature(environment & e, q
     for (mr_pair_t & pair : pmrs_) {
         parameter_match_result& pmr = get<1>(pair);
         //BOOST_ASSERT(pmr.results.size() == 1);
-        //syntax_expression_result_t const& er = pmr.results.front();
+        //syntax_expression_result const& er = pmr.results.front();
         if (identifier name = get<0>(pair)) {
             for (auto const& er : pmr.results) {
                 sig.emplace_back(name, er.value_or_type, er.is_const_result);
@@ -331,7 +331,7 @@ struct expression_stack_checker
 
 std::expected<functional::match, error_storage> functional::find(
     fn_compiler_context& ctx,
-    syntax_expression_result_t* capture_result, // optional, nullptr if not needed
+    syntax_expression_result* capture_result, // optional, nullptr if not needed
     pure_call_t const& call,
     semantic::expression_list_t& ael,
     expected_result_t const& expected_result) const
@@ -465,7 +465,7 @@ std::expected<syntax_expression_t const*, error_storage> try_match_single_unname
     return matched_arg;
 }
 
-std::expected<syntax_expression_result_t, error_storage>
+std::expected<syntax_expression_result, error_storage>
 functional::match::apply(fn_compiler_context& ctx)
 {
     auto r = ptrn_->apply(ctx, expressions, *md_);

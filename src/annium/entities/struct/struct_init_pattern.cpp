@@ -77,7 +77,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_init_patter
     return res;
 }
 
-std::expected<syntax_expression_result_t, error_storage> struct_init_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> struct_init_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     // create tuple instance
     environment& e = ctx.env();

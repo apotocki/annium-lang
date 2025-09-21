@@ -26,7 +26,7 @@ error_storage struct_fn_pattern::init(fn_compiler_context& ctx, annotated_qname 
     return basic_fn_pattern::init(ctx, fn);
 }
 
-std::expected<syntax_expression_result_t, error_storage> struct_fn_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> struct_fn_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& e = ctx.env();
     md.signature.result.emplace(e.get(builtin_eid::typename_));
@@ -46,7 +46,7 @@ std::expected<syntax_expression_result_t, error_storage> struct_fn_pattern::appl
         return res;
     });
 
-    return syntax_expression_result_t{
+    return syntax_expression_result{
         .value_or_type = struct_end.id,
         .is_const_result = true
     };

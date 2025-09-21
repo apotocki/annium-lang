@@ -23,7 +23,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_tail_pattern
     return try_match_tuple(ctx, call, exp);
 }
 
-std::expected<syntax_expression_result_t, error_storage> tuple_tail_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> tuple_tail_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& e = ctx.env();
     auto& tmd = static_cast<tuple_pattern_match_descriptor&>(md);

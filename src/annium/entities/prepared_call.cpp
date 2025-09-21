@@ -190,7 +190,7 @@ error_storage prepared_call::prepare()
                 }
 
                 //add_subarg(fd_groupname, *res);
-                syntax_expression_result_t& elem_ser = *res;
+                syntax_expression_result& elem_ser = *res;
                 BOOST_ASSERT(!elem_ser.is_const_result);
                 //if (elem_ser.is_const_result) {
                 //    append_arg(fd_groupname, annotated_entity_identifier{ elem_ser.value(), arg_expr_loc });
@@ -265,7 +265,7 @@ prepared_call::session::session(fn_compiler_context& ctxval, prepared_call const
     positioned_usage_map_ = call.positioned_map_;
 }
 
-std::expected<std::pair<syntax_expression_result_t, bool>, error_storage>
+std::expected<std::pair<syntax_expression_result, bool>, error_storage>
 prepared_call::session::do_resolve(argument_cache& arg_cache, expected_result_t const& exp)
 {
     auto cit = arg_cache.cache.find({ exp.type, exp.modifier });
@@ -303,13 +303,13 @@ bool prepared_call::session::has_more_positioned_arguments() const noexcept
     return positioned_usage_map_ != 0;
 }
 
-std::expected<std::pair<syntax_expression_result_t, bool>, error_storage>
+std::expected<std::pair<syntax_expression_result, bool>, error_storage>
 prepared_call::session::use_next_positioned_argument(std::pair<syntax_expression_t const*, size_t>* pe)
 {
     return use_next_positioned_argument(expected_result_t{}, pe);
 }
 
-std::expected<std::pair<syntax_expression_result_t, bool>, error_storage>
+std::expected<std::pair<syntax_expression_result, bool>, error_storage>
 prepared_call::session::use_next_positioned_argument(expected_result_t const& exp, std::pair<syntax_expression_t const*, size_t> * pe)
 {
     while (positioned_usage_map_) {
@@ -334,7 +334,7 @@ prepared_call::session::use_next_positioned_argument(expected_result_t const& ex
     return std::unexpected(error_storage{});
 }
 
-std::expected<std::pair<syntax_expression_result_t, bool>, error_storage>
+std::expected<std::pair<syntax_expression_result, bool>, error_storage>
 prepared_call::session::use_named_argument(identifier name, expected_result_t const& exp, std::pair<syntax_expression_t const*, size_t>* pe)
 {
     for (auto tmp_map = named_usage_map_; tmp_map;) {
@@ -360,7 +360,7 @@ prepared_call::session::use_named_argument(identifier name, expected_result_t co
     return std::unexpected(error_storage{});
 }
 
-std::expected<std::pair<syntax_expression_result_t, bool>, error_storage>
+std::expected<std::pair<syntax_expression_result, bool>, error_storage>
 prepared_call::session::use_next_argument(expected_result_t const& exp, next_argument_descriptor_t* pe)
 {
     for (auto tmp_map = named_usage_map_ | positioned_usage_map_; tmp_map;) {

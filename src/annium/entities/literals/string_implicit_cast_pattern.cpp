@@ -43,7 +43,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> string_implicit_ca
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    syntax_expression_result_t& src_arg_er = src_arg->first;
+    syntax_expression_result& src_arg_er = src_arg->first;
     entity_identifier source_type_id;
     entity const* source_type_entity = nullptr;
     if (src_arg_er.is_const_result) {
@@ -73,7 +73,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> string_implicit_ca
     return std::move(pmd);
 }
 
-std::expected<syntax_expression_result_t, error_storage> string_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> string_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     auto& [_, src, loc] = md.matches.front();
     auto const& sig_res = *md.signature.result;

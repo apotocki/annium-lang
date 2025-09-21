@@ -121,7 +121,7 @@ public:
     std::expected<functional::match, error_storage> find(builtin_qnid, pure_call_t const&, semantic::expression_list_t&, expected_result_t const& = expected_result_t{});
     std::expected<functional::match, error_storage> find(qname_identifier, pure_call_t const&, semantic::expression_list_t&, expected_result_t const& = expected_result_t{});
     
-    std::expected<syntax_expression_result_t, error_storage> find_and_apply(builtin_qnid, pure_call_t const&, semantic::expression_list_t&, expected_result_t const& = expected_result_t{});
+    std::expected<syntax_expression_result, error_storage> find_and_apply(builtin_qnid, pure_call_t const&, semantic::expression_list_t&, expected_result_t const& = expected_result_t{});
 
 #if 0
     // to do: resolving depends on qname
@@ -248,7 +248,7 @@ public:
     void append_expression(semantic::expression&&);
     void append_expressions(semantic::expression_list_t&, semantic::expression_span);
     void append_stored_expressions(semantic::expression_list_t&, semantic::expression_span);
-    //void adopt_and_append(semantic::expression_list_t&, syntax_expression_result_t&);
+    //void adopt_and_append(semantic::expression_list_t&, syntax_expression_result&);
 
     semantic::expression_span store_semantic_expressions(semantic::managed_expression_list&&);
     semantic::managed_expression_list& expression_store() { return expression_store_; }

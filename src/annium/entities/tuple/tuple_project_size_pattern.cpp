@@ -35,7 +35,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_project_size
 
     entity_identifier slftype;
     
-    syntax_expression_result_t& arg_er = arg->first;
+    syntax_expression_result& arg_er = arg->first;
     if (arg_er.is_const_result) {
         entity const& slf_entity = get_entity(e, arg_er.value());
         slftype = slf_entity.get_type();
@@ -81,11 +81,11 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_project_size
     return pmd;
 }
 
-std::expected<syntax_expression_result_t, error_storage> tuple_project_size_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> tuple_project_size_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
-    syntax_expression_result_t & arg = get<1>(md.matches.front());
+    syntax_expression_result & arg = get<1>(md.matches.front());
 
-    return syntax_expression_result_t{
+    return syntax_expression_result{
         .temporaries = std::move(arg.temporaries),
         .value_or_type = md.signature.result->entity_id(),
         .is_const_result = true

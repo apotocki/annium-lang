@@ -60,7 +60,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> to_union_implicit_
     }
 
     resource_location arg_loc = get_start_location(*get<0>(arg_expr));
-    syntax_expression_result_t& er = arg->first;
+    syntax_expression_result& er = arg->first;
     entity_identifier er_type;
     optional<std::pair<size_t, bool>> type_index_and_kind; // index and 'no cast needed'
     
@@ -127,14 +127,14 @@ std::expected<functional_match_descriptor_ptr, error_storage> to_union_implicit_
     return pmd;
 }
 
-std::expected<syntax_expression_result_t, error_storage> to_union_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> to_union_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& env = ctx.env();
     auto& umd = static_cast<to_union_cast_match_descriptor&>(md);
 
     auto & [_, arg_er, arg_loc] = md.matches.front();
 
-    syntax_expression_result_t result{
+    syntax_expression_result result{
         //.temporaries = std::move(arg_er.temporaries),
         //.expressions = arg_er.expressions,
         .value_or_type = umd.signature.result->entity_id(),

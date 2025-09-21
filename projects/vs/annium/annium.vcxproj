@@ -19,7 +19,15 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\..\annium-lang\src\annium\entities\vector\vector_implicit_cast_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\entities\array\array_implicit_cast_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\entities\array\array_make_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\entities\enum\enum_to_string_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\entities\fixed_array\fixed_array_elements_implicit_cast_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\entities\fixed_array\fixed_array_get_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\entities\fixed_array\fixed_array_head_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\entities\fixed_array\fixed_array_implicit_cast_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\entities\fixed_array\fixed_array_make_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\entities\fixed_array\fixed_array_tail_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\annium.cpp" />
     <ClCompile Include="..\..\..\src\annium\annium.tab.cpp" />
     <ClCompile Include="..\..\..\src\annium\annium.yy.cpp" />
@@ -46,12 +54,6 @@
     <ClCompile Include="..\..\..\src\annium\ast\expression_visitor.cpp" />
     <ClCompile Include="..\..\..\src\annium\ast\fn_compiler_context.cpp" />
     <ClCompile Include="..\..\..\src\annium\ast\functional_declaration_visitor.cpp" />
-    <ClCompile Include="..\..\..\src\annium\entities\array\array_elements_implicit_cast_pattern.cpp" />
-    <ClCompile Include="..\..\..\src\annium\entities\array\array_get_pattern.cpp" />
-    <ClCompile Include="..\..\..\src\annium\entities\array\array_head_pattern.cpp" />
-    <ClCompile Include="..\..\..\src\annium\entities\array\array_implicit_cast_pattern.cpp" />
-    <ClCompile Include="..\..\..\src\annium\entities\array\array_make_pattern.cpp" />
-    <ClCompile Include="..\..\..\src\annium\entities\array\array_tail_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\ellipsis\ellipsis_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\enum\enum_entity.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\enum\enum_implicit_cast_pattern.cpp" />
@@ -70,48 +72,6 @@
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_implicit_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\literals\string_concat_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\literals\string_implicit_cast_pattern.cpp" />
-    <ClCompile Include="..\..\..\src\annium\entities\metaobject\metaobject_argument_pattern.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\metaobject\metaobject_bit_and_pattern.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\metaobject\metaobject_empty_pattern.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\metaobject\metaobject_head_pattern.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\metaobject\metaobject_pattern.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\metaobject\metaobject_tail_pattern.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\metaobject\metaobject_typeof_pattern.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\prepared_call.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\struct\struct_entity.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\struct\struct_fn_pattern.cpp" />
@@ -137,7 +97,6 @@
     <ClCompile Include="..\..\..\src\annium\entities\union\union_bit_or_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\union\to_union_implicit_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\variable_entity.cpp" />
-    <ClCompile Include="..\..\..\src\annium\entities\vector\vector_make_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\errors\assign_error.cpp" />
     <ClCompile Include="..\..\..\src\annium\errors\cast_error.cpp" />
     <ClCompile Include="..\..\..\src\annium\errors\circular_dependency_error.cpp" />
@@ -190,8 +149,16 @@
     <ClCompile Include="..\..\..\src\sonia\mvvm\bunch_builder_view_model.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\..\..\annium-lang\src\annium\ast\base_expression_visitor.ipp" />
-    <ClInclude Include="..\..\..\..\..\..\annium-lang\src\annium\entities\vector\vector_implicit_cast_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\ast\base_expression_visitor.ipp" />
+    <ClInclude Include="..\..\..\src\annium\entities\array\array_implicit_cast_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\array\array_make_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\enum\enum_to_string_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\fixed_array\fixed_array_elements_implicit_cast_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\fixed_array\fixed_array_get_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\fixed_array\fixed_array_head_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\fixed_array\fixed_array_implicit_cast_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\fixed_array\fixed_array_make_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\fixed_array\fixed_array_tail_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\annium.hpp" />
     <ClInclude Include="..\..\..\src\annium\annium.tab.hpp" />
     <ClInclude Include="..\..\..\src\annium\annium.yy.hpp" />
@@ -217,12 +184,6 @@
     <ClInclude Include="..\..\..\src\annium\ast\vector_expression_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast_terms.hpp" />
     <ClInclude Include="..\..\..\src\annium\auxiliary.hpp" />
-    <ClInclude Include="..\..\..\src\annium\entities\array\array_elements_implicit_cast_pattern.hpp" />
-    <ClInclude Include="..\..\..\src\annium\entities\array\array_get_pattern.hpp" />
-    <ClInclude Include="..\..\..\src\annium\entities\array\array_head_pattern.hpp" />
-    <ClInclude Include="..\..\..\src\annium\entities\array\array_implicit_cast_pattern.hpp" />
-    <ClInclude Include="..\..\..\src\annium\entities\array\array_make_pattern.hpp" />
-    <ClInclude Include="..\..\..\src\annium\entities\array\array_tail_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\ellipsis\ellipsis_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\enum\enum_entity.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\enum\enum_implicit_cast_pattern.hpp" />
@@ -238,13 +199,6 @@
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_implicit_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\literals\string_concat_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\literals\string_implicit_cast_pattern.hpp" />
-    <ClInclude Include="..\..\..\src\annium\entities\metaobject\metaobject_argument_pattern.hpp" />
-    <ClInclude Include="..\..\..\src\annium\entities\metaobject\metaobject_bit_and_pattern.hpp" />
-    <ClInclude Include="..\..\..\src\annium\entities\metaobject\metaobject_empty_pattern.hpp" />
-    <ClInclude Include="..\..\..\src\annium\entities\metaobject\metaobject_head_pattern.hpp" />
-    <ClInclude Include="..\..\..\src\annium\entities\metaobject\metaobject_pattern.hpp" />
-    <ClInclude Include="..\..\..\src\annium\entities\metaobject\metaobject_tail_pattern.hpp" />
-    <ClInclude Include="..\..\..\src\annium\entities\metaobject\metaobject_typeof_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\prepared_call.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\signatured_entity.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\struct\struct_entity.hpp" />
@@ -272,7 +226,6 @@
     <ClInclude Include="..\..\..\src\annium\entities\union\union_bit_or_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\union\to_union_implicit_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\variable_entity.hpp" />
-    <ClInclude Include="..\..\..\src\annium\entities\vector\vector_make_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\errors.hpp" />
     <ClInclude Include="..\..\..\src\annium\errors\assign_error.hpp" />
     <ClInclude Include="..\..\..\src\annium\errors\cast_error.hpp" />

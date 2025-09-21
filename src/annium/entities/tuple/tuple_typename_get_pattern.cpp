@@ -53,7 +53,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_typename_get
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    syntax_expression_result_t& slf_arg_er = slf_arg->first;
+    syntax_expression_result& slf_arg_er = slf_arg->first;
     
     // This pattern only handles const results (tuple typename)
     if (!slf_arg_er.is_const_result) {
@@ -76,7 +76,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_typename_get
     return pmd;
 }
 
-std::expected<syntax_expression_result_t, error_storage> tuple_typename_get_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> tuple_typename_get_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& e = ctx.env();
     auto& tmd = static_cast<tuple_typename_get_match_descriptor&>(md);
@@ -84,7 +84,7 @@ std::expected<syntax_expression_result_t, error_storage> tuple_typename_get_patt
     auto& proper = get<1>(md.matches[1]);
 
     slfer.temporaries.insert(slfer.temporaries.end(), proper.temporaries.begin(), proper.temporaries.end());
-    syntax_expression_result_t result{
+    syntax_expression_result result{
         .temporaries = std::move(slfer.temporaries),
         .is_const_result = true
     };

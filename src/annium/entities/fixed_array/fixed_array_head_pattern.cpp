@@ -2,7 +2,7 @@
 //  Annium is licensed under the terms of the MIT License.
 
 #include "sonia/config.hpp"
-#include "array_head_pattern.hpp"
+#include "fixed_array_head_pattern.hpp"
 
 #include <algorithm>
 
@@ -18,10 +18,10 @@
 
 namespace annium {
 
-class array_head_pattern_match_descriptor : public functional_match_descriptor
+class fixed_array_head_pattern_match_descriptor : public functional_match_descriptor
 {
 public:
-    inline array_head_pattern_match_descriptor(prepared_call const& call, entity_signature const* sig) noexcept
+    inline fixed_array_head_pattern_match_descriptor(prepared_call const& call, entity_signature const* sig) noexcept
         : functional_match_descriptor{ call }
         , arg_sig{ sig }
     {}
@@ -29,7 +29,7 @@ public:
     entity_signature const* arg_sig;
 };
 
-std::expected<functional_match_descriptor_ptr, error_storage> array_head_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const&) const
+std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_head_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const&) const
 {
     environment& e = ctx.env();
     auto call_session = call.new_session(ctx);
@@ -45,20 +45,20 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_head_pattern
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    syntax_expression_result_t& er = arg->first;
+    syntax_expression_result& er = arg->first;
     entity_identifier argtype;
     shared_ptr<functional_match_descriptor> pmd;
     if (er.is_const_result) {
         entity const& arg_entity = get_entity(e, er.value());
         if (auto psig = arg_entity.signature(); psig && psig->name == e.get(builtin_qnid::data)) {
             argtype = arg_entity.get_type();
-            pmd = make_shared<array_head_pattern_match_descriptor>(call, psig);
+            pmd = make_shared<fixed_array_head_pattern_match_descriptor>(call, psig);
         } else {
             return std::unexpected(make_error<type_mismatch_error>(get_start_location(*get<0>(arg_expr)), er.value(), "an array type"sv));
         }
     } else {
         argtype = er.type();
-        pmd = make_shared<array_head_pattern_match_descriptor>(call, nullptr);
+        pmd = make_shared<fixed_array_head_pattern_match_descriptor>(call, nullptr);
     }
 
     entity const& arg_type_entity = get_entity(e, argtype);
@@ -70,10 +70,10 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_head_pattern
     return pmd;
 }
 
-std::expected<syntax_expression_result_t, error_storage> array_head_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> fixed_array_head_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& e = ctx.env();
-    auto& amd = static_cast<array_head_pattern_match_descriptor&>(md);
+    auto& amd = static_cast<fixed_array_head_pattern_match_descriptor&>(md);
     auto& [_, er, loc] = md.matches.front();
 
     if (er.is_const_result) {
@@ -86,16 +86,16 @@ std::expected<syntax_expression_result_t, error_storage> array_head_pattern::app
         entity const& arg_type_entity = get_entity(e, er.type());
         field_descriptor const* tfd = arg_type_entity.signature()->find_field(e.get(builtin_id::of));
         if (!tfd) {
-            THROW_INTERNAL_ERROR("array_head_pattern::apply: expected 'of' field in array type"sv);
+            THROW_INTERNAL_ERROR("fixed_array_head_pattern::apply: expected 'of' field in array type"sv);
         }
         er.value_or_type = tfd->entity_id();
         field_descriptor const* szfd = arg_type_entity.signature()->find_field(e.get(builtin_id::size));
         if (!szfd) {
-            THROW_INTERNAL_ERROR("array_head_pattern::apply: expected 'size' field in array type"sv);
+            THROW_INTERNAL_ERROR("fixed_array_head_pattern::apply: expected 'size' field in array type"sv);
         }
         generic_literal_entity const* pszent = dynamic_cast<generic_literal_entity const*>(&get_entity(e, szfd->entity_id()));
         if (!pszent) {
-            THROW_INTERNAL_ERROR("array_head_pattern::apply: expected 'size' field to be a literal entity"sv);
+            THROW_INTERNAL_ERROR("fixed_array_head_pattern::apply: expected 'size' field to be a literal entity"sv);
         }
         size_t arrsz = pszent->value().as<size_t>();
         if (arrsz > 1) {

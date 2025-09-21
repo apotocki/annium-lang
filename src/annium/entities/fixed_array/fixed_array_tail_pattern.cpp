@@ -2,7 +2,7 @@
 //  Annium is licensed under the terms of the MIT License.
 
 #include "sonia/config.hpp"
-#include "array_tail_pattern.hpp"
+#include "fixed_array_tail_pattern.hpp"
 
 #include "annium/ast/fn_compiler_context.hpp"
 #include "annium/entities/prepared_call.hpp"
@@ -14,10 +14,10 @@
 
 namespace annium {
 
-class array_tail_pattern_match_descriptor : public functional_match_descriptor
+class fixed_array_tail_pattern_match_descriptor : public functional_match_descriptor
 {
 public:
-    inline array_tail_pattern_match_descriptor(prepared_call const& call, entity_signature const* sig) noexcept
+    inline fixed_array_tail_pattern_match_descriptor(prepared_call const& call, entity_signature const* sig) noexcept
         : functional_match_descriptor{ call }
         , arg_sig{ sig }
     {}
@@ -25,7 +25,7 @@ public:
     entity_signature const* arg_sig;
 };
 
-std::expected<functional_match_descriptor_ptr, error_storage> array_tail_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
+std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_tail_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
 {
     environment& e = ctx.env();
     auto call_session = call.new_session(ctx);
@@ -42,7 +42,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_tail_pattern
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    syntax_expression_result_t& er = arg->first;
+    syntax_expression_result& er = arg->first;
     entity_identifier argtype;
     shared_ptr<functional_match_descriptor> pmd;
     
@@ -50,13 +50,13 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_tail_pattern
         entity const& arg_entity = get_entity(e, er.value());
         if (auto psig = arg_entity.signature(); psig && psig->name == e.get(builtin_qnid::data)) {
             argtype = arg_entity.get_type();
-            pmd = make_shared<array_tail_pattern_match_descriptor>(call, psig);
+            pmd = make_shared<fixed_array_tail_pattern_match_descriptor>(call, psig);
         } else {
             return std::unexpected(make_error<type_mismatch_error>(get_start_location(*get<0>(arg_expr)), er.value(), "an array"sv));
         }
     } else {
         argtype = er.type();
-        pmd = make_shared<array_tail_pattern_match_descriptor>(call, nullptr);
+        pmd = make_shared<fixed_array_tail_pattern_match_descriptor>(call, nullptr);
     }
 
     entity const& arg_type_entity = get_entity(e, argtype);
@@ -68,10 +68,10 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_tail_pattern
     return pmd;
 }
 
-std::expected<syntax_expression_result_t, error_storage> array_tail_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> fixed_array_tail_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& e = ctx.env();
-    auto& amd = static_cast<array_tail_pattern_match_descriptor&>(md);
+    auto& amd = static_cast<fixed_array_tail_pattern_match_descriptor&>(md);
     auto& [_, er, loc] = md.matches.front();
     
     if (er.is_const_result) {

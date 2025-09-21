@@ -216,7 +216,7 @@ numeric_literal_equal_pattern::try_match(fn_compiler_context& ctx, prepared_call
         }
     }
 
-    syntax_expression_result_t & lhs_arg_er = lhs_arg->first;
+    syntax_expression_result & lhs_arg_er = lhs_arg->first;
     
     entity_identifier lhs_type_id;
     entity const* lhs_type_entity = nullptr;
@@ -249,7 +249,7 @@ numeric_literal_equal_pattern::try_match(fn_compiler_context& ctx, prepared_call
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    syntax_expression_result_t & rhs_arg_er = rhs_arg->first;
+    syntax_expression_result & rhs_arg_er = rhs_arg->first;
     
     entity_identifier rhs_type_id;
     entity const* rhs_type_entity = nullptr;
@@ -291,7 +291,7 @@ numeric_literal_equal_pattern::try_match(fn_compiler_context& ctx, prepared_call
     return std::move(pmd);
 }
 
-std::expected<syntax_expression_result_t, error_storage>
+std::expected<syntax_expression_result, error_storage>
 numeric_literal_equal_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     auto& nmd = static_cast<numeric_literal_equal_match_descriptor&>(md);
@@ -308,13 +308,13 @@ numeric_literal_equal_pattern::apply(fn_compiler_context& ctx, semantic::express
         
         bool comparison_result = compare_constexpr_literal_values(nmd.lhs_arg, nmd.rhs_arg, lhs_type, rhs_type);
         
-        return syntax_expression_result_t{
+        return syntax_expression_result{
             .value_or_type = e.make_bool_entity(comparison_result).id,
             .is_const_result = true
         };
     } else {
         // At least one argument is runtime - generate runtime comparison
-        syntax_expression_result_t result{
+        syntax_expression_result result{
             .value_or_type = e.get(builtin_eid::boolean),
             .is_const_result = false
         };

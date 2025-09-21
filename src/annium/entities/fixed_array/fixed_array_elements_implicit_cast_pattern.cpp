@@ -2,7 +2,7 @@
 //  Annium is licensed under the terms of the MIT License.
 
 #include "sonia/config.hpp"
-#include "array_elements_implicit_cast_pattern.hpp"
+#include "fixed_array_elements_implicit_cast_pattern.hpp"
 
 #include "annium/ast/fn_compiler_context.hpp"
 #include "annium/ast/base_expression_visitor.hpp"
@@ -17,7 +17,7 @@
 
 namespace annium {
 
-std::expected<functional_match_descriptor_ptr, error_storage> array_elements_implicit_cast_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
+std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_elements_implicit_cast_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
 {
     if (!exp.type) {
         return std::unexpected(make_error<basic_general_error>(call.location, "expected a vector result"sv));
@@ -74,7 +74,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_elements_imp
                 BOOST_ASSERT(pargeld);
                 auto res = cast_vis(annotated_entity_identifier{ pargeld->entity_id(), arg_loc });
                 if (!res) return std::unexpected(std::move(res.error()));
-                if (res->first.expressions) THROW_NOT_IMPLEMENTED_ERROR("array_elements_implicit_cast_pattern::try_match");
+                if (res->first.expressions) THROW_NOT_IMPLEMENTED_ERROR("fixed_array_elements_implicit_cast_pattern::try_match");
                 ct_element_results.push_back(res->first.value());
             }
 
@@ -92,9 +92,9 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_elements_imp
 }
 
 
-std::expected<syntax_expression_result_t, error_storage> array_elements_implicit_cast_pattern::apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> fixed_array_elements_implicit_cast_pattern::apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor& md) const
 {
-    return syntax_expression_result_t{
+    return syntax_expression_result{
         .value_or_type = md.signature.result->entity_id(),
         .is_const_result = true
     };

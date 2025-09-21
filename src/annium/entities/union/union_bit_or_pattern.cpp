@@ -30,7 +30,7 @@ union_bit_or_pattern::try_match(fn_compiler_context& ctx, prepared_call const& c
                 make_error<basic_general_error>(get_start_location(*get<0>(arg_expr)), "invalid argument"sv),
                 std::move(arg.error())));
         }
-        syntax_expression_result_t& er = arg->first;
+        syntax_expression_result& er = arg->first;
         if (!er.is_const_result) {
             return std::unexpected(make_error<basic_general_error>(get_start_location(*get<0>(arg_expr)), "argument must be a constant expression"sv));
         }
@@ -46,7 +46,7 @@ union_bit_or_pattern::try_match(fn_compiler_context& ctx, prepared_call const& c
     return pmd;
 }
 
-std::expected<syntax_expression_result_t, error_storage> union_bit_or_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> union_bit_or_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& env = ctx.env();
 
@@ -72,7 +72,7 @@ std::expected<syntax_expression_result_t, error_storage> union_bit_or_pattern::a
         }
     }
 
-    return syntax_expression_result_t{
+    return syntax_expression_result{
         .value_or_type = env.make_union_type_entity(elements_vec).id,
         .is_const_result = true
     };

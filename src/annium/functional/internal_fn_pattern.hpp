@@ -20,7 +20,7 @@ public:
 
     inline void set_captures(basic_signatured_entity const& captures) noexcept { captures_ = &captures; }
 
-    std::expected<syntax_expression_result_t, error_storage> apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const override;
+    std::expected<syntax_expression_result, error_storage> apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const override;
 
 protected:
     void build_scope(environment&, functional_match_descriptor&, internal_function_entity& /* out */) const;

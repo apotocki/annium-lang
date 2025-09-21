@@ -145,7 +145,7 @@ void internal_fn_pattern::build_scope(environment& e, functional_match_descripto
     fent.bindings = std::move(md.bindings);
 }
 
-std::expected<syntax_expression_result_t, error_storage> internal_fn_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> internal_fn_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& env = ctx.env();
     auto [result, mut_arg_cnt] = apply_arguments(ctx, el, md);

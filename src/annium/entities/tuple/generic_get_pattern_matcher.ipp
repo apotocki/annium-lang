@@ -51,7 +51,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> generic_get_patter
         return std::unexpected(std::move(slf_arg.error()));
     }
 
-    syntax_expression_result_t& slf_arg_er = slf_arg->first;
+    syntax_expression_result& slf_arg_er = slf_arg->first;
     if (slf_arg_er.is_const_result) {
         entity const& slf_entity = get_entity(e, slf_arg_er.value());
         slftype = slf_entity.get_type();

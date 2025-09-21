@@ -40,7 +40,7 @@ public:
     std::ostream& print(environment const&, std::ostream& s) const override;
 
 protected:
-    std::pair<syntax_expression_result_t, size_t> apply_arguments(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const;
+    std::pair<syntax_expression_result, size_t> apply_arguments(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const;
 };
 
 }

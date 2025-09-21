@@ -18,7 +18,7 @@ public:
     try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const&) const override;
 
     // Applies the cast, producing the result tuple if all fields can be cast.
-    std::expected<syntax_expression_result_t, error_storage>
+    std::expected<syntax_expression_result, error_storage>
     apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const override;
 
     std::ostream& print(environment const&, std::ostream& s) const override { return s << "implicit_cast(@tuple)->@tuple"sv; }

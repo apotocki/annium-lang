@@ -50,12 +50,12 @@ std::expected<functional_match_descriptor_ptr, error_storage> error_pattern::try
     return std::move(pmd);
 }
 
-std::expected<syntax_expression_result_t, error_storage> error_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> error_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& e = ctx.env();
     auto& msg_er = get<1>(md.matches.front());
     
-    syntax_expression_result_t result{
+    syntax_expression_result result{
         .temporaries = std::move(msg_er.temporaries),
         .branches_expressions = std::move(msg_er.branches_expressions)
     };

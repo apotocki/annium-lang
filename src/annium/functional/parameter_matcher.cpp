@@ -89,7 +89,7 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
             }
         }
 
-        syntax_expression_result_t& arg_er = res->first;
+        syntax_expression_result& arg_er = res->first;
         error_storage err = apply_visitor(make_functional_visitor<error_storage>([&](auto const& constraint) -> error_storage {
             if constexpr (std::is_same_v<syntax_expression_t, std::decay_t<decltype(constraint)>>) {
                 if (can_be_only_constexpr(argexp.modifier)) {
@@ -180,7 +180,7 @@ parameter_matcher::resolve_expression_expected_result(fn_compiler_context& calle
         ));
     }
     expected_result_t expr_exp{ .location = get_start_location(constraint), .modifier = to_value_modifier(param_mod) };
-    syntax_expression_result_t& cnt_res_er = cnt_res->first;
+    syntax_expression_result& cnt_res_er = cnt_res->first;
     entity const& cnt_res_ent = get_entity(e, cnt_res_er.value());
     
     if (cnt_res_ent.get_type() == e.get(builtin_eid::typename_)) {
@@ -207,7 +207,7 @@ error_storage parameter_matcher::handle_positioned_ellipsis(fn_compiler_context&
 
     basic_fn_pattern::parameter_descriptor const& epd = *param_it;
     
-    small_vector<std::pair<annotated_identifier, syntax_expression_result_t>, 8> accumulated_results;
+    small_vector<std::pair<annotated_identifier, syntax_expression_result>, 8> accumulated_results;
     
     small_vector<basic_fn_pattern::parameter_descriptor const*, 8> param_descriptors{ &epd };
     small_vector<expected_result_t, 8> param_exps{ argexp };
@@ -275,7 +275,7 @@ error_storage parameter_matcher::handle_positioned_ellipsis(fn_compiler_context&
         }
         if (pattern_t const* ppattern = get<pattern_t>(&param_descriptors[ellipsis_group_index]->constraint)) {
             entity_identifier type_to_match;
-            syntax_expression_result_t& arg_er = res->first;
+            syntax_expression_result& arg_er = res->first;
             if (arg_er.is_const_result) {
                 entity const& arg_res_entity = get_entity(e, arg_er.value());
                 type_to_match = arg_res_entity.get_type();
@@ -318,7 +318,7 @@ error_storage parameter_matcher::handle_positioned_ellipsis(fn_compiler_context&
     return {};
 }
 
-void parameter_matcher::finalize_ellipsis(environment& e, span<std::pair<annotated_identifier, syntax_expression_result_t>> ellipsis_span)
+void parameter_matcher::finalize_ellipsis(environment& e, span<std::pair<annotated_identifier, syntax_expression_result>> ellipsis_span)
 {
     basic_fn_pattern::parameter_descriptor const& epd = *param_it;
     entity_signature ellipsis_type_sig(e.get(builtin_qnid::tuple), e.get(builtin_eid::typename_));

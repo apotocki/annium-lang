@@ -158,8 +158,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\tests\test-suite\annium_suite.json" />
+    <None Include="..\..\..\tests\test-suite\basic_print.ann" />
     <None Include="..\..\..\tests\test-suite\draft.ann" />
-    <None Include="..\..\..\tests\test-suite\file0.ann" />
+    <None Include="..\..\..\tests\test-suite\enums.ann" />
     <None Include="..\..\..\tests\test-suite\file1.ann" />
     <None Include="..\..\..\tests\test-suite\file3.ann" />
     <None Include="..\..\..\tests\test-suite\file4.ann" />

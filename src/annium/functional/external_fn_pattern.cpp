@@ -14,7 +14,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> external_fn_patter
     return basic_fn_pattern::try_match(ctx, call, exp);
 }
 
-std::expected<syntax_expression_result_t, error_storage> external_fn_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> external_fn_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& e = ctx.env();
     auto [result, _] = apply_arguments(ctx, el, md);

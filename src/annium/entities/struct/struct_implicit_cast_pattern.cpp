@@ -82,10 +82,10 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_implicit_ca
 }
 
 
-std::expected<syntax_expression_result_t, error_storage> struct_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> struct_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& e = ctx.env();
-    syntax_expression_result_t result{
+    syntax_expression_result result{
         .value_or_type = md.signature.result->entity_id(),
         .is_const_result = false
     };

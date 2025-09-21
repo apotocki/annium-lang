@@ -46,7 +46,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_project_get_
 
     shared_ptr<tuple_project_get_match_descriptor> pmd;
     entity_identifier slftype;
-    syntax_expression_result_t& slf_arg_er = slf_arg->first;
+    syntax_expression_result& slf_arg_er = slf_arg->first;
     if (slf_arg_er.is_const_result) {
         entity const& slf_entity = get_entity(e, slf_arg_er.value());
         slftype = slf_entity.get_type();
@@ -89,7 +89,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_project_get_
     return pmd;
 }
 
-std::expected<syntax_expression_result_t, error_storage> tuple_project_get_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> tuple_project_get_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& e = ctx.env();
     auto& tmd = static_cast<tuple_project_get_match_descriptor&>(md);
@@ -127,7 +127,7 @@ std::expected<syntax_expression_result_t, error_storage> tuple_project_get_patte
 
         // Case 1: Source tuple element is const
         if (pfield->is_const()) {
-            return syntax_expression_result_t{
+            return syntax_expression_result{
                 .temporaries = std::move(slfer.temporaries),
                 .value_or_type = pfield->entity_id(),
                 .is_const_result = true
@@ -164,7 +164,7 @@ std::expected<syntax_expression_result_t, error_storage> tuple_project_get_patte
 
         // Optimization: if only one runtime field, just return 'self' with the requested type
         if (non_const_count == 1) {
-            return syntax_expression_result_t{
+            return syntax_expression_result{
                 .temporaries = std::move(slfer.temporaries),
                 .branches_expressions = std::move(slfer.branches_expressions),
                 .expressions = slfer.expressions,
@@ -177,7 +177,7 @@ std::expected<syntax_expression_result_t, error_storage> tuple_project_get_patte
         e.push_back_expression(el, exprs, semantic::push_value{ smart_blob{ ui64_blob_result(runtime_index) } });
         e.push_back_expression(el, exprs, semantic::invoke_function(e.get(builtin_eid::array_at)));
 
-        return syntax_expression_result_t{
+        return syntax_expression_result{
             .temporaries = std::move(slfer.temporaries),
             .branches_expressions = std::move(slfer.branches_expressions),
             .expressions = std::move(exprs),

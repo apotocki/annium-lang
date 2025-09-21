@@ -2,7 +2,7 @@
 //  Annium is licensed under the terms of the MIT License.
 
 #include "sonia/config.hpp"
-#include "array_get_pattern.hpp"
+#include "fixed_array_get_pattern.hpp"
 
 #include "annium/entities/prepared_call.hpp"
 #include "annium/entities/signatured_entity.hpp"
@@ -16,7 +16,19 @@
 
 namespace annium {
 
-std::expected<functional_match_descriptor_ptr, error_storage> array_get_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const&) const
+class fixed_array_get_match_descriptor : public functional_match_descriptor
+{
+public:
+    inline fixed_array_get_match_descriptor(prepared_call const& call, entity_signature const& arr_type_sig_val) noexcept
+        : functional_match_descriptor{ call }
+        , arr_type_sig{ arr_type_sig_val }
+    {
+    }
+
+    entity_signature const& arr_type_sig;
+};
+
+std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_get_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const&) const
 {
     environment& env = ctx.env();
     auto call_session = call.new_session(ctx);
@@ -29,7 +41,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_get_pattern:
         return std::unexpected(std::move(slf_arg.error()));
     }
 
-    syntax_expression_result_t& slf_arg_er = slf_arg->first;
+    syntax_expression_result& slf_arg_er = slf_arg->first;
     entity_identifier slftype;
     if (slf_arg_er.is_const_result) {
         entity const& slf_entity = get_entity(env, slf_arg_er.value());
@@ -57,7 +69,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_get_pattern:
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    shared_ptr<array_get_match_descriptor> pmd = make_shared<array_get_match_descriptor>(call, *psig);
+    shared_ptr<fixed_array_get_match_descriptor> pmd = make_shared<fixed_array_get_match_descriptor>(call, *psig);
     
     pmd->emplace_back(0, slf_arg_er);
     pmd->emplace_back(1, property_arg->first);
@@ -68,10 +80,10 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_get_pattern:
     return pmd;
 }
 
-std::expected<syntax_expression_result_t, error_storage> array_get_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> fixed_array_get_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& env = ctx.env();
-    auto& amd = static_cast<array_get_match_descriptor&>(md);
+    auto& amd = static_cast<fixed_array_get_match_descriptor&>(md);
     auto& slfer = get<1>(md.matches[0]);
     auto& proper = get<1>(md.matches[1]);
 
@@ -102,7 +114,7 @@ std::expected<syntax_expression_result_t, error_storage> array_get_pattern::appl
 
     // Case 1: Both self and property are constant
     if (slfer.is_const_result && proper.is_const_result) {
-        return syntax_expression_result_t{
+        return syntax_expression_result{
             .temporaries = {},
             .expressions = {},
             .value_or_type = datasig->field(*index).entity_id(),
@@ -111,7 +123,7 @@ std::expected<syntax_expression_result_t, error_storage> array_get_pattern::appl
     }
     // Case 2: self is not constant, property is constant
     if (!slfer.is_const_result && proper.is_const_result) {
-        syntax_expression_result_t result{ 
+        syntax_expression_result result{ 
             .value_or_type = of_fd->entity_id(),
             .is_const_result = false
         };
@@ -125,7 +137,7 @@ std::expected<syntax_expression_result_t, error_storage> array_get_pattern::appl
         return result;
     }
 
-    THROW_NOT_IMPLEMENTED_ERROR("array_get_pattern::apply");
+    THROW_NOT_IMPLEMENTED_ERROR("fixed_array_get_pattern::apply");
 #if 0
 
     // Case 3: self is constant, property is not constant
@@ -139,7 +151,7 @@ std::expected<syntax_expression_result_t, error_storage> array_get_pattern::appl
         // Add runtime array access
         e.push_back_expression(el, exprs, semantic::invoke_function(e.get(builtin_eid::array_at)));
         
-        return syntax_expression_result_t{
+        return syntax_expression_result{
             .temporaries = std::move(slfer.temporaries),
             .expressions = std::move(exprs),
             .value_or_type = element_type,
@@ -158,7 +170,7 @@ std::expected<syntax_expression_result_t, error_storage> array_get_pattern::appl
         // Add runtime array access
         e.push_back_expression(el, exprs, semantic::invoke_function(e.get(builtin_eid::array_at)));
         
-        return syntax_expression_result_t{
+        return syntax_expression_result{
             .temporaries = std::move(slfer.temporaries),
             .expressions = std::move(exprs),
             .value_or_type = element_type,
