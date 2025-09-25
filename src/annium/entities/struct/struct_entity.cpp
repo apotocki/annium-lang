@@ -13,13 +13,18 @@
 
 namespace annium {
 
-struct_entity::struct_entity(environment& e, functional& fn, variant<field_list_t, statement_span> const& body)
-    : name_{ fn.name() }
-    , body_{ body }
+struct_entity::struct_entity(environment& env, functional& fn, field_list_t const& body)
+    : name_{ fn.name() }, body_{ body }
 {
     sig_.name = fn.id();
-    sig_.result.emplace(e.get(builtin_eid::typename_));
+    sig_.result.emplace(env.get(builtin_eid::typename_));
 }
+
+struct_entity::struct_entity(qname qn, entity_signature&& sgn, field_list_t const& body)
+    : basic_signatured_entity{ std::move(sgn) }
+    , name_{ std::move(qn) }
+    , body_{ body }
+{}
 
 error_storage struct_entity::build(fn_compiler_context& extctx, semantic::expression_list_t& el) const
 {
@@ -33,9 +38,14 @@ error_storage struct_entity::build(fn_compiler_context& extctx, semantic::expres
 
     // prepare context
     fn_compiler_context ctx{ extctx, name_ };
-    auto err = apply_visitor(make_functional_visitor<error_storage>([&ctx, &el, this](auto const& body) -> error_storage {
-        return build(ctx, body, el);
-    }), body_);
+    if (!context_bindings_.empty()) {
+        ctx.push_binding(context_bindings_);
+    }
+    
+    auto err = build(ctx, body_, el);
+    //auto err = apply_visitor(make_functional_visitor<error_storage>([&ctx, &el, this](auto const& body) -> error_storage {
+    //    return build(ctx, body, el);
+    //}), body_);
     if (!err) {
         built_.store(build_state::underlying_tuple_built);
     }
@@ -45,7 +55,8 @@ error_storage struct_entity::build(fn_compiler_context& extctx, semantic::expres
 error_storage struct_entity::build(fn_compiler_context& ctx, field_list_t const& fl, semantic::expression_list_t& el) const
 {
     environment& e = ctx.env();
-
+    std::vector<field> fields;
+    fields.reserve(fl.size());
     entity_signature tuple_signature{ e.get(builtin_qnid::tuple), e.get(builtin_eid::typename_) };
     for (field_t const& f : fl) {
         auto res = apply_visitor(base_expression_visitor{ ctx, el, expected_result_t{ .modifier = value_modifier_t::constexpr_value } }, f.type_or_value);
@@ -56,10 +67,13 @@ error_storage struct_entity::build(fn_compiler_context& ctx, field_list_t const&
         } else {
             tuple_signature.emplace_back(res->first.value(), is_const);
         }
+        if (!is_const) {
+            fields.emplace_back(field{ f.name, res->first.value(), f.value });
+        }
     }
 
     underlying_tuple_eid_ = e.make_basic_signatured_entity(std::move(tuple_signature)).id;
-    
+    fields_ = std::move(fields);
     return {};
 }
 
@@ -130,6 +144,15 @@ error_storage struct_entity::build(fn_compiler_context& ctx, statement_span cons
 //    return ifn->find(ctx, call, annotated_entity_identifier{ id(), location() });
 //}
 
+std::expected<span<struct_entity::field const>, error_storage> struct_entity::fields(fn_compiler_context& ctx) const
+{
+    if (built_.load() == build_state::not_built) {
+        semantic::managed_expression_list el{ ctx.env() };
+        if (auto err = build(ctx, el); err) return std::unexpected(std::move(err));
+    }
+    return span{ fields_ };
+}
+
 std::expected<entity_identifier, error_storage> struct_entity::underlying_tuple_eid(fn_compiler_context& ctx) const
 {
     if (built_.load() == build_state::not_built) {
@@ -138,6 +161,7 @@ std::expected<entity_identifier, error_storage> struct_entity::underlying_tuple_
     }
     return underlying_tuple_eid_;
 }
+
 
 //std::expected<functional_match_descriptor const*, error_storage> struct_entity::underlying_tuple_initializer(fn_compiler_context& ctx) const
 //{

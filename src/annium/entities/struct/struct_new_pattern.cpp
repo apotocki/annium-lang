@@ -32,32 +32,27 @@ public:
 
 std::expected<functional_match_descriptor_ptr, error_storage> struct_new_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const&) const
 {
-    environment& e = ctx.env();
+    environment& env = ctx.env();
+    identifier tpid = env.get(builtin_id::type);
 
-    identifier tpid = e.get(builtin_id::type);
-
-    struct_entity const* pse = nullptr;
-    resource_location typeloc;
-    // looking for '__type' parameter
-    for (auto const& arg : call.args) {
-        annotated_identifier const* pargname = arg.name();
-        if (pargname && pargname->value == tpid) {
-            syntax_expression_t const& arg_expr = arg.value();
-            auto res = apply_visitor(
-                base_expression_visitor{ ctx, call.expressions, expected_result_t{ .modifier = value_modifier_t::constexpr_value } },
-                arg_expr);
-            if (!res) return std::unexpected(std::move(res.error()));
-            if (res->first.expressions) THROW_NOT_IMPLEMENTED_ERROR("struct_new_pattern::try_match, const value expressions"sv);
-            entity const& some_entity = get_entity(e, res->first.value());
-            pse = dynamic_cast<struct_entity const*>(&some_entity);
-            if (!pse) return std::unexpected(make_error<basic_general_error>(pargname->location, "argument mismatch, expected a structure"sv, pargname->value));
-            typeloc = get_start_location(arg_expr);
-            break;
+    auto call_session = call.new_session(ctx);
+    prepared_call::argument_descriptor_t type_arg_expr;
+    auto type_arg = call_session.use_named_argument(tpid, expected_result_t{ .modifier = value_modifier_t::constexpr_value }, &type_arg_expr);
+    if (!type_arg) {
+        if (type_arg.error()) {
+            return std::unexpected(append_cause(
+                make_error<basic_general_error>(get_start_location(*get<0>(type_arg_expr)), "invalid `__type` argument"sv),
+                std::move(type_arg.error())));
         }
+        return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `__type`"sv));
     }
-    if (!pse) {
-        return std::unexpected(make_error<basic_general_error>(call.location, "unmatched parameter"sv, tpid));
-    }
+
+    resource_location const& typeargloc = get_start_location(*get<0>(type_arg_expr));
+    syntax_expression_result& type_arg_er = type_arg->first;
+
+    entity const& some_entity = get_entity(env, type_arg_er.value());
+    struct_entity const* pse = dynamic_cast<struct_entity const*>(&some_entity);
+    if (!pse) return std::unexpected(make_error<basic_general_error>(typeargloc, "argument mismatch, expected a structure"sv, type_arg_er.value()));
 
     pure_call_t init_call{ call.location };
     for (auto const& arg : call.args) {
@@ -70,16 +65,16 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_new_pattern
             init_call.emplace_back(arg_expr);
         }
     }
-    
-    auto init_match = ctx.find(builtin_qnid::init, init_call, call.expressions, expected_result_t{
-        .type = pse->id, .location = pse->location, .modifier = value_modifier_t::runtime_value });
+
+    auto init_match = ctx.find(builtin_qnid::init, init_call, call.expressions,
+        expected_result_t{ .type = pse->id, .location = pse->location, .modifier = value_modifier_t::runtime_value });
     if (!init_match) {
         return std::unexpected(append_cause(
-            make_error<basic_general_error>(call.location, "no constructuctor found"sv, e.get(builtin_qnid::new_)),
+            make_error<basic_general_error>(call.location, "no constructuctor found"sv, env.get(builtin_qnid::new_)),
             std::move(init_match.error())
         ));
     }
-
+    
     return make_shared<new_struct_match_descriptor>(*pse, std::move(*init_match));
     //ctx.context_type = pse->id(); // for context_value
 

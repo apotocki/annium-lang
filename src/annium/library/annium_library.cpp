@@ -164,6 +164,37 @@ void annium_array_at(vm::context& ctx)
     ctx.stack_back().replace(smart_blob{ result });
 }
 
+void annium_array_set_at(vm::context& ctx)
+{
+    auto value = ctx.stack_back().as<blob_result>();
+    auto idx = ctx.stack_back(1).as<size_t>();
+    auto arr = ctx.stack_back(2).as<blob_result>();
+    if (!is_array(arr)) {
+        throw exception("expected array, got %1%"_fmt % arr);
+    }
+    blob_type_selector(arr, [idx, &value](auto ident, blob_result b) {
+        using type = typename decltype(ident)::type;
+        if constexpr (std::is_same_v<type, std::nullptr_t> || std::is_void_v<type>) {
+            THROW_INTERNAL_ERROR("unexpected array element type");
+        } else {
+            using fstype = std::conditional_t<std::is_same_v<type, bool>, uint8_t, type>;
+            size_t sz = array_size_of<fstype>(b);
+            if (idx >= sz) {
+                throw exception("index out of range");
+            }
+            fstype & e = mutable_data_of<fstype>(b)[idx];
+            if constexpr (std::is_same_v<fstype, blob_result>) {
+                blob_result_unpin(&e);
+                e = value;
+                blob_result_pin(&e);
+            } else {
+                e = as<fstype>(value);
+            }
+        }
+    });
+    ctx.stack_pop(2);
+}
+
 void annium_array_tail(vm::context& ctx)
 {
     auto arr = ctx.stack_back().as<blob_result>();

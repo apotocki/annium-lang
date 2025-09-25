@@ -63,7 +63,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_implicit_cas
     entity const& argtype_ent = get_entity(env, argtype);
     entity_signature const* type_sig = argtype_ent.signature();
 
-    if (!type_sig || (type_sig->name != env.get(builtin_qnid::array) && type_sig->name != env.get(builtin_qnid::vector))) {
+    if (!type_sig || type_sig->name != env.get(builtin_qnid::array)) {
         return std::unexpected(make_error<type_mismatch_error>(argloc, argtype, "an array or vector type"sv));
     }
     bool is_arg_array = type_sig->name == env.get(builtin_qnid::array);

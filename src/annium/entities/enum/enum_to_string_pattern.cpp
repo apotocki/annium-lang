@@ -41,10 +41,12 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_to_string_pat
     prepared_call::argument_descriptor_t arg_expr;
     auto arg = call_session.use_next_positioned_argument(expected_result_t { .modifier = arg_req_mod }, &arg_expr);
     if (!arg) {
-        if (!arg.error()) {
-            return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument"sv));
+        if (arg.error()) {
+            return std::unexpected(append_cause(
+                make_error<basic_general_error>(get_start_location(*get<0>(arg_expr)), "invalid argument"sv),
+                std::move(arg.error())));
         }
-        return std::unexpected(std::move(arg.error()));
+        return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument"sv));
     }
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
@@ -108,6 +110,7 @@ std::expected<syntax_expression_result, error_storage> enum_to_string_pattern::a
                 case_names.push_back(string_blob_result(env.print(case_id)));
             }
             smart_blob cases_arr{ array_blob_result(span{ case_names }) };
+            cases_arr.allocate();
             case_names.clear(); // we can clear it now, because array_blob_result made copies of string blobs
             env.push_back_expression(el, result.expressions, semantic::push_value{ cases_arr });
             append_semantic_result(el, result, ser); // which

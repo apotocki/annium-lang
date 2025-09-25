@@ -12,7 +12,7 @@
 
 namespace annium {
 
-struct_fn_pattern::struct_fn_pattern(variant<field_list_t, statement_span> const& body)
+struct_fn_pattern::struct_fn_pattern(struct_body_t const& body)
     : body_{ body }
 {}
 
@@ -37,11 +37,11 @@ std::expected<syntax_expression_result, error_storage> struct_fn_pattern::apply(
         functional& fnl = e.fregistry_resolve(md.signature.name);
         qname struct_ns = fnl.name() / e.new_identifier();
         //fn_compiler_context struct_ctx{ ctx, struct_ns };
-
-        internal_function_entity fent{ qname{ struct_ns }, entity_signature{ md.signature }, statement_span{} };
-        build_scope(e, md, fent);
+        //internal_function_entity fent{ qname{ struct_ns }, entity_signature{ md.signature }, statement_span{} };
+        // build_scope(e, md, fent);
         // e.fregistry().resolve(struct_ns).name() // do we need a functional to store qname?
         auto res = sonia::make_shared<struct_entity>(std::move(struct_ns), std::move(md.signature), body_);
+        res->context_bindings() = std::move(md.bindings);
         res->location = location();
         return res;
     });

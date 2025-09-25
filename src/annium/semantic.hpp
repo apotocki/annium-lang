@@ -497,6 +497,14 @@ struct return_statement
     bool is_const_value_result;
 };
 
+struct yield_statement
+{
+    expression_span result;
+    size_t scope_size; // Numebr of elements on stack after evaluation of result expressions
+    entity_identifier value_or_type;
+    bool is_const_value_result;
+};
+
 struct conditional_t
 {
     //condition_type type;
@@ -530,7 +538,7 @@ struct loop_breaker {};
 using expression = variant<
     empty_t, // no op
     push_value, push_local_variable, push_by_offset, truncate_values,
-    set_local_variable, set_variable, set_by_offset, invoke_function, return_statement, loop_breaker, loop_continuer,
+    set_local_variable, set_variable, set_by_offset, invoke_function, return_statement, yield_statement, loop_breaker, loop_continuer,
     expression_span,
     conditional_t, switch_t,
     not_empty_condition_t,

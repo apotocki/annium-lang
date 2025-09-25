@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "annium/functional/basic_fn_pattern.hpp"
+#include "annium/entities/functional.hpp"
 
 namespace annium {
 

@@ -218,6 +218,7 @@ public:
         return *variables_.back();
     }
     */
+    error_storage finish_scope();
     // result value or type, is value, is empty function
     std::expected<std::tuple<entity_identifier, bool, bool>, error_storage> finish_frame(internal_function_entity const&);
 
@@ -254,6 +255,7 @@ public:
     semantic::managed_expression_list& expression_store() { return expression_store_; }
 
     void append_return(semantic::expression_span return_expressions, size_t scope_sz, entity_identifier value_or_type, bool is_const_value_result);
+    void append_yield(semantic::expression_span yield_expressions, size_t scope_sz, entity_identifier value_or_type, bool is_const_value_result);
 
     //std::pair<size_t, expression_list_t::iterator> current_expressions_pointer() const
     //{
@@ -313,7 +315,7 @@ public:
     //entity_identifier accum_result;
     entity_identifier context_type;
     small_vector<semantic::return_statement*, 4> return_statements_;
-
+    small_vector<semantic::yield_statement*, 4> yield_statements_;
     //void accumulate_result_type(entity_identifier t);
     //entity_identifier compute_result_type();
 

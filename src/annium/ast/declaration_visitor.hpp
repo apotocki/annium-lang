@@ -36,22 +36,25 @@ public:
     [[nodiscard]] result_type operator()(struct_decl const&) const;
     [[nodiscard]] result_type operator()(enum_decl const&) const;
 
+    // extern function declaration
     [[nodiscard]] result_type operator()(fn_pure_t const&) const;
 
     [[nodiscard]] result_type operator()(fn_decl_t const&) const;
+    [[nodiscard]] result_type operator()(typefn_decl_t const&) const;
 
     [[nodiscard]] result_type operator()(if_decl const&) const;
     [[nodiscard]] result_type operator()(while_decl const&) const;
-    [[nodiscard]] result_type operator()(for_decl const&) const;
+    [[nodiscard]] result_type operator()(for_statement const&) const;
     [[nodiscard]] result_type operator()(continue_statement_t const&) const;
     [[nodiscard]] result_type operator()(break_statement_t const&) const;
+    [[nodiscard]] result_type operator()(yield_statement_t const&) const;
 
     [[nodiscard]] result_type operator()(let_statement const&) const;
     //void operator()(assign_decl_t const&) const;
 
     [[nodiscard]] result_type operator()(expression_statement_t const&) const;
 
-    [[nodiscard]] result_type operator()(return_decl_t const&) const;
+    [[nodiscard]] result_type operator()(return_statement_t const&) const;
 
     template <typename T>
     result_type operator()(T const& d) const {

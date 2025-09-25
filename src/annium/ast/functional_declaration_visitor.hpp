@@ -41,7 +41,7 @@ public:
 
     [[nodiscard]] result_type operator()(if_decl const&) const;
     [[nodiscard]] result_type operator()(while_decl const&) const;
-    [[nodiscard]] result_type operator()(for_decl const&) const;
+    [[nodiscard]] result_type operator()(for_statement const&) const;
     [[nodiscard]] result_type operator()(continue_statement_t const&) const;
     [[nodiscard]] result_type operator()(break_statement_t const&) const;
 
@@ -50,7 +50,7 @@ public:
 
     [[nodiscard]] result_type operator()(expression_statement_t const&) const;
 
-    [[nodiscard]] result_type operator()(return_decl_t const&) const;
+    [[nodiscard]] result_type operator()(return_statement_t const&) const;
 
     void append_fnsig(fn_pure&, functional** ppf = nullptr) const;
     

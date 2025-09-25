@@ -32,47 +32,48 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_get_pa
 {
     environment& env = ctx.env();
     auto call_session = call.new_session(ctx);
-    std::pair<syntax_expression_t const*, size_t> slf_arg_expr;
+    prepared_call::argument_descriptor_t slf_arg_expr;
     auto slf_arg = call_session.use_named_argument(env.get(builtin_id::self), expected_result_t{}, &slf_arg_expr);
     if (!slf_arg) {
-        if (!slf_arg.error()) {
-            return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `self`"sv));
+        if (slf_arg.error()) {
+            return std::unexpected(append_cause(
+                make_error<basic_general_error>(get_start_location(*get<0>(slf_arg_expr)), "invalid `self` argument"sv),
+                std::move(slf_arg.error())));
         }
-        return std::unexpected(std::move(slf_arg.error()));
+        return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `self`"sv));
     }
 
+    resource_location const& slfargloc = get_start_location(*get<0>(slf_arg_expr));
     syntax_expression_result& slf_arg_er = slf_arg->first;
-    entity_identifier slftype;
-    if (slf_arg_er.is_const_result) {
-        entity const& slf_entity = get_entity(env, slf_arg_er.value());
-        slftype = slf_entity.get_type();
-    } else {
-        slftype = slf_arg_er.type();
-    }
-
+    entity_identifier slftype = get_result_type(env, slf_arg_er);
+    
     entity const& slf_type_entity = get_entity(env, slftype);
     entity_signature const* psig = slf_type_entity.signature();
     if (!psig || psig->name != env.get(builtin_qnid::array)) {
-        return std::unexpected(make_error<type_mismatch_error>(get_start_location(*get<0>(slf_arg_expr)), slftype, "an array"sv));
+        return std::unexpected(make_error<type_mismatch_error>(slfargloc, slftype, "an array"sv));
     }
 
-    std::pair<syntax_expression_t const*, size_t> prop_arg;
+    prepared_call::argument_descriptor_t prop_arg;
     auto property_arg = call_session.use_named_argument(env.get(builtin_id::property), expected_result_t{ env.get(builtin_eid::integer) }, &prop_arg);
     if (!property_arg) {
-        if (!property_arg.error()) {
-            return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `property`"sv));
+        if (property_arg.error()) {
+            return std::unexpected(append_cause(
+                make_error<basic_general_error>(get_start_location(*get<0>(prop_arg)), "invalid `property` argument"sv),
+                std::move(property_arg.error())));
         }
-        return std::unexpected(std::move(property_arg.error()));
+        return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `property`"sv));
     }
 
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
+    resource_location const& propargloc = get_start_location(*get<0>(prop_arg));
+
     shared_ptr<fixed_array_get_match_descriptor> pmd = make_shared<fixed_array_get_match_descriptor>(call, *psig);
     
-    pmd->emplace_back(0, slf_arg_er);
-    pmd->emplace_back(1, property_arg->first);
+    pmd->emplace_back(0, slf_arg_er, slfargloc);
+    pmd->emplace_back(1, property_arg->first, propargloc);
     
     entity_signature& call_sig = pmd->signature;
     call_sig.emplace_back(env.get(builtin_id::self), slf_arg_er.value_or_type, slf_arg_er.is_const_result);
@@ -135,6 +136,18 @@ std::expected<syntax_expression_result, error_storage> fixed_array_get_pattern::
         }
 
         return result;
+    }
+
+    // Case 4: Both self and property are not constant
+    if (!slfer.is_const_result && !proper.is_const_result) {
+        syntax_expression_result result = slfer;
+        if (array_size > 1) {
+            append_semantic_result(el, result, proper);
+            // Add runtime array access
+            env.push_back_expression(el, result.expressions, semantic::invoke_function(env.get(builtin_eid::array_at)));
+        }
+        result.value_or_type = of_fd->entity_id();
+        return std::move(result);
     }
 
     THROW_NOT_IMPLEMENTED_ERROR("fixed_array_get_pattern::apply");

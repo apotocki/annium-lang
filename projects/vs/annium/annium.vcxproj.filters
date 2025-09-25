@@ -351,9 +351,6 @@
     <ClCompile Include="..\..\..\src\annium\entities\fixed_array\fixed_array_head_pattern.cpp">
       <Filter>annium\entities\fixed_array</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\fixed_array\fixed_array_implicit_cast_pattern.cpp">
-      <Filter>annium\entities\fixed_array</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\fixed_array\fixed_array_make_pattern.cpp">
       <Filter>annium\entities\fixed_array</Filter>
     </ClCompile>
@@ -363,8 +360,17 @@
     <ClCompile Include="..\..\..\src\annium\entities\array\array_implicit_cast_pattern.cpp">
       <Filter>annium\entities\array</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\array\array_make_pattern.cpp">
-      <Filter>annium\entities\array</Filter>
+    <ClCompile Include="..\..\..\src\annium\entities\enum\enum_get_pattern.cpp">
+      <Filter>annium\entities\enum</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\enum\enum_equal_pattern.cpp">
+      <Filter>annium\entities\enum</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\typefn_pattern.cpp">
+      <Filter>annium\functional</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\struct\struct_set_pattern.cpp">
+      <Filter>annium\entities\struct</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -731,9 +737,6 @@
     <ClInclude Include="..\..\..\src\annium\entities\fixed_array\fixed_array_head_pattern.hpp">
       <Filter>annium\entities\fixed_array</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\fixed_array\fixed_array_implicit_cast_pattern.hpp">
-      <Filter>annium\entities\fixed_array</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\fixed_array\fixed_array_make_pattern.hpp">
       <Filter>annium\entities\fixed_array</Filter>
     </ClInclude>
@@ -743,8 +746,17 @@
     <ClInclude Include="..\..\..\src\annium\entities\array\array_implicit_cast_pattern.hpp">
       <Filter>annium\entities\array</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\array\array_make_pattern.hpp">
-      <Filter>annium\entities\array</Filter>
+    <ClInclude Include="..\..\..\src\annium\entities\enum\enum_get_pattern.hpp">
+      <Filter>annium\entities\enum</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\enum\enum_equal_pattern.hpp">
+      <Filter>annium\entities\enum</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\typefn_pattern.hpp">
+      <Filter>annium\functional</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\struct\struct_set_pattern.hpp">
+      <Filter>annium\entities\struct</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

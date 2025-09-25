@@ -9,10 +9,12 @@ namespace annium {
 
 class struct_fn_pattern : public internal_fn_pattern
 {
-    variant<field_list_t, statement_span> body_;
+    //using struct_body_t = variant<field_list_t, statement_span>;
+    using struct_body_t = field_list_t;
+    struct_body_t body_;
 
 public:
-    explicit struct_fn_pattern(variant<field_list_t, statement_span> const&);
+    explicit struct_fn_pattern(struct_body_t const&);
 
     error_storage init(fn_compiler_context&, annotated_qname const&, parameter_list_t const&);
 

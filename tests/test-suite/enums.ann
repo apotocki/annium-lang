@@ -1,0 +1,14 @@
+enum test_enum {
+    A,
+    B,
+    C
+}
+
+fn to_test_enum(:__identifier) -> test_enum {
+    return $0;
+}
+
+assert_equal(to_test_enum(.A), test_enum.A);
+assert_not_equal(to_test_enum(.B), test_enum.A);
+print(to_string(to_test_enum(.C)));
+print(to_string(test_enum.B));

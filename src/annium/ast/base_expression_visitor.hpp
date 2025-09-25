@@ -41,8 +41,9 @@ public:
     result_type operator()(stack_value_reference const&) const;
 
     result_type operator()(array_expression_t const&) const;
+    result_type operator()(array_with_body_expression_t const&) const;
 
-    result_type operator()(annium_vector_t const&) const;
+    result_type operator()(bracket_expression_t const&) const;
 
     result_type operator()(member_expression_t const&) const;
 

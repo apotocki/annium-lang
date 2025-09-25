@@ -29,7 +29,7 @@ public:
     auto const& argument() const noexcept { return arg_; }
 };
 
-// postfix operator ...(__identifier|metaobject(__identifier...))
+// postfix operator ...(__identifier)
 std::expected<functional_match_descriptor_ptr, error_storage> ellipsis_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const&) const
 {
     environment& e = ctx.env();
@@ -61,10 +61,10 @@ std::expected<functional_match_descriptor_ptr, error_storage> ellipsis_pattern::
     }
     else if (basic_signatured_entity const* bse = dynamic_cast<basic_signatured_entity const*>(&metaobject_ent); bse) {
         entity_signature const& signature = *bse->signature();
-        if (signature.name == e.get(builtin_qnid::metaobject)) {
-            // to do: check if the signature is a comopatible to the call metaobject
-            return make_shared<ellipsis_match_descriptor>(call.functional_id(), bse, get_start_location(*object_arg));
-        }
+        //if (signature.name == e.get(builtin_qnid::metaobject)) {
+        //    // to do: check if the signature is a comopatible to the call metaobject
+        //    return make_shared<ellipsis_match_descriptor>(call.functional_id(), bse, get_start_location(*object_arg));
+        //}
     }
     
     return std::unexpected(make_error<basic_general_error>(call.location, "argument mismatch"sv, *object_arg));

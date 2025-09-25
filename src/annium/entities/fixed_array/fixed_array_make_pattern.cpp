@@ -6,9 +6,11 @@
 
 #include "annium/entities/prepared_call.hpp"
 #include "annium/entities/signatured_entity.hpp"
-#include "annium/ast/fn_compiler_context.hpp"
 
+#include "annium/ast/fn_compiler_context.hpp"
 #include "annium/ast/base_expression_visitor.hpp"
+
+#include "annium/errors/type_mismatch_error.hpp"
 
 #include "annium/entities/literals/literal_entity.hpp"
 #include "annium/auxiliary.hpp"
@@ -42,11 +44,18 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_make_p
     if (of_res) {
         // Explicit type specified
         auto& of_arg = of_res->first;
+        // Check that it's a valid type
+        entity const& etype = get_entity(e, of_arg.value());
+        if (etype.get_type() != e.get(builtin_eid::typename_)) {
+            return std::unexpected(make_error<type_mismatch_error>(get_start_location(*get<0>(of_arg_descr)), of_arg.value(), "a type"sv));
+        }
         pmd->element_type = of_arg.value();
         pmd->has_explicit_type = true;
         pmd->emplace_back(0, of_arg, get_start_location(*get<0>(of_arg_descr)));
     } else if (of_res.error()) {
-        return std::unexpected(std::move(of_res.error()));
+        return std::unexpected(append_cause(
+            make_error<basic_general_error>(get_start_location(*get<0>(of_arg_descr)), "invalid 'of' argument"sv),
+            std::move(of_res.error())));
     } else {
         // No explicit type, will be inferred from elements
         pmd->has_explicit_type = false;
@@ -55,7 +64,6 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_make_p
     // Collect element arguments
     boost::container::small_flat_set<entity_identifier, 8> elements;
     entity_signature usig(e.get(builtin_qnid::union_), e.get(builtin_eid::typename_));
-    //small_vector<entity_identifier, 16> stable_element_types_set;
     pmd->all_const = true;
     pmd->all_runtime = true;
     expected_result_t exp_element_res{ .type = pmd->element_type, .modifier = exp.modifier };
@@ -64,7 +72,10 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_make_p
         prepared_call::argument_descriptor_t elem_descr;
         auto elem_res = call_session.use_next_positioned_argument(exp_element_res, &elem_descr);
         if (!elem_res) {
-            if (elem_res.error()) return std::unexpected(std::move(elem_res.error()));
+            if (elem_res.error()) 
+                return std::unexpected(append_cause(
+                    make_error<basic_general_error>(get_start_location(*get<0>(elem_descr)), "invalid argument"sv),
+                    std::move(elem_res.error())));
             break;
         }
         auto& ser = elem_res->first;
@@ -167,22 +178,22 @@ std::expected<syntax_expression_result, error_storage> fixed_array_make_pattern:
     } else {
         // Mixed const and runtime elements, need to cast to runtime element type
         for (auto& [_, er, loc] : amd.matches) {
+            if (!er.is_const_result && er.type() == amd.element_type) {
+                append_semantic_result(el, result, er);
+                continue;
+            }
             pure_call_t cast_call{ loc };
             if (er.is_const_result) {
                 cast_call.emplace_back(annotated_entity_identifier{ er.value(), loc });
             } else {
                 cast_call.emplace_back(make_indirect_value(env, el, std::move(er), loc));
             }
-            auto match = ctx.find(builtin_qnid::implicit_cast, cast_call, el,
+            auto res = ctx.find_and_apply(builtin_qnid::implicit_cast, cast_call, el,
                 expected_result_t{ .type = amd.element_type, .location = loc, .modifier = value_modifier_t::runtime_value });
-            if (!match) {
+            if (!res) {
                 return std::unexpected(append_cause(
                     make_error<basic_general_error>(loc, "cannot cast array element to the specified element type"sv),
-                    match.error()));
-            }
-            auto res = match->apply(ctx);
-            if (!res) {
-                return std::unexpected(std::move(res.error()));
+                    res.error()));
             }
             append_semantic_result(el, result, *res);
         }

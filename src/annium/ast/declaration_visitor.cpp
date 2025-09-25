@@ -13,12 +13,12 @@
 #include "annium/entities/prepared_call.hpp"
 #include "annium/entities/struct/struct_entity.hpp"
 #include "annium/entities/struct/struct_fn_pattern.hpp"
-#include "annium/entities/struct/struct_init_pattern.hpp"
 #include "annium/entities/enum/enum_entity.hpp"
 #include "annium/entities/functions/internal_function_entity.hpp"
 
 #include "annium/functional/basic_fn_pattern.hpp"
 #include "annium/functional/internal_fn_pattern.hpp"
+#include "annium/functional/typefn_pattern.hpp"
 
 #include "annium/entities/literals/literal_entity.hpp"
 
@@ -88,7 +88,7 @@ error_storage declaration_visitor::operator()(using_decl const& ud) const
     qname uqn = ctx.ns() / ud.name();
     functional& fnl = env().resolve_functional(uqn);
     if (ud.parameters.empty()) {
-        fnl.set_default_entity(sonia::make_shared<expression_resolver>(ud.location, *get<return_decl_t>(ud.body.front()).expression));
+        fnl.set_default_entity(sonia::make_shared<expression_resolver>(ud.location, *get<return_statement_t>(ud.body.front()).expression));
     } else {
         auto fnptrn = make_shared<internal_fn_pattern>();
         error_storage err = fnptrn->init(ctx, static_cast<fn_decl_t const&>(ud));
@@ -119,92 +119,6 @@ struct parameter
 
 using parameter_name = variant<named_parameter_name, unnamed_parameter_name, varnamed_parameter_name>;
 */
-error_storage declaration_visitor::operator()(struct_decl const& sd) const
-{
-    environment& e = ctx.env();
-    annotated_qname fn_qname = { ctx.ns() / sd.name.value, sd.name.location };
-    // to do: check the allowence of absolute qname
-    auto initptrn = sonia::make_shared<struct_init_pattern>(sd.body);
-
-    functional& fnl = e.fregistry_resolve(fn_qname.value);
-    if (sd.parameters.empty()) {
-        // case: struct STRUCT_NAME => ( fields )
-        auto sent = sonia::make_shared<struct_entity>(e, fnl, sd.body);
-        e.eregistry_insert(sent);
-        annotated_entity_identifier aeid{ sent->id, sd.name.location };
-        fnl.set_default_entity(aeid);
-
-        if (error_storage err = initptrn->init(ctx, aeid); err) return err;
-    } else {
-        // case: struct STRUCT_NAME(parameters) => ( fields )
-        auto ptrn = sonia::make_shared<struct_fn_pattern>(sd.body);
-        if (error_storage err = ptrn->init(ctx, fn_qname, sd.parameters); err) return err;
-        fnl.push(std::move(ptrn));
-
-        if (error_storage err = initptrn->init(ctx, fn_qname, sd.parameters); err) return err;
-    }
-
-    functional& init_fnl = e.fregistry_resolve(e.get(builtin_qnid::init));
-    init_fnl.push(std::move(initptrn));
-    return {};
-
-    //return apply_visitor(make_functional_visitor<error_storage>([this, &sd](auto const& v) {
-    //    environment& e = ctx.env();
-    //    if constexpr (std::is_same_v<annotated_qname const&, decltype(v)>) {
-    //        // case: struct STRUCT_NAME => ( fields )
-    //        annotated_qname const& qn = v;
-
-    //        functional& fnl = e.fregistry_resolve(ctx.ns() / qn.value);
-    //        auto sent = sonia::make_shared<struct_entity>(e, fnl, sd.body);
-    //        e.eregistry_insert(sent);
-    //        annotated_entity_identifier aeid{ sent->id, qn.location };
-    //        fnl.set_default_entity(aeid);
-
-    //        functional& init_fnl = e.fregistry_resolve(e.get(builtin_qnid::init));
-    //        auto initptrn = sonia::make_shared<struct_init_pattern>(sd.body);
-    //        if (error_storage err = initptrn->init(ctx, aeid); err) return err;
-    //        init_fnl.push(std::move(initptrn));
-    //    } else { // if constexpr (std::is_same_v<fn_pure_t const&, decltype(v)>) {
-    //        // case: struct STRUCT_NAME(parameters) => ( fields )
-    //        
-    //        // to do: check the allowence of absolute qname
-    //        fn_pure_t const& fn = v;
-    //        qname fn_qname = ctx.ns() / fn.name();
-    //        functional& fnl = e.fregistry_resolve(fn_qname);
-    //        auto ptrn = sonia::make_shared<struct_fn_pattern>(sd.body);
-    //        if (error_storage err = ptrn->init(ctx, fn); err) return err;
-    //        fnl.push(std::move(ptrn));
-
-    //        functional& init_fnl = e.fregistry_resolve(e.get(builtin_qnid::init));
-    //        auto initptrn = sonia::make_shared<struct_init_pattern>(sd.body);
-    //        if (error_storage err = initptrn->init(ctx, fn_qname, fn); err) return err;
-    //        //if (error_storage err = initptrn->init(ctx, annotated_qname{ fn_qname, fn.location() }, fn.parameters); err) return err;
-    //        init_fnl.push(std::move(initptrn));
-    //    }
-    //    return error_storage{};
-    //}), sd.decl);
-}
-
-error_storage declaration_visitor::operator()(enum_decl const& ed) const
-{
-    environment& env = ctx.env();
-    functional& fnl = env.fregistry_resolve(ctx.ns() / ed.name.value);
-    auto eent = make_shared<enum_entity>(env, fnl, ed.cases);
-    env.eregistry_insert(eent);
-    annotated_entity_identifier aeid{ eent->id, ed.name.location };
-    fnl.set_default_entity(aeid);
-    return {};
-
-    //entity_signature enum_sig{ env.get(builtin_qnid::enum_), env.get(builtin_eid::typename_) };
-    //size_t ival = 0;
-    //for (identifier cid : ed.cases) {
-    //    entity_identifier value = env.make_integer_entity(ival++).id;
-    //    enum_sig.emplace_back(cid, value, true);
-    //}
-    //auto eent = env.make_basic_signatured_entity(std::move(enum_sig)); // register enum signatured entity
-
-    //annotated_entity_identifier aeid{ eent.id, ed.name.location };
-}
 
 size_t declaration_visitor::append_result(semantic::expression_list_t& el, syntax_expression_result& er) const
 {
@@ -312,9 +226,13 @@ error_storage declaration_visitor::operator()(if_decl const& stm) const
     }
 }
 
-error_storage declaration_visitor::operator()(for_decl const& fd) const
+error_storage declaration_visitor::operator()(for_statement const& fd) const
 {
-    THROW_NOT_IMPLEMENTED_ERROR("declaration_visitor for_decl");
+    ctx.push_scope();
+    ctx.append_expression(std::move(semantic::loop_scope_t{}));
+    semantic::loop_scope_t& ls = get<semantic::loop_scope_t>(ctx.expressions().back());
+
+    THROW_NOT_IMPLEMENTED_ERROR("declaration_visitor for_statement");
 }
 
 error_storage declaration_visitor::operator()(while_decl const& wd) const
@@ -422,6 +340,26 @@ error_storage declaration_visitor::operator()(break_statement_t const&) const
     // to do: check the existance of enclisong loop (or switch)
     //THROW_NOT_IMPLEMENTED_ERROR("declaration_visitor break_statement_t");
     ctx.append_expression(semantic::loop_breaker{});
+    return {};
+}
+
+error_storage declaration_visitor::operator()(yield_statement_t const& yst) const
+{
+    semantic::managed_expression_list el{ env() };
+    expected_result_t exp = ctx.result_value_or_type ?
+        expected_result_t{ .type = ctx.result_value_or_type, .location = yst.location, .modifier = ctx.is_const_value_result ? value_modifier_t::constexpr_value : value_modifier_t::runtime_value } :
+        expected_result_t{};
+
+    auto res = apply_visitor(base_expression_visitor{ ctx, el, exp }, yst.expression);
+    if (!res) return std::move(res.error());
+    syntax_expression_result& er = res->first;
+    
+    ctx.push_chain();
+    size_t scope_sz = append_result(el, er);
+    auto return_expressions = ctx.expressions();
+    ctx.pop_chain();
+    ctx.append_yield(return_expressions, scope_sz, er.value_or_type, er.is_const_result);
+
     return {};
 }
 
@@ -577,6 +515,17 @@ function_entity & declaration_visitor::append_fnent(fn_pure& fnd, function_signa
 }
 #endif
 
+error_storage declaration_visitor::operator()(typefn_decl_t const& fnd) const
+{
+    qname fn_qname = ctx.ns() / fnd.name();
+    functional& fnl = env().resolve_functional(fn_qname);
+
+    auto typefnptrn = make_shared<typefn_pattern>();
+    error_storage err = typefnptrn->init(ctx, fnd);
+    if (!err) fnl.push(std::move(typefnptrn));
+    return err;
+}
+
 error_storage declaration_visitor::operator()(fn_decl_t const& fnd) const
 {
     qname fn_qname = ctx.ns() / fnd.name();
@@ -586,65 +535,77 @@ error_storage declaration_visitor::operator()(fn_decl_t const& fnd) const
     error_storage err = fnptrn->init(ctx, fnd);
     if (!err) fnl.push(std::move(fnptrn));
     return err;
-#if 0
-    //---------------
-    fieldset fnfs;
-    if (auto err = ctx.build_fieldset(fnd, fnfs); err) {
-        throw exception(env().print(*err));
-    }
-
-    
-
-    
-    auto fptrn = make_shared<basic_fn_pattern>(std::move(fnfs));
-    f.push(fptrn);
-    function_descriptor& fd = fptrn->
-    function_descriptor& fd = fnres.value();
-    entity_signature fnsig{ env().get_fn_qname_identifier() };
-    
-    fn_compiler_context fnctx{ ctx, fnd.name() / env().new_identifier() };
-
-    
-
-    
-
-    shared_ptr<type_entity> fn_type_entity;
-    if (fd.result_type()) {
-        // create function type
-        fnsig.push(env().get_fn_result_identifier(), fd.result_type());
-        fn_type_entity = make_shared<type_entity>(env().get_typename_entity_identifier()); // function type is typename
-        fn_type_entity->set_signature(std::move(fnsig));
-    }
-
-
-    auto fnent = sonia::make_shared<function_entity>(fnqnid, function_signature{ sig });
-    
-
-    declaration_visitor dvis{ fnctx };
-    for (infunction_declaration_t& d : fnd.body) {
-        apply_visitor(dvis, d);
-    }
-    // here all captured variables (if exist) are allocated
-    fnctx.finish_frame();
-
-    intptr_t paramnum = 0;
-    size_t paramcount = params.size() + fnctx.captured_variables.size();
-    for (variable_entity* var : params) {
-        var->set_index(paramnum - paramcount);
-        ++paramnum;
-    }
-    for (auto [from, tovar] : fnctx.captured_variables) {
-        tovar->set_index(paramnum - paramcount);
-        ++paramnum;
-    }
-
-    THROW_NOT_IMPLEMENTED_ERROR("declaration_visitor fn_decl_t");
-    //function_signature& sig = append_fnsig(fnd);
-    //function_entity & fnent = append_fnent(fnd, sig, fnd.body);
-    //ctx.expressions.emplace_back(semantic::set_variable{ &fnent });
-#endif
 }
 
+error_storage declaration_visitor::operator()(enum_decl const& ed) const
+{
+    environment& env = ctx.env();
+    functional& fnl = env.fregistry_resolve(ctx.ns() / ed.name.value);
+    auto eent = make_shared<enum_entity>(env, fnl, ed.cases);
+    env.eregistry_insert(eent);
+    annotated_entity_identifier aeid{ eent->id, ed.name.location };
+    fnl.set_default_entity(aeid);
+    return {};
+}
+
+error_storage declaration_visitor::operator()(struct_decl const& sd) const
+{
+    environment& env = ctx.env();
+    annotated_qname fn_qname = { ctx.ns() / sd.name.value, sd.name.location };
+    // to do: check the allowence of absolute qname
+    
+    functional& fnl = env.fregistry_resolve(fn_qname.value);
+    if (sd.parameters.empty()) {
+        // case: struct STRUCT_NAME => ( fields )
+        auto sent = sonia::make_shared<struct_entity>(env, fnl, sd.body);
+        env.eregistry_insert(sent);
+        annotated_entity_identifier aeid{ sent->id, sd.name.location };
+        fnl.set_default_entity(aeid);
+    } else {
+        // case: struct STRUCT_NAME(parameters) => ( fields )
+        auto ptrn = sonia::make_shared<struct_fn_pattern>(sd.body);
+        if (error_storage err = ptrn->init(ctx, fn_qname, sd.parameters); err) return err;
+        fnl.push(std::move(ptrn));
+    }
+
+    return {};
+
+    //return apply_visitor(make_functional_visitor<error_storage>([this, &sd](auto const& v) {
+    //    environment& e = ctx.env();
+    //    if constexpr (std::is_same_v<annotated_qname const&, decltype(v)>) {
+    //        // case: struct STRUCT_NAME => ( fields )
+    //        annotated_qname const& qn = v;
+
+    //        functional& fnl = e.fregistry_resolve(ctx.ns() / qn.value);
+    //        auto sent = sonia::make_shared<struct_entity>(e, fnl, sd.body);
+    //        e.eregistry_insert(sent);
+    //        annotated_entity_identifier aeid{ sent->id, qn.location };
+    //        fnl.set_default_entity(aeid);
+
+    //        functional& init_fnl = e.fregistry_resolve(e.get(builtin_qnid::init));
+    //        auto initptrn = sonia::make_shared<struct_init_pattern>(sd.body);
+    //        if (error_storage err = initptrn->init(ctx, aeid); err) return err;
+    //        init_fnl.push(std::move(initptrn));
+    //    } else { // if constexpr (std::is_same_v<fn_pure_t const&, decltype(v)>) {
+    //        // case: struct STRUCT_NAME(parameters) => ( fields )
+    //        
+    //        // to do: check the allowence of absolute qname
+    //        fn_pure_t const& fn = v;
+    //        qname fn_qname = ctx.ns() / fn.name();
+    //        functional& fnl = e.fregistry_resolve(fn_qname);
+    //        auto ptrn = sonia::make_shared<struct_fn_pattern>(sd.body);
+    //        if (error_storage err = ptrn->init(ctx, fn); err) return err;
+    //        fnl.push(std::move(ptrn));
+
+    //        functional& init_fnl = e.fregistry_resolve(e.get(builtin_qnid::init));
+    //        auto initptrn = sonia::make_shared<struct_init_pattern>(sd.body);
+    //        if (error_storage err = initptrn->init(ctx, fn_qname, fn); err) return err;
+    //        //if (error_storage err = initptrn->init(ctx, annotated_qname{ fn_qname, fn.location() }, fn.parameters); err) return err;
+    //        init_fnl.push(std::move(initptrn));
+    //    }
+    //    return error_storage{};
+    //}), sd.decl);
+}
 error_storage declaration_visitor::operator()(let_statement const& ld) const
 {
     semantic::managed_expression_list el{ env() };
@@ -898,12 +859,12 @@ error_storage declaration_visitor::operator()(let_statement const& ld) const
 //    }
 //}
 
-error_storage declaration_visitor::operator()(return_decl_t const& rd) const
+error_storage declaration_visitor::operator()(return_statement_t const& rd) const
 {
     if (rd.expression) {
         semantic::managed_expression_list el{ env() };
         expected_result_t exp = ctx.result_value_or_type ?
-            expected_result_t{ .type = ctx.result_value_or_type, .location = rd.location, .modifier = ctx.is_const_value_result ? value_modifier_t::constexpr_value : value_modifier_t::constexpr_or_runtime_value } :
+            expected_result_t{ .type = ctx.result_value_or_type, .location = rd.location, .modifier = ctx.is_const_value_result ? value_modifier_t::constexpr_value : value_modifier_t::runtime_value } :
             expected_result_t{};
         
         auto res = apply_visitor(base_expression_visitor{ ctx, el, exp }, *rd.expression);

@@ -55,18 +55,23 @@
 #include "entities/struct/struct_new_pattern.hpp"
 #include "entities/struct/struct_get_pattern.hpp"
 #include "entities/struct/struct_implicit_cast_pattern.hpp"
+#include "entities/struct/struct_init_pattern.hpp"
+#include "entities/struct/struct_set_pattern.hpp"
 
 #include "entities/enum/enum_implicit_cast_pattern.hpp"
+#include "entities/enum/enum_get_pattern.hpp"
+#include "entities/enum/enum_equal_pattern.hpp"
+#include "entities/enum/enum_to_string_pattern.hpp"
 
-#include "entities/array/array_make_pattern.hpp"
 #include "entities/array/array_implicit_cast_pattern.hpp"
 
 #include "entities/fixed_array/fixed_array_make_pattern.hpp"
 #include "entities/fixed_array/fixed_array_head_pattern.hpp"
 #include "entities/fixed_array/fixed_array_tail_pattern.hpp"
 #include "entities/fixed_array/fixed_array_get_pattern.hpp"
-#include "entities/fixed_array/fixed_array_implicit_cast_pattern.hpp"
 #include "entities/fixed_array/fixed_array_elements_implicit_cast_pattern.hpp"
+
+
 
 #include "semantic/expression_printer.hpp"
 #include "auxiliary.hpp"
@@ -567,8 +572,7 @@ struct type_printer_visitor : static_visitor<void>
         ss << ')';
     }
 
-    template <typename FamilyT>
-    inline void operator()(annium_vector<FamilyT> const& v) const
+    inline void operator()(bracket_expression_t const& v) const
     {
         ss << '[';
         apply_visitor(*this, v.type);
@@ -940,11 +944,11 @@ struct expr_printer_visitor : static_visitor<void>
         ss << ')';
     }
 
-    void operator()(annium_vector_t const& v) const
+    void operator()(bracket_expression_t const& v) const
     {
-        ss << "vector(of: "sv;
+        ss << '[';
         apply_visitor(*this, v.type);
-        ss << ')';
+        ss << ']';
     }
 
     void operator()(new_expression_t const& ne) const
@@ -1177,31 +1181,14 @@ basic_signatured_entity const& environment::make_basic_signatured_entity(entity_
     }));
 }
 
-basic_signatured_entity const& environment::make_vector_type_entity(entity_identifier element_type)
-{
-    entity_signature sig{ get(builtin_qnid::vector), get(builtin_eid::typename_) };
-    sig.emplace_back(get(builtin_id::of), element_type, true);
-    return make_basic_signatured_entity(std::move(sig));
-}
-
-basic_signatured_entity const& environment::make_vector_entity(entity_identifier element_type, span<entity_identifier> const& values)
-{
-    entity_signature sig{ get(builtin_qnid::metaobject) };
-    //sig.push_back(e.get(builtin_id::element), field_descriptor{ element_type, true });
-    for (auto const& v : values) {
-        sig.emplace_back(v, true);
-    }
-    entity_identifier tp = make_vector_type_entity(element_type).id;
-    sig.result = field_descriptor{ tp };
-    return make_basic_signatured_entity(std::move(sig));
-}
-
-basic_signatured_entity const& environment::make_array_type_entity(entity_identifier element_type, size_t sz)
+basic_signatured_entity const& environment::make_array_type_entity(entity_identifier element_type, optional<size_t> sz)
 {
     entity_signature sig{ get(builtin_qnid::array), get(builtin_eid::typename_) };
     sig.emplace_back(get(builtin_id::of), element_type, true);
-    entity_identifier szeid = make_integer_entity((int64_t)sz).id;
-    sig.emplace_back(get(builtin_id::size), szeid, true);
+    if (sz) {
+        entity_identifier szeid = make_integer_entity((uint64_t)*sz).id;
+        sig.emplace_back(get(builtin_id::size), szeid, true);
+    }
     return make_basic_signatured_entity(std::move(sig));
 }
 
@@ -1209,11 +1196,9 @@ basic_signatured_entity const& environment::make_array_entity(entity_identifier 
 {
     entity_identifier tp = make_array_type_entity(element_type, values.size()).id;
     entity_signature sig{ get(builtin_qnid::data), tp };
-
     for (auto const& v : values) {
         sig.emplace_back(v, true);
     }
-    
     return make_basic_signatured_entity(std::move(sig));
 }
 
@@ -1333,6 +1318,7 @@ environment::environment()
 
     // equal(_, _) -> bool
     functional& equal_fnl = fregistry_resolve(get(builtin_qnid::eq));
+    equal_fnl.push(make_shared<enum_equal_pattern>());
     equal_fnl.push(make_shared<tuple_equal_pattern>());
     equal_fnl.push(make_shared<numeric_literal_equal_pattern>());
     equal_fnl.push(make_shared<equal_pattern>());
@@ -1348,6 +1334,7 @@ environment::environment()
 
     functional& to_string_fnl = fregistry_resolve(get(builtin_qnid::to_string));
     to_string_fnl.push(make_shared<to_string_pattern>());
+    to_string_fnl.push(make_shared<enum_to_string_pattern>());
 
     functional& tuple_fnl = fregistry_resolve(get(builtin_qnid::tuple));
     tuple_fnl.push(make_shared<tuple_pattern>());
@@ -1382,11 +1369,7 @@ environment::environment()
     functional& make_tuple_fnl = fregistry_resolve(get(builtin_qnid::make_tuple));
     make_tuple_fnl.push(make_shared<tuple_make_pattern>());
 
-    // make_vector(...) -> vector(...)
-    functional& make_vector_fnl = fregistry_resolve(get(builtin_qnid::make_vector));
-    make_vector_fnl.push(make_shared<array_make_pattern>());
-
-    // make_vector(...) -> vector(...)
+    // make_array(of?, ...) -> array(of, size)
     functional& make_array_fnl = fregistry_resolve(get(builtin_qnid::make_array));
     make_array_fnl.push(make_shared<fixed_array_make_pattern>());
 
@@ -1396,9 +1379,11 @@ environment::environment()
     get_fnl.push(make_shared<fixed_array_get_pattern>());
     get_fnl.push(make_shared<tuple_project_get_pattern>());
     get_fnl.push(make_shared<struct_get_pattern>());
+    get_fnl.push(make_shared<enum_get_pattern>());
 
     functional& set_fnl = fregistry_resolve(get(builtin_qnid::set));
     set_fnl.push(make_shared<tuple_set_pattern>());
+    set_fnl.push(make_shared<struct_set_pattern>());
 
     // size(signatured_entity)->integer
     functional& sz_fnl = fregistry_resolve(get(builtin_qnid::size));
@@ -1436,6 +1421,9 @@ environment::environment()
     functional& string_concat_fnl = fregistry_resolve(get(builtin_qnid::string_concat));
     string_concat_fnl.push(make_shared<string_concat_pattern>());
 
+    functional& init_fnl = fregistry_resolve(get(builtin_qnid::init));
+    init_fnl.push(std::move(make_shared<struct_init_pattern>()));
+
     //fn_result_identifier_ = make_identifier("->");
 
     //eq_qname_identifier_ = make_qname_identifier("==");
@@ -1445,7 +1433,8 @@ environment::environment()
     builtin_eids_[(size_t)builtin_eid::arrayify] = set_builtin_extern("__arrayify(..., runtime integer)->tuple($0...)"sv, &annium_arrayify);
     builtin_eids_[(size_t)builtin_eid::unfold] = set_builtin_extern("__unfold(~runtime array(...))"sv, &annium_unfold);
     builtin_eids_[(size_t)builtin_eid::array_tail] = set_builtin_extern("__array_tail(~runtime tuple(_, $t...))->tuple($t...)"sv, &annium_array_tail);
-    builtin_eids_[(size_t)builtin_eid::array_at] = set_builtin_extern("__array_at()->any"sv, &annium_array_at);
+    builtin_eids_[(size_t)builtin_eid::array_at] = set_builtin_extern("__array_at()"sv, &annium_array_at);
+    builtin_eids_[(size_t)builtin_eid::array_set_at] = set_builtin_extern("__array_set_at($arr: runtime, $index: runtime integer, $value)"sv, &annium_array_set_at);
     builtin_eids_[(size_t)builtin_eid::equal] = set_builtin_extern("__equal(runtime any, runtime any)->bool"sv, &annium_any_equal);
     builtin_eids_[(size_t)builtin_eid::assert] = set_builtin_extern("__assert(runtime any)"sv, &annium_assert);
     builtin_eids_[(size_t)builtin_eid::to_string] = set_builtin_extern("__to_string(runtime any)->string"sv, &annium_tostring);
@@ -1474,8 +1463,8 @@ environment::environment()
     // temporary
     
     //set_extern<external_fn_pattern>("negate(mut _)->bool"sv, &annium_negate);
-    set_builtin_extern("__plus(:integer, :integer)->integer"sv, &annium_operator_plus_integer);
-    set_builtin_extern("__plus(:decimal, :decimal)->decimal"sv, &annium_operator_plus_decimal);
+    set_builtin_extern("__plus(:integer, :integer)~>integer"sv, &annium_operator_plus_integer);
+    set_builtin_extern("__plus(:decimal, :decimal)~>decimal"sv, &annium_operator_plus_decimal);
 
 }
 }

@@ -76,17 +76,18 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
                     std::move(res.error())
                 );
             }
-            if (!pd.default_value) {
-                return make_error<basic_general_error>(param_name.location, "argument not found"sv, param_name.value);
-            }
-            // try default value
-            res = apply_visitor(base_expression_visitor{ callee_ctx, call.expressions, argexp }, *pd.default_value);
-            if (!res) {
-                return append_cause(
-                    make_error<basic_general_error>(param_name.location, "cannot evaluate default value for argument"sv, param_name.value),
-                    std::move(res.error())
-                );
-            }
+            if (syntax_expression_t const* default_expr = get<syntax_expression_t>(&pd.default_value); default_expr) {
+                // try default value
+                res = apply_visitor(base_expression_visitor{ callee_ctx, call.expressions, argexp }, *default_expr);
+                if (!res) {
+                    return append_cause(
+                        make_error<basic_general_error>(param_name.location, "cannot evaluate default value for argument"sv, param_name.value),
+                        std::move(res.error())
+                    );
+                }
+            } else if (required_t const* req = get<required_t>(&pd.default_value); req) {
+                return make_error<basic_general_error>(param_name.location, "missing required argument"sv, param_name.value);
+            } // else optional, do nothing
         }
 
         syntax_expression_result& arg_er = res->first;

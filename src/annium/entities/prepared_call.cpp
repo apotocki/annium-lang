@@ -283,6 +283,8 @@ prepared_call::session::do_resolve(argument_cache& arg_cache, expected_result_t 
         } else if (res && can_be_only_constexpr(exp.modifier)) {
             arg_cache.cache.emplace(cache_key_t{ exp.type, value_modifier_t::constexpr_or_runtime_value }, res);
         }
+        // cit may be invalidated, so we return res directly
+        return std::move(res);
     }
     return cit->second;
 }
@@ -304,13 +306,13 @@ bool prepared_call::session::has_more_positioned_arguments() const noexcept
 }
 
 std::expected<std::pair<syntax_expression_result, bool>, error_storage>
-prepared_call::session::use_next_positioned_argument(std::pair<syntax_expression_t const*, size_t>* pe)
+prepared_call::session::use_next_positioned_argument(argument_descriptor_t* pe)
 {
     return use_next_positioned_argument(expected_result_t{}, pe);
 }
 
 std::expected<std::pair<syntax_expression_result, bool>, error_storage>
-prepared_call::session::use_next_positioned_argument(expected_result_t const& exp, std::pair<syntax_expression_t const*, size_t> * pe)
+prepared_call::session::use_next_positioned_argument(expected_result_t const& exp, argument_descriptor_t* pe)
 {
     while (positioned_usage_map_) {
         // get next unused argument index

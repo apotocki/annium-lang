@@ -16,13 +16,6 @@ namespace annium {
 
 class internal_function_entity : public function_entity
 {
-    //struct varibale
-    //{
-    //    variable_identifier id;
-    //    intptr_t index;
-    //    // to do: metadata
-    //};
-
     using var_set_t = std::unordered_map<variable_identifier, intptr_t, sonia::hash<variable_identifier>>;
     /*
     using var_set_t = boost::multi_index::multi_index_container<

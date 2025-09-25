@@ -6,9 +6,13 @@
 #include "struct_entity.hpp"
 
 #include "annium/ast/fn_compiler_context.hpp"
+#include "annium/ast/base_expression_visitor.ipp"
 
+#include "annium/entities/prepared_call.hpp"
 #include "annium/entities/literals/literal_entity.hpp"
 //#include "annium/errors/circular_dependency_error.hpp"
+
+#include "annium/errors/type_mismatch_error.hpp"
 
 namespace annium {
 
@@ -17,6 +21,71 @@ std::ostream& struct_init_pattern::print(environment const&, std::ostream& s) co
     return s << "init(...) -> @structure"sv;
 }
 
+std::expected<functional_match_descriptor_ptr, error_storage> struct_init_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
+{
+    environment& env = ctx.env();
+    if (!exp.type) {
+        return std::unexpected(make_error<basic_general_error>(call.location, "expected a structure result"sv));
+    }
+    entity const& struct_ent = get_entity(env, exp.type);
+    struct_entity const* pstruct = dynamic_cast<struct_entity const*>(&struct_ent);
+    if (!pstruct) {
+        return std::unexpected(make_error<type_mismatch_error>(exp.location, exp.type, "a structure type"sv));
+    }
+    auto struct_fields = pstruct->fields(ctx);
+    if (!struct_fields) {
+        return std::unexpected(append_cause(
+            make_error<basic_general_error>(exp.location, "unable to retrieve structure fields"sv),
+            std::move(struct_fields.error())
+        ));
+    }
+
+    auto call_session = call.new_session(ctx);
+    functional_match_descriptor_ptr pmd = make_shared<functional_match_descriptor>(call);
+
+    auto const& fields_span = *struct_fields;
+    for (auto const& field : fields_span) {
+        prepared_call::argument_descriptor_t arg_expr;
+        expected_result_t argexp{ .type = field.type, .location = field.name.location, .modifier = value_modifier_t::runtime_value };
+        auto res = field.name ?
+            call_session.use_named_argument(field.name.value, argexp, &arg_expr) :
+            call_session.use_next_positioned_argument(argexp, &arg_expr);
+        resource_location const* pargloc;
+        if (res) {
+            pargloc = &get_start_location(*get<0>(arg_expr));
+        } else {
+            if (res.error()) {
+                return std::unexpected(append_cause(
+                    make_error<basic_general_error>(get_start_location(*get<0>(arg_expr)), "invalid argument"sv),
+                    std::move(res.error())
+                ));
+            }
+            if (syntax_expression_t const* default_expr = get<syntax_expression_t>(&field.default_value)) {
+                base_expression_visitor bev(ctx, call.expressions, argexp);
+                res = apply_visitor(bev, *default_expr);
+                if (!res) {
+                    return std::unexpected(append_cause(
+                        make_error<basic_general_error>(get_start_location(*default_expr), "unable to evaluate default value expression"sv),
+                        std::move(res.error())
+                    ));
+                }
+                pargloc = &get_start_location(*default_expr);
+            } else {
+                return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument"sv));
+            }
+        }
+        pmd->emplace_back(static_cast<intptr_t>(&field - fields_span.data()), std::move(res->first), *pargloc);
+        if (field.name) {
+            pmd->signature.emplace_back(field.name.value, field.type, false);
+        } else {
+            pmd->signature.emplace_back(field.type, false);
+        }
+    }
+    pmd->signature.result.emplace(exp.type, false);
+    return std::move(pmd);
+}
+
+#if 0
 struct_init_pattern::struct_init_pattern(variant<field_list_t, statement_span> const& body)
 {
     apply_visitor(make_functional_visitor<void>([this](auto const& body) {
@@ -77,20 +146,29 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_init_patter
     return res;
 }
 
+#endif
+
 std::expected<syntax_expression_result, error_storage> struct_init_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     // create tuple instance
     environment& e = ctx.env();
-    auto [r, argcount] = apply_arguments(ctx, el, md);
+
+    size_t argcount = 0;
+    syntax_expression_result result{ };
+    for (auto& [_, mr, loc] : md.matches) {
+        append_semantic_result(el, result, mr);
+        if (!mr.is_const_result) ++argcount;
+    }
+    result.is_const_result = !argcount;
 
     if (argcount > 1) {
-        e.push_back_expression(el, r.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(argcount) } });
-        e.push_back_expression(el, r.expressions, semantic::invoke_function(e.get(builtin_eid::arrayify)));
+        e.push_back_expression(el, result.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(argcount) } });
+        e.push_back_expression(el, result.expressions, semantic::invoke_function(e.get(builtin_eid::arrayify)));
     }
 
     BOOST_ASSERT(md.signature.result && md.signature.result->entity_id());
-    r.value_or_type = r.is_const_result ? e.make_empty_entity(md.signature.result->entity_id()).id : md.signature.result->entity_id();
-    return r;
+    result.value_or_type = result.is_const_result ? e.make_empty_entity(md.signature.result->entity_id()).id : md.signature.result->entity_id();
+    return std::move(result);
 }
 
 }

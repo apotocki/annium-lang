@@ -18,6 +18,7 @@ void annium_arrayify(vm::context&);
 void annium_unfold(vm::context&);
 void annium_array_tail(vm::context&);
 void annium_array_at(vm::context&);
+void annium_array_set_at(vm::context&);
 
 void annium_create_extern_object(vm::context&);
 void annium_set_object_property(vm::context&);

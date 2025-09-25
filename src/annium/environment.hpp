@@ -52,7 +52,7 @@ class external_fn_pattern;
     ((numargs, "$$"sv))                    \
     ((init, "init"sv))
 
-#define ANNIUM_BUILTIN_QNAMES_SEQ            \
+#define ANNIUM_BUILTIN_QNAMES_SEQ          \
     ((fn, "__fn"sv))                       \
     ((idfn, "__id"sv))                     \
     ((deref, "*"sv))                       \
@@ -62,7 +62,6 @@ class external_fn_pattern;
     ((typename_, "typename"sv))            \
     ((tuple, "tuple"sv))                   \
     ((tuple_project, "tuple_project"sv))   \
-    ((vector, "vector"sv))                 \
     ((array, "array"sv))                   \
     ((functor, "functor"))                 \
     ((data, "data"sv))                     \
@@ -86,11 +85,9 @@ class external_fn_pattern;
     ((boolean, "bool"sv))                  \
     ((any, "any"sv))                       \
     ((union_, "union"sv))                  \
-    ((metaobject, "metaobject"sv))         \
     ((size, "size"sv))                     \
     ((typeof, "typeof"sv))                 \
     ((make_tuple, "make_tuple"sv))         \
-    ((make_vector, "make_vector"sv))       \
     ((make_array, "make_array"sv))         \
     ((new_, "new"sv))                      \
     ((init, "init"sv))                     \
@@ -163,6 +160,7 @@ enum class builtin_eid : entity_identifier::value_type
     unfold, // builtin ::unfold(:array(...))
     array_tail, // builtin ::array_tail(array)-> array
     array_at, // builtin ::array_at(array, index)-> elementT
+    array_set_at, // builtin ::array_set_at(array, index, value)-> void
     equal, // builtin ::equal(a, b)-> boolean
     assert, // builtin ::assert(condition, message)-> void 
     error, // builtin ::__error(message)-> void
@@ -317,9 +315,7 @@ public:
     generic_literal_entity       const& make_string_entity(string_view value, entity_identifier type = {});
     generic_literal_entity       const& make_generic_entity(smart_blob value, entity_identifier type);
     basic_signatured_entity      const& make_basic_signatured_entity(entity_signature&&);
-    basic_signatured_entity      const& make_vector_type_entity(entity_identifier element_type);
-    basic_signatured_entity      const& make_vector_entity(entity_identifier element_type, span<entity_identifier> const& values);
-    basic_signatured_entity      const& make_array_type_entity(entity_identifier element_type, size_t sz);
+    basic_signatured_entity      const& make_array_type_entity(entity_identifier element_type, optional<size_t> size = nullopt);
     basic_signatured_entity      const& make_array_entity(entity_identifier element_type, span<entity_identifier> const& values);
     entity                       const& make_union_type_entity(span<entity_identifier> const& types);
 

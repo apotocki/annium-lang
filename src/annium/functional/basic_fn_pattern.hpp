@@ -20,7 +20,7 @@ protected:
         annotated_identifier ename;
         small_vector<annotated_identifier, 2> inames;
         variant<syntax_expression_t, pattern_t> constraint;
-        optional<syntax_expression_t> default_value;
+        variant<required_t, optional_t, syntax_expression_t> default_value;
         parameter_constraint_modifier_t modifier;
     };
 

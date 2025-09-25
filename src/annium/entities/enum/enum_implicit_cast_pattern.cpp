@@ -34,8 +34,8 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_implicit_cast
     if (!exp.type) {
         return std::unexpected(make_error<basic_general_error>(call.location, "expected an enumeration result"sv));
     }
-    environment& e = ctx.env();
-    entity const& enum_ent = get_entity(e, exp.type);
+    environment& env = ctx.env();
+    entity const& enum_ent = get_entity(env, exp.type);
     entity_signature const* psig = enum_ent.signature();
     enum_entity const* penum = dynamic_cast<enum_entity const*>(&enum_ent);
     if (!penum) {
@@ -44,7 +44,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_implicit_cast
 
     auto call_session = call.new_session(ctx);
     prepared_call::argument_descriptor_t arg_expr;
-    auto arg = call_session.use_next_positioned_argument(expected_result_t{ .type = e.get(builtin_eid::identifier), .modifier = value_modifier_t::constexpr_value }, &arg_expr);
+    auto arg = call_session.use_next_positioned_argument(expected_result_t{ .type = env.get(builtin_eid::identifier), .modifier = value_modifier_t::constexpr_value }, &arg_expr);
     if (!arg) {
         if (!arg.error()) {
             return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument"sv));
@@ -57,7 +57,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_implicit_cast
 
     resource_location const& argloc = get_start_location(*get<0>(arg_expr));
     syntax_expression_result& arg_er = arg->first;
-    entity const& ent = get_entity(e, arg_er.value());
+    entity const& ent = get_entity(env, arg_er.value());
     identifier_entity const* pident = dynamic_cast<identifier_entity const*>(&ent);
     BOOST_ASSERT(pident);
     
@@ -71,7 +71,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_implicit_cast
     pmd->emplace_back(0, arg_er, argloc);
     pmd->signature.emplace_back(arg_er.value_or_type, arg_er.is_const_result);
     bool is_runtime = can_be_only_runtime(exp.modifier);
-    pmd->signature.result.emplace(is_runtime ? exp.type : e.make_integer_entity(*optpos, exp.type).id, !is_runtime);
+    pmd->signature.result.emplace(is_runtime ? exp.type : env.make_integer_entity(*optpos, exp.type).id, !is_runtime);
     return pmd;
 }
 

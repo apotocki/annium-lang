@@ -20,12 +20,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\annium\entities\array\array_implicit_cast_pattern.cpp" />
-    <ClCompile Include="..\..\..\src\annium\entities\array\array_make_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\entities\enum\enum_equal_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\entities\enum\enum_get_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\enum\enum_to_string_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\fixed_array\fixed_array_elements_implicit_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\fixed_array\fixed_array_get_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\fixed_array\fixed_array_head_pattern.cpp" />
-    <ClCompile Include="..\..\..\src\annium\entities\fixed_array\fixed_array_implicit_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\fixed_array\fixed_array_make_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\fixed_array\fixed_array_tail_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\annium.cpp" />
@@ -79,6 +79,7 @@
     <ClCompile Include="..\..\..\src\annium\entities\struct\struct_implicit_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\struct\struct_init_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\struct\struct_new_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\entities\struct\struct_set_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_empty_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_equal_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_get_pattern.cpp" />
@@ -129,6 +130,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\typefn_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\value_match_visitor.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
@@ -151,12 +153,12 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\src\annium\ast\base_expression_visitor.ipp" />
     <ClInclude Include="..\..\..\src\annium\entities\array\array_implicit_cast_pattern.hpp" />
-    <ClInclude Include="..\..\..\src\annium\entities\array\array_make_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\enum\enum_equal_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\enum\enum_get_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\enum\enum_to_string_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\fixed_array\fixed_array_elements_implicit_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\fixed_array\fixed_array_get_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\fixed_array\fixed_array_head_pattern.hpp" />
-    <ClInclude Include="..\..\..\src\annium\entities\fixed_array\fixed_array_implicit_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\fixed_array\fixed_array_make_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\fixed_array\fixed_array_tail_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\annium.hpp" />
@@ -207,6 +209,7 @@
     <ClInclude Include="..\..\..\src\annium\entities\struct\struct_implicit_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\struct\struct_init_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\struct\struct_new_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\struct\struct_set_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\tuple\generic_get_pattern_matcher.ipp" />
     <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_empty_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_equal_pattern.hpp" />
@@ -256,6 +259,7 @@
     <ClInclude Include="..\..\..\src\annium\functional\parameter_matcher.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\pattern_matcher.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\signature_matcher.hpp" />
+    <ClInclude Include="..\..\..\src\annium\functional\typefn_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\value_match_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\value_type_match_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\library\library.hpp" />

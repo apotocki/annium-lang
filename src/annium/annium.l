@@ -121,6 +121,7 @@ DECIMAL_S               "."[0-9]*{EXPONENT}?
 INTEGER_INDEX			"."([0]|([1-9][0-9]*))
 
 FN						 "fn"
+TYPEFN					 "typefn"
 LET						 "let"
 VAR						 "var"
 ENUM					 "enum"
@@ -135,6 +136,7 @@ NEW						 "new"
 CONTINUE                 "continue"
 BREAK					 "break"
 RETURN                   "return"
+YIELD                    "yield"
 
 WHILE					 "while"
 FOR						 "for"
@@ -308,6 +310,7 @@ HASHTAG					"#"
 
 <INITIAL>{
 	{FN} { variant_emplace(location); return (annium_lang::parser::token::FN); }
+	{TYPEFN} { variant_emplace(location); return (annium_lang::parser::token::TYPEFN); }
 	{LET} { return (annium_lang::parser::token::LET); }
 	{VAR} { return (annium_lang::parser::token::VAR); }
 	{ENUM} { return (annium_lang::parser::token::ENUM); }
@@ -328,6 +331,7 @@ HASHTAG					"#"
 	{CONTINUE} { variant_emplace(location); return (annium_lang::parser::token::CONTINUE); }
 	{BREAK} { variant_emplace(location); return (annium_lang::parser::token::BREAK); }
 	{RETURN} { variant_emplace(location); return (annium_lang::parser::token::RETURN); }
+	{YIELD} { variant_emplace(location); return (annium_lang::parser::token::YIELD); }
 
 	{WEAK} { return (annium_lang::parser::token::WEAK); }
 

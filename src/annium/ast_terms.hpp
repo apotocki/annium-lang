@@ -226,12 +226,12 @@ template <typename T> struct annium_fn_type
 //    }
 //};
 
-template <typename T> struct annium_vector
+template <typename ExprT> struct bracket_expression
 {
     resource_location location;
-    T type;
-    inline bool operator==(annium_vector const&) const noexcept = default;
-    inline auto operator<=>(annium_vector const& r) const noexcept { return variant_compare_three_way{}(type, r.type); }
+    ExprT type;
+    //inline bool operator==(bracket_expression const&) const noexcept = default;
+    //inline auto operator<=>(bracket_expression const& r) const noexcept { return variant_compare_three_way{}(type, r.type); }
 };
 
 //template <typename T> struct annium_union
@@ -496,9 +496,16 @@ struct expression_decl
 };
 
 template <typename ExprT>
-struct return_decl
+struct return_statement
 {
     optional<ExprT> expression;
+    resource_location location;
+};
+
+template <typename ExprT>
+struct yield_statement
+{
+    ExprT expression;
     resource_location location;
 };
 
@@ -536,6 +543,13 @@ struct array_expression
     expression_list<T> elements;
 };
 
+template <typename T>
+struct array_with_body_expression
+{
+    resource_location location;
+    statement_span body;
+};
+
 template <typename ExprT>
 struct index_expression
 {
@@ -543,6 +557,9 @@ struct index_expression
     ExprT index;
     resource_location location;
 };
+
+struct required_t {};
+struct optional_t {};
 
 template <typename ExprT>
 struct pattern
@@ -574,12 +591,14 @@ struct pattern
 template <typename ExprT>
 struct parameter
 {
+    using default_spec = variant<required_t, optional_t, ExprT>;
+
     parameter_name name;
 
     variant<ExprT, pattern<ExprT>> constraint;
 
-    optional<ExprT> default_value;
-    
+    default_spec default_value = required_t{};
+
     parameter_constraint_modifier_t modifier = parameter_constraint_modifier_t::const_or_runtime_type;
 };
 
@@ -599,8 +618,6 @@ struct fn_pure
     parameter_list<ExprT> parameters;
     variant<nullptr_t, ExprT, pattern<ExprT>> result; // undefined or type expression or pattern
 
-    //bool is_type_expression_result = true; // true for type expressions, false for value expressions
-    //bool is_not_a_pattern_result = false; // true if explicitly defined as not a pattern result
     fn_kind kind = fn_kind::DEFAULT;
 
     inline qname_view name() const noexcept
@@ -610,6 +627,9 @@ struct fn_pure
             , nameval);
     }
 };
+
+template <typename ExprT>
+struct typefn_decl : fn_pure<ExprT> {};
 
 // used for both function declaration and lambda expression
 template <typename ExprT>
@@ -627,6 +647,8 @@ struct stack_value_reference
     size_t offset; // offset from the stack top
 };
 
+using reference_expression_t = variant<name_reference, qname_reference>;
+
 using syntax_expression_t = make_recursive_variant<
     // literals
     annotated_nil, annotated_bool, annotated_integer, annotated_decimal, annotated_string, annotated_identifier,
@@ -639,9 +661,9 @@ using syntax_expression_t = make_recursive_variant<
 
     // constructors
     array_expression<recursive_variant_>, // like [value1, value2, ...]
-    
+    array_with_body_expression<recursive_variant_>, // like [ { ... } ]
     // types
-    annium_vector<recursive_variant_>, // like [ElementType]
+    bracket_expression<recursive_variant_>, // like [ElementType]
     fn_decl<recursive_variant_>, // like fn (args) -> result { body }
     annium_fn_type<recursive_variant_>, // like (args) -> result
 
@@ -671,7 +693,9 @@ using parameter_t = parameter<syntax_expression_t>;
 using fn_pure_t = fn_pure<syntax_expression_t>;
 using fn_decl_t = fn_decl<syntax_expression_t>;
 using lambda_t = fn_decl_t;
+using typefn_decl_t = typefn_decl<syntax_expression_t>;
 using array_expression_t = array_expression<syntax_expression_t>;
+using array_with_body_expression_t = array_with_body_expression<syntax_expression_t>;
 using index_expression_t = index_expression<syntax_expression_t>;
 
 using syntax_expression_entry_type = linked_list_node<syntax_expression_t>;
@@ -681,10 +705,12 @@ using managed_syntax_expression_list = managed_linked_list<syntax_expression_t, 
 
 struct field_t
 {
+    using default_spec = variant<required_t, syntax_expression_t>;
+
     annotated_identifier name;
     parameter_constraint_modifier_t modifier;
     syntax_expression_t type_or_value;
-    optional<syntax_expression_t> value;
+    default_spec value = required_t{};
 };
 using field_list_t = std::vector<field_t>;
 
@@ -707,7 +733,7 @@ using function_call_t = function_call<syntax_expression_t>;
 
 using annium_fn_type_t = annium_fn_type<syntax_expression_t>;
 //using annium_tuple_t = annium_tuple<syntax_expression_t>;
-using annium_vector_t = annium_vector<syntax_expression_t>;
+using bracket_expression_t = bracket_expression<syntax_expression_t>;
 //using annium_union_t = annium_union<syntax_expression_t>;
 //template <unary_operator_type Op> using unary_expression_t = unary_expression<Op, syntax_expression_t>;
 
@@ -884,30 +910,8 @@ struct struct_decl
 {
     annotated_qname name;
     parameter_list_t parameters;
-    variant<field_list_t, statement_span> body;
-
-    //inline bool is_function() const noexcept
-    //{
-    //    return !parameters.empty();
-    //}
-
-    //fn_pure_t const* as_fn() const noexcept
-    //{
-    //    return get<fn_pure_t>(&decl);
-    //}
-
-    //annotated_qname const* as_name() const noexcept
-    //{
-    //    return get<annotated_qname>(&decl);
-    //}
-
-    //inline qname_view name() const noexcept
-    //{
-    //    if (auto const* pfn = get<fn_pure_t>(&decl); pfn) {
-    //        return pfn->name();
-    //    }
-    //    return get<annotated_qname>(decl).value;
-    //}
+    //variant<field_list_t, statement_span> body;
+    field_list_t body;
 
     inline resource_location const& location() const noexcept
     {
@@ -955,7 +959,8 @@ struct let_statement
     resource_location const& location() const { return assign_location; }
 };
 
-using return_decl_t = return_decl<syntax_expression_t>;
+using yield_statement_t = yield_statement<syntax_expression_t>;
+using return_statement_t = return_statement<syntax_expression_t>;
 using expression_statement_t = expression_decl<syntax_expression_t>;
 //using assign_decl_t = assign_decl<syntax_expression_t>;
 
@@ -975,31 +980,31 @@ struct while_decl
     optional<syntax_expression_t> continue_expression; // called before condition starting with second condition check (like c/c++ for expression)
 };
 
-struct for_decl
+struct for_statement
 {
-    syntax_expression_t iter;
+    reference_expression_t iter;
     syntax_expression_t coll;
     statement_span body;
 };
 
 // statements that don't need ';' separator at the end
 using finished_statement_type = variant<
-    while_decl, for_decl, if_decl, fn_decl_t, struct_decl, enum_decl
+    while_decl, for_statement, if_decl, fn_decl_t, struct_decl, enum_decl
 >;
 
 using generic_statement_type = variant<
-    let_statement, expression_statement_t, return_decl_t, fn_decl_t, struct_decl, using_decl
+    let_statement, expression_statement_t, return_statement_t, fn_decl_t, typefn_decl_t, struct_decl, using_decl
 >;
 
 using statement = variant<
     extern_var, let_statement, expression_statement_t, fn_pure_t,
-    include_decl, struct_decl, using_decl, enum_decl, return_decl_t,
-    fn_decl_t, if_decl, while_decl, for_decl, break_statement_t, continue_statement_t
+    include_decl, struct_decl, using_decl, enum_decl, return_statement_t,
+    fn_decl_t, typefn_decl_t, if_decl, while_decl, for_statement, break_statement_t, continue_statement_t, yield_statement_t
 >;
 
 //using infunction_statement_type = variant<
 //    extern_var, let_statement, expression_statement_t, fn_pure, struct_decl, using_decl,
-//    fn_decl_t, if_decl_t, while_decl_t, continue_statement_t, break_statement_t, return_decl_t
+//    fn_decl_t, if_decl_t, while_decl_t, continue_statement_t, break_statement_t, return_statement_t
 //>;
 
 using statement_entry_type = linked_list_node<statement>;
@@ -1013,7 +1018,7 @@ static_assert(sizeof(statement_entry) == sizeof(statement_entry_type));
 
 //using declaration_t = variant<
 //    extern_var, let_statement_decl_t, expression_statement_t, fn_pure,
-//    include_decl, type_decl, enum_decl, return_decl_t,
+//    include_decl, type_decl, enum_decl, return_statement_t,
 //    fn_decl_t, if_decl_t, while_decl_t
 //>;
 
@@ -1026,7 +1031,7 @@ struct statement_adopt_visitor : static_visitor<StatementT>
 };
 //using declaration_t = make_recursive_variant<
 //    extern_var, let_statement_decl_t, expression_statement_t, fn_pure,
-//    include_decl, type_decl, enum_decl, return_decl_t,
+//    include_decl, type_decl, enum_decl, return_statement_t,
 //    fn_decl<infunction_declaration_t>, if_decl<expression_statement_t, infunction_declaration_t>, while_decl<expression_statement_t, infunction_declaration_t>
 //>::type;
     

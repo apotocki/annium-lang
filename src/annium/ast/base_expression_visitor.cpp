@@ -2,8 +2,9 @@
 //  Annium is licensed under the terms of the MIT License.
 
 #include "sonia/config.hpp"
-//#include "base_expression_visitor.hpp"
-#include "base_expression_visitor.ipp"
+
+#include "annium/ast/base_expression_visitor.ipp"
+#include "annium/ast/declaration_visitor.hpp"
 
 #include <boost/container/flat_set.hpp>
 
@@ -74,13 +75,25 @@ base_expression_visitor::result_type base_expression_visitor::apply_cast(entity 
 base_expression_visitor::result_type base_expression_visitor::apply_cast(syntax_expression_result er, syntax_expression_t const& e) const
 {
     if (er.is_const_result) {
-        return apply_cast(get_entity(env(), er.value()), std::move(er), e);
+        entity const& ent = get_entity(env(), er.value());
+        return apply_cast(ent, std::move(er), e);
     }
 
     bool is_modifier_compatible = expected_result.is_modifier_compatible(er);
     if (is_modifier_compatible && (!expected_result.type || expected_result.type == env().get(builtin_eid::any) || er.type() == expected_result.type)) {
         return std::pair{ std::move(er), false };
     }
+    
+    if (can_be_only_constexpr(expected_result.modifier) && !er.is_const_result) {
+        // cannot cast runtime value to constexpr
+        return std::unexpected(make_error<basic_general_error>(expected_result.location, "cannot cast runtime value to constexpr"sv, er.type()));
+    }
+    // temp
+    //entity const& er_ent = get_entity(env(), er.type());
+    //entity const& exp_ent = get_entity(env(), expected_result.type);
+    //size_t er_h = hash_value(er_ent);
+    //size_t exp_h = hash_value(exp_ent);
+    //bool eq = er_ent.equal(exp_ent);
     
     //GLOBAL_LOG_DEBUG() << ("expected type: %1%, actual type: %2%"_fmt % env().print(expected_result.value) % env().print(typeeid)).str();
 
@@ -168,10 +181,13 @@ base_expression_visitor::result_type base_expression_visitor::operator()(annotat
 //    //return std::unexpected(optqnid.error());
 //}
 
-base_expression_visitor::result_type base_expression_visitor::operator()(annium_vector_t const& bv) const
+base_expression_visitor::result_type base_expression_visitor::operator()(bracket_expression_t const& bv) const
 {
-    // to do: take into account the expected type
-    // v.type can be a type or a value
+    // Bracket Expression — an expression enclosed in square brackets.The semantics of a bracket expression are determined by the type of the inner expression :
+    //
+    // If the inner expression represents a type, the bracket expression defines an array type whose element type is the inner expression.
+    // If the inner expression represents a value, the bracket expression creates an array containing a single element with that value.
+
     result_type res = apply_visitor(base_expression_visitor{ ctx, expressions }, bv.type);
     if (!res) return std::unexpected(res.error());
     syntax_expression_result& er = res->first;
@@ -179,9 +195,9 @@ base_expression_visitor::result_type base_expression_visitor::operator()(annium_
         // type or constexpr value?
         entity const& e = get_entity(env(), er.value());
         if (e.get_type() == env().get(builtin_eid::typename_)) { // type
-            return apply_cast(env().make_vector_type_entity(er.value()), bv);
+            return apply_cast(env().make_array_type_entity(er.value()), bv);
         } else {
-            THROW_NOT_IMPLEMENTED_ERROR("base_expression_visitor annium_vector_t");
+            THROW_NOT_IMPLEMENTED_ERROR("base_expression_visitor annium_array_type_t");
         }
     } else {
         er.value_or_type = env().make_array_type_entity(er.type(), 1).id;
@@ -443,6 +459,18 @@ struct array_expression_processor : static_visitor<void>
 };
 #endif
 
+base_expression_visitor::result_type base_expression_visitor::operator()(array_with_body_expression_t const& awb) const
+{
+    qname nested{ env().new_identifier(), false };
+    fn_compiler_context nested_ctx{ ctx, nested };
+    declaration_visitor dvis{ nested_ctx };
+    auto err = dvis.apply(awb.body);
+    if (err) return std::unexpected(std::move(err));
+    auto err2 = nested_ctx.finish_scope();
+
+    THROW_NOT_IMPLEMENTED_ERROR("array_with_body_expression_t");
+}
+
 base_expression_visitor::result_type base_expression_visitor::operator()(array_expression_t const& ve) const
 {
     pure_call_t make_array_call{ ve.location };
@@ -693,8 +721,12 @@ base_expression_visitor::result_type base_expression_visitor::operator()(functio
 
 base_expression_visitor::result_type base_expression_visitor::operator()(new_expression_t const& ne) const
 {
+    base_expression_visitor vis{ ctx, expressions, expected_result_t{ .modifier = value_modifier_t::constexpr_value } };
+    auto new_ent_id = apply_visitor(vis, ne.name);
+    if (!new_ent_id) return std::unexpected(std::move(new_ent_id.error()));
+
     pure_call_t new_call{ ne.location };
-    new_call.emplace_back(annotated_identifier{ env().get(builtin_id::type) }, ne.name);
+    new_call.emplace_back(annotated_identifier{ env().get(builtin_id::type) }, annotated_entity_identifier{ new_ent_id->first.value(), get_start_location(ne.name) });
     for (auto const& arg: ne.arguments) {
         if (annotated_identifier const* optname = arg.name(); optname) {
             new_call.emplace_back(*optname, arg.value());
@@ -702,15 +734,14 @@ base_expression_visitor::result_type base_expression_visitor::operator()(new_exp
             new_call.emplace_back(arg.value());
         }
     }
-    auto match = ctx.find(builtin_qnid::new_, new_call, expressions, expected_result);
-    if (!match) {
+    auto res = ctx.find_and_apply(builtin_qnid::new_, new_call, expressions, expected_result);
+    if (!res) {
         return std::unexpected(append_cause(
             make_error<basic_general_error>(ne.location, "can't instantiate the object"sv, ne.name),
-            std::move(match.error())
+            std::move(res.error())
         ));
     }
 
-    auto res = match->apply(ctx);
     return apply_cast(std::move(res), ne);
 }
 
@@ -729,12 +760,13 @@ base_expression_visitor::result_type base_expression_visitor::operator()(index_e
                                        .modifier = value_modifier_t::constexpr_value } },
                 ie.index);
             if (!szres) return std::unexpected(szres.error());
-            BOOST_ASSERT(!szres->first.expressions); // not impelemented const value expressions
-            intptr_t index_ent_value = static_cast<generic_literal_entity const&>(get_entity(env(), szres->first.value())).value().as<intptr_t>();
-            if (index_ent_value <= 0) {
-                return std::unexpected(make_error<basic_general_error>(get_start_location(ie.index), "index must be greater than 0"sv));
+            syntax_expression_result& szer = szres->first;
+            BOOST_ASSERT(szer.is_const_result); // array size must be constexpr value
+            intptr_t size_ent_value = static_cast<generic_literal_entity const&>(get_entity(env(), szer.value())).value().as<intptr_t>();
+            if (size_ent_value <= 0) {
+                return std::unexpected(make_error<basic_general_error>(get_start_location(ie.index), "size must be greater than 0"sv));
             }
-            entity const& type_ent = env().make_array_type_entity(er.value(), (size_t)index_ent_value);
+            entity const& type_ent = env().make_array_type_entity(er.value(), (size_t)size_ent_value);
             er.value_or_type = type_ent.id;
             return apply_cast(type_ent, std::move(er), ie);
         }
@@ -745,12 +777,9 @@ base_expression_visitor::result_type base_expression_visitor::operator()(index_e
     get_call.emplace_back(annotated_identifier{ env().get(builtin_id::self) }, ie.base);
     get_call.emplace_back(annotated_identifier{ env().get(builtin_id::property) }, ie.index);
 
-    auto match = ctx.find(builtin_qnid::get, get_call, expressions, expected_result);
-    if (!match) {
-        return std::unexpected(std::move(match.error()));
-    }
-
-    return apply_cast(match->apply(ctx), ie);
+    return apply_cast(
+        ctx.find_and_apply(builtin_qnid::get, get_call, expressions, expected_result),
+        ie);
 }
 
 base_expression_visitor::result_type base_expression_visitor::operator()(binary_expression_t const& be) const
@@ -977,7 +1006,7 @@ base_expression_visitor::result_type base_expression_visitor::do_assign(binary_e
 base_expression_visitor::result_type base_expression_visitor::operator()(lambda_t const& l) const
 {
     //l.body.for_each([this](statement const& e) {
-    //    if (return_decl_t const* rd = get< return_decl_t>(&e); rd) {
+    //    if (return_statement_t const* rd = get< return_statement_t>(&e); rd) {
     //        GLOBAL_LOG_INFO() << "lambda return expression: " << env().print(*rd->expression) << "\n";
     //    } else if (fn_decl_t const* fd = get< fn_decl_t>(&e); &fd)  {
     //        GLOBAL_LOG_INFO() << "lambda function declaration: " << env().print(fd->name()) << "\n";

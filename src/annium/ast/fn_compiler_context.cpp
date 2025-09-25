@@ -496,7 +496,8 @@ variant<entity_identifier, local_variable const&> fn_compiler_context::lookup_en
     for (;;) {
         checkns.append(name.value);
         functional* f = environment_.fregistry_find(checkns);
-        if (f || !sz) return f->default_entity(const_cast<fn_compiler_context&>(*this));
+        if (f) return f->default_entity(const_cast<fn_compiler_context&>(*this));
+        if (!sz) break;
         --sz;
         checkns.truncate(sz);
     }
@@ -579,6 +580,23 @@ variable_entity& fn_compiler_context::create_captured_variable_chain(variable_en
     }
 }
 #endif
+
+error_storage fn_compiler_context::finish_scope()
+{
+    boost::container::small_flat_set<entity_identifier, 4> const_values;
+    boost::container::small_flat_set<entity_identifier, 4> types;
+    for (semantic::yield_statement* rts : yield_statements_) {
+        if (rts->is_const_value_result) {
+            const_values.insert(rts->value_or_type);
+            if (!types.empty() || const_values.size() > 1) {
+                types.insert(get_entity(env(), rts->value_or_type).get_type());
+            }
+        } else {
+            types.insert(rts->value_or_type);
+        }
+    }
+    return {};
+}
 
 std::expected<std::tuple<entity_identifier, bool, bool>, error_storage> fn_compiler_context::finish_frame(internal_function_entity const& fent)
 {
@@ -740,6 +758,18 @@ void fn_compiler_context::append_return(semantic::expression_span return_express
     });
     semantic::return_statement * pretst = &get<semantic::return_statement>(expressions().back());
     return_statements_.emplace_back(pretst);
+}
+
+void fn_compiler_context::append_yield(semantic::expression_span return_expressions, size_t scope_sz, entity_identifier value_or_type, bool is_const_value_result)
+{
+    append_expression(semantic::yield_statement{
+        .result = return_expressions,
+        .scope_size = scope_sz,
+        .value_or_type = value_or_type,
+        .is_const_value_result = is_const_value_result
+    });
+    semantic::yield_statement* pretst = &get<semantic::yield_statement>(expressions().back());
+    yield_statements_.emplace_back(pretst);
 }
 
 //void fn_compiler_context::adopt_and_append(semantic::expression_list_t& el, syntax_expression_result& er)
