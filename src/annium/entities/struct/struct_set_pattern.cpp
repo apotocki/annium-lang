@@ -91,12 +91,13 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_set_pattern
     entity_signature const* utl_sig = get_entity(env, *uteid).signature();
     BOOST_ASSERT(utl_sig);
     if (prop_er.is_const_result) {
+        size_t field_index;
         entity_identifier prop_value_type_eid;
         entity_identifier prop_type_eid = get_result_type(env, prop_er);
         if (prop_type_eid == env.get(builtin_eid::integer)) {
             // integer property
             size_t index = static_cast<generic_literal_entity const&>(get_entity(env, prop_er.value())).value().as<size_t>();
-            if (field_descriptor const* pfd = utl_sig->find_field(index); pfd) {
+            if (field_descriptor const* pfd = utl_sig->find_field(index, &field_index); pfd) {
                 if (pfd->is_const()) {
                     return std::unexpected(make_error<basic_general_error>(prop_loc, "the property is read-only"sv, prop_er.value()));
                 }
@@ -108,7 +109,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_set_pattern
             BOOST_ASSERT(prop_type_eid == env.get(builtin_eid::identifier));
             // identifier property
             identifier name = static_cast<identifier_entity const&>(get_entity(env, prop_er.value())).value();
-            if (field_descriptor const* pfd = utl_sig->find_field(name); pfd) {
+            if (field_descriptor const* pfd = utl_sig->find_field(name, &field_index); pfd) {
                 if (pfd->is_const()) {
                     return std::unexpected(make_error<basic_general_error>(prop_loc, "the property is read-only"sv, prop_er.value()));
                 }
@@ -133,6 +134,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_set_pattern
         pmd->emplace_back(0, slf_er, slf_loc);
         pmd->emplace_back(1, prop_er, prop_loc);
         pmd->emplace_back(2, valarg->first, get_start_location(*get<0>(prop_val_arg_expr)));
+        pmd->property_index = field_index;
 
         pmd->signature.emplace_back(env.get(builtin_id::self), pstruct->id, slf_er.is_const_result);
         pmd->signature.emplace_back(env.get(builtin_id::property), prop_er.value_or_type, prop_er.is_const_result);
@@ -147,14 +149,42 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_set_pattern
 
 std::expected<syntax_expression_result, error_storage> struct_set_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
-    environment& e = ctx.env();
+    environment& env = ctx.env();
     auto& smd = static_cast<struct_set_match_descriptor&>(md);
     auto& slfer = get<1>(md.matches[0]);
     auto& proper = get<1>(md.matches[1]);
     auto& valueer = get<1>(md.matches[2]);
+    auto& sigres = *md.signature.result;
+
+    syntax_expression_result result{ .value_or_type = sigres.entity_id(), .is_const_result = sigres.is_const() };
 
     if (smd.property_index) {
+        // find out the real property index
+        size_t field_index = *smd.property_index;
+        size_t field_count = smd.utpl_sig.fields().size();
+        size_t real_index = field_count; // invalid index
+        size_t midx = 0;
+        for (size_t idx = 0; idx < field_count; ++idx) {
+            field_descriptor const& fd = smd.utpl_sig.fields()[idx];
+            if (idx == field_index) {
+                real_index = midx;
+            }
+            if (!fd.is_const()) ++midx;
+        }
+
+        BOOST_ASSERT(midx > 0); // there should be at least one non-const field, because we are setting one of them
+        BOOST_ASSERT(real_index < midx); // real index should be less than number of non-const fields 
         
+        if (midx > 1) {
+            append_semantic_result(el, result, slfer);
+            env.push_back_expression(el, result.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(real_index) } });
+            append_semantic_result(el, result, valueer);
+            env.push_back_expression(el, result.expressions, semantic::invoke_function(env.get(builtin_eid::array_set_at)));
+        } else {
+            // for one element 'array' just set the value instead of calling array_set_at
+            append_semantic_result(el, result, valueer);
+        }
+        return std::move(result);
     }
     THROW_NOT_IMPLEMENTED_ERROR("struct_set_pattern::apply");
 #if 0

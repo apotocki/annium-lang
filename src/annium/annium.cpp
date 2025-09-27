@@ -106,18 +106,10 @@ namespace annium::detail {
 using namespace annium;
 
 const char annium_bootstrap_code[] = R"#(
-inline fn not_equal(_, _) => !($0 == $1);
-inline fn equal($l: ~union(...), $r) -> bool {
-    return apply(to: $l, visitor: fn[$r]($value)->bool {
-        return $value == $r;
-    });
-}
 
-inline fn equal($l, $r: ~union(...)) -> bool {
-    return apply(to: $r, visitor: fn[$l]($value)->bool {
-        return $value == $l;
-    });
-}
+inline fn print(:string ...) => __print($0 ..., size($0));
+
+inline fn not_equal(_, _) => !($0 == $1);
 
 inline fn logic_and($FT, $ST) -> union($FT, $ST) {
     if $0 {
@@ -136,14 +128,26 @@ inline fn assert_not_equal(_, _, location: string = __call_location) -> () {
         error(location: location, "Assertion failed: " ..to_string($0) .. " == " ..to_string($1));
     }
 }
-inline fn print(:string ...) -> () {
-    __print($0 ..., size($0));
-}
 
+// UNIONS
+inline fn equal($l: ~union(...), $r) => apply(to: $l, visitor: fn[$r]($value) => $value == $r`);
+inline fn equal($l, $r: ~union(...)) => apply(to: $r, visitor: fn[$l]($value) => $value == $l`);
+inline fn to_string(~union(...)) => apply(to: $0, visitor: fn($x) => to_string($x)`);
+
+// ARRAYS
+typefn array(of: typename, size?: constexpr integer);
 inline fn empty(~array(of, size $size)) => $size == 0;
 inline fn size(~array(of, size $size)) => $size;
+struct iterator(typename array(of, ...)) => (index: integer = 0, array: $0);
+inline fn iterator(~array(...)) -> iterator(typeof($0)) => init(array: $0);
+inline fn has_next(~iterator(=array(of, ...))) => $0.index != size($0.array);
+inline fn next(~iterator(=array(of $of, ...))) -> $of {
+    let index = $0.index;
+    $0.index = index + 1;
+    return $0.array[index];
+}
 
-inline fn __bit_and(:~ typename tuple($l...), :~ typename tuple($r...)) => tuple($l..., $r...);
+inline fn __bit_and(typename tuple($l...), typename tuple($r...)) => tuple($l..., $r...);
 
 inline fn foldl($f, $z) => $z;
 inline fn foldl($f, $z, $elements ...) => foldl($f, $f($z, head($elements)...), tail($elements)...);

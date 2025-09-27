@@ -106,7 +106,7 @@ public:
 
     void push_scope();
     local_variable& push_scope_variable(annotated_identifier name, local_variable);
-    void pop_scope();
+    size_t pop_scope();
     inline functional_binding_set const& current_scope_binding() const noexcept { return scoped_locals_.back(); }
 
     inline environment& env() const noexcept { return environment_; }

@@ -277,14 +277,16 @@ void fn_compiler_context::push_scope()
     scoped_locals_.emplace_back();
 }
 
-void fn_compiler_context::pop_scope()
+size_t fn_compiler_context::pop_scope()
 {
     assert(ns_.parts().size() > base_ns_size_);
     ns_.truncate(ns_.parts().size() - 1);
+    size_t cleared_vars_count = scoped_locals_.back().size();
     scoped_locals_.pop_back(); // to do: call destructor for local variables
     if (!scoped_locals_.empty()) {
         scope_offset_ -= scoped_locals_.back().size();
     }
+    return cleared_vars_count;
 }
 
 local_variable& fn_compiler_context::push_scope_variable(annotated_identifier name, local_variable lv)

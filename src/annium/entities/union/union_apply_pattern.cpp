@@ -47,9 +47,10 @@ union_apply_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
     }
 
     // Union argument must be a union type
+    resource_location const& union_arg_loc = get_start_location(*get<0>(union_expr));
     syntax_expression_result& union_arg_er = union_arg->first;
     if (union_arg_er.is_const_result) {
-        return std::unexpected(make_error<basic_general_error>(get_start_location(*get<0>(union_expr)), "'to' argument must be a runtime value"sv));
+        return std::unexpected(make_error<basic_general_error>(union_arg_loc, "'to' argument must be a runtime value"sv));
     }
     
     entity const& union_entity_type = get_entity(env, union_arg_er.type());
@@ -74,11 +75,12 @@ union_apply_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
+    resource_location const& visitor_arg_loc = get_start_location(*get<0>(visitor_expr));
     syntax_expression_result & visitor_arg_er = visitor_arg->first;
 
     auto pmd = make_shared<union_apply_match_descriptor>(call, union_entity_type);
-    pmd->emplace_back(0, union_arg_er, get_start_location(*get<0>(union_expr)));
-    pmd->emplace_back(1, visitor_arg_er, get_start_location(*get<0>(visitor_expr)));
+    pmd->emplace_back(0, union_arg_er, union_arg_loc);
+    pmd->emplace_back(1, visitor_arg_er, visitor_arg_loc);
     pmd->signature.emplace_back(env.get(builtin_id::to), union_arg_er.type(), false);
     pmd->signature.emplace_back(env.get(builtin_id::visitor), visitor_arg_er.value_or_type, visitor_arg_er.is_const_result);
     return pmd;
@@ -92,14 +94,6 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
     auto& union_er = get<1>(md.matches[0]);
     auto& visitor_er = get<1>(md.matches[1]);
 
-#if 0
-    syntax_expression_result r{
-        .value_or_type = env.get(builtin_eid::boolean),
-        .is_const_result = false
-    };
-    env.push_back_expression(el, r.expressions, semantic::push_value(bool_blob_result(true)));
-    return r;
-#endif
     syntax_expression_result result{ };
 
     fn_compiler_context_scope fn_scope{ ctx };
@@ -167,6 +161,7 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
         result.temporaries.insert(result.temporaries.begin(), branch_call_res.temporaries.begin(), branch_call_res.temporaries.end());
         result.branches_expressions = el.concat(result.branches_expressions, branch_call_res.branches_expressions);
         branch_res = el.concat(branch_res, branch_call_res.expressions);
+        env.push_back_expression(el, branch_res, semantic::truncate_values{ .count = 1, .keep_back = 1 }); // remove unfold union value from stack
         result.branches_expressions = el.concat(result.branches_expressions, branch_res);
 
         // Collect result type for inference if needed

@@ -1463,8 +1463,8 @@ environment::environment()
     // temporary
     
     //set_extern<external_fn_pattern>("negate(mut _)->bool"sv, &annium_negate);
-    set_builtin_extern("__plus(:integer, :integer)~>integer"sv, &annium_operator_plus_integer);
-    set_builtin_extern("__plus(:decimal, :decimal)~>decimal"sv, &annium_operator_plus_decimal);
+    set_builtin_extern("__plus(runtime integer, runtime integer)~>integer"sv, &annium_operator_plus_integer);
+    set_builtin_extern("__plus(runtime decimal, runtime decimal)~>decimal"sv, &annium_operator_plus_decimal);
 
 }
 }

@@ -437,5 +437,8 @@
     <None Include="..\..\..\tests\test-suite\enums.ann">
       <Filter>test-suite</Filter>
     </None>
+    <None Include="..\..\..\tests\test-suite\arrays.ann">
+      <Filter>test-suite</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -1,10 +1,10 @@
-[ 
-/*
+[
+   /*
     {
         "src": "draft.ann",
-        "output": ""
-    }*/
-    
+        "output": "123.1"
+    } */
+   
     {
         "src": "basic_print.ann",
         "output": "Hello from Annium!(0)Hello from Annium!(1)Hello from Annium!(2)Hello from Annium!(3)Hello from Annium!(4)"
@@ -25,7 +25,17 @@
     {
         "src": "file6.ann",
         "output": "test function called"
-    }/**/ /*
+    },
+    {
+        "src": "enums.ann",
+        "output": "CB"
+    },
+    {
+        "src": "arrays.ann",
+        "output": ""
+    }
+    /* */
+    /*
     
     {
         "src": "file2.ann",

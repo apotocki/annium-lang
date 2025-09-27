@@ -229,10 +229,191 @@ error_storage declaration_visitor::operator()(if_decl const& stm) const
 error_storage declaration_visitor::operator()(for_statement const& fd) const
 {
     ctx.push_scope();
+    SCOPE_EXIT([this] { ctx.pop_scope(); });
+
+    semantic::managed_expression_list el{ env() };
+
+    resource_location coll_expr_loc = get_start_location(fd.coll);
+    // iterator(fd.coll) -> iterator_object
+    pure_call_t iterator_call{ coll_expr_loc };
+    iterator_call.emplace_back(fd.coll);
+    
+    auto iterator_result = ctx.find_and_apply(builtin_qnid::iterator, iterator_call, el);
+    if (!iterator_result) {
+        return append_cause( 
+            make_error<basic_general_error>(coll_expr_loc, "Cannot create iterator for the collection"sv),
+            std::move(iterator_result.error()));
+    }
+    
+    // has_next(iterator)
+    pure_call_t has_next_call{ coll_expr_loc };
+    if (iterator_result->is_const_result) {
+        has_next_call.emplace_back(annotated_entity_identifier{ iterator_result->value(), coll_expr_loc });
+    } else {
+        has_next_call.emplace_back(stack_value_reference{
+            .name = annotated_identifier{ env().new_identifier(), coll_expr_loc },
+            .type = iterator_result->type(),
+            .offset = 0 // offset from the stack top
+        });
+    }
+    auto has_next_result = ctx.find_and_apply(builtin_qnid::has_next, has_next_call, el,
+        expected_result_t{ env().get(builtin_eid::boolean), coll_expr_loc });
+    if (!has_next_result) {
+        return append_cause( 
+            make_error<basic_general_error>(coll_expr_loc, "Cannot invoke has_next function for the iterator"sv),
+            std::move(has_next_result.error()));
+    }
+    if (has_next_result->is_const_result && has_next_result->value() == env().get(builtin_eid::false_)) {
+        // no iterations
+        ctx.pop_scope();
+        return {};
+    }
+    BOOST_ASSERT(!has_next_result->is_const_result); // not implemented yet
+
+    size_t scsz = append_result(el, *iterator_result); // append iterator creation result
+    // save iterator to local variable
+    identifier iterator_var_name = env().new_identifier();
+    ctx.push_scope_variable(
+        annotated_identifier{ iterator_var_name },
+        local_variable{
+            .type = iterator_result->type(),
+            .varid = env().new_variable_identifier(),
+            .is_weak = false
+        });
     ctx.append_expression(std::move(semantic::loop_scope_t{}));
     semantic::loop_scope_t& ls = get<semantic::loop_scope_t>(ctx.expressions().back());
+    ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)scsz, .keep_back = 0 }); // remove iterator value
 
-    THROW_NOT_IMPLEMENTED_ERROR("declaration_visitor for_statement");
+    ctx.push_chain();
+    size_t has_next_sz = append_result(el, *has_next_result);
+    ctx.append_expression(semantic::conditional_t{});
+    semantic::conditional_t& cond = get<semantic::conditional_t>(ctx.expressions().back());
+    ctx.push_chain();
+    ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)has_next_sz, .keep_back = 0 }); // remove has_next result
+    
+    // push iterator variable to stack
+    pure_call_t next_call{ get_start_location(fd.coll) };
+    if (iterator_result->is_const_result) {
+        next_call.emplace_back(annotated_entity_identifier{ iterator_result->value(), coll_expr_loc });
+    } else {
+        next_call.emplace_back(stack_value_reference{
+            .name = annotated_identifier{ env().new_identifier(), coll_expr_loc },
+            .type = iterator_result->type(),
+            .offset = 0 // offset from the stack top
+        });
+    }
+    auto next_result = ctx.find_and_apply(builtin_qnid::next, next_call, el);
+    if (!next_result) {
+        return append_cause( 
+            make_error<basic_general_error>(coll_expr_loc, "Cannot invoke next function for the iterator"sv),
+            std::move(next_result.error()));
+    }
+    size_t next_sz = append_result(el, *next_result);
+
+    // assign next_result to fd.iter variable
+    
+    if (auto const* name_ref = get<name_reference>(&fd.iter); name_ref) {
+        ctx.push_scope_variable(
+            name_ref->name,
+            local_variable{ 
+                .type = next_result->type(), 
+                .varid = env().new_variable_identifier(), 
+                .is_weak = false 
+            });
+    } else if (auto const* qname_ref = get<qname_reference>(&fd.iter); qname_ref) {
+        BOOST_ASSERT(qname_ref->name.value.is_relative() && qname_ref->name.value.size() == 1);
+        identifier var_name = *qname_ref->name.value.begin();
+        ctx.push_scope_variable(
+            annotated_identifier{ var_name, qname_ref->name.location },
+            local_variable{ 
+                .type = next_result->type(), 
+                .varid = env().new_variable_identifier(), 
+                .is_weak = false 
+            });
+    }
+    ctx.push_scope();
+    if (auto err = apply(fd.body); err) return std::move(err);
+    size_t cnt = ctx.pop_scope();
+    ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)(next_sz + cnt), .keep_back = 0 }); // remove next result
+    ctx.append_expression(semantic::loop_continuer{});
+    cond.true_branch = ctx.expressions();
+    ctx.pop_chain();
+
+    // False branch: break the loop
+    ctx.push_chain();
+    ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)has_next_sz, .keep_back = 0 }); // remove has_next result
+    ctx.append_expression(semantic::loop_breaker{});
+    cond.false_branch = ctx.expressions();
+    ctx.pop_chain();
+
+    ls.branch = ctx.expressions();
+    ctx.pop_chain();
+    return {};
+#if 0
+    // Добавляем ссылку на переменную итератора
+    ctx.append_expression(semantic::push_local_variable{ iterator_var });
+
+    // Создаем ссылку на переменную итератора
+    ctx.append_expression(semantic::push_local_variable{ iterator_var });
+
+
+    size_t has_next_scope_sz = append_result(el, *has_next_result);
+
+
+
+    
+    // Помещаем результат создания итератора в переменную
+    size_t iterator_scope_sz = append_result(el, *iterator_result);
+    if (iterator_scope_sz) {
+        ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)iterator_scope_sz, .keep_back = 1 });
+    }
+
+    
+    // Если has_next возвращает константу false, пропускаем цикл
+    if (has_next_result->is_const_result && has_next_result->value() == env().get(builtin_eid::false_)) {
+        ctx.pop_scope();
+        return {};
+    }
+    
+
+
+    // Создаем условный переход для цикла
+    ctx.push_chain();
+    ctx.append_expression(semantic::conditional_t{});
+    semantic::conditional_t& cond = get<semantic::conditional_t>(ctx.expressions().back());
+    
+    // True branch: выполняем тело цикла
+    ctx.push_chain();
+    
+    if (has_next_scope_sz > 1) {
+        ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)(has_next_scope_sz - 1), .keep_back = 1 });
+    }
+    
+    // Вызываем next(iterator) и присваиваем результат fd.iter
+    
+    
+    
+    
+    // Выполняем тело цикла
+    if (auto err = apply(fd.body); err) return std::move(err);
+    
+    // Добавляем продолжение цикла
+    ctx.append_expression(semantic::loop_continuer{});
+    cond.true_branch = ctx.expressions();
+    ctx.pop_chain();
+    
+    // False branch: выходим из цикла
+    ctx.push_chain();
+    ctx.append_expression(semantic::loop_breaker{});
+    cond.false_branch = ctx.expressions();
+    ctx.pop_chain();
+    
+    ls.branch = ctx.expressions();
+    ctx.pop_chain();
+    ctx.pop_scope();
+    
+    return {};
+#endif
 }
 
 error_storage declaration_visitor::operator()(while_decl const& wd) const

@@ -158,6 +158,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\tests\test-suite\annium_suite.json" />
+    <None Include="..\..\..\tests\test-suite\arrays.ann" />
     <None Include="..\..\..\tests\test-suite\basic_print.ann" />
     <None Include="..\..\..\tests\test-suite\draft.ann" />
     <None Include="..\..\..\tests\test-suite\enums.ann" />

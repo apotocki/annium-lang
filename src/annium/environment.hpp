@@ -89,6 +89,9 @@ class external_fn_pattern;
     ((typeof, "typeof"sv))                 \
     ((make_tuple, "make_tuple"sv))         \
     ((make_array, "make_array"sv))         \
+    ((iterator, "iterator"sv))             \
+    ((has_next, "has_next"sv))             \
+    ((next, "next"sv))                     \
     ((new_, "new"sv))                      \
     ((init, "init"sv))                     \
     ((eq, "equal"sv))                      \
