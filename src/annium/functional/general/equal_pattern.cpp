@@ -45,12 +45,15 @@ std::expected<functional_match_descriptor_ptr, error_storage> equal_pattern::try
         }
     }
     resource_location rhs_loc = get_start_location(*get<0>(rhs_expr));
+    syntax_expression_result& rhs_arg_er = rhs_arg->first;
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "equality comparison accepts exactly two arguments, but more were provided"sv, std::move(argterm.value())));
     }
     auto pmd = make_shared<functional_match_descriptor>(call);
     pmd->emplace_back(0, lhs_arg_er, lhs_loc);
-    pmd->emplace_back(1, rhs_arg->first, rhs_loc);
+    pmd->emplace_back(1, rhs_arg_er, rhs_loc);
+    pmd->signature.emplace_back(lhs_arg_er.value_or_type, lhs_arg_er.is_const_result);
+    pmd->signature.emplace_back(rhs_arg_er.value_or_type, rhs_arg_er.is_const_result);
     return std::move(pmd);
 }
 
@@ -99,7 +102,7 @@ std::expected<syntax_expression_result, error_storage> equal_pattern::apply(fn_c
             }
         }
     } else {
-        append_semantic_result(el, result, lhs_er);
+        append_semantic_result(el, lhs_er, result);
     }
     
     if (rhs_er.is_const_result) {
@@ -129,7 +132,7 @@ std::expected<syntax_expression_result, error_storage> equal_pattern::apply(fn_c
             }
         }
     } else {
-        append_semantic_result(el, result, rhs_er);
+        append_semantic_result(el, rhs_er, result);
     }
 
     e.push_back_expression(el, result.expressions, semantic::invoke_function(e.get(builtin_eid::equal)));

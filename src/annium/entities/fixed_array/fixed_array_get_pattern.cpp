@@ -128,7 +128,7 @@ std::expected<syntax_expression_result, error_storage> fixed_array_get_pattern::
             .value_or_type = of_fd->entity_id(),
             .is_const_result = false
         };
-        append_semantic_result(el, result, slfer);
+        append_semantic_result(el, slfer, result);
 
         if (array_size > 1) {
             env.push_back_expression(el, result.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(*index) } });
@@ -142,7 +142,7 @@ std::expected<syntax_expression_result, error_storage> fixed_array_get_pattern::
     if (!slfer.is_const_result && !proper.is_const_result) {
         syntax_expression_result result = slfer;
         if (array_size > 1) {
-            append_semantic_result(el, result, proper);
+            append_semantic_result(el, proper, result);
             // Add runtime array access
             env.push_back_expression(el, result.expressions, semantic::invoke_function(env.get(builtin_eid::array_at)));
         }

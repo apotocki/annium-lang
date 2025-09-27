@@ -1,6 +1,7 @@
 let v3 = [1, runtime_cast(3.1)];
 assert_equal(size(v3), 2);
 assert_equal(1, v3[0]);
+assert_not_equal(runtime_cast(2), v3[0]);
 assert_equal(runtime_cast(1), v3[0]);
 assert_equal(3.1, v3[1]);
 assert_equal(runtime_cast(3.1), v3[1]);

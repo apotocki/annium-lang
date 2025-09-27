@@ -176,13 +176,13 @@ std::expected<syntax_expression_result, error_storage> struct_set_pattern::apply
         BOOST_ASSERT(real_index < midx); // real index should be less than number of non-const fields 
         
         if (midx > 1) {
-            append_semantic_result(el, result, slfer);
+            append_semantic_result(el, slfer, result);
             env.push_back_expression(el, result.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(real_index) } });
-            append_semantic_result(el, result, valueer);
+            append_semantic_result(el, valueer, result);
             env.push_back_expression(el, result.expressions, semantic::invoke_function(env.get(builtin_eid::array_set_at)));
         } else {
             // for one element 'array' just set the value instead of calling array_set_at
-            append_semantic_result(el, result, valueer);
+            append_semantic_result(el, valueer, result);
         }
         return std::move(result);
     }

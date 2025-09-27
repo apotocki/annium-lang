@@ -113,7 +113,7 @@ std::expected<syntax_expression_result, error_storage> enum_to_string_pattern::a
             cases_arr.allocate();
             case_names.clear(); // we can clear it now, because array_blob_result made copies of string blobs
             env.push_back_expression(el, result.expressions, semantic::push_value{ cases_arr });
-            append_semantic_result(el, result, ser); // which
+            append_semantic_result(el, ser, result); // which
             env.push_back_expression(el, result.expressions, semantic::invoke_function{ env.get(builtin_eid::array_at) });
         }
     }

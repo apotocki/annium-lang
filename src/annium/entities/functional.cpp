@@ -396,7 +396,7 @@ std::expected<functional::match, error_storage> functional::find(
     auto [ptrn, md] = alternatives.front();
     syntax_expression_result pre_ser;
     if (capture_result) {
-        append_semantic_result(ael, pre_ser, *capture_result);
+        append_semantic_result(ael, *capture_result, pre_ser);
     }
     pcall.export_auxiliaries(pre_ser);
     return match{ ptrn, ael, std::move(pre_ser), std::move(md) };

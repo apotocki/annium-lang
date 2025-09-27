@@ -1027,8 +1027,7 @@ base_expression_visitor::result_type base_expression_visitor::operator()(lambda_
 
     // deal with lambda captures
     while (!l.captures.empty()) { // not a loop, just to break
-        semantic::managed_expression_list el{ env() };
-        prepared_call pcall{ ctx, nullptr, l.captures, l.captures_location, el };
+        prepared_call pcall{ ctx, nullptr, l.captures, l.captures_location, expressions };
         pcall.prepare();
 
         syntax_expression_result capture_res{ .is_const_result = false };
@@ -1058,21 +1057,21 @@ base_expression_visitor::result_type base_expression_visitor::operator()(lambda_
                 return std::unexpected(make_error<basic_general_error>(get_start_location(expr), "can't deduce capture name"sv, expr));
             }
 
-            auto res = apply_visitor(base_expression_visitor{ ctx, el }, expr);
+            auto res = apply_visitor(base_expression_visitor{ ctx, expressions }, expr);
             if (!res) { return std::unexpected(res.error()); }
             syntax_expression_result& ser = res->first;
             if (ser.is_const_result) {
                 //sig.emplace_back(name, ser.value(), true);
                 continue;
             }
-            append_semantic_result(el, capture_res, ser);
+            append_semantic_result(expressions, ser, capture_res);
             sig.emplace_back(name, ser.type(), false);
             ++rt_capture_size;
         }
         if (!rt_capture_size) break; // nothing to capture
         if (rt_capture_size > 2) {
-            env().push_back_expression(el, capture_res.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(rt_capture_size) } });
-            env().push_back_expression(el, capture_res.expressions, semantic::invoke_function(env().get(builtin_eid::arrayify)));
+            env().push_back_expression(expressions, capture_res.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(rt_capture_size) } });
+            env().push_back_expression(expressions, capture_res.expressions, semantic::invoke_function(env().get(builtin_eid::arrayify)));
         }
         basic_signatured_entity const& capture_sig_ent = env().make_basic_signatured_entity(std::move(sig));
         fnptrn->set_captures(capture_sig_ent);

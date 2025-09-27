@@ -270,6 +270,25 @@ sonia::lang::compiler_task_tracer::task_guard fn_compiler_context::try_lock_task
     return environment_.task_tracer().try_lock_task(tid, worker_id_);
 }
 
+size_t fn_compiler_context::append_result(semantic::expression_list_t& el, syntax_expression_result& er)
+{
+    append_stored_expressions(el, er.branches_expressions);
+
+    push_scope();
+    for (auto& [varname, var, sp] : er.temporaries) {
+        append_expressions(el, sp);
+        push_scope_variable(
+            annotated_identifier{ varname },
+            var); //local_variable{ .type = t, .varid = varid, .is_weak = false },
+    }
+    append_expressions(el, er.expressions);
+    size_t scope_sz = pop_scope();
+    if (!er.is_const_result && er.type() != env().get(builtin_eid::void_)) {
+        ++scope_sz;
+    }
+    return scope_sz;
+}
+
 void fn_compiler_context::push_scope()
 {
     ns_ = ns_ / environment_.new_identifier();

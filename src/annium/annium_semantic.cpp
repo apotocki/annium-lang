@@ -39,13 +39,21 @@ std::ostream& signatured_entity::print_to(std::ostream& os, environment const& e
     //return entity::print_to(os, e) << "<"sv << e.print(*signature()) << ">"sv;
 }
 
-void append_semantic_result(semantic::expression_list_t& el, syntax_expression_result& dest, syntax_expression_result& src)
+void append_semantic_result(semantic::expression_list_t& el, syntax_expression_result& src, syntax_expression_result& dest)
 {
     if (!src.is_const_result) {
         dest.branches_expressions = el.concat(dest.branches_expressions, src.branches_expressions);
         dest.expressions = el.concat(dest.expressions, src.expressions);
         dest.temporaries.insert(dest.temporaries.end(), src.temporaries.begin(), src.temporaries.end());
     }
+}
+
+void append_semantic_result_to_branch(semantic::expression_list_t& el, syntax_expression_result& src, syntax_expression_result& dest, semantic::expression_span & dest_branch)
+{
+    dest.branches_expressions = el.concat(dest.branches_expressions, src.branches_expressions);
+    dest.branches_expressions = el.concat(dest.branches_expressions, src.expressions);
+    dest.temporaries.insert(dest.temporaries.end(), src.temporaries.begin(), src.temporaries.end());
+    dest_branch = el.concat(dest_branch, src.expressions);
 }
 
 namespace semantic {

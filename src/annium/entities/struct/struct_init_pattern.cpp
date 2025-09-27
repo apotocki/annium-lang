@@ -156,7 +156,7 @@ std::expected<syntax_expression_result, error_storage> struct_init_pattern::appl
     size_t argcount = 0;
     syntax_expression_result result{ };
     for (auto& [_, mr, loc] : md.matches) {
-        append_semantic_result(el, result, mr);
+        append_semantic_result(el, mr, result);
         if (!mr.is_const_result) ++argcount;
     }
     result.is_const_result = !argcount;

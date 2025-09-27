@@ -173,13 +173,13 @@ std::expected<syntax_expression_result, error_storage> fixed_array_make_pattern:
     result.value_or_type = array_type_id;
     if (amd.all_runtime && !amd.need_cast) {
         for (auto& [_, er, loc] : amd.matches) {
-            append_semantic_result(el, result, er);
+            append_semantic_result(el, er, result);
         }
     } else {
         // Mixed const and runtime elements, need to cast to runtime element type
         for (auto& [_, er, loc] : amd.matches) {
             if (!er.is_const_result && er.type() == amd.element_type) {
-                append_semantic_result(el, result, er);
+                append_semantic_result(el, er, result);
                 continue;
             }
             pure_call_t cast_call{ loc };
@@ -195,7 +195,7 @@ std::expected<syntax_expression_result, error_storage> fixed_array_make_pattern:
                     make_error<basic_general_error>(loc, "cannot cast array element to the specified element type"sv),
                     res.error()));
             }
-            append_semantic_result(el, result, *res);
+            append_semantic_result(el, *res, result);
         }
     }
     if (amd.matches.size() > 1) {

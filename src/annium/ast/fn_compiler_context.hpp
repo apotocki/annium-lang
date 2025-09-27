@@ -104,6 +104,11 @@ public:
 
     sonia::lang::compiler_task_tracer::task_guard try_lock_task(sonia::lang::compiler_task_id const&);
 
+    // append_result is used to append the result of an expression evaluation to the current function context
+    // returns the number of expressions appended
+    [[nodiscard]] size_t append_result(semantic::expression_list_t&, syntax_expression_result&);
+
+
     void push_scope();
     local_variable& push_scope_variable(annotated_identifier name, local_variable);
     size_t pop_scope();

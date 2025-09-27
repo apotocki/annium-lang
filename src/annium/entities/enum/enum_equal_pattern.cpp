@@ -115,7 +115,7 @@ std::expected<syntax_expression_result, error_storage> enum_equal_pattern::apply
         smart_blob which = dynamic_cast<generic_literal_entity const&>(get_entity(env, lhs_er.value())).value();
         env.push_back_expression(el, result.expressions, semantic::push_value{ which });
     } else {
-        append_semantic_result(el, result, lhs_er);
+        append_semantic_result(el, lhs_er, result);
     }
     
     if (rhs_er.is_const_result) {
@@ -123,7 +123,7 @@ std::expected<syntax_expression_result, error_storage> enum_equal_pattern::apply
         smart_blob which = dynamic_cast<generic_literal_entity const&>(get_entity(env, rhs_er.value())).value();
         env.push_back_expression(el, result.expressions, semantic::push_value{ which });
     } else {
-        append_semantic_result(el, result, rhs_er);
+        append_semantic_result(el, rhs_er, result);
     }
 
     // Use built-in equal function for runtime comparison

@@ -71,10 +71,6 @@ public:
 private:
     environment& env() const noexcept;
 
-    // append_result is used to append the result of an expression evaluation to the current function context
-    // returns the number of expressions appended
-    [[nodiscard]] size_t append_result(semantic::expression_list_t&, syntax_expression_result&) const;
-
     // for the case when condition is a runtime evaluated expression
     [[nodiscard]] error_storage do_rt_if_decl(if_decl const&) const;
 };

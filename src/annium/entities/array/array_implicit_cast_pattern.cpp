@@ -139,7 +139,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_implicit_cas
                 cast_errors.alternatives.emplace_back(std::move(err));
                 return std::unexpected(make_error<alt_error>(std::move(cast_errors)));
             }
-            append_semantic_result(call.expressions, *pmd->result, *res);
+            append_semantic_result(call.expressions, *res, *pmd->result);
         }
         env.push_back_expression(call.expressions, pmd->result->expressions, semantic::push_value{ smart_blob{ ui64_blob_result(arg_data->fields().size()) } });
         env.push_back_expression(call.expressions, pmd->result->expressions, semantic::invoke_function{ env.get(builtin_eid::arrayify) });
@@ -203,7 +203,7 @@ std::expected<syntax_expression_result, error_storage> array_implicit_cast_patte
     BOOST_ASSERT(!er.is_const_result); // for now, array argument should not be const
 
     // Add the array argument expressions to result
-    append_semantic_result(el, result, er);
+    append_semantic_result(el, er, result);
 
     if (arr_element_type_eid == vec_element_type_eid) {
         BOOST_ASSERT(array_size > 0);
@@ -233,7 +233,7 @@ std::expected<syntax_expression_result, error_storage> array_implicit_cast_patte
                 make_error<cast_error>(argloc, arr_element_type_eid, vec_element_type_eid, "internal error: cannot cast array element to vector element type"sv),
                 std::move(res.error())));
         }
-        append_semantic_result(el, result, res->first);
+        append_semantic_result(el, res->first, result);
     }
 
     // Push the element count and invoke arrayify to create the vector

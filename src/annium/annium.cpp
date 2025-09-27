@@ -120,12 +120,12 @@ inline fn logic_and($FT, $ST) -> union($FT, $ST) {
 }
 inline fn assert_equal(_, _, location: string = __call_location) -> () {
     if $0 != $1 {
-        error(location: location, "Assertion failed: " ..to_string($0) .. " != " ..to_string($1));
+        error(location: location, "Assertion failed: " .. to_string($0) .. " != " .. to_string($1));
     }
 }
 inline fn assert_not_equal(_, _, location: string = __call_location) -> () {
     if $0 == $1 {
-        error(location: location, "Assertion failed: " ..to_string($0) .. " == " ..to_string($1));
+        error(location: location, "Assertion failed: " .. to_string($0) .. " == " .. to_string($1));
     }
 }
 
@@ -138,9 +138,9 @@ inline fn to_string(~union(...)) => apply(to: $0, visitor: fn($x) => to_string($
 typefn array(of: typename, size?: constexpr integer);
 inline fn empty(~array(of, size $size)) => $size == 0;
 inline fn size(~array(of, size $size)) => $size;
-struct iterator(typename array(of, ...)) => (index: integer = 0, array: $0);
+struct iterator(typename array(...)) => (index: integer = 0, array: $0);
 inline fn iterator(~array(...)) -> iterator(typeof($0)) => init(array: $0);
-inline fn has_next(~iterator(=array(of, ...))) => $0.index != size($0.array);
+inline fn has_next(~iterator(=array(...))) => $0.index != size($0.array);
 inline fn next(~iterator(=array(of $of, ...))) -> $of {
     let index = $0.index;
     $0.index = index + 1;

@@ -325,7 +325,7 @@ numeric_literal_equal_pattern::apply(fn_compiler_context& ctx, semantic::express
             e.push_back_expression(el, result.expressions, semantic::push_value{ smart_blob{ nmd.lhs_arg->value() } });
         } else {
             // Use runtime value
-            append_semantic_result(el, result, lhs_src);
+            append_semantic_result(el, lhs_src, result);
         }
 
         // Handle right argument
@@ -334,7 +334,7 @@ numeric_literal_equal_pattern::apply(fn_compiler_context& ctx, semantic::express
             e.push_back_expression(el, result.expressions, semantic::push_value{ smart_blob{ nmd.rhs_arg->value() } });
         } else {
             // Use runtime value
-            append_semantic_result(el, result, rhs_src);
+            append_semantic_result(el, rhs_src, result);
         }
 
         // Generate runtime equality check

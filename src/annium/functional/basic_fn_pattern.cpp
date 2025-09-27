@@ -299,7 +299,7 @@ std::pair<syntax_expression_result, size_t> basic_fn_pattern::apply_arguments(fn
     size_t count = 0;
     syntax_expression_result result{ };
     for (auto& [_, mr, loc] : md.matches) {
-        append_semantic_result(el, result, mr);
+        append_semantic_result(el, mr, result);
         if (!mr.is_const_result) ++count;
     }
     result.is_const_result = !count;

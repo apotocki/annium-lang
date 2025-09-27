@@ -101,45 +101,6 @@ error_storage declaration_visitor::operator()(using_decl const& ud) const
     return {};
 }
 
-/*
-struct field_t
-{
-    annotated_identifier name;
-    parameter_constraint_modifier_t modifier;
-    syntax_expression_t type;
-    optional<syntax_expression_t> value;
-};
-
-struct parameter
-{
-    parameter_name name;
-    parameter_constraint_modifier_t modifier;
-    parameter_constraint_set<ExprT> constraints;
-};
-
-using parameter_name = variant<named_parameter_name, unnamed_parameter_name, varnamed_parameter_name>;
-*/
-
-size_t declaration_visitor::append_result(semantic::expression_list_t& el, syntax_expression_result& er) const
-{
-    ctx.append_stored_expressions(el, er.branches_expressions);
-
-    ctx.push_scope();
-    for (auto& [varname, var, sp] : er.temporaries) {
-        ctx.append_expressions(el, sp);
-        ctx.push_scope_variable(
-            annotated_identifier{ varname },
-            var); //local_variable{ .type = t, .varid = varid, .is_weak = false },
-    }
-    ctx.append_expressions(el, er.expressions);
-    size_t scope_sz = ctx.current_scope_binding().size();
-    ctx.pop_scope();
-    if (!er.is_const_result && er.type() != env().get(builtin_eid::void_)) {
-        ++scope_sz;
-    }
-    return scope_sz;
-}
-
 error_storage declaration_visitor::operator()(expression_statement_t const& ed) const
 {
     //auto bst = ctx.expressions_branch(); // store branch
@@ -153,7 +114,7 @@ error_storage declaration_visitor::operator()(expression_statement_t const& ed) 
     //    ess.pop_front();
     //}
 
-    size_t scope_sz = append_result(el, res->first);
+    size_t scope_sz = ctx.append_result(el, res->first);
     if (scope_sz) {
         ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)scope_sz });
     }
@@ -206,7 +167,7 @@ error_storage declaration_visitor::operator()(if_decl const& stm) const
     //});
     //GLOBAL_LOG_INFO() << "-----------------";
 
-    size_t scope_sz = append_result(el, er);
+    size_t scope_sz = ctx.append_result(el, er);
     
     if (er.is_const_result) { // constexpr result
         if (scope_sz) {
@@ -270,7 +231,7 @@ error_storage declaration_visitor::operator()(for_statement const& fd) const
     }
     BOOST_ASSERT(!has_next_result->is_const_result); // not implemented yet
 
-    size_t scsz = append_result(el, *iterator_result); // append iterator creation result
+    size_t scsz = ctx.append_result(el, *iterator_result); // append iterator creation result
     // save iterator to local variable
     identifier iterator_var_name = env().new_identifier();
     ctx.push_scope_variable(
@@ -285,7 +246,7 @@ error_storage declaration_visitor::operator()(for_statement const& fd) const
     ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)scsz, .keep_back = 0 }); // remove iterator value
 
     ctx.push_chain();
-    size_t has_next_sz = append_result(el, *has_next_result);
+    size_t has_next_sz = ctx.append_result(el, *has_next_result);
     ctx.append_expression(semantic::conditional_t{});
     semantic::conditional_t& cond = get<semantic::conditional_t>(ctx.expressions().back());
     ctx.push_chain();
@@ -308,7 +269,7 @@ error_storage declaration_visitor::operator()(for_statement const& fd) const
             make_error<basic_general_error>(coll_expr_loc, "Cannot invoke next function for the iterator"sv),
             std::move(next_result.error()));
     }
-    size_t next_sz = append_result(el, *next_result);
+    size_t next_sz = ctx.append_result(el, *next_result);
 
     // assign next_result to fd.iter variable
     
@@ -349,71 +310,6 @@ error_storage declaration_visitor::operator()(for_statement const& fd) const
     ls.branch = ctx.expressions();
     ctx.pop_chain();
     return {};
-#if 0
-    // Добавляем ссылку на переменную итератора
-    ctx.append_expression(semantic::push_local_variable{ iterator_var });
-
-    // Создаем ссылку на переменную итератора
-    ctx.append_expression(semantic::push_local_variable{ iterator_var });
-
-
-    size_t has_next_scope_sz = append_result(el, *has_next_result);
-
-
-
-    
-    // Помещаем результат создания итератора в переменную
-    size_t iterator_scope_sz = append_result(el, *iterator_result);
-    if (iterator_scope_sz) {
-        ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)iterator_scope_sz, .keep_back = 1 });
-    }
-
-    
-    // Если has_next возвращает константу false, пропускаем цикл
-    if (has_next_result->is_const_result && has_next_result->value() == env().get(builtin_eid::false_)) {
-        ctx.pop_scope();
-        return {};
-    }
-    
-
-
-    // Создаем условный переход для цикла
-    ctx.push_chain();
-    ctx.append_expression(semantic::conditional_t{});
-    semantic::conditional_t& cond = get<semantic::conditional_t>(ctx.expressions().back());
-    
-    // True branch: выполняем тело цикла
-    ctx.push_chain();
-    
-    if (has_next_scope_sz > 1) {
-        ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)(has_next_scope_sz - 1), .keep_back = 1 });
-    }
-    
-    // Вызываем next(iterator) и присваиваем результат fd.iter
-    
-    
-    
-    
-    // Выполняем тело цикла
-    if (auto err = apply(fd.body); err) return std::move(err);
-    
-    // Добавляем продолжение цикла
-    ctx.append_expression(semantic::loop_continuer{});
-    cond.true_branch = ctx.expressions();
-    ctx.pop_chain();
-    
-    // False branch: выходим из цикла
-    ctx.push_chain();
-    ctx.append_expression(semantic::loop_breaker{});
-    cond.false_branch = ctx.expressions();
-    ctx.pop_chain();
-    
-    ls.branch = ctx.expressions();
-    ctx.pop_chain();
-    ctx.pop_scope();
-    
-    return {};
-#endif
 }
 
 error_storage declaration_visitor::operator()(while_decl const& wd) const
@@ -430,7 +326,7 @@ error_storage declaration_visitor::operator()(while_decl const& wd) const
         syntax_expression_result& er = res->first;
 
         ctx.push_chain();
-        size_t scope_sz = append_result(el, er);
+        size_t scope_sz = ctx.append_result(el, er);
         
         if (!er.is_const_result && er.value_or_type != env().get(builtin_eid::void_)) {
             ctx.append_expression(semantic::truncate_values(1, false));
@@ -446,7 +342,7 @@ error_storage declaration_visitor::operator()(while_decl const& wd) const
     if (!res) return std::move(res.error());
     syntax_expression_result& er = res->first;
     
-    size_t scope_sz = append_result(el, er);
+    size_t scope_sz = ctx.append_result(el, er);
 
     THROW_NOT_IMPLEMENTED_ERROR("declaration_visitor while_decl condition");
 #if 0
@@ -536,7 +432,7 @@ error_storage declaration_visitor::operator()(yield_statement_t const& yst) cons
     syntax_expression_result& er = res->first;
     
     ctx.push_chain();
-    size_t scope_sz = append_result(el, er);
+    size_t scope_sz = ctx.append_result(el, er);
     auto return_expressions = ctx.expressions();
     ctx.pop_chain();
     ctx.append_yield(return_expressions, scope_sz, er.value_or_type, er.is_const_result);
@@ -1053,7 +949,7 @@ error_storage declaration_visitor::operator()(return_statement_t const& rd) cons
         syntax_expression_result& er = res->first;
 
         ctx.push_chain();
-        size_t scope_sz = append_result(el, er);
+        size_t scope_sz = ctx.append_result(el, er);
         auto return_expressions = ctx.expressions();
         ctx.pop_chain();
         ctx.append_return(return_expressions, scope_sz, er.value_or_type, er.is_const_result);

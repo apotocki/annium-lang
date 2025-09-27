@@ -97,7 +97,7 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
     syntax_expression_result result{ };
 
     fn_compiler_context_scope fn_scope{ ctx };
-    
+
     // Prepare visitor object expression
     optional<syntax_expression_t> visitor_expr;
     local_variable* visitor_var = nullptr;
@@ -106,26 +106,27 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
     } else {
         identifier visitor_var_name = fn_scope.push_scope_variable(visitor_er.type()).first;
         visitor_expr.emplace(name_reference{ annotated_identifier{ visitor_var_name } });
+        append_semantic_result(el, visitor_er, result);
         //identifier visitor_var_name = env.new_identifier();
         //visitor_var = &fn_scope.new_temporary(visitor_var_name, visitor_er.type());
         //append_semantic_result(el, result, visitor_er);
         //env.push_back_expression(el, result.expressions, semantic::set_local_variable{ *visitor_var });
         //env.push_back_expression(el, result.expressions, semantic::truncate_values{ .count = 1, .keep_back = 0 }); // remove visitor value from stack
     }
-    
+
     // Prepare union value expression
-    append_semantic_result(el, result, union_er);
+    append_semantic_result(el, union_er, result);
     //fn_scope.skip_scope_variables(); // we don't need to keep union argument temporary variables
     env.push_back_expression(el, result.expressions, semantic::invoke_function{ env.get(builtin_eid::unfold) });
     //env.push_back_expression(el, result.expressions, semantic::truncate_values{ .count = 1, .keep_back = 0 }); // keep only the unfolded union value on stack
-    
+
     auto union_value_var_pair = fn_scope.push_scope_variable(entity_identifier{}); // yet unknown type
     //auto which_var_pair = fn_scope.push_scope_variable(env.get(builtin_eid::integer));
 
     // 'which' is on top of stack now
     env.push_back_expression(el, result.expressions, semantic::switch_t{}); // doesn't 'eat' the 'which' value
     semantic::switch_t& sw = get<semantic::switch_t>(result.expressions.back());
-    
+
     // Collect results
     boost::container::small_flat_set<entity_identifier, 8> result_types;
     small_vector<entity_identifier, 16> stable_result_types_set;
@@ -135,20 +136,15 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
     for (size_t i = 0; i < union_sig.field_count(); ++i) {
         auto const& union_field = union_sig.field(i);
 
-        sw.branches.emplace_back();
-        auto & branch_res = sw.branches.back();
-
-        env.push_back_expression(el, branch_res, semantic::truncate_values{ .count = 1, .keep_back = 0 }); // remove 'which' value from stack
-        
         function_call_t visitor_call{ get<2>(md.matches[1]), syntax_expression_t{ *visitor_expr } };
         if (!union_field.is_const()) {
             // set union_value_var_pair type for this branch
             union_value_var_pair.second.type = union_field.entity_id();
             visitor_call.emplace_back(name_reference{ annotated_identifier{ union_value_var_pair.first } });
         } else {
-            visitor_call.emplace_back(annotated_entity_identifier { union_field.entity_id() });
+            visitor_call.emplace_back(annotated_entity_identifier{ union_field.entity_id() });
         }
-        
+
         auto res = base_expression_visitor{ ctx, el }(visitor_call);
         if (!res) {
             return std::unexpected(append_cause(
@@ -156,21 +152,18 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
                 std::move(res.error())));
         }
 
-        syntax_expression_result & branch_call_res = res->first;
-
-        result.temporaries.insert(result.temporaries.begin(), branch_call_res.temporaries.begin(), branch_call_res.temporaries.end());
-        result.branches_expressions = el.concat(result.branches_expressions, branch_call_res.branches_expressions);
-        branch_res = el.concat(branch_res, branch_call_res.expressions);
-        env.push_back_expression(el, branch_res, semantic::truncate_values{ .count = 1, .keep_back = 1 }); // remove unfold union value from stack
-        result.branches_expressions = el.concat(result.branches_expressions, branch_res);
+        syntax_expression_result& branch = res->first; // visitor call result
+        env.push_back_expression(el, branch.expressions, semantic::truncate_values{ .count = 2, .keep_back = uint16_t(branch.is_const_result ? 0 : 1) }); // remove unfold union value and 'which' value from stack
+        sw.branches.emplace_back();
+        append_semantic_result_to_branch(el, branch, result, sw.branches.back());
 
         // Collect result type for inference if needed
         entity_identifier result_type;
-        if (branch_call_res.is_const_result) {
-            result_type = get_entity(env, branch_call_res.value()).get_type();
+        if (branch.is_const_result) {
+            result_type = get_entity(env, branch.value()).get_type();
             THROW_NOT_IMPLEMENTED_ERROR("union apply: can't infer result type if some branches are constant and some are runtime");
         } else {
-            result_type = branch_call_res.type();
+            result_type = branch.type();
             all_result_const = false;
         }
         if (result_types.insert(result_type).second) {

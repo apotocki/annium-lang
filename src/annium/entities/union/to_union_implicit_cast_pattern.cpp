@@ -158,10 +158,10 @@ std::expected<syntax_expression_result, error_storage> to_union_implicit_cast_pa
         if (!res) {
             return std::unexpected(std::move(res.error()));
         }
-        append_semantic_result(el, result, res->first);
+        append_semantic_result(el, res->first, result);
     } else {
         // no cast needed, just move expressions
-        append_semantic_result(el, result, arg_er);
+        append_semantic_result(el, arg_er, result);
     }
 
     // do not build union value if constexpr result

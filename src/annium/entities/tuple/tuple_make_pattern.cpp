@@ -52,7 +52,7 @@ std::expected<syntax_expression_result, error_storage> tuple_make_pattern::apply
     
     syntax_expression_result result{ };
     for (auto& [_, mr, loc] : md.matches) {
-        append_semantic_result(el, result, mr);
+        append_semantic_result(el, mr, result);
     }
 
     entity const& tuple_type_ent = e.make_basic_signatured_entity(std::move(signature));
