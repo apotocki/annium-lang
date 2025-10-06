@@ -149,7 +149,7 @@
     <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\parsers\utility.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\numetron\msvc\numetron.vcxproj">
+    <ProjectReference Include="..\..\..\tpls\numetron\msvc\numetron.vcxproj">
       <Project>{b3da4b02-589c-4f86-b8be-4cccd9faa17b}</Project>
     </ProjectReference>
     <ProjectReference Include="..\annium\annium.vcxproj">

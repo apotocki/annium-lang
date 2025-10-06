@@ -66,6 +66,7 @@ public:
     void operator()(push_special_value const&) const;
     void operator()(push_by_offset const&) const;
     void operator()(set_local_variable const&) const;
+    void operator()(set_variable const&) const;
     void operator()(invoke_function const&) const;
     void operator()(return_statement const&) const;
     void operator()(truncate_values const&) const;

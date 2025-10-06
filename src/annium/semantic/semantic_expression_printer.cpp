@@ -131,6 +131,12 @@ void expression_printer_visitor::operator()(push_local_variable const& lv) const
 #endif
 }
 
+void expression_printer_visitor::operator()(set_variable const& v) const
+{
+    do_indent();
+    ss << "set EXT_VAR("sv << e_.print(v.entity->id) << ")\n"sv;
+}
+
 void expression_printer_visitor::operator()(set_local_variable const& lv) const
 {
     do_indent();
