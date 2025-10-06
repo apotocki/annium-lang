@@ -12,6 +12,7 @@
 
 #include "annium/entities/prepared_call.hpp"
 #include "annium/entities/literals/literal_entity.hpp"
+#include "annium/entities/functions/internal_function_entity.hpp" // used as a provisional
 
 #include "annium/errors/value_mismatch_error.hpp"
 #include "annium/auxiliary.hpp"
@@ -132,152 +133,12 @@ std::expected<functional_match_descriptor_ptr, error_storage> basic_fn_pattern::
         call_sig.result.emplace( exp.type, false );
     }
 
-    //auto call_session = call.new_session(caller_ctx);
-
     parameter_matcher pmatcher{ caller_ctx, call, parameters_, *pmd };
     auto err = pmatcher.match(callee_ctx);
     if (err) {
         return std::unexpected(std::move(err));
     }
-#if 0
-    auto param_it = parameters_.begin(), param_end = parameters_.end();
-    for (; param_it != param_end; ++param_it) {
-        parameter_descriptor const& pd = *param_it;
-        syntax_expression_t const* parg_expr;
-        expected_result_t argexp{};
-        bool ellipsis = false;
 
-        constraint_expression_t const* pconstraint = get<constraint_expression_t>(&pd.constraint);
-        entity_identifier pconstraint_value_eid;
-        if (pconstraint) {
-            auto cnt_res = apply_visitor(ct_expression_visitor{ callee_ctx, call.expressions }, pconstraint->expression);
-            if (!cnt_res) {
-                return std::unexpected(append_cause(
-                    make_error<basic_general_error>(call.location, "Cannot evaluate constraint for parameter"sv, pd.ename.value, pd.ename.location),
-                    std::move(cnt_res.error())
-                ));
-            }
-            argexp.location = get_start_location(pconstraint->expression);
-            syntax_expression_const_result_t& cnt_res_er = *cnt_res;
-            entity const& cnt_res_ent = get_entity(e, cnt_res_er.value);
-            if (cnt_res_ent.get_type() == e.get(builtin_eid::typename_)) {
-                argexp.type = cnt_res_ent.id;
-            } else {
-                pconstraint_value_eid = cnt_res_er.value;
-                argexp.type = cnt_res_ent.get_type();
-                argexp.is_const_result = true;
-            }
-            ellipsis = pconstraint->ellipsis;
-        } else { // else it's a pattern, so we won't use a type constraint directly
-            pattern_t const& pattern = get<pattern_t>(pd.constraint);
-            ellipsis = pattern.ellipsis;
-        }
-
-        if (ellipsis) {
-            if (pd.ename) {
-                //handle_named_ellipsis(callee_ctx, call, pd.ename.value, pmd->bindings);
-                THROW_NOT_IMPLEMENTED_ERROR("basic_fn_pattern : ellipsis with named parameter");    
-            } else {
-                //handle_positioned_ellipsis(callee_ctx, call, pmd->bindings);
-            }
-        }
-        auto res = [&call_session, &pd](expected_result_t& argexp, syntax_expression_t const** parg) {
-            if (pd.ename) {
-                return call_session.use_named_argument(pd.ename.value, argexp, parg);
-            } else {
-                return call_session.use_next_positioned_argument(argexp, parg);
-            }
-        }(argexp, &parg_expr);
-
-        annotated_identifier const& param_name = pd.ename.self_or(pd.inames.front());
-
-        if (!res) {
-            if (res.error()) {
-                return std::unexpected(append_cause(
-                    make_error<basic_general_error>(call.location, "Cannot match argument"sv, param_name.value, param_name.location),
-                    std::move(res.error())
-                ));
-            }
-            if (!pd.default_value) {
-                return std::unexpected(make_error<basic_general_error>(call.location, "Argument not found"sv, param_name.value, param_name.location));
-            }
-            // try default value
-            res = apply_visitor(base_expression_visitor{ callee_ctx, call.expressions, argexp }, *pd.default_value);
-            if (!res) {
-                return std::unexpected(append_cause(
-                    make_error<basic_general_error>(call.location, "Cannot evaluate default value for argument"sv, param_name.value, param_name.location),
-                    std::move(res.error())
-                ));
-            }
-        }
-        
-        syntax_expression_result& arg_er = res->first;
-        if (pconstraint) {
-            if (argexp.is_const_result) {
-                // check exact value match
-                if (arg_er.value() != pconstraint_value_eid) {
-                    return std::unexpected(append_cause(
-                        make_error<basic_general_error>(call.location, "Argument value does not match constraint"sv, param_name.value, param_name.location),
-                        make_error<value_mismatch_error>(get_start_location(*parg_expr), arg_er.value(), pconstraint_value_eid, get_start_location(pconstraint->expression))
-                    ));
-                }
-            }
-            // if no errors here, then matched
-        } else {
-            entity_identifier type_to_match;
-            if (arg_er.is_const_result) {
-                entity const& arg_res_entity = get_entity(e, arg_er.value());
-                type_to_match = arg_res_entity.get_type();
-            } else {
-                type_to_match = arg_er.type();
-            }
-            pattern_t const& pattern = get<pattern_t>(pd.constraint);
-            auto err = pattern_matcher{ callee_ctx, pmd->bindings, call.expressions }
-                .match(pattern, annotated_entity_identifier{ type_to_match, get_start_location(*parg_expr) });
-            if (err) {
-                return std::unexpected(append_cause(
-                    make_error<basic_general_error>(call.location, "Cannot match argument pattern"sv, param_name.value, param_name.location),
-                    std::move(err)
-                ));
-            }
-        }
-        pmd->weight -= res->second;
-        
-        // bind names
-        if (!ellipsis) {
-            if (pd.ename) {
-                call_sig.emplace_back(pd.ename.value, arg_er.value_or_type, arg_er.is_const_result);
-            } else {
-                call_sig.emplace_back(arg_er.value_or_type, arg_er.is_const_result);
-            }
-            if (arg_er.is_const_result) {
-                for (auto const& iname : pd.inames) {
-                    pmd->bindings.emplace_back(
-                        annotated_identifier{ iname.value, iname.location }, arg_er.value()
-                    );
-                }
-                if (arg_er.expressions) pmd->arguments_auxiliary_expressions.emplace_back(arg_er.expressions);
-            } else {
-                local_variable var{ .type = arg_er.type(), .varid = e.new_variable_identifier(), .is_weak = false };
-                for (auto const& iname : pd.inames) {
-                    pmd->bindings.emplace_back(
-                        annotated_identifier{ iname.value, iname.location }, var
-                    );
-                }
-                pmd->emplace_back(param_it - parameters_.begin(), arg_er);
-            }
-        } else {
-            THROW_NOT_IMPLEMENTED_ERROR("basic_fn_pattern : ellipsis");
-        }
-        // parameter_match_result& pmr = pmd->get_match_result(pd.ename.value);
-    }
-
-    // Check if there are any unused arguments
-    if (auto argterm = call_session.unused_argument(); argterm) {
-        return std::unexpected(make_error<basic_general_error>(argterm.location(),
-            "argument mismatch"sv, std::move(argterm.value())));
-    }
-#endif
     if (syntax_expression_t const* rexpr = get<syntax_expression_t>(&result_)) {
         auto res = apply_visitor(base_expression_visitor{ callee_ctx, call.expressions, expected_result_t{ .modifier = value_modifier_t::constexpr_value } }, *rexpr);
         if (!res) {
@@ -304,6 +165,111 @@ std::pair<syntax_expression_result, size_t> basic_fn_pattern::apply_arguments(fn
     }
     result.is_const_result = !count;
     return { result, count };
+}
+
+shared_ptr<internal_function_entity> basic_fn_pattern::build(fn_compiler_context& ctx, functional_match_descriptor& md, entity_signature signature) const
+{
+    environment& e = ctx.env();
+
+    qname_view fnqn = e.fregistry_resolve(signature.name).name();
+    qname fn_ns = fnqn / e.new_identifier();
+
+    auto pife = make_shared<internal_function_entity>(
+        std::move(fn_ns),
+        std::move(signature));
+
+    pife->location = location();
+    build_scope(e, md, *pife);
+
+    return pife;
+}
+
+void basic_fn_pattern::build_scope(environment& e, functional_match_descriptor& md, internal_function_entity& fent) const
+{
+    // bind variables (rt arguments)
+    for (parameter_descriptor const& pd : parameters_) {
+        functional_binding::value_type const* bsp = md.bindings.lookup(pd.inames.front().value);
+        BOOST_ASSERT(bsp);
+
+        if (!has(pd.modifier, parameter_constraint_modifier_t::ellipsis)) {
+            if (local_variable const* plv = get<local_variable>(bsp); plv) {
+                fent.push_argument(plv->varid);
+            } // else arg is constant
+            continue;
+        }
+
+        entity_identifier const* peid = get<entity_identifier>(bsp);
+        if (!peid) {
+            THROW_INTERNAL_ERROR("internal_fn_pattern::build_scope: expected entity_identifier in functional_binding::value_type for ellipsis");
+        }
+
+        entity const& ellipsis_unit = get_entity(e, *peid);
+        entity const& ellipsis_unit_type = get_entity(e, ellipsis_unit.get_type());
+        entity_signature const* pellipsis_sig = ellipsis_unit_type.signature();
+        BOOST_ASSERT(pellipsis_sig && pellipsis_sig->name == e.get(builtin_qnid::tuple));
+        for (field_descriptor const& fd : pellipsis_sig->fields()) {
+            BOOST_ASSERT(fd.is_const());
+            entity const& fd_ent = get_entity(e, fd.entity_id());
+            if (qname_entity const* pqent = dynamic_cast<qname_entity const*>(&fd_ent); pqent) {
+                qname const& qn = pqent->value();
+                BOOST_ASSERT(qn.size() == 1);
+                identifier varname = qn.parts().front();
+                functional_binding::value_type const* bvar = md.bindings.lookup(varname);
+                BOOST_ASSERT(bvar);
+                local_variable const* plv = get<local_variable>(bvar);
+                BOOST_ASSERT(plv);
+                fent.push_argument(plv->varid);
+            }
+        }
+    }
+
+    // bind constants
+    md.bindings.for_each([&e, &fent](identifier name, resource_location const& loc, functional_binding::value_type& value) {
+        if (entity_identifier const* peid = get<entity_identifier>(&value); peid) {
+            qname infn_name = fent.name() / name;
+            functional& fnl = e.fregistry_resolve(infn_name);
+            fnl.set_default_entity(annotated_entity_identifier{ *peid, loc });
+        }
+    });
+
+    //for (auto& [argindex, mr] : md.matches) {
+    //    parameter_descriptor const& pd = parameters_[argindex];
+    //    functional_binding::value_type const* bsp = md.bindings.lookup(pd.inames.front().value);
+    //    BOOST_ASSERT(bsp);
+    //    if (local_variable const* plv = get<local_variable>(bsp); plv) {
+    //        fent.push_argument(plv->varid);
+    //    } else {
+    //        THROW_INTERNAL_ERROR("internal_fn_pattern::build_scope: expected local_variable in functional_binding::value_type");
+    //    }
+    //}
+
+#if 0
+    // bind consts
+    md.bindings.for_each([&e, &fent](identifier name, resource_location const& loc, functional_binding::value_type& value) {
+        entity_identifier eid = apply_visitor(make_functional_visitor<entity_identifier>([&e](auto const& e) {
+            if constexpr (std::is_same_v<std::decay_t<decltype(e)>, entity_identifier>) {
+                return e;
+            }
+            else if constexpr (std::is_same_v<std::decay_t<decltype(e)>, entity_ptr>) {
+                if (e->id) return e->id;
+                //if (e->get_type() == e.get(builtin_eid::metaobject)) {
+                //    return e.eregistry_find_or_create(*e, [&e]() { return std::move(e); }).id();
+                //}
+                return e.eregistry_find_or_create(*e, [&e]() { return std::move(e); }).id;
+            }
+            else { // else skip variables
+                return entity_identifier{};
+            }
+            }), value);
+
+        if (eid) {
+            qname infn_name = fent.name() / name;
+            functional& fnl = e.fregistry_resolve(infn_name);
+            fnl.set_default_entity(annotated_entity_identifier{ eid, loc });
+        }
+        });
+#endif
+    fent.bindings = std::move(md.bindings);
 }
 
 std::ostream& basic_fn_pattern::print(environment const& e, std::ostream& ss) const
@@ -349,30 +315,5 @@ std::ostream& basic_fn_pattern::print(environment const& e, std::ostream& ss) co
     }
     return ss;
 }
-
-#if 0
-// return appended argument expressions count
-std::pair<semantic::expression_span, size_t> basic_fn_pattern::apply_any_argument(environment& e, parameter_match_result& pmr, semantic::expression_list_t& el) const
-{
-#if 0
-    std::pair<semantic::expression_span, size_t> result{ semantic::expression_span{}, 0 };
-    for (auto& ser : pmr.results) {
-        get<0>(result) = el.concat(get<0>(result), ser.expressions);
-        if (ser.is_const_result) {
-            e.push_back_expression(el, get<0>(result), semantic::push_value(ser.value()));
-        }
-        ++get<1>(result);
-    }
-    return result;
-#endif
-    THROW_NOT_IMPLEMENTED_ERROR("basic_fn_pattern::apply_any_argument is not implemented yet");
-}
-
-std::pair<semantic::expression_span, size_t> basic_fn_pattern::apply_argument(environment&, parameter_match_result& pmr, semantic::expression_list_t& el) const
-{
-    THROW_NOT_IMPLEMENTED_ERROR("basic_fn_pattern::apply_argument is not implemented yet");
-    //return apply_mut_argument(pmr, el);
-}
-#endif
 
 }

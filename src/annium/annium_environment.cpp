@@ -57,6 +57,8 @@
 #include "entities/struct/struct_implicit_cast_pattern.hpp"
 #include "entities/struct/struct_init_pattern.hpp"
 #include "entities/struct/struct_set_pattern.hpp"
+#include "entities/struct/is_struct_pattern.hpp"
+#include "entities/struct/tuple_of_pattern.hpp"
 
 #include "entities/enum/enum_implicit_cast_pattern.hpp"
 #include "entities/enum/enum_get_pattern.hpp"
@@ -64,6 +66,7 @@
 #include "entities/enum/enum_to_string_pattern.hpp"
 
 #include "entities/array/array_implicit_cast_pattern.hpp"
+#include "entities/array/array_from_iterator_make_pattern.hpp"
 
 #include "entities/fixed_array/fixed_array_make_pattern.hpp"
 #include "entities/fixed_array/fixed_array_head_pattern.hpp"
@@ -182,7 +185,7 @@ entity_identifier environment::set_builtin_extern(string_view signature, void(*p
 {
     auto [pf, fndecl] = parse_extern_fn(signature);
     auto ptrn = make_shared<PT>(fn_identifier_counter_);
-    internal_function_entity default_fentity{ qname{}, entity_signature{}, {} };
+    internal_function_entity default_fentity{ qname{}, entity_signature{} };
     fn_compiler_context ctx{ *this, default_fentity };
     if (auto err = ptrn->init(ctx, fndecl); err) {
         throw exception(print(*err));
@@ -1372,14 +1375,16 @@ environment::environment()
     // make_array(of?, ...) -> array(of, size)
     functional& make_array_fnl = fregistry_resolve(get(builtin_qnid::make_array));
     make_array_fnl.push(make_shared<fixed_array_make_pattern>());
+    make_array_fnl.push(make_shared<array_from_iterator_make_pattern>());
 
     functional& get_fnl = fregistry_resolve(get(builtin_qnid::get));
     get_fnl.push(make_shared<tuple_typename_get_pattern>());
     get_fnl.push(make_shared<tuple_get_pattern>());
     get_fnl.push(make_shared<fixed_array_get_pattern>());
     get_fnl.push(make_shared<tuple_project_get_pattern>());
-    get_fnl.push(make_shared<struct_get_pattern>());
+    //get_fnl.push(make_shared<struct_get_pattern>());
     get_fnl.push(make_shared<enum_get_pattern>());
+
 
     functional& set_fnl = fregistry_resolve(get(builtin_qnid::set));
     set_fnl.push(make_shared<tuple_set_pattern>());
@@ -1424,6 +1429,13 @@ environment::environment()
     functional& init_fnl = fregistry_resolve(get(builtin_qnid::init));
     init_fnl.push(std::move(make_shared<struct_init_pattern>()));
 
+    // TRAITS/CONCEPTS
+    functional& is_struct_fnl = fregistry_resolve(get(builtin_qnid::is_struct));
+    is_struct_fnl.push(make_shared<is_struct_pattern>());
+
+    functional& tuple_of_fnl = fregistry_resolve(get(builtin_qnid::tuple_of));
+    tuple_of_fnl.push(make_shared<tuple_of_pattern>());
+
     //fn_result_identifier_ = make_identifier("->");
 
     //eq_qname_identifier_ = make_qname_identifier("==");
@@ -1432,6 +1444,7 @@ environment::environment()
 
     builtin_eids_[(size_t)builtin_eid::arrayify] = set_builtin_extern("__arrayify(..., runtime integer)->tuple($0...)"sv, &annium_arrayify);
     builtin_eids_[(size_t)builtin_eid::unfold] = set_builtin_extern("__unfold(~runtime array(...))"sv, &annium_unfold);
+    set_builtin_extern("__array_size(runtime)->integer"sv, &annium_array_size);
     builtin_eids_[(size_t)builtin_eid::array_tail] = set_builtin_extern("__array_tail(~runtime tuple(_, $t...))->tuple($t...)"sv, &annium_array_tail);
     builtin_eids_[(size_t)builtin_eid::array_at] = set_builtin_extern("__array_at()"sv, &annium_array_at);
     builtin_eids_[(size_t)builtin_eid::array_set_at] = set_builtin_extern("__array_set_at($arr: runtime, $index: runtime integer, $value)"sv, &annium_array_set_at);
@@ -1449,7 +1462,7 @@ environment::environment()
     //set_extern("implicit_cast(to: typename string, _)->string"sv, &annium_tostring);
     //set_const_extern<to_string_pattern>("to_string(const __identifier)->string"sv);
     //set_extern<external_fn_pattern>("to_string(_)->string"sv, &annium_tostring);
-    //set_extern<external_fn_pattern>("implicit_cast(mut integer)->decimal"sv, &annium_int2dec);
+    builtin_eids_[(size_t)builtin_eid::int2dec] = set_builtin_extern("__int2dec(runtime)->decimal"sv, &annium_int2dec);
     //set_extern<external_fn_pattern>("implicit_cast(mut integer)->float"sv, &annium_int2flt);
     set_builtin_extern("create_extern_object(:runtime string)->object"sv, &annium_create_extern_object);
 
@@ -1465,6 +1478,8 @@ environment::environment()
     //set_extern<external_fn_pattern>("negate(mut _)->bool"sv, &annium_negate);
     set_builtin_extern("__plus(runtime integer, runtime integer)~>integer"sv, &annium_operator_plus_integer);
     set_builtin_extern("__plus(runtime decimal, runtime decimal)~>decimal"sv, &annium_operator_plus_decimal);
+
+    builtin_eids_[(size_t)builtin_eid::isubtract] = set_builtin_extern("__minus(runtime integer, runtime integer)~>integer"sv, &annium_operator_minus_integer);
 
 }
 }

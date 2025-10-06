@@ -20,13 +20,13 @@ public:
 
     inline void set_captures(basic_signatured_entity const& captures) noexcept { captures_ = &captures; }
 
+    std::expected<functional_match_descriptor_ptr, error_storage> try_match(fn_compiler_context&, prepared_call const&, expected_result_t const&) const override;
+
     std::expected<syntax_expression_result, error_storage> apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const override;
 
 protected:
-    void build_scope(environment&, functional_match_descriptor&, internal_function_entity& /* out */) const;
-
-    // builds entity that represents the function
-    virtual shared_ptr<entity> build(fn_compiler_context&, functional_match_descriptor&, entity_signature&&) const;
+    shared_ptr<internal_function_entity> build(fn_compiler_context&, functional_match_descriptor&, entity_signature) const override;
+    void build_scope(environment&, functional_match_descriptor&, internal_function_entity& /* out */) const override;
 };
 
 }

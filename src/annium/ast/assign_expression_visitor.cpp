@@ -42,7 +42,7 @@ assign_expression_visitor::result_type assign_expression_visitor::operator()(qna
             }
             env().push_back_expression(expressions, ser.expressions, semantic::set_local_variable{ eid_or_var });
             if (eid_or_var.is_weak) {
-                ctx_.append_expression(semantic::truncate_values(1, false));
+                ctx_.append_expression(semantic::truncate_values(1, 0));
             }
         } else {
             env().push_back_expression(expressions, ser.expressions, semantic::set_variable{ peve });

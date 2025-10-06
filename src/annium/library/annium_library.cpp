@@ -136,6 +136,24 @@ void annium_unfold(vm::context& ctx)
     });
 }
 
+void annium_array_size(vm::context& ctx)
+{
+    auto arr = ctx.stack_back(1).as<blob_result>();
+    if (!is_array(arr)) {
+        throw exception("expected array, got %1%"_fmt % arr);
+    }
+    size_t sz = blob_type_selector(arr, [](auto ident, blob_result b) -> size_t {
+        using type = typename decltype(ident)::type;
+        if constexpr (std::is_same_v<type, std::nullptr_t> || std::is_void_v<type>) {
+            THROW_INTERNAL_ERROR("unexpected array element type");
+        } else {
+            using fstype = std::conditional_t<std::is_same_v<type, bool>, uint8_t, type>;
+            return array_size_of<fstype>(b);
+        }
+    });
+    ctx.stack_back().replace(smart_blob{ ui64_blob_result(sz) });
+}
+
 void annium_array_at(vm::context& ctx)
 {
     auto idx = ctx.stack_back().as<size_t>();
@@ -296,6 +314,18 @@ void annium_operator_plus_decimal(vm::context& ctx)
     smart_blob res{ decimal_blob_result(sum) };
     res.allocate();
     
+    ctx.stack_pop();
+    ctx.stack_back().replace(std::move(res));
+}
+
+void annium_operator_minus_integer(vm::context& ctx)
+{
+    auto l = ctx.stack_back(1).as<numetron::integer>();
+    auto r = ctx.stack_back().as<numetron::integer_view>();
+    auto sum = l - r;
+    smart_blob res{ bigint_blob_result(sum) };
+    res.allocate();
+
     ctx.stack_pop();
     ctx.stack_back().replace(std::move(res));
 }

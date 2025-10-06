@@ -78,6 +78,52 @@ union_apply_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
     resource_location const& visitor_arg_loc = get_start_location(*get<0>(visitor_expr));
     syntax_expression_result & visitor_arg_er = visitor_arg->first;
 
+    // Validate that visitor can be applied to ALL types of the union at match time
+    {
+        fn_compiler_context_scope fn_scope{ ctx };
+        optional<syntax_expression_t> visitor_expr;
+        local_variable* visitor_var = nullptr;
+        if (visitor_arg_er.is_const_result) {
+            visitor_expr.emplace(annotated_entity_identifier{ visitor_arg_er.value(), visitor_arg_loc });
+        } else {
+            identifier visitor_var_name = fn_scope.push_scope_variable(visitor_arg_er.type()).first;
+            visitor_expr.emplace(name_reference{ annotated_identifier{ visitor_var_name } });
+            //append_semantic_result(el, visitor_er, result);
+        }
+        // to do: store temporary expressions in the match descriptor and merge them in apply()
+        semantic::managed_expression_list temp_expressions{ env };
+
+        // Prepare function object expression for the visitor
+        // If visitor is const, use the resolved entity id; otherwise, reuse original syntax expression
+        //auto make_visitor_fn_object = [&]() -> syntax_expression_t {
+        //    if (visitor_arg_er.is_const_result) {
+        //        return syntax_expression_t{ annotated_entity_identifier{ visitor_arg_er.value(), visitor_arg_loc } };
+        //    }
+        //    return syntax_expression_t{ *get<0>(visitor_expr) };
+        //};
+
+        // Probe each union member
+        for (size_t i = 0; i < union_sig->field_count(); ++i) {
+            auto const& union_field = union_sig->field(i);
+
+            function_call_t visitor_call{ visitor_arg_loc, syntax_expression_t{ *visitor_expr } };
+            if (!union_field.is_const()) {
+                // Provide a placeholder runtime argument of the proper type
+                visitor_call.emplace_back(stack_value_reference{ .name = annotated_identifier{}, .type = union_field.entity_id(), .offset = 0 });
+            } else {
+                // Provide a constant typed argument
+                visitor_call.emplace_back(annotated_entity_identifier{ union_field.entity_id(), visitor_arg_loc });
+            }
+
+            auto res = base_expression_visitor{ ctx, temp_expressions }(visitor_call);
+            if (!res) {
+                return std::unexpected(append_cause(
+                    make_error<basic_general_error>(visitor_call.location, ("error calling visitor for union type index %1% (%2%)"_fmt % i % env.print(union_field.entity_id())).str()),
+                    std::move(res.error())));
+            }
+        }
+    }
+
     auto pmd = make_shared<union_apply_match_descriptor>(call, union_entity_type);
     pmd->emplace_back(0, union_arg_er, union_arg_loc);
     pmd->emplace_back(1, visitor_arg_er, visitor_arg_loc);

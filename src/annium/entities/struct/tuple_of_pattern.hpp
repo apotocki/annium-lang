@@ -7,16 +7,16 @@
 
 namespace annium {
 
-class equal_pattern : public functional::pattern
+class tuple_of_pattern : public functional::pattern
 {
 public:
-    // Zero default weight (default implementation). Any overload must win the match.
-    inline equal_pattern() noexcept : functional::pattern{ -1024 } {}
+    explicit tuple_of_pattern() = default;
 
     std::expected<functional_match_descriptor_ptr, error_storage> try_match(fn_compiler_context&, prepared_call const&, expected_result_t const&) const override;
+
     std::expected<syntax_expression_result, error_storage> apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const override;
 
-    std::ostream& print(environment const&, std::ostream& s) const override { return s << "equal(:$T, :$T)->bool"; }
+    std::ostream& print(environment const&, std::ostream& s) const override { return s << "tuple_of(@is_struct)->auto"; }
 };
 
 }

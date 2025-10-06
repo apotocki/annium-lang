@@ -440,6 +440,16 @@ struct push_local_variable
     }
 };
 
+struct push_special_value
+{
+    enum class kind_type : uint8_t
+    {
+        stack_size
+    };
+
+    kind_type kind;
+};
+
 struct set_local_variable
 {
 #ifdef SONIA_LANG_DEBUG
@@ -537,7 +547,7 @@ struct loop_breaker {};
 
 using expression = variant<
     empty_t, // no op
-    push_value, push_local_variable, push_by_offset, truncate_values,
+    push_value, push_local_variable, push_by_offset, push_special_value, truncate_values,
     set_local_variable, set_variable, set_by_offset, invoke_function, return_statement, yield_statement, loop_breaker, loop_continuer,
     expression_span,
     conditional_t, switch_t,

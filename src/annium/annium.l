@@ -126,11 +126,14 @@ LET						 "let"
 VAR						 "var"
 ENUM					 "enum"
 STRUCT					 "struct"
+REQUIRES                 "requires"
+PROBE                    "probe"
 USING					 "using"
 EXTENDS					 "extends"
 EXTERN                   "extern"
 INCLUDE					 "include"
 INLINE					 "inline"
+VIABLE					 "viable"
 NEW						 "new"
 
 CONTINUE                 "continue"
@@ -315,6 +318,9 @@ HASHTAG					"#"
 	{VAR} { return (annium_lang::parser::token::VAR); }
 	{ENUM} { return (annium_lang::parser::token::ENUM); }
 	{STRUCT} { return (annium_lang::parser::token::STRUCT); }
+	{REQUIRES} { return (annium_lang::parser::token::REQUIRES); }
+	{PROBE} { variant_emplace(location); return (annium_lang::parser::token::PROBE); }
+	{VIABLE} { return (annium_lang::parser::token::VIABLE); }
 	{USING} { return (annium_lang::parser::token::USING); }
 	{EXTENDS} { return (annium_lang::parser::token::EXTENDS); }
 	{EXTERN} { return (annium_lang::parser::token::EXTERN); }

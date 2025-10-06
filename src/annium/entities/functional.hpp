@@ -236,6 +236,7 @@ public:
     entity_signature signature;
     functional_binding_set bindings;
     resource_location call_location;
+
     int weight{ 0 };
 
     inline functional_match_descriptor() = default;
@@ -248,11 +249,17 @@ public:
 
     virtual ~functional_match_descriptor() = default;
 
-    void emplace_back(intptr_t idx, syntax_expression_result result, resource_location loc = {})
+    inline void emplace_back(intptr_t idx, syntax_expression_result result, resource_location loc = {})
     {
         matches.emplace_back(idx, std::move(result), std::move(loc));
     }
 
+    inline void append_arg(syntax_expression_result arg_er, resource_location loc = {})
+    {
+        intptr_t argindex = signature.fields().size();
+        signature.emplace_back(arg_er.value_or_type, arg_er.is_const_result);
+        emplace_back(argindex, std::move(arg_er), std::move(loc));
+    }
     //semantic::expression_span merge_void_spans(semantic::expression_list_t&) noexcept;
 };
 

@@ -32,7 +32,7 @@ std::expected<syntax_expression_result, error_storage> struct_fn_pattern::apply(
     md.signature.result.emplace(e.get(builtin_eid::typename_));
     indirect_signatured_entity smpl{ md.signature };
 
-    entity const& struct_end = e.eregistry_find_or_create(smpl, [this, &ctx, &md]() {
+    entity const& struct_ent = e.eregistry_find_or_create(smpl, [this, &ctx, &md]() {
         environment& e = ctx.env();
         functional& fnl = e.fregistry_resolve(md.signature.name);
         qname struct_ns = fnl.name() / e.new_identifier();
@@ -47,7 +47,7 @@ std::expected<syntax_expression_result, error_storage> struct_fn_pattern::apply(
     });
 
     return syntax_expression_result{
-        .value_or_type = struct_end.id,
+        .value_or_type = struct_ent.id,
         .is_const_result = true
     };
 }

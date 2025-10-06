@@ -606,8 +606,25 @@ template <typename ExprT> using parameter_list = std::vector<parameter<ExprT>>;
 
 enum class fn_kind : int8_t
 {
-    DEFAULT,
-    INLINE
+    DEFAULT = 0,
+    INLINE = 1,
+    VIABLE = 2
+};
+
+inline fn_kind operator|(fn_kind l, fn_kind r) noexcept
+{
+    return static_cast<fn_kind>(static_cast<int8_t>(l) | static_cast<int8_t>(r));
+}
+
+inline bool has(fn_kind value, fn_kind flag) noexcept
+{
+    return (static_cast<int8_t>(value) & static_cast<int8_t>(flag)) != 0;
+}
+
+struct viable_clause
+{
+    resource_location location;
+    optional<statement_span> body;
 };
 
 template <typename ExprT>
@@ -616,6 +633,7 @@ struct fn_pure
     variant<qname, qname_view> nameval = {};
     resource_location location;
     parameter_list<ExprT> parameters;
+    optional<ExprT> requirement;
     variant<nullptr_t, ExprT, pattern<ExprT>> result; // undefined or type expression or pattern
 
     fn_kind kind = fn_kind::DEFAULT;
@@ -649,6 +667,12 @@ struct stack_value_reference
 
 using reference_expression_t = variant<name_reference, qname_reference>;
 
+struct probe_expression
+{
+    resource_location location; // of the 'probe' keyword
+    statement_span body;
+};
+
 using syntax_expression_t = make_recursive_variant<
     // literals
     annotated_nil, annotated_bool, annotated_integer, annotated_decimal, annotated_string, annotated_identifier,
@@ -675,8 +699,11 @@ using syntax_expression_t = make_recursive_variant<
     binary_expression<recursive_variant_>, // like left + right
     not_empty_expression<recursive_variant_>, // like value?
 
+    // special statements
+    probe_expression,
+
     // auxiliary
-    indirect_value, 
+    indirect_value,
     
     //assign_expression<>, logic_and_expression<>, logic_or_expression<>, concat_expression<>,
     //expression_vector<recursive_variant_>,

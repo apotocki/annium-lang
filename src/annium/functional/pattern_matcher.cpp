@@ -161,6 +161,9 @@ error_storage pattern_matcher::do_match(pattern_t::signature_descriptor const& s
         }
         if (err) return err;
     }
+    if (!smplfields.empty()) {
+        return make_error<basic_general_error>(type.location, "Not all fields in signature are matched"sv, smplfields.front().name(), get_start_location(pattern));
+    }
 #if 0
     // Then match each field specified in the pattern
     for (const auto& field : sd.fields) {

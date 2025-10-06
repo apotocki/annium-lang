@@ -49,7 +49,7 @@ base_expression_visitor::result_type base_expression_visitor::apply_cast(entity 
 
     resource_location expr_location = get_start_location(e);
     
-    pure_call_t cast_call{ expected_result.location | expr_location };
+    pure_call_t cast_call{ expected_result.location || expr_location };
     cast_call.emplace_back(annotated_entity_identifier{ ent.id, expr_location });
 
     auto res = ctx.find_and_apply(builtin_qnid::implicit_cast, cast_call, expressions, expected_result_t {
@@ -107,7 +107,7 @@ base_expression_visitor::result_type base_expression_visitor::apply_cast(syntax_
         // ignore casting error details
         //return std::unexpected(make_error<cast_error>(expected_result.location, er.type(), expected_result.type)); // , e));
         return std::unexpected(append_cause(
-            make_error<cast_error>(expected_result.location | expr_location, er.type(), expected_result.type), // , e)),
+            make_error<cast_error>(expected_result.location || expr_location, er.type(), expected_result.type), // , e)),
             std::move(res.error())
         ));
     }
@@ -596,6 +596,11 @@ base_expression_visitor::result_type base_expression_visitor::operator()(qname_r
     }
 }
 
+base_expression_visitor::result_type base_expression_visitor::operator()(probe_expression const& pe) const
+{
+    THROW_NOT_IMPLEMENTED_ERROR("base_expression_visitor probe_expression");
+}
+
 base_expression_visitor::result_type base_expression_visitor::operator()(member_expression_t const& me) const
 {
     pure_call_t get_call{ me.start() };
@@ -684,6 +689,8 @@ base_expression_visitor::result_type base_expression_visitor::operator()(functio
         }
         return std::unexpected(make_error<basic_general_error>(get_start_location(proc.fn_object), "functional object is expected"sv, ftor_expr_res.value()));
     }
+
+    auto fn_ent_id2 = apply_visitor(vis, proc.fn_object);
 
     entity const& ftor_type_ent = get_entity(env(), ftor_expr_res.type());
     entity_signature const* fn_ent_sig = ftor_type_ent.signature();

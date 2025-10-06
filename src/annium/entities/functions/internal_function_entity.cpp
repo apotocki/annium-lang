@@ -9,10 +9,10 @@
 
 namespace annium {
 
-internal_function_entity::internal_function_entity(qname&& name, entity_signature&& sig, statement_span sts)
+internal_function_entity::internal_function_entity(qname&& name, entity_signature&& sig)
     : function_entity{ std::move(name), std::move(sig) }
-    , sts_{ std::move(sts) }
     , captured_var_count_{ 0 }
+    , is_provision_{ 1 } // by default all internal functions are provisions
     , is_inline_{ 0 }
     , is_built_{ 0 }
     , arg_count_{ 0 }

@@ -395,7 +395,7 @@ numeric_literal_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic:
     auto& nmd = static_cast<numeric_literal_implicit_cast_match_descriptor&>(md);
     auto& [_, src, loc] = md.matches.front();
     
-    environment& e = ctx.env();
+    environment& env = ctx.env();
     entity_identifier target_type_eid = nmd.signature.result->entity_id();
     builtin_eid target_type = static_cast<builtin_eid>(target_type_eid.value);
     bool is_constexpr_result = nmd.signature.result->is_const();
@@ -408,7 +408,7 @@ numeric_literal_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic:
             if (is_constexpr_result) {
                 src.value_or_type = nmd.arg->id;
             } else {
-                e.push_back_expression(el, src.expressions, semantic::push_value{ smart_blob{ nmd.arg->value() } });
+                env.push_back_expression(el, src.expressions, semantic::push_value{ smart_blob{ nmd.arg->value() } });
                 src.value_or_type = target_type_eid;
                 src.is_const_result = false;
             }
@@ -455,29 +455,49 @@ numeric_literal_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic:
         }
 
         if (is_constexpr_result) {
-            src.value_or_type = e.make_generic_entity(std::move(result_blob), target_type_eid).id;
+            src.value_or_type = env.make_generic_entity(std::move(result_blob), target_type_eid).id;
         } else {
-            e.push_back_expression(el, src.expressions, semantic::push_value{ std::move(result_blob) });
+            env.push_back_expression(el, src.expressions, semantic::push_value{ std::move(result_blob) });
             src.value_or_type = target_type_eid;
             src.is_const_result = false;
         }
-        return src;
-    } else {
-        THROW_NOT_IMPLEMENTED_ERROR("numeric_literal_implicit_cast_pattern: runtime conversion is not implemented"sv);
-        // Runtime case - conversion is already validated as safe in try_match
-        // For runtime values, we just need to ensure the result type is correctly set
-        // The actual conversion will be handled by the runtime system
-        if (is_constexpr_result) {
-            // This shouldn't happen - runtime values can't produce constexpr results
-            return std::unexpected(make_error<basic_general_error>(md.call_location, "runtime value cannot produce constexpr result"sv));
-        }
-        // Runtime conversion - the expressions already contain the source value
-        // We just need to ensure type propagation
-        // The runtime system will handle the actual conversion
+        return std::move(src);
     }
-    src.is_const_result = is_constexpr_result;
-    if (!is_constexpr_result) {
-        src.value_or_type = target_type_eid;
+     
+    if (is_constexpr_result) {
+        // This shouldn't happen - runtime values can't produce constexpr results
+        return std::unexpected(make_error<basic_general_error>(md.call_location, "runtime value cannot produce constexpr result"sv));
+    }
+
+    // Runtime case - conversion is already validated as safe in try_match
+    BOOST_ASSERT(!src.is_const_result);
+    builtin_eid source_type = static_cast<builtin_eid>(src.type().value);
+    if (source_type == target_type) {
+        // No conversion needed
+        return std::move(src);
+    }
+    src.value_or_type = target_type_eid;
+    switch(target_type) {
+    case builtin_eid::decimal:
+        switch (source_type) {
+        case builtin_eid::boolean:
+        case builtin_eid::integer:
+        case builtin_eid::u8:
+        case builtin_eid::i8:
+        case builtin_eid::u16:
+        case builtin_eid::i16:
+        case builtin_eid::u32:
+        case builtin_eid::i32:
+        case builtin_eid::u64:
+        case builtin_eid::i64:
+            env.push_back_expression(el, src.expressions, semantic::invoke_function(env.get(builtin_eid::int2dec)));
+            break;
+        default:
+            THROW_NOT_IMPLEMENTED_ERROR("numeric_literal_implicit_cast_pattern: runtime conversion is not implemented"sv);
+        }
+        break;
+    default:
+        THROW_NOT_IMPLEMENTED_ERROR("numeric_literal_implicit_cast_pattern: runtime conversion is not implemented"sv);
     }
     return std::move(src);
 }

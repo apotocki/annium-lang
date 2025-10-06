@@ -154,7 +154,7 @@ error_storage prepared_call::prepare()
             ptuple_object_var = &new_temporary(e, tuple_name, ser.type(), reserve_expression);
             arguments_auxiliary_expressions = expressions.concat(arguments_auxiliary_expressions, ser.expressions);
             e.push_back_expression(expressions, arguments_auxiliary_expressions, semantic::set_local_variable{ *ptuple_object_var });
-            e.push_back_expression(expressions, arguments_auxiliary_expressions, semantic::truncate_values{ 1, false });
+            e.push_back_expression(expressions, arguments_auxiliary_expressions, semantic::truncate_values{ 1, 0 });
         }
         size_t argpos = 0;
         for (field_descriptor const& fd : signature->fields()) {

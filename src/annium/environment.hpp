@@ -36,7 +36,7 @@ namespace vm { class context; }
 
 class external_fn_pattern;
 
-#define ANNIUM_BUILTIN_ID_SEQ                \
+#define ANNIUM_BUILTIN_ID_SEQ              \
     ((location, "location"sv))             \
     ((call_location, "__call_location"sv)) \
     ((type, "__type"sv))                   \
@@ -45,6 +45,7 @@ class external_fn_pattern;
     ((size, "size"sv))                     \
     ((which, "which"sv))                   \
     ((of, "of"sv))                         \
+    ((from_iterator, "from_iterator"sv))   \
     ((property, "property"sv))             \
     ((object, "object"sv))                 \
     ((mask, "mask"sv))                     \
@@ -113,7 +114,10 @@ class external_fn_pattern;
     ((string_concat, "concat"sv))          \
     ((is_const, "is_const"sv))             \
     ((apply, "apply"sv))                   \
-    ((empty, "empty"sv))
+    ((empty, "empty"sv))                   \
+    ((is_struct, "is_struct"sv))           \
+    ((tuple_of, "tuple_of"sv))
+
 //((enum_, "enum"sv))                  
 
 #define ANNIUM_PRINT_TYPE_ENUM(r, data, i, elem) BOOST_PP_TUPLE_ELEM(2, 0, elem),
@@ -168,8 +172,10 @@ enum class builtin_eid : entity_identifier::value_type
     assert, // builtin ::assert(condition, message)-> void 
     error, // builtin ::__error(message)-> void
     to_string, // builtin ::to_string(value)-> string
+    int2dec, // builtin ::int2dec(value: integer)-> decimal
     negate, // builtin ::negate(value)-> valueT
     concat, // builtin ::concat(string ...)-> string
+    isubtract,
     eof_builtin_eid_value
 };
 

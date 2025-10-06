@@ -336,7 +336,7 @@ std::expected<functional::match, error_storage> functional::find(
     semantic::expression_list_t& ael,
     expected_result_t const& expected_result) const
 {
-    numetron::decimal major_weight = 0;
+    numetron::decimal major_weight = (std::numeric_limits<int32_t>::min)();
     int minor_weight = 0;
     using alternative_t = std::pair<pattern const*, functional_match_descriptor_ptr>;
     small_vector<alternative_t, 2> alternatives;

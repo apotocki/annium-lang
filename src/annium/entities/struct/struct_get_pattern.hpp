@@ -3,11 +3,11 @@
 
 #pragma once
 
-#include "annium/entities/tuple/tuple_get_pattern.hpp"
+#include "annium/entities/functional.hpp"
 
 namespace annium {
 
-class struct_get_pattern : public tuple_get_pattern
+class struct_get_pattern : public functional::pattern
 {
 public:
     struct_get_pattern() = default;
@@ -16,7 +16,7 @@ public:
     
     std::expected<syntax_expression_result, error_storage> apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const override;
 
-    std::ostream& print(environment const&, std::ostream& s) const override { return s << "get(self: @structure, property: integer|__identifier)~>auto"; }
+    std::ostream& print(environment const&, std::ostream& s) const override { return s << "get(self: @structure, property: integer|__identifier)->auto"; }
 };
 
 }

@@ -16,6 +16,7 @@ void annium_print_string(vm::context&);
 void annium_concat(vm::context&);
 void annium_arrayify(vm::context&);
 void annium_unfold(vm::context&);
+void annium_array_size(vm::context&);
 void annium_array_tail(vm::context&);
 void annium_array_at(vm::context&);
 void annium_array_set_at(vm::context&);
@@ -29,6 +30,7 @@ void annium_concat_string(vm::context&);
 void annium_operator_plus_integer(vm::context&);
 void annium_operator_plus_decimal(vm::context&);
 
+void annium_operator_minus_integer(vm::context&);
 
 void annium_str2dec(vm::context&);
 void annium_int2dec(vm::context&);

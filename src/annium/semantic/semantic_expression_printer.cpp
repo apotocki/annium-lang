@@ -41,14 +41,67 @@ void expression_printer_visitor::operator()(expression_list_t const& evec) const
 
 void expression_printer_visitor::operator()(conditional_t const& c) const
 {
-    do_indent();
     if (c.true_branch) {
+        do_indent();
         ss << "if true\n"sv;
         this->operator()(c.true_branch);
     }
     if (c.false_branch) {
+        do_indent();
         ss << "if false\n"sv;
         this->operator()(c.false_branch);
+    }
+}
+
+void expression_printer_visitor::operator()(loop_scope_t const& ls) const
+{
+    do_indent();
+    ss << "loop\n"sv;
+    if (ls.branch) {
+        ++indent_cnt;
+        do_indent();
+        ss << "loop branch\n"sv;
+        this->operator()(ls.branch);
+        do_indent();
+        ss << "endloop branch\n"sv;
+        --indent_cnt;
+    }
+    if (ls.continue_branch) {
+        ++indent_cnt;
+        do_indent();
+        ss << "loop continue branch\n"sv;
+        this->operator()(ls.continue_branch);
+        do_indent();
+        ss << "endloop continue branch\n"sv;
+        --indent_cnt;
+    }
+    do_indent();
+    ss << "endloop\n"sv;
+}
+
+void expression_printer_visitor::operator()(loop_continuer const&) const
+{
+    do_indent();
+    ss << "continue\n"sv;
+}
+
+void expression_printer_visitor::operator()(loop_breaker const&) const
+{
+    do_indent();
+    ss << "break\n"sv;
+}
+
+void expression_printer_visitor::operator()(push_special_value const& psv) const
+{
+    do_indent();
+    ss << "push special_value: "sv;
+    switch (psv.kind) {
+    case push_special_value::kind_type::stack_size:
+        ss << "stack_size\n"sv;
+        break;
+    default:
+        ss << "unknown\n"sv;
+        break;
     }
 }
 
@@ -59,6 +112,12 @@ void expression_printer_visitor::operator()(push_value const& v) const
     value_printer_visitor vis{ e_, ss };
     apply_visitor(vis, v.value);
     ss << '\n';
+}
+
+void expression_printer_visitor::operator()(push_by_offset const& v) const
+{
+    do_indent();
+    ss << "push OFFSET("sv << v.offset << ")\n"sv;
 }
 
 void expression_printer_visitor::operator()(push_local_variable const& lv) const
@@ -98,7 +157,7 @@ void expression_printer_visitor::operator()(return_statement const&) const
 void expression_printer_visitor::operator()(truncate_values const& tv) const
 {
     do_indent();
-    ss << "truncate count: "sv << tv.count << ", keep back: "sv << tv.keep_back;
+    ss << "truncate count: "sv << tv.count << ", keep back: "sv << tv.keep_back << '\n';
 }
 
 void value_printer_visitor::operator()(null_t const&) const

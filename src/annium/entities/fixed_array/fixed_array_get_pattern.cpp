@@ -92,9 +92,11 @@ std::expected<syntax_expression_result, error_storage> fixed_array_get_pattern::
     field_descriptor const* of_fd = sig.find_field(env.get(builtin_id::of));
     BOOST_ASSERT(of_fd);
     field_descriptor const* size_fd = sig.find_field(env.get(builtin_id::size));
-    BOOST_ASSERT(size_fd);
-    generic_literal_entity const& sz_ent = static_cast<generic_literal_entity const&>(get_entity(env, size_fd->entity_id()));
-    size_t array_size = sz_ent.value().as<size_t>();
+    size_t array_size = (std::numeric_limits<size_t>::max)();
+    if (size_fd) {
+        generic_literal_entity const& sz_ent = static_cast<generic_literal_entity const&>(get_entity(env, size_fd->entity_id()));
+        array_size = sz_ent.value().as<size_t>();
+    }
 
     optional<size_t> index;
     if (proper.is_const_result) {

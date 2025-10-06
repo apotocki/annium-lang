@@ -41,6 +41,10 @@ public:
 
 protected:
     std::pair<syntax_expression_result, size_t> apply_arguments(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const;
+    
+    // builds entity that represents the function
+    virtual shared_ptr<internal_function_entity> build(fn_compiler_context&, functional_match_descriptor&, entity_signature) const;
+    virtual void build_scope(environment&, functional_match_descriptor&, internal_function_entity& /* out */) const;
 };
 
 }

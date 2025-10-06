@@ -149,6 +149,21 @@ std::expected<syntax_expression_result, error_storage> tuple_get_pattern::apply(
             if (!field) {
                 return std::unexpected(make_error<basic_general_error>(tmd.call_location, "tuple index out of range"sv, property_entity.id));
             }
+            if (field->is_const()) {
+                if (field->name()) {
+                    // If the field is named, return as a named tuple type
+                    return syntax_expression_result{
+                        .value_or_type = e.make_empty_entity(make_named_tuple_type(*field)).id,
+                        .is_const_result = true
+                    };
+                } else {
+                    // If the field is positional and const, return its value directly
+                    return syntax_expression_result{
+                        .value_or_type = field->entity_id(),
+                        .is_const_result = true
+                    };
+                }
+            }
             result_type = field->name() ? make_named_tuple_type(*field) : field->entity_id();
         } else if (auto id_lit = dynamic_cast<const identifier_entity*>(&property_entity)) {
             // Use find_fields to get all fields with this name
@@ -160,6 +175,13 @@ std::expected<syntax_expression_result, error_storage> tuple_get_pattern::apply(
             if (auto second = frng.first; ++second == frng.second) {
                 // Only one field with this name
                 field = &tmd.arg_sig.field(frng.first->second);
+                if (field->is_const()) {
+                    // If the field is const, return as a constant result
+                    return syntax_expression_result{
+                        .value_or_type = field->entity_id(),
+                        .is_const_result = true
+                    };
+                }
                 result_type = field->entity_id();
             } else {
                 // to do: the case when frng fields are all constexpr
@@ -172,13 +194,7 @@ std::expected<syntax_expression_result, error_storage> tuple_get_pattern::apply(
             return std::unexpected(make_error<type_mismatch_error>(tmd.call_location, proper.value(), "an integer or identifier"sv));
         }
 
-        // If the field is const, return as a constant result
-        if (field->is_const()) {
-            return syntax_expression_result{
-                .value_or_type = field->name() ? e.make_empty_entity(result_type).id : result_type,
-                .is_const_result = true
-            };
-        }
+        BOOST_ASSERT(!field->is_const());
 
         // we will return slfer as a result, but with modified type
         slfer.value_or_type = result_type;

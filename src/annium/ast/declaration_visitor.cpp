@@ -717,7 +717,13 @@ error_storage declaration_visitor::operator()(let_statement const& ld) const
 
     auto push_temporaries = [&el, this](auto& temporaries) {
         for (auto& [varname, var, sp] : temporaries) {
-            ctx.append_expressions(el, sp);
+            if (!sp) {
+                semantic::expression_span reserve_expression;
+                env().push_back_expression(el, reserve_expression, semantic::push_value{ smart_blob{} });
+                ctx.append_expressions(el, reserve_expression);
+            } else {
+                ctx.append_expressions(el, sp);
+            }
             ctx.push_scope_variable(
                 annotated_identifier{ varname },
                 var);

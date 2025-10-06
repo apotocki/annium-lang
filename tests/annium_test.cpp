@@ -89,7 +89,7 @@ int AllocHook(int allocType, void* userData, size_t size, int
 
 void annium_suite_test()
 {
-
+    try {
 #ifdef BOOST_WINDOWS
     system("cls");
 #endif
@@ -140,6 +140,11 @@ void annium_suite_test()
         lang.load(srcpath, args);
 
         BOOST_CHECK_EQUAL(expected_output, output.str());
+    }
+
+    } catch (std::exception const& ex) {
+        std::cout << "Exception: \n" << ex.what() << "\n";
+        BOOST_CHECK(false);
     }
 }
 

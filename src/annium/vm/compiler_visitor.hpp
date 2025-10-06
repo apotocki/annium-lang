@@ -45,6 +45,17 @@ public:
         apply_visitor(vis, pv.value);
     }
 
+    inline void operator()(semantic::push_special_value const& c) const
+    {
+        switch (c.kind) {
+        case semantic::push_special_value::kind_type::stack_size:
+            fnbuilder_.append_push_stsz();
+            break;
+        default:
+            BOOST_ASSERT(!"unknown special value type");
+        }
+    }
+
     void operator()(semantic::push_local_variable const& pv) const
     {
         BOOST_ASSERT(fn_context_);
@@ -135,6 +146,7 @@ public:
         auto scope_end_pos = fnbuilder_.make_label();
 
         // optimization: remove redundant breaks
+        /*
         auto bit = breaks.rbegin(), ebit = breaks.rend();
         while (bit != ebit) {
             asm_builder_t::instruction_entry* pbi = *bit;
@@ -143,10 +155,12 @@ public:
                 scope_end_pos = fnbuilder_.current_entry(); // just update actual value
                 breaks.erase(std::next(bit).base());
                 bit = breaks.rbegin();
+                ebit = breaks.rend();
             } else {
                 ++bit;
             }
         }
+        */
 
         for (asm_builder_t::instruction_entry* pbi : breaks) {
             pbi->operation = asm_builder_t::op_t::jmp;

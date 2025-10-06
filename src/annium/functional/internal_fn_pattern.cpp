@@ -22,24 +22,45 @@ error_storage internal_fn_pattern::init(fn_compiler_context& ctx, fn_decl_t cons
     // if (auto err = init(ctx, static_cast<fn_pure_t const&>(fnd))) return err;
 }
 
-shared_ptr<entity> internal_fn_pattern::build(fn_compiler_context& ctx, functional_match_descriptor& md, entity_signature&& signature) const
+std::expected<functional_match_descriptor_ptr, error_storage> internal_fn_pattern::try_match(fn_compiler_context& caller_ctx, prepared_call const& call, expected_result_t const& exp) const
 {
-    environment& e = ctx.env();
+    auto res = basic_fn_pattern::try_match(caller_ctx, call, exp);
+    if (!res || !has(kind_, fn_kind::VIABLE)) return res;
 
-    qname_view fnqn = e.fregistry_resolve(signature.name).name();
-    qname fn_ns = fnqn / e.new_identifier();
+    // check if vaible
+    functional_match_descriptor& md = **res;
 
-    auto pife = make_shared<internal_function_entity>(
-        std::move(fn_ns),
-        std::move(signature),
-        /*std::move(md.bindings),*/ body_);
+    indirect_signatured_entity smpl{ md.signature };
 
-    pife->location = location();
-    build_scope(e, md, *pife);
+    environment& env = caller_ctx.env();
 
-    pife->set_inline(kind_ == fn_kind::INLINE);
+    internal_function_entity& fne = static_cast<internal_function_entity&>(env.eregistry_find_or_create(smpl, [this, &caller_ctx, &md]() {
+        return build(caller_ctx, md, md.signature);
+    }));
 
-    return pife;
+    sonia::lang::compiler_task_tracer::task_guard tg = caller_ctx.try_lock_task(entity_task_id{ fne });
+    if (!tg) return std::unexpected(
+        make_error<circular_dependency_error>(make_error<basic_general_error>(location_, "function build failed"sv, fne.id))
+    );
+    if (fne.is_built()) return res; // already checked for vailability
+    if (fne.build_errors || (fne.build_errors = fne.build(env))) {
+        fne.set_provision(true); // this definition will be used as a provision only
+        return std::unexpected(append_cause(
+            make_error<basic_general_error>(location_, "function build failed"sv, fne.id),
+            std::move(fne.build_errors)
+        ));
+    }
+
+    return res;
+}
+
+shared_ptr<internal_function_entity> internal_fn_pattern::build(fn_compiler_context& ctx, functional_match_descriptor& md, entity_signature signature) const
+{
+    auto res = basic_fn_pattern::build(ctx, md, std::move(signature));
+    res->set_body(body_);
+    res->set_inline(has(kind_, fn_kind::INLINE));
+    res->set_provision(false);
+    return res;
 }
 
 void internal_fn_pattern::build_scope(environment& e, functional_match_descriptor& md, internal_function_entity& fent) const
@@ -60,89 +81,7 @@ void internal_fn_pattern::build_scope(environment& e, functional_match_descripto
         }
         // to do: for multivalued names bound constexpr vector of captures
     }
-
-    // bind variables (rt arguments)
-    for (parameter_descriptor const& pd : parameters_) {
-        functional_binding::value_type const* bsp = md.bindings.lookup(pd.inames.front().value);
-        BOOST_ASSERT(bsp);
-        
-        if (!has(pd.modifier, parameter_constraint_modifier_t::ellipsis)) {
-            if (local_variable const* plv = get<local_variable>(bsp); plv) {
-                fent.push_argument(plv->varid);
-            } // else arg is constant
-            continue;
-        }
-
-        entity_identifier const* peid = get<entity_identifier>(bsp);
-        if (!peid) {
-            THROW_INTERNAL_ERROR("internal_fn_pattern::build_scope: expected entity_identifier in functional_binding::value_type for ellipsis");
-        }
-
-        entity const& ellipsis_unit = get_entity(e, *peid);
-        entity const& ellipsis_unit_type = get_entity(e, ellipsis_unit.get_type());
-        entity_signature const* pellipsis_sig = ellipsis_unit_type.signature();
-        BOOST_ASSERT(pellipsis_sig && pellipsis_sig->name == e.get(builtin_qnid::tuple));
-        for (field_descriptor const& fd : pellipsis_sig->fields()) {
-            BOOST_ASSERT(fd.is_const());
-            entity const& fd_ent = get_entity(e, fd.entity_id());
-            if (qname_entity const* pqent = dynamic_cast<qname_entity const*>(&fd_ent); pqent) {
-                qname const& qn = pqent->value();
-                BOOST_ASSERT(qn.size() == 1);
-                identifier varname = qn.parts().front();
-                functional_binding::value_type const* bvar = md.bindings.lookup(varname);
-                BOOST_ASSERT(bvar);
-                local_variable const* plv = get<local_variable>(bvar);
-                BOOST_ASSERT(plv);
-                fent.push_argument(plv->varid);
-            }
-        }
-    }
-
-    // bind constants
-    md.bindings.for_each([&e, &fent](identifier name, resource_location const& loc, functional_binding::value_type& value) {
-        if (entity_identifier const* peid = get<entity_identifier>(&value); peid) {
-            qname infn_name = fent.name() / name;
-            functional& fnl = e.fregistry_resolve(infn_name);
-            fnl.set_default_entity(annotated_entity_identifier{ *peid, loc });
-        }
-    });
-
-    //for (auto& [argindex, mr] : md.matches) {
-    //    parameter_descriptor const& pd = parameters_[argindex];
-    //    functional_binding::value_type const* bsp = md.bindings.lookup(pd.inames.front().value);
-    //    BOOST_ASSERT(bsp);
-    //    if (local_variable const* plv = get<local_variable>(bsp); plv) {
-    //        fent.push_argument(plv->varid);
-    //    } else {
-    //        THROW_INTERNAL_ERROR("internal_fn_pattern::build_scope: expected local_variable in functional_binding::value_type");
-    //    }
-    //}
-    
-#if 0
-    // bind consts
-    md.bindings.for_each([&e, &fent](identifier name, resource_location const& loc, functional_binding::value_type & value) {
-        entity_identifier eid = apply_visitor(make_functional_visitor<entity_identifier>([&e](auto const& e) {
-            if constexpr (std::is_same_v<std::decay_t<decltype(e)>, entity_identifier>) {
-                return e;
-            } else if constexpr (std::is_same_v<std::decay_t<decltype(e)>, entity_ptr>) {
-                if (e->id) return e->id;
-                //if (e->get_type() == e.get(builtin_eid::metaobject)) {
-                //    return e.eregistry_find_or_create(*e, [&e]() { return std::move(e); }).id();
-                //}
-                return e.eregistry_find_or_create(*e, [&e]() { return std::move(e); }).id;
-            } else { // else skip variables
-                return entity_identifier{};
-            }
-        }), value);
-
-        if (eid) {
-            qname infn_name = fent.name() / name;
-            functional& fnl = e.fregistry_resolve(infn_name);
-            fnl.set_default_entity(annotated_entity_identifier{ eid, loc });
-        }
-    });
-#endif
-    fent.bindings = std::move(md.bindings);
+    basic_fn_pattern::build_scope(e, md, fent);
 }
 
 std::expected<syntax_expression_result, error_storage> internal_fn_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
@@ -152,17 +91,14 @@ std::expected<syntax_expression_result, error_storage> internal_fn_pattern::appl
 
     indirect_signatured_entity smpl{ md.signature };
 
-    entity& e = env.eregistry_find_or_create(smpl, [this, &ctx, &md]() {
+    internal_function_entity& fne = static_cast<internal_function_entity&>(env.eregistry_find_or_create(smpl, [this, &ctx, &md]() {
         return build(ctx, md, std::move(md.signature));
-    });
-
-    BOOST_ASSERT(dynamic_cast<internal_function_entity*>(&e));
-    internal_function_entity& fne = static_cast<internal_function_entity&>(e);
+    }));
 
     if (!fne.result) { // we need building to resolve result type
-        sonia::lang::compiler_task_tracer::task_guard tg = ctx.try_lock_task(entity_task_id{ e });
+        sonia::lang::compiler_task_tracer::task_guard tg = ctx.try_lock_task(entity_task_id{ fne });
         if (!tg) return std::unexpected(
-            make_error<circular_dependency_error>(make_error<basic_general_error>(location_, "resolving function result type"sv, e.id))
+            make_error<circular_dependency_error>(make_error<basic_general_error>(location_, "resolving function result type"sv, fne.id))
         );
         if (!fne.result) {
             if (auto err = fne.build(env)) {
@@ -177,7 +113,7 @@ std::expected<syntax_expression_result, error_storage> internal_fn_pattern::appl
     result.is_const_result = fne.result.is_const();
 
     if (mut_arg_cnt || !fne.is_const_eval(env)) {
-        env.push_back_expression(el, result.expressions, semantic::invoke_function(e.id));
+        env.push_back_expression(el, result.expressions, semantic::invoke_function(fne.id));
         return result;
     }
 

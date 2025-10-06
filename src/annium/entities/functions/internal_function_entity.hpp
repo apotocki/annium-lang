@@ -34,8 +34,11 @@ public:
     semantic::expression_span body;
     functional_binding_set bindings;
     functional_binding_set captured_bindings;
+    error_storage build_errors;
 
-    internal_function_entity(qname&& name, entity_signature&& sig, statement_span bd);
+    internal_function_entity(qname&& name, entity_signature&& sig);
+
+    void set_body(statement_span bd) noexcept { sts_ = std::move(bd); }
 
     void push_argument(variable_identifier);
     void push_variable(variable_identifier varid, intptr_t index);
@@ -59,9 +62,10 @@ public:
 #endif // ANNIUM_NO_INLINE_FUNCTIONS
 
     inline void set_inline(bool val = true) noexcept { is_inline_ = val ? 1 : 0; }
+    inline void set_provision(bool val = true) noexcept { is_provision_ = val ? 1 : 0; }
 
+    [[nodiscard]] inline bool is_provision() const noexcept { return !!is_provision_; }
     [[nodiscard]] inline bool is_built() const noexcept { return !!is_built_; }
-
     [[nodiscard]] inline bool is_empty() const noexcept { return !!is_empty_; }
 
     inline std::ostream& print_to(std::ostream& os, environment const& e) const override
@@ -85,6 +89,7 @@ private:
     statement_span sts_;
     uint64_t arg_count_ : 16; // number of runtime arguments
     uint64_t captured_var_count_ : 16; // number of runtime captured variables
+    uint64_t is_provision_ : 1;
     uint64_t is_built_ : 1;
     uint64_t is_inline_ : 1;
     uint64_t is_empty_ : 1;

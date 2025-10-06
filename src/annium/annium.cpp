@@ -134,10 +134,16 @@ inline fn equal($l: ~union(...), $r) => apply(to: $l, visitor: fn[$r]($value) =>
 inline fn equal($l, $r: ~union(...)) => apply(to: $r, visitor: fn[$l]($value) => $value == $l`);
 inline fn to_string(~union(...)) => apply(to: $0, visitor: fn($x) => to_string($x)`);
 
+inline viable fn implicit_cast(~ union(...)) ~> $T => apply(to: $0, visitor: fn($x)->$T => implicit_cast($x)`);
+
+// STRUCTS
+inline fn::get(self @is_struct, property: constexpr __identifier) => get(self: tuple_of(self), property: property);
+
 // ARRAYS
 typefn array(of: typename, size?: constexpr integer);
 inline fn empty(~array(of, size $size)) => $size == 0;
 inline fn size(~array(of, size $size)) => $size;
+inline fn size(~runtime array(of)) => __array_size($0);
 struct iterator(typename array(...)) => (index: integer = 0, array: $0);
 inline fn iterator(~array(...)) -> iterator(typeof($0)) => init(array: $0);
 inline fn has_next(~iterator(=array(...))) => $0.index != size($0.array);
@@ -147,6 +153,24 @@ inline fn next(~iterator(=array(of $of, ...))) -> $of {
     return $0.array[index];
 }
 
+// TRANSFORM ITERATOR
+struct transform_iterator(iterator: typename, functor: typename) =>
+    (iterator: iterator, functor: functor);
+struct transform_iterator(iterator: typename, functor: constexpr __qname) =>
+    (iterator: iterator, functor => functor);
+
+inline fn make_transform_iterator(from_iterator: ~ runtime $IT, functor: ~ runtime $FT) ->
+    transform_iterator(iterator: $IT, functor: $FT)
+    => init(iterator: from_iterator, functor: functor);
+
+inline fn make_transform_iterator(from_iterator: runtime, functor: constexpr) ->
+    transform_iterator(iterator: typeof(from_iterator), functor: functor)
+    => init(iterator: from_iterator);
+
+inline fn has_next(~transform_iterator(...)) => has_next($0.iterator);
+inline fn next(~transform_iterator(...)) => $0.functor(next($0.iterator));
+
+// AUXILIARY
 inline fn __bit_and(typename tuple($l...), typename tuple($r...)) => tuple($l..., $r...);
 
 inline fn foldl($f, $z) => $z;
@@ -175,7 +199,8 @@ void annium_impl::bootstrap()
     if (!decls.has_value()) throw exception(decls.error());
     environment_.push_ast({}, std::move(parser.statements()));
     
-    internal_function_entity dummy{ qname{}, entity_signature{}, *decls };
+    internal_function_entity dummy{ qname{}, entity_signature{} };
+    dummy.set_body(*decls);
     fn_compiler_context ctx{ environment_, dummy };
 
     declaration_visitor dvis{ ctx };
@@ -221,7 +246,8 @@ void annium_impl::compile(statement_span decls, span<string_view> args)
 {
     identifier main_id = environment_.new_identifier();
     entity_signature main_sig{};
-    internal_function_entity main_fn_ent{ qname{}, std::move(main_sig), std::move(decls) };
+    internal_function_entity main_fn_ent{ qname{}, std::move(main_sig) };
+    main_fn_ent.set_body(std::move(decls));
     //fn_compiler_context ctx{ environment_, qname{ main_id } };
     fn_compiler_context ctx{ environment_, main_fn_ent };
     size_t argindex = 0;
@@ -295,7 +321,7 @@ void annium_impl::compile(statement_span decls, span<string_view> args)
     std::vector<internal_function_entity*> fns;
     environment_.eregistry_traverse([this, &fns](entity& e) {
         //GLOBAL_LOG_INFO() << environment_.print(e);
-        if (auto* fe = dynamic_cast<internal_function_entity*>(&e); fe) {
+        if (auto* fe = dynamic_cast<internal_function_entity*>(&e); fe && !fe->is_provision()) {
             if (!fe->is_built()) {
                 if (auto err = fe->build(environment_)) {
                     throw exception("function '%1%' build error:\n%2%"_fmt % environment_.print(fe->id) % environment_.print(*err));
@@ -317,11 +343,14 @@ void annium_impl::compile(statement_span decls, span<string_view> args)
     //auto& bvm = environment_.bvm();
     //size_t main_address = bvm.get_ip();
     
+    std::ostringstream fn_code_str;
+    main_fn_ent.body.for_each([this, &fn_code_str](semantic::expression const& e) {
+        fn_code_str << environment_.print(e);
+    });
+    GLOBAL_LOG_INFO() << "expression:\n"sv << fn_code_str.str();
+
     vmcvis(main_fn_ent.body);
-    //for (semantic::expression const& e : main_fn_ent.body) {
-    //    //GLOBAL_LOG_INFO() << "expression:\n"sv << environment_.print(e);
-    //    apply_visitor(vmcvis, e);
-    //}
+
     if (!vmcvis.local_return_position) { // no explicit return
         fb.append_ret();
     }
