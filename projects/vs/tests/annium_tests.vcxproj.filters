@@ -428,7 +428,7 @@
     <None Include="..\..\..\tests\test-suite\tuples_test2.ann">
       <Filter>test-suite</Filter>
     </None>
-    <None Include="..\..\..\tests\test-suite\unions_test.ann">
+    <None Include="..\..\..\tests\test-suite\unions.ann">
       <Filter>test-suite</Filter>
     </None>
     <None Include="..\..\..\tests\test-suite\basic_print.ann">

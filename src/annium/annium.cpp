@@ -343,11 +343,11 @@ void annium_impl::compile(statement_span decls, span<string_view> args)
     //auto& bvm = environment_.bvm();
     //size_t main_address = bvm.get_ip();
     
-    std::ostringstream fn_code_str;
-    main_fn_ent.body.for_each([this, &fn_code_str](semantic::expression const& e) {
-        fn_code_str << environment_.print(e);
-    });
-    GLOBAL_LOG_INFO() << "expression:\n"sv << fn_code_str.str();
+    //std::ostringstream fn_code_str;
+    //main_fn_ent.body.for_each([this, &fn_code_str](semantic::expression const& e) {
+    //    fn_code_str << environment_.print(e);
+    //});
+    //GLOBAL_LOG_INFO() << "body expression:\n"sv << fn_code_str.str();
 
     vmcvis(main_fn_ent.body);
 
@@ -387,6 +387,12 @@ void annium_impl::do_compile(internal_function_entity const& fe)
         environment_.bvm().set_address_description(*fd.address, std::move(description));
         return; // already compiled
     }
+
+    //std::ostringstream fn_code_str;
+    //fe.body.for_each([this, &fn_code_str](semantic::expression const& e) {
+    //    fn_code_str << environment_.print(e);
+    //});
+    //GLOBAL_LOG_INFO() << "function expressions:\n"sv << fn_code_str.str();
 
     //size_t param_count = fe.parameter_count();
     asm_builder_t::function_builder fb{ vmasm_, fd };

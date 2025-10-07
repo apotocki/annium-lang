@@ -168,7 +168,7 @@
     <None Include="..\..\..\tests\test-suite\file5.ann" />
     <None Include="..\..\..\tests\test-suite\file6.ann" />
     <None Include="..\..\..\tests\test-suite\tuples_test2.ann" />
-    <None Include="..\..\..\tests\test-suite\unions_test.ann" />
+    <None Include="..\..\..\tests\test-suite\unions.ann" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

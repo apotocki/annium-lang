@@ -14,6 +14,8 @@
 
 #include "annium/errors/type_mismatch_error.hpp"
 
+#include "sonia/utility/scope_exit.hpp"
+
 namespace annium {
 
 std::ostream& struct_init_pattern::print(environment const&, std::ostream& s) const
@@ -40,6 +42,8 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_init_patter
         ));
     }
 
+    functional_binding_set const& scope_bindings = pstruct->context_bindings();
+
     auto call_session = call.new_session(ctx);
     functional_match_descriptor_ptr pmd = make_shared<functional_match_descriptor>(call);
 
@@ -61,6 +65,10 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_init_patter
                 ));
             }
             if (syntax_expression_t const* default_expr = get<syntax_expression_t>(&field.default_value)) {
+                if (!scope_bindings.empty()) {
+                    ctx.push_binding(scope_bindings);
+                }
+                SCOPE_EXIT([&ctx, &scope_bindings] { if (!scope_bindings.empty()) ctx.pop_binding(&scope_bindings); });
                 base_expression_visitor bev(ctx, call.expressions, argexp);
                 res = apply_visitor(bev, *default_expr);
                 if (!res) {
@@ -81,6 +89,13 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_init_patter
             pmd->signature.emplace_back(field.type, false);
         }
     }
+
+    // Check if there are any unused arguments
+    if (auto argterm = call_session.unused_argument(); argterm) {
+        return std::unexpected(make_error<basic_general_error>(argterm.location(),
+            "init() can't accept the argument"sv, std::move(argterm.value())));
+    }
+
     pmd->signature.result.emplace(exp.type, false);
     return std::move(pmd);
 }

@@ -54,6 +54,7 @@ public:
     struct_entity(qname, entity_signature&&, field_list_t const&);
 
     inline qname_view name() const noexcept { return name_; }
+    inline functional_binding_set const& context_bindings() const noexcept { return context_bindings_; }
     inline functional_binding_set& context_bindings() noexcept { return context_bindings_; }
 
     std::expected<span<field const>, error_storage> fields(fn_compiler_context&) const;

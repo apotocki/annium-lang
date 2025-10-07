@@ -276,7 +276,13 @@ size_t fn_compiler_context::append_result(semantic::expression_list_t& el, synta
 
     push_scope();
     for (auto& [varname, var, sp] : er.temporaries) {
-        append_expressions(el, sp);
+        if (!sp) {
+            semantic::expression_span reserve_expression;
+            env().push_back_expression(el, reserve_expression, semantic::push_value{ smart_blob{} });
+            append_expressions(el, reserve_expression);
+        } else {
+            append_expressions(el, sp);
+        }
         push_scope_variable(
             annotated_identifier{ varname },
             var); //local_variable{ .type = t, .varid = varid, .is_weak = false },
