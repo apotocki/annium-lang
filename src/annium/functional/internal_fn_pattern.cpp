@@ -30,7 +30,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> internal_fn_patter
     // check if vaible
     functional_match_descriptor& md = **res;
 
-    indirect_signatured_entity smpl{ md.signature };
+    indirect_internal_function_entity smpl{ md.signature, location() };
 
     environment& env = caller_ctx.env();
 
@@ -89,8 +89,11 @@ std::expected<syntax_expression_result, error_storage> internal_fn_pattern::appl
     environment& env = ctx.env();
     auto [result, mut_arg_cnt] = apply_arguments(ctx, el, md);
 
-    indirect_signatured_entity smpl{ md.signature };
+    indirect_internal_function_entity smpl{ md.signature, location() };
 
+    if (md.call_location.line == 15 && md.call_location.column == 90) {
+        int u = 0;
+    }
     internal_function_entity& fne = static_cast<internal_function_entity&>(env.eregistry_find_or_create(smpl, [this, &ctx, &md]() {
         return build(ctx, md, std::move(md.signature));
     }));
@@ -114,7 +117,6 @@ std::expected<syntax_expression_result, error_storage> internal_fn_pattern::appl
 
     if (mut_arg_cnt || !fne.is_const_eval(env)) {
         env.push_back_expression(el, result.expressions, semantic::invoke_function(fne.id));
-        return result;
     }
 
     return result;

@@ -23,6 +23,7 @@ public:
     using functional_match_descriptor::functional_match_descriptor;
     entity_identifier result_element_type;
     entity_identifier arg_element_type;
+    optional<size_t> arg_size;
     optional<syntax_expression_result> result;
 };
 
@@ -98,6 +99,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_implicit_cas
     auto pmd = make_shared<array_implicit_cast_match_descriptor>(call);
     pmd->result_element_type = result_arr_element_type_eid;
     pmd->arg_element_type = arg_element_type_eid;
+    pmd->arg_size = arg_arr_size;
     pmd->append_arg(er, argloc);
 
     if (!er.is_const_result) {
@@ -202,71 +204,37 @@ std::expected<syntax_expression_result, error_storage> array_implicit_cast_patte
     
     if (vmd.result) return std::move(*vmd.result);
 
-    auto& [_, er, argloc] = md.matches.front();
+    auto& [_, result, argloc] = md.matches.front();
 
     if (vmd.arg_element_type == vmd.result_element_type) {
         // no need to cast elements, just return with expected type        
-        er.value_or_type = md.signature.result->entity_id();
-        return std::move(er);
+        result.value_or_type = md.signature.result->entity_id();
+        return std::move(result);
     }
 
-    BOOST_ASSERT(false); // not implemented yet for runtime casts
+    result.value_or_type = md.signature.result->entity_id();
+    BOOST_ASSERT(!result.is_const_result);
     
-
-    syntax_expression_result result{
-        .value_or_type = md.signature.result->entity_id(),
-        .is_const_result = md.signature.result->is_const()
-    };
-
-    // Get array element types
-    entity_identifier argtype = er.is_const_result ? get_entity(env, er.value()).get_type() : er.type();
-    entity const& argtype_ent = get_entity(env, argtype);
-    entity_signature const* arr_sig = argtype_ent.signature();
-    entity_identifier arr_element_type_eid = arr_sig->find_field(env.get(builtin_id::of))->entity_id();
-
-    // Get array size from the type signature
-    field_descriptor const* pszd = arr_sig->find_field(env.get(builtin_id::size));
-    BOOST_ASSERT(pszd);
-    size_t array_size = static_cast<generic_literal_entity const&>(get_entity(env, pszd->entity_id())).value().as<size_t>();
-
-    // Get vector element types
-    entity const& result_ent = get_entity(env, md.signature.result->entity_id());
-    entity_signature const* vec_sig = result_ent.signature();
-    entity_identifier vec_element_type_eid = vec_sig->find_field(env.get(builtin_id::of))->entity_id();
-    
-    BOOST_ASSERT(!er.is_const_result); // for now, array argument should not be const
-
-    // Add the array argument expressions to result
-    append_semantic_result(el, er, result);
-
-    if (arr_element_type_eid == vec_element_type_eid) {
-        BOOST_ASSERT(array_size > 0);
-        // no need to cast elements, just return with vector type
-        if (array_size == 1) {
-            env.push_back_expression(el, result.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(1) } });
-            env.push_back_expression(el, result.expressions, semantic::invoke_function{ env.get(builtin_eid::arrayify) });
-            return result;
-        }
-        return result;
-    }
+    BOOST_ASSERT(vmd.arg_size); // for now, only fixed size arrays are supported
 
     // First unfold the array to get individual elements on the stack
     env.push_back_expression(el, result.expressions, semantic::invoke_function(env.get(builtin_eid::unfold)));
 
-    //fn_compiler_context_scope fn_scope{ ctx };
-    
+    size_t array_size = *vmd.arg_size;
     for (size_t i = 0; i < array_size; ++i) {
         //identifier element_var_name = fn_scope.push_scope_variable(arr_element_type_eid).first;
-    
+
         function_call_t cast_call{ md.call_location, qname_reference{} };
-        cast_call.emplace_back(stack_value_reference{ .name = annotated_identifier{}, .type = arr_element_type_eid, .offset = array_size - 1 }); // we put on stack also the result of the cast => offset is const
-        base_expression_visitor bev{ ctx, el, expected_result_t{ .type = vec_element_type_eid, .modifier = value_modifier_t::runtime_value } };
+        cast_call.emplace_back(stack_value_reference{ .name = annotated_identifier{}, .type = vmd.arg_element_type, .offset = array_size - 1 }); // we put on stack also the result of the cast => offset is const
+        base_expression_visitor bev{ ctx, el, expected_result_t{ .type = vmd.result_element_type, .modifier = value_modifier_t::runtime_value } };
         auto res = bev(builtin_qnid::implicit_cast, cast_call);
         if (!res) {
             return std::unexpected(append_cause(
-                make_error<cast_error>(argloc, arr_element_type_eid, vec_element_type_eid, "internal error: cannot cast array element to vector element type"sv),
+                make_error<cast_error>(argloc, vmd.arg_element_type, vmd.result_element_type, "internal error: cannot cast array element to vector element type"sv),
                 std::move(res.error())));
         }
+
+
         append_semantic_result(el, res->first, result);
     }
 
@@ -278,7 +246,12 @@ std::expected<syntax_expression_result, error_storage> array_implicit_cast_patte
     BOOST_ASSERT(array_size <= (std::numeric_limits<decltype(semantic::truncate_values::count)>::max)());
     env.push_back_expression(el, result.expressions, semantic::truncate_values{ .count = static_cast<uint16_t>(array_size), .keep_back = 1 });
 
-    return result;
+    std::ostringstream fn_code_str;
+    result.expressions.for_each([&env, &fn_code_str](semantic::expression const& e) {
+        fn_code_str << env.print(e);
+    });
+    GLOBAL_LOG_INFO() << "function expressions:\n"sv << fn_code_str.str();
+    return std::move(result);
 }
 
 }

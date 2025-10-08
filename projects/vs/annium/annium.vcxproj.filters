@@ -144,9 +144,6 @@
     <ClCompile Include="..\..\..\src\annium\entities\functions\expression_resolver.cpp">
       <Filter>annium\entities\functions</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\functions\function_entity.cpp">
-      <Filter>annium\entities\functions</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\functions\internal_function_entity.cpp">
       <Filter>annium\entities\functions</Filter>
     </ClCompile>
@@ -217,9 +214,6 @@
       <Filter>annium\entities\struct</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\struct\struct_get_pattern.cpp">
-      <Filter>annium\entities\struct</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\struct\struct_implicit_cast_pattern.cpp">
       <Filter>annium\entities\struct</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\struct\struct_init_pattern.cpp">
@@ -524,9 +518,6 @@
     <ClInclude Include="..\..\..\src\annium\entities\functions\expression_resolver.hpp">
       <Filter>annium\entities\functions</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\functions\function_entity.hpp">
-      <Filter>annium\entities\functions</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\functions\internal_function_entity.hpp">
       <Filter>annium\entities\functions</Filter>
     </ClInclude>
@@ -603,9 +594,6 @@
       <Filter>annium\entities\struct</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\struct\struct_get_pattern.hpp">
-      <Filter>annium\entities\struct</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\struct\struct_implicit_cast_pattern.hpp">
       <Filter>annium\entities\struct</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\struct\struct_init_pattern.hpp">
@@ -775,6 +763,9 @@
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\struct\tuple_of_pattern.hpp">
       <Filter>annium\entities\struct</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\functions\external_function_entity.hpp">
+      <Filter>annium\entities\functions</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -241,4 +241,26 @@ struct basic_signatured_entity : signatured_entity
     }
 };
 
+template <typename TagT>
+class tagged_signatured_entity : public entity
+{
+protected:
+    virtual TagT const& get_tag() const noexcept = 0;
+    virtual entity_signature const& get_signature() const noexcept = 0;
+
+public:
+    size_t hash() const noexcept override final
+    {
+        return hasher{}(get_tag(), get_signature());
+    }
+
+    bool equal(entity const& rhs) const noexcept override final
+    {
+        if (auto pr = dynamic_cast<tagged_signatured_entity const*>(&rhs); pr) {
+            return get_tag() == pr->get_tag() && get_signature() == pr->get_signature();
+        }
+        return false;
+    }
+};
+
 }

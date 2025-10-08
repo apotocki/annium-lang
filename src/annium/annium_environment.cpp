@@ -12,7 +12,7 @@
 
 #include "vm/annium_vm.hpp"
 #include "entities/ellipsis/ellipsis_pattern.hpp"
-#include "entities/functions/function_entity.hpp"
+#include "entities/functions/external_function_entity.hpp"
 #include "entities/functions/internal_function_entity.hpp"
 
 #include "functional/external_fn_pattern.hpp"
@@ -54,7 +54,7 @@
 
 #include "entities/struct/struct_new_pattern.hpp"
 #include "entities/struct/struct_get_pattern.hpp"
-#include "entities/struct/struct_implicit_cast_pattern.hpp"
+//#include "entities/struct/struct_implicit_cast_pattern.hpp"
 #include "entities/struct/struct_init_pattern.hpp"
 #include "entities/struct/struct_set_pattern.hpp"
 #include "entities/struct/is_struct_pattern.hpp"
@@ -185,7 +185,7 @@ entity_identifier environment::set_builtin_extern(string_view signature, void(*p
 {
     auto [pf, fndecl] = parse_extern_fn(signature);
     auto ptrn = make_shared<PT>(fn_identifier_counter_);
-    internal_function_entity default_fentity{ qname{}, entity_signature{} };
+    internal_function_entity default_fentity{ qname{}, entity_signature{}, {} };
     fn_compiler_context ctx{ *this, default_fentity };
     if (auto err = ptrn->init(ctx, fndecl); err) {
         throw exception(print(*err));
@@ -1343,7 +1343,7 @@ environment::environment()
     tuple_fnl.push(make_shared<tuple_pattern>());
 
     functional& implicit_cast_fnl = fregistry_resolve(get(builtin_qnid::implicit_cast));
-    implicit_cast_fnl.push(make_shared<struct_implicit_cast_pattern>());
+    //implicit_cast_fnl.push(make_shared<struct_implicit_cast_pattern>());
     implicit_cast_fnl.push(make_shared<enum_implicit_cast_pattern>());
     //implicit_cast_fnl.push(make_shared<fixed_array_implicit_cast_pattern>()); // array to vector
     implicit_cast_fnl.push(make_shared<array_implicit_cast_pattern>()); // vector to vector

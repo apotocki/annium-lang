@@ -9,7 +9,8 @@
 #include "annium/entities/prepared_call.hpp"
 #include "annium/entities/signatured_entity.hpp"
 #include "annium/entities/literals/literal_entity.hpp"
-#include "annium/entities/functions/function_entity.hpp"
+#include "annium/entities/functions/external_function_entity.hpp"
+#include "annium/entities/functions/internal_function_entity.hpp"
 #include "annium/auxiliary.hpp"
 
 namespace annium {
@@ -127,7 +128,7 @@ public:
     }
     
     // Other entity types
-    void operator()(const function_entity& ent) const override
+    void operator()(const internal_function_entity& ent) const override
     {
         ent.print_to(oss_, e_);
     }

@@ -199,7 +199,7 @@ void annium_impl::bootstrap()
     if (!decls.has_value()) throw exception(decls.error());
     environment_.push_ast({}, std::move(parser.statements()));
     
-    internal_function_entity dummy{ qname{}, entity_signature{} };
+    internal_function_entity dummy{ qname{}, entity_signature{}, {} };
     dummy.set_body(*decls);
     fn_compiler_context ctx{ environment_, dummy };
 
@@ -246,7 +246,7 @@ void annium_impl::compile(statement_span decls, span<string_view> args)
 {
     identifier main_id = environment_.new_identifier();
     entity_signature main_sig{};
-    internal_function_entity main_fn_ent{ qname{}, std::move(main_sig) };
+    internal_function_entity main_fn_ent{ qname{}, std::move(main_sig), {} };
     main_fn_ent.set_body(std::move(decls));
     //fn_compiler_context ctx{ environment_, qname{ main_id } };
     fn_compiler_context ctx{ environment_, main_fn_ent };

@@ -9,8 +9,10 @@
 
 namespace annium {
 
-internal_function_entity::internal_function_entity(qname&& name, entity_signature&& sig)
-    : function_entity{ std::move(name), std::move(sig) }
+internal_function_entity::internal_function_entity(qname&& name, entity_signature&& sig, resource_location loc)
+    : name_{ std::move(name) }
+    , sig_{ std::move(sig) }
+    , location_{ std::move(loc) }
     , captured_var_count_{ 0 }
     , is_provision_{ 1 } // by default all internal functions are provisions
     , is_inline_{ 0 }
@@ -22,6 +24,24 @@ internal_function_entity::internal_function_entity(qname&& name, entity_signatur
     if (sig_.result) {
         result = *sig_.result;
     }
+}
+
+//size_t internal_function_entity::hash() const noexcept
+//{
+//    return hasher{}(sig_, location_);
+//}
+//
+//bool internal_function_entity::equal(entity const& rhs) const noexcept
+//{
+//    if (auto pr = dynamic_cast<internal_function_entity const*>(&rhs); pr) {
+//        return sig_ == pr->sig_ && location_ == pr->location_;
+//    }
+//    return false;
+//}
+
+std::ostream& internal_function_entity::print_to(std::ostream& os, environment const& e) const
+{
+    return os << "fn "sv << e.print(sig_);
 }
 
 void internal_function_entity::push_argument(variable_identifier varid)
@@ -126,6 +146,16 @@ bool internal_function_entity::is_const_eval(environment& e) const noexcept
     if (!result.is_const()) return false;
     // to do: traverse expressions
     return result.entity_id() != e.get(builtin_eid::void_);
+}
+
+size_t internal_function_entity::parameter_count() const noexcept
+{
+    // to do: include captured parameters 
+    size_t cnt = 0;
+    for (auto const& f : sig_.fields()) {
+        if (!f.is_const()) ++cnt;
+    }
+    return cnt;
 }
 
 }

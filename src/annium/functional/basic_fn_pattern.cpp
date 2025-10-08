@@ -169,6 +169,10 @@ std::pair<syntax_expression_result, size_t> basic_fn_pattern::apply_arguments(fn
 
 shared_ptr<internal_function_entity> basic_fn_pattern::build(fn_compiler_context& ctx, functional_match_descriptor& md, entity_signature signature) const
 {
+    if (md.call_location.line == 15 && md.call_location.column == 90) {
+        int u = 0;
+    }
+
     environment& e = ctx.env();
 
     qname_view fnqn = e.fregistry_resolve(signature.name).name();
@@ -176,7 +180,8 @@ shared_ptr<internal_function_entity> basic_fn_pattern::build(fn_compiler_context
 
     auto pife = make_shared<internal_function_entity>(
         std::move(fn_ns),
-        std::move(signature));
+        std::move(signature),
+        location());
 
     pife->location = location();
     build_scope(e, md, *pife);

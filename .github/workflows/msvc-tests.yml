@@ -21,13 +21,13 @@ jobs:
 
       - name: Bootstrap vcpkg
         run: .\vcpkg\bootstrap-vcpkg.bat
-        
+
       - name: Cache vcpkg
         uses: actions/cache@v4
         with:
             path: |
               ${{ github.workspace }}/vcpkg_installed
-            key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
+            key: vcpkg-${{ runner.os }}-${{ steps.vcpkg_ref.outputs.ref }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json', 'triplets/**') }}
             restore-keys: |
               vcpkg-${{ runner.os }}-
       

@@ -31,6 +31,7 @@ class syntax_expression_resource : public code_resource
 protected:
     mutable std::string src_;
     mutable std::vector<string_view> lines;
+    size_t hash_;
 
     virtual void prepare_lines() const
     {
@@ -56,7 +57,9 @@ public:
     inline explicit syntax_expression_resource(environment& env, std::string src = {}) noexcept
         : src_{ std::move(src) }
         , expressions{ env }
-    {}
+    {
+        hash_ = std::hash<std::string>{}(src_);
+    }
 
     std::ostream& print_to(std::ostream& s, string_view indent, int line, int column, resource_print_mode_t mode) const override
     {
@@ -106,6 +109,19 @@ public:
 
         return s;
     }
+
+    size_t hash() const noexcept override
+    {
+        return hash_;
+    }
+
+    bool equal(code_resource const& rhs) const noexcept override
+    {
+        if (auto sr = dynamic_cast<syntax_expression_resource const*>(&rhs)) {
+            return src_ == sr->src_;
+        }
+        return false;
+    }
 };
 
 class file_resource : public syntax_expression_resource
@@ -139,6 +155,19 @@ public:
             }
         }
         syntax_expression_resource::prepare_lines();
+    }
+
+    size_t hash() const noexcept override
+    {
+        return std::hash<fs::path>{}(path_);
+    }
+
+    bool equal(code_resource const& rhs) const noexcept override
+    {
+        if (auto fr = dynamic_cast<file_resource const*>(&rhs)) {
+            return path_ == fr->path_;
+        }
+        return false;
     }
 };
 

@@ -8,13 +8,31 @@
 //#include <boost/multi_index/random_access_index.hpp>
 //#include <boost/multi_index/ordered_index.hpp>
 //#include <boost/multi_index/member.hpp>
-#include "function_entity.hpp"
+
+#include "annium/semantic.hpp"
+#include "annium/entities/signatured_entity.hpp"
+#include "annium/entities/functional.hpp"
 
 #define ANNIUM_NO_INLINE_FUNCTIONS 1
 
 namespace annium {
 
-class internal_function_entity : public function_entity
+class indirect_internal_function_entity : public tagged_signatured_entity<resource_location>
+{
+    entity_signature const& sig_;
+    resource_location const& location_;
+
+protected:
+    resource_location const& get_tag() const noexcept override final { return location_; }
+    entity_signature const& get_signature() const noexcept override final { return sig_; }
+
+public:
+    inline indirect_internal_function_entity(entity_signature const& sig, resource_location const& loc) noexcept
+        : sig_{ sig }, location_{ loc }
+    {}
+};
+
+class internal_function_entity : public tagged_signatured_entity<resource_location>
 {
     using var_set_t = std::unordered_map<variable_identifier, intptr_t, sonia::hash<variable_identifier>>;
     /*
@@ -30,13 +48,19 @@ class internal_function_entity : public function_entity
     */
     //small_vector<intptr_t, 16> scope_thresholds_;
 
+protected:
+    qname name_;
+    entity_signature sig_;
+    resource_location location_;
+
 public:
     semantic::expression_span body;
     functional_binding_set bindings;
     functional_binding_set captured_bindings;
     error_storage build_errors;
+    field_descriptor result;
 
-    internal_function_entity(qname&& name, entity_signature&& sig);
+    internal_function_entity(qname&& name, entity_signature&& sig, resource_location loc);
 
     void set_body(statement_span bd) noexcept { sts_ = std::move(bd); }
 
@@ -49,6 +73,9 @@ public:
 
     void visit(entity_visitor const& v) const override { v(*this); }
 
+    //size_t hash() const noexcept override final;
+    //bool equal(entity const& rhs) const noexcept override final;
+    
     inline void set_arg_count(uint64_t count) noexcept { arg_count_ = count; }
     [[nodiscard]] inline uint64_t arg_count() const noexcept { return arg_count_; }
 
@@ -68,20 +95,24 @@ public:
     [[nodiscard]] inline bool is_built() const noexcept { return !!is_built_; }
     [[nodiscard]] inline bool is_empty() const noexcept { return !!is_empty_; }
 
-    inline std::ostream& print_to(std::ostream& os, environment const& e) const override
-    {
-        os << "fn "sv;
-        return signatured_entity::print_to(os, e);
-    }
+    std::ostream& print_to(std::ostream& os, environment const& e) const override;
 
     [[nodiscard]] error_storage build(environment&);
     [[nodiscard]] error_storage build(fn_compiler_context&);
 
-    bool is_const_eval(environment&) const noexcept;
+    [[nodiscard]] inline qname_view name() const noexcept { return name_; }
 
-    inline size_t variables_count() const noexcept { return variables_.size(); }
+    [[nodiscard]] bool is_const_eval(environment&) const noexcept;
 
-    inline size_t scope_offset() const noexcept { return variables_count() - captured_var_count_; }
+    [[nodiscard]] inline size_t variables_count() const noexcept { return variables_.size(); }
+
+    [[nodiscard]] size_t parameter_count() const noexcept;
+
+    [[nodiscard]] inline size_t scope_offset() const noexcept { return variables_count() - captured_var_count_; }
+
+protected:
+    resource_location const& get_tag() const noexcept override final { return location_; }
+    entity_signature const& get_signature() const noexcept override final { return sig_; }
 
 private:
     var_set_t variables_;

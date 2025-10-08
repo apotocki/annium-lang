@@ -5,7 +5,7 @@
 #include "external_fn_pattern.hpp"
 
 #include "annium/ast/fn_compiler_context.hpp"
-#include "annium/entities/functions/function_entity.hpp"
+#include "annium/entities/functions/external_function_entity.hpp"
 
 namespace annium {
 

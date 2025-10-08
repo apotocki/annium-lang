@@ -256,7 +256,7 @@ public:
         THROW_NOT_IMPLEMENTED_ERROR();
     }
 
-    void operator()(function_entity const&) const override
+    void operator()(internal_function_entity const&) const override
     {
         THROW_NOT_IMPLEMENTED_ERROR();
     }

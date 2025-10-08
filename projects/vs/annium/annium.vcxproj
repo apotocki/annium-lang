@@ -60,7 +60,6 @@
     <ClCompile Include="..\..\..\src\annium\entities\enum\enum_implicit_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\functional.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\functions\expression_resolver.cpp" />
-    <ClCompile Include="..\..\..\src\annium\entities\functions\function_entity.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\functions\internal_function_entity.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\functions\parameter_type_expression_visitor.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -78,7 +77,6 @@
     <ClCompile Include="..\..\..\src\annium\entities\struct\struct_entity.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\struct\struct_fn_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\struct\struct_get_pattern.cpp" />
-    <ClCompile Include="..\..\..\src\annium\entities\struct\struct_implicit_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\struct\struct_init_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\struct\struct_new_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\struct\struct_set_pattern.cpp" />
@@ -196,7 +194,7 @@
     <ClInclude Include="..\..\..\src\annium\entities\functional.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\functional_registry.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\functions\expression_resolver.hpp" />
-    <ClInclude Include="..\..\..\src\annium\entities\functions\function_entity.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\functions\external_function_entity.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\functions\internal_function_entity.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\functions\parameter_type_expression_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_equal_pattern.hpp" />
@@ -211,7 +209,6 @@
     <ClInclude Include="..\..\..\src\annium\entities\struct\struct_entity.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\struct\struct_fn_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\struct\struct_get_pattern.hpp" />
-    <ClInclude Include="..\..\..\src\annium\entities\struct\struct_implicit_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\struct\struct_init_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\struct\struct_new_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\struct\struct_set_pattern.hpp" />

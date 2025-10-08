@@ -9,7 +9,7 @@
 #include "sonia/utility/scope_exit.hpp"
 
 #include "annium/semantic.hpp"
-#include "annium/entities/functions/function_entity.hpp"
+#include "annium/entities/functions/external_function_entity.hpp"
 
 namespace annium::vm {
 
@@ -482,6 +482,8 @@ void compiler_visitor_base::operator()(semantic::invoke_function const& invf) co
 {
     entity const& e = environment_.eregistry_get(invf.fn);
     if (auto fe = dynamic_cast<internal_function_entity const*>(&e); fe) {
+        BOOST_ASSERT(!fe->is_provision()); // provision functions cannot be called
+        BOOST_ASSERT(fe->is_built()); // should be built already
         if (!fe->is_empty()) {
             if (fe->is_inline()) {
                 // to do: circular dependency check?
