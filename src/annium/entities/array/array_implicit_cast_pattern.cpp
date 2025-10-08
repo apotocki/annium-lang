@@ -218,7 +218,9 @@ std::expected<syntax_expression_result, error_storage> array_implicit_cast_patte
     BOOST_ASSERT(vmd.arg_size); // for now, only fixed size arrays are supported
 
     // First unfold the array to get individual elements on the stack
-    env.push_back_expression(el, result.expressions, semantic::invoke_function(env.get(builtin_eid::unfold)));
+    if (!vmd.arg_size || *vmd.arg_size > 1) {
+        env.push_back_expression(el, result.expressions, semantic::invoke_function(env.get(builtin_eid::unfold)));
+    }
 
     size_t array_size = *vmd.arg_size;
     for (size_t i = 0; i < array_size; ++i) {
