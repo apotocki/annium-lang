@@ -23,7 +23,7 @@
 #include "functional/general/equal_pattern.hpp"
 #include "functional/general/typeof_pattern.hpp"
 #include "functional/general/to_string_pattern.hpp"
-#include "functional/general/negate_pattern.hpp"
+#include "functional/general/logical_not_pattern.hpp"
 #include "functional/general/is_const_pattern.hpp"
 #include "functional/general/create_identifier_pattern.hpp"
 
@@ -31,6 +31,8 @@
 #include "entities/literals/numeric_implicit_cast_pattern.hpp"
 #include "entities/literals/numeric_literal_implicit_cast_pattern.hpp"
 #include "entities/literals/numeric_literal_equal_pattern.hpp"
+#include "entities/literals/numeric_literal_unary_minus_pattern.hpp"
+
 #include "entities/literals/string_implicit_cast_pattern.hpp"
 #include "entities/literals/string_concat_pattern.hpp"
 
@@ -1326,11 +1328,14 @@ environment::environment()
     equal_fnl.push(make_shared<numeric_literal_equal_pattern>());
     equal_fnl.push(make_shared<equal_pattern>());
 
-    functional& negate_fnl = fregistry_resolve(get(builtin_qnid::negate));
-    negate_fnl.push(make_shared<negate_pattern>());
+    functional& logical_not_fnl = fregistry_resolve(get(builtin_qnid::logical_not));
+    logical_not_fnl.push(make_shared<logical_not_pattern>());
 
     functional& typeof_fnl = fregistry_resolve(get(builtin_qnid::typeof));
     typeof_fnl.push(make_shared<typeof_pattern>());
+
+    functional& minus_fnl = fregistry_resolve(get(builtin_qnid::minus));
+    minus_fnl.push(make_shared<numeric_literal_unary_minus_pattern>());
 
     // typeof(object: const metaobject, property: const __identifier) -> typename
     //typeof_fnl.push(make_shared<metaobject_typeof_pattern>());
@@ -1444,14 +1449,15 @@ environment::environment()
 
     builtin_eids_[(size_t)builtin_eid::arrayify] = set_builtin_extern("__arrayify(..., runtime integer)->tuple($0...)"sv, &annium_arrayify);
     builtin_eids_[(size_t)builtin_eid::unfold] = set_builtin_extern("__unfold(~runtime array(...))"sv, &annium_unfold);
-    set_builtin_extern("__array_size(runtime)->integer"sv, &annium_array_size);
+    set_builtin_extern("__array_size(runtime)->u64"sv, &annium_array_size);
     builtin_eids_[(size_t)builtin_eid::array_tail] = set_builtin_extern("__array_tail(~runtime tuple(_, $t...))->tuple($t...)"sv, &annium_array_tail);
     builtin_eids_[(size_t)builtin_eid::array_at] = set_builtin_extern("__array_at()"sv, &annium_array_at);
     builtin_eids_[(size_t)builtin_eid::array_set_at] = set_builtin_extern("__array_set_at($arr: runtime, $index: runtime integer, $value)"sv, &annium_array_set_at);
     builtin_eids_[(size_t)builtin_eid::equal] = set_builtin_extern("__equal(runtime any, runtime any)->bool"sv, &annium_any_equal);
     builtin_eids_[(size_t)builtin_eid::assert] = set_builtin_extern("__assert(runtime any)"sv, &annium_assert);
     builtin_eids_[(size_t)builtin_eid::to_string] = set_builtin_extern("__to_string(runtime any)->string"sv, &annium_tostring);
-    builtin_eids_[(size_t)builtin_eid::negate] = set_builtin_extern("__negate(runtime any)->bool"sv, &annium_negate);
+    builtin_eids_[(size_t)builtin_eid::logical_not] = set_builtin_extern("__logical_not(runtime any)->bool"sv, &annium_logical_not);
+    builtin_eids_[(size_t)builtin_eid::unary_minus] = set_builtin_extern("__unary_minus(runtime any)"sv, &annium_unary_minus);
     builtin_eids_[(size_t)builtin_eid::concat] = set_builtin_extern("__concat(runtime any)->string"sv, &annium_concat);
     builtin_eids_[(size_t)builtin_eid::error] = set_builtin_extern("__error(runtime string)"sv, &annium_error);
     //set_const_extern<to_string_pattern>("size(const metaobjct))->integer"sv);

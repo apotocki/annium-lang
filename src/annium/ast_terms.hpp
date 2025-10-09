@@ -265,7 +265,7 @@ template <typename ExprT> struct bracket_expression
     (COMMA)
 */
 
-#define ANNIUM_UNARY_OPERATOR_ENUM (NEGATE)(DEREF)(ELLIPSIS)
+#define ANNIUM_UNARY_OPERATOR_ENUM (NEGATE)(DEREF)(ELLIPSIS)(MINUS)
 #define ANNIUM_BINARY_OPERATOR_ENUM (ASSIGN)(LOGIC_AND)(LOGIC_OR)(BIT_OR)(BIT_AND)(CONCAT)(PLUS)(MINUS)(EQ)(NE)
 enum class unary_operator_type
 {

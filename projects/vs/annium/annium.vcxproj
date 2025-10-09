@@ -70,6 +70,7 @@
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_equal_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_implicit_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_implicit_cast_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_unary_minus_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\literals\string_concat_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\literals\string_implicit_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\prepared_call.cpp" />
@@ -118,7 +119,7 @@
     <ClCompile Include="..\..\..\src\annium\functional\general\equal_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\error_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\is_const_pattern.cpp" />
-    <ClCompile Include="..\..\..\src\annium\functional\general\negate_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\functional\general\logical_not_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\runtime_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\to_string_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\typeof_pattern.cpp" />
@@ -201,6 +202,7 @@
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_implicit_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\literals\literal_entity.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_implicit_cast_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_unary_minus_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\literals\string_concat_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\literals\string_implicit_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\prepared_call.hpp" />
@@ -253,7 +255,7 @@
     <ClInclude Include="..\..\..\src\annium\functional\general\equal_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\error_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\is_const_pattern.hpp" />
-    <ClInclude Include="..\..\..\src\annium\functional\general\negate_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\functional\general\logical_not_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\runtime_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\to_string_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\typeof_pattern.hpp" />

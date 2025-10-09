@@ -101,9 +101,9 @@ class external_fn_pattern;
     ((minus, "__minus"))                   \
     ((bit_or, "__bit_or"))                 \
     ((bit_and, "__bit_and"))               \
-    ((negate, "negate"))                   \
-    ((logic_and, "logic_and"))             \
-    ((logic_or, "logic_or"))               \
+    ((logical_not, "logical_not"))         \
+    ((logical_and, "logical_and"))         \
+    ((logical_or, "logical_or"))           \
     ((implicit_cast, "implicit_cast"sv))   \
     ((runtime_cast, "runtime_cast"sv))     \
     ((get, "get"sv))                       \
@@ -173,7 +173,8 @@ enum class builtin_eid : entity_identifier::value_type
     error, // builtin ::__error(message)-> void
     to_string, // builtin ::to_string(value)-> string
     int2dec, // builtin ::int2dec(value: integer)-> decimal
-    negate, // builtin ::negate(value)-> valueT
+    logical_not, // builtin ::logical_not(value)-> valueT
+    unary_minus, // builtin ::unary_minus(value) -> valueT
     concat, // builtin ::concat(string ...)-> string
     isubtract,
     eof_builtin_eid_value

@@ -647,15 +647,17 @@ base_expression_visitor::result_type base_expression_visitor::operator()(named_s
 }
 #endif
 
-base_expression_visitor::result_type base_expression_visitor::operator()(unary_expression_t const& be) const
+base_expression_visitor::result_type base_expression_visitor::operator()(unary_expression_t const& ue) const
 {
-    switch (be.op) {
+    switch (ue.op) {
+    case unary_operator_type::MINUS:
+        return this->operator()(builtin_qnid::minus, ue);
     case unary_operator_type::NEGATE:
-        return this->operator()(builtin_qnid::negate, be);
+        return this->operator()(builtin_qnid::logical_not, ue);
     case unary_operator_type::DEREF:
-        return this->operator()(builtin_qnid::deref, be);
+        return this->operator()(builtin_qnid::deref, ue);
     case unary_operator_type::ELLIPSIS:
-        return this->operator()(builtin_qnid::ellipsis, be);
+        return this->operator()(builtin_qnid::ellipsis, ue);
     }
     THROW_NOT_IMPLEMENTED_ERROR("base_expression_visitor unary_expression_t");
 }
@@ -807,7 +809,7 @@ base_expression_visitor::result_type base_expression_visitor::operator()(binary_
     case binary_operator_type::CONCAT:
         return this->operator()(builtin_qnid::string_concat, be);
     case binary_operator_type::LOGIC_AND:
-        return this->operator()(builtin_qnid::logic_and, be);
+        return this->operator()(builtin_qnid::logical_and, be);
         //return do_logic_and(be);
     case binary_operator_type::LOGIC_OR:
         return do_logic_or(be);

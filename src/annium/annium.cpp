@@ -111,7 +111,7 @@ inline fn print(:string ...) => __print($0 ..., size($0));
 
 inline fn not_equal(_, _) => !($0 == $1);
 
-inline fn logic_and($FT, $ST) -> union($FT, $ST) {
+inline fn logical_and($FT, $ST) -> union($FT, $ST) {
     if $0 {
         return $1;
     } else {

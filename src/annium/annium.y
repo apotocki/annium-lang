@@ -221,7 +221,7 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 %left ASTERISK SLASH PERCENT
 
 // 3 priority
-%right DEREF EXCLPT
+%right DEREF EXCLPT PREFIXMINUS
 
 // 2 priority
 %left OPEN_BRACE OPEN_PARENTHESIS OPEN_SQUARE_BRACKET ARROW ARROWEXPR POINT INTEGER_INDEX
@@ -1032,22 +1032,24 @@ syntax-expression:
     | POINT identifier
         { $$ = std::move($identifier); IGNORE_TERM($POINT); }
     //| syntax-expression[object] POINT syntax-expression[property]
-    //    { $$ = member_expression_t{ std::move($object), std::move($property) }; IGNORE_TERM($2); }
+    //    { $$ = member_expression_t{ std::move($object), std::move($property) }; IGNORE_TERM($POINT); }
     
     //| syntax-expression[object] POINT apostrophe-expression[property]
-    //     { $$ = member_expression_t{ std::move($object), std::move($property) }; IGNORE_TERM($2); }
+    //     { $$ = member_expression_t{ std::move($object), std::move($property) }; IGNORE_TERM($POINT); }
     | syntax-expression[object] INTEGER_INDEX[property]
          { $$ = member_expression_t{ std::move($object), annotated_integer{ ctx.make_integer($property.value.substr(1)), $property.location } }; IGNORE_TERM($2); }
 //////////////////////////// 3 priority
-    | EXCLPT syntax-expression
-		{ $$ = unary_expression_t{ unary_operator_type::NEGATE, true, std::move($2), std::move($1) }; }
-    | ASTERISK syntax-expression %prec DEREF
-		{ $$ = unary_expression_t{ unary_operator_type::DEREF, true, std::move($2), std::move($1) }; }
+    | MINUS syntax-expression[expr] %prec PREFIXMINUS
+        { $$ = unary_expression_t{ unary_operator_type::MINUS, true, std::move($expr), std::move($MINUS) }; }
+    | EXCLPT syntax-expression[expr]
+		{ $$ = unary_expression_t{ unary_operator_type::NEGATE, true, std::move($expr), std::move($EXCLPT) }; }
+    | ASTERISK syntax-expression[expr] %prec DEREF
+		{ $$ = unary_expression_t{ unary_operator_type::DEREF, true, std::move($expr), std::move($ASTERISK) }; }
 //////////////////////////// 5 priorit
 
 //////////////////////////// 6 priority
     | syntax-expression PLUS syntax-expression
-        { $$ = binary_expression_t{ binary_operator_type::PLUS, std::move($1), std::move($3), std::move($2) }; }
+        { $$ = binary_expression_t{ binary_operator_type::PLUS, std::move($1), std::move($3), std::move($PLUS) }; }
     | syntax-expression MINUS syntax-expression
         { $$ = binary_expression_t{ binary_operator_type::MINUS, std::move($1), std::move($3), std::move($2) }; }
 

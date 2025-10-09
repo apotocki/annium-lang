@@ -720,23 +720,24 @@ namespace annium_lang {
     SIZEOF = 345,                  // SIZEOF
     LOWEST = 346,                  // LOWEST
     DEREF = 347,                   // DEREF
-    INCLUDE = 348,                 // INCLUDE
-    INLINE = 349,                  // INLINE
-    VIABLE = 350,                  // VIABLE
-    FN = 351,                      // "`fn`"
-    TYPEFN = 352,                  // "`typefn`"
-    ENUM = 353,                    // ENUM
-    STRUCT = 354,                  // STRUCT
-    EXTENDS = 355,                 // EXTENDS
-    REQUIRES = 356,                // REQUIRES
-    WEAK = 357,                    // "weak modifier"
-    TYPENAME = 358,                // "typename modifier"
-    CONSTEXPR = 359,               // "constexpr modifier"
-    RUNTIME = 360,                 // "runctime modifier"
-    NIL_WORD = 361,                // "nil"
-    TRUE_WORD = 362,               // "true"
-    FALSE_WORD = 363,              // "false"
-    PROBE = 364                    // PROBE
+    PREFIXMINUS = 348,             // PREFIXMINUS
+    INCLUDE = 349,                 // INCLUDE
+    INLINE = 350,                  // INLINE
+    VIABLE = 351,                  // VIABLE
+    FN = 352,                      // "`fn`"
+    TYPEFN = 353,                  // "`typefn`"
+    ENUM = 354,                    // ENUM
+    STRUCT = 355,                  // STRUCT
+    EXTENDS = 356,                 // EXTENDS
+    REQUIRES = 357,                // REQUIRES
+    WEAK = 358,                    // "weak modifier"
+    TYPENAME = 359,                // "typename modifier"
+    CONSTEXPR = 360,               // "constexpr modifier"
+    RUNTIME = 361,                 // "runctime modifier"
+    NIL_WORD = 362,                // "nil"
+    TRUE_WORD = 363,               // "true"
+    FALSE_WORD = 364,              // "false"
+    PROBE = 365                    // PROBE
       };
       /// Backward compatibility alias (Bison 3.6).
       typedef token_kind_type yytokentype;
@@ -753,7 +754,7 @@ namespace annium_lang {
     {
       enum symbol_kind_type
       {
-        YYNTOKENS = 110, ///< Number of tokens.
+        YYNTOKENS = 111, ///< Number of tokens.
         S_YYEMPTY = -2,
         S_YYEOF = 0,                             // "end of file"
         S_YYerror = 1,                           // error
@@ -848,95 +849,96 @@ namespace annium_lang {
         S_SIZEOF = 90,                           // SIZEOF
         S_LOWEST = 91,                           // LOWEST
         S_DEREF = 92,                            // DEREF
-        S_INCLUDE = 93,                          // INCLUDE
-        S_INLINE = 94,                           // INLINE
-        S_VIABLE = 95,                           // VIABLE
-        S_FN = 96,                               // "`fn`"
-        S_TYPEFN = 97,                           // "`typefn`"
-        S_ENUM = 98,                             // ENUM
-        S_STRUCT = 99,                           // STRUCT
-        S_EXTENDS = 100,                         // EXTENDS
-        S_REQUIRES = 101,                        // REQUIRES
-        S_WEAK = 102,                            // "weak modifier"
-        S_TYPENAME = 103,                        // "typename modifier"
-        S_CONSTEXPR = 104,                       // "constexpr modifier"
-        S_RUNTIME = 105,                         // "runctime modifier"
-        S_NIL_WORD = 106,                        // "nil"
-        S_TRUE_WORD = 107,                       // "true"
-        S_FALSE_WORD = 108,                      // "false"
-        S_PROBE = 109,                           // PROBE
-        S_YYACCEPT = 110,                        // $accept
-        S_begin = 111,                           // begin
-        S_statement_any = 112,                   // statement_any
-        S_113_finished_statement_any = 113,      // finished-statement-any
-        S_statement = 114,                       // statement
-        S_115_let_decl = 115,                    // let-decl
-        S_116_let_decl_start = 116,              // let-decl-start
-        S_117_let_decl_start_with_opt_type = 117, // let-decl-start-with-opt-type
-        S_118_infunction_statement_any = 118,    // infunction-statement-any
-        S_119_finished_infunction_statement_any = 119, // finished-infunction-statement-any
-        S_120_function_body = 120,               // function-body
-        S_121_braced_statements = 121,           // braced-statements
-        S_122_finished_statement = 122,          // finished-statement
-        S_123_infunction_statement_set = 123,    // infunction-statement-set
-        S_124_generic_statement = 124,           // generic-statement
-        S_125_infunction_statement = 125,        // infunction-statement
-        S_identifier = 126,                      // identifier
-        S_127_internal_identifier = 127,         // internal-identifier
-        S_qname = 128,                           // qname
-        S_129_fn_kind = 129,                     // fn-kind
-        S_130_fn_kind_set = 130,                 // fn-kind-set
-        S_131_fn_prefix_decl = 131,              // fn-prefix-decl
-        S_132_fn_name = 132,                     // fn-name
-        S_133_fn_start_decl = 133,               // fn-start-decl
-        S_134_fn_requirement_opt = 134,          // fn-requirement-opt
-        S_135_fn_decl = 135,                     // fn-decl
-        S_136_enum_decl = 136,                   // enum-decl
-        S_137_case_list_opt = 137,               // case-list-opt
-        S_138_case_list = 138,                   // case-list
-        S_139_case_decl = 139,                   // case-decl
-        S_140_struct_decl = 140,                 // struct-decl
-        S_141_using_decl = 141,                  // using-decl
-        S_142_expression_list = 142,             // expression-list
-        S_143_argument_list_opt = 143,           // argument-list-opt
-        S_144_argument_list = 144,               // argument-list
-        S_argument = 145,                        // argument
-        S_146_argument_name = 146,               // argument-name
-        S_147_field_list_opt = 147,              // field-list-opt
-        S_148_field_list = 148,                  // field-list
-        S_149_field_default_value_opt = 149,     // field-default-value-opt
-        S_field = 150,                           // field
-        S_151_parameter_list_opt = 151,          // parameter-list-opt
-        S_152_parameter_list = 152,              // parameter-list
-        S_153_internal_identifier_opt = 153,     // internal-identifier-opt
-        S_154_parameter_default_value_opt = 154, // parameter-default-value-opt
-        S_155_parameter_decl = 155,              // parameter-decl
-        S_156_constraint_expression_specified_mod = 156, // constraint-expression-specified-mod
-        S_157_constraint_expression_specified = 157, // constraint-expression-specified
-        S_158_constraint_expression_mod = 158,   // constraint-expression-mod
-        S_159_constraint_expression = 159,       // constraint-expression
-        S_subpatterns = 160,                     // subpatterns
-        S_161_pattern_list = 161,                // pattern-list
-        S_162_pattern_field_sfx = 162,           // pattern-field-sfx
-        S_163_pattern_field = 163,               // pattern-field
-        S_164_pattern_mod = 164,                 // pattern-mod
-        S_165_pattern_sfx = 165,                 // pattern-sfx
-        S_pattern = 166,                         // pattern
-        S_167_concept_expression = 167,          // concept-expression
-        S_168_concept_expression_list_opt = 168, // concept-expression-list-opt
-        S_169_concept_expression_list = 169,     // concept-expression-list
-        S_170_reference_expression = 170,        // reference-expression
-        S_171_any_reference_expression = 171,    // any-reference-expression
-        S_172_syntax_expression = 172,           // syntax-expression
-        S_173_apostrophe_expression = 173,       // apostrophe-expression
-        S_174_new_expression = 174,              // new-expression
-        S_175_call_expression = 175,             // call-expression
-        S_176_lambda_start_decl = 176,           // lambda-start-decl
-        S_177_lambda_expression = 177,           // lambda-expression
-        S_178_pack_expression_opt = 178,         // pack-expression-opt
-        S_179_pack_expression = 179,             // pack-expression
-        S_180_compound_expression = 180,         // compound-expression
-        S_181_type_expr = 181                    // type-expr
+        S_PREFIXMINUS = 93,                      // PREFIXMINUS
+        S_INCLUDE = 94,                          // INCLUDE
+        S_INLINE = 95,                           // INLINE
+        S_VIABLE = 96,                           // VIABLE
+        S_FN = 97,                               // "`fn`"
+        S_TYPEFN = 98,                           // "`typefn`"
+        S_ENUM = 99,                             // ENUM
+        S_STRUCT = 100,                          // STRUCT
+        S_EXTENDS = 101,                         // EXTENDS
+        S_REQUIRES = 102,                        // REQUIRES
+        S_WEAK = 103,                            // "weak modifier"
+        S_TYPENAME = 104,                        // "typename modifier"
+        S_CONSTEXPR = 105,                       // "constexpr modifier"
+        S_RUNTIME = 106,                         // "runctime modifier"
+        S_NIL_WORD = 107,                        // "nil"
+        S_TRUE_WORD = 108,                       // "true"
+        S_FALSE_WORD = 109,                      // "false"
+        S_PROBE = 110,                           // PROBE
+        S_YYACCEPT = 111,                        // $accept
+        S_begin = 112,                           // begin
+        S_statement_any = 113,                   // statement_any
+        S_114_finished_statement_any = 114,      // finished-statement-any
+        S_statement = 115,                       // statement
+        S_116_let_decl = 116,                    // let-decl
+        S_117_let_decl_start = 117,              // let-decl-start
+        S_118_let_decl_start_with_opt_type = 118, // let-decl-start-with-opt-type
+        S_119_infunction_statement_any = 119,    // infunction-statement-any
+        S_120_finished_infunction_statement_any = 120, // finished-infunction-statement-any
+        S_121_function_body = 121,               // function-body
+        S_122_braced_statements = 122,           // braced-statements
+        S_123_finished_statement = 123,          // finished-statement
+        S_124_infunction_statement_set = 124,    // infunction-statement-set
+        S_125_generic_statement = 125,           // generic-statement
+        S_126_infunction_statement = 126,        // infunction-statement
+        S_identifier = 127,                      // identifier
+        S_128_internal_identifier = 128,         // internal-identifier
+        S_qname = 129,                           // qname
+        S_130_fn_kind = 130,                     // fn-kind
+        S_131_fn_kind_set = 131,                 // fn-kind-set
+        S_132_fn_prefix_decl = 132,              // fn-prefix-decl
+        S_133_fn_name = 133,                     // fn-name
+        S_134_fn_start_decl = 134,               // fn-start-decl
+        S_135_fn_requirement_opt = 135,          // fn-requirement-opt
+        S_136_fn_decl = 136,                     // fn-decl
+        S_137_enum_decl = 137,                   // enum-decl
+        S_138_case_list_opt = 138,               // case-list-opt
+        S_139_case_list = 139,                   // case-list
+        S_140_case_decl = 140,                   // case-decl
+        S_141_struct_decl = 141,                 // struct-decl
+        S_142_using_decl = 142,                  // using-decl
+        S_143_expression_list = 143,             // expression-list
+        S_144_argument_list_opt = 144,           // argument-list-opt
+        S_145_argument_list = 145,               // argument-list
+        S_argument = 146,                        // argument
+        S_147_argument_name = 147,               // argument-name
+        S_148_field_list_opt = 148,              // field-list-opt
+        S_149_field_list = 149,                  // field-list
+        S_150_field_default_value_opt = 150,     // field-default-value-opt
+        S_field = 151,                           // field
+        S_152_parameter_list_opt = 152,          // parameter-list-opt
+        S_153_parameter_list = 153,              // parameter-list
+        S_154_internal_identifier_opt = 154,     // internal-identifier-opt
+        S_155_parameter_default_value_opt = 155, // parameter-default-value-opt
+        S_156_parameter_decl = 156,              // parameter-decl
+        S_157_constraint_expression_specified_mod = 157, // constraint-expression-specified-mod
+        S_158_constraint_expression_specified = 158, // constraint-expression-specified
+        S_159_constraint_expression_mod = 159,   // constraint-expression-mod
+        S_160_constraint_expression = 160,       // constraint-expression
+        S_subpatterns = 161,                     // subpatterns
+        S_162_pattern_list = 162,                // pattern-list
+        S_163_pattern_field_sfx = 163,           // pattern-field-sfx
+        S_164_pattern_field = 164,               // pattern-field
+        S_165_pattern_mod = 165,                 // pattern-mod
+        S_166_pattern_sfx = 166,                 // pattern-sfx
+        S_pattern = 167,                         // pattern
+        S_168_concept_expression = 168,          // concept-expression
+        S_169_concept_expression_list_opt = 169, // concept-expression-list-opt
+        S_170_concept_expression_list = 170,     // concept-expression-list
+        S_171_reference_expression = 171,        // reference-expression
+        S_172_any_reference_expression = 172,    // any-reference-expression
+        S_173_syntax_expression = 173,           // syntax-expression
+        S_174_apostrophe_expression = 174,       // apostrophe-expression
+        S_175_new_expression = 175,              // new-expression
+        S_176_call_expression = 176,             // call-expression
+        S_177_lambda_start_decl = 177,           // lambda-start-decl
+        S_178_lambda_expression = 178,           // lambda-expression
+        S_179_pack_expression_opt = 179,         // pack-expression-opt
+        S_180_pack_expression = 180,             // pack-expression
+        S_181_compound_expression = 181,         // compound-expression
+        S_182_type_expr = 182                    // type-expr
       };
     };
 
@@ -979,7 +981,7 @@ namespace annium_lang {
         break;
 
       case symbol_kind::S_identifier: // identifier
-      case symbol_kind::S_146_argument_name: // argument-name
+      case symbol_kind::S_147_argument_name: // argument-name
         value.move< annium::annotated_identifier > (std::move (that.value));
         break;
 
@@ -988,7 +990,7 @@ namespace annium_lang {
         break;
 
       case symbol_kind::S_qname: // qname
-      case symbol_kind::S_132_fn_name: // fn-name
+      case symbol_kind::S_133_fn_name: // fn-name
         value.move< annium::annotated_qname > (std::move (that.value));
         break;
 
@@ -1001,12 +1003,12 @@ namespace annium_lang {
         value.move< annium::annotated_string_view > (std::move (that.value));
         break;
 
-      case symbol_kind::S_127_internal_identifier: // internal-identifier
-      case symbol_kind::S_153_internal_identifier_opt: // internal-identifier-opt
+      case symbol_kind::S_128_internal_identifier: // internal-identifier
+      case symbol_kind::S_154_internal_identifier_opt: // internal-identifier-opt
         value.move< annium::context_identifier > (std::move (that.value));
         break;
 
-      case symbol_kind::S_139_case_decl: // case-decl
+      case symbol_kind::S_140_case_decl: // case-decl
         value.move< annium::identifier > (std::move (that.value));
         break;
 
@@ -1019,21 +1021,21 @@ namespace annium_lang {
         value.move< annotated_nil > (std::move (that.value));
         break;
 
-      case symbol_kind::S_168_concept_expression_list_opt: // concept-expression-list-opt
-      case symbol_kind::S_169_concept_expression_list: // concept-expression-list
+      case symbol_kind::S_169_concept_expression_list_opt: // concept-expression-list-opt
+      case symbol_kind::S_170_concept_expression_list: // concept-expression-list
         value.move< concept_expression_list_t > (std::move (that.value));
         break;
 
-      case symbol_kind::S_136_enum_decl: // enum-decl
+      case symbol_kind::S_137_enum_decl: // enum-decl
         value.move< enum_decl > (std::move (that.value));
         break;
 
-      case symbol_kind::S_142_expression_list: // expression-list
+      case symbol_kind::S_143_expression_list: // expression-list
         value.move< expression_list_t > (std::move (that.value));
         break;
 
-      case symbol_kind::S_147_field_list_opt: // field-list-opt
-      case symbol_kind::S_148_field_list: // field-list
+      case symbol_kind::S_148_field_list_opt: // field-list-opt
+      case symbol_kind::S_149_field_list: // field-list
         value.move< field_list_t > (std::move (that.value));
         break;
 
@@ -1041,52 +1043,52 @@ namespace annium_lang {
         value.move< field_t > (std::move (that.value));
         break;
 
-      case symbol_kind::S_149_field_default_value_opt: // field-default-value-opt
+      case symbol_kind::S_150_field_default_value_opt: // field-default-value-opt
         value.move< field_t::default_spec > (std::move (that.value));
         break;
 
-      case symbol_kind::S_122_finished_statement: // finished-statement
+      case symbol_kind::S_123_finished_statement: // finished-statement
         value.move< finished_statement_type > (std::move (that.value));
         break;
 
-      case symbol_kind::S_129_fn_kind: // fn-kind
-      case symbol_kind::S_130_fn_kind_set: // fn-kind-set
+      case symbol_kind::S_130_fn_kind: // fn-kind
+      case symbol_kind::S_131_fn_kind_set: // fn-kind-set
         value.move< fn_kind > (std::move (that.value));
         break;
 
-      case symbol_kind::S_133_fn_start_decl: // fn-start-decl
-      case symbol_kind::S_135_fn_decl: // fn-decl
+      case symbol_kind::S_134_fn_start_decl: // fn-start-decl
+      case symbol_kind::S_136_fn_decl: // fn-decl
         value.move< fn_pure_t > (std::move (that.value));
         break;
 
-      case symbol_kind::S_124_generic_statement: // generic-statement
+      case symbol_kind::S_125_generic_statement: // generic-statement
         value.move< generic_statement_type > (std::move (that.value));
         break;
 
-      case symbol_kind::S_176_lambda_start_decl: // lambda-start-decl
+      case symbol_kind::S_177_lambda_start_decl: // lambda-start-decl
         value.move< lambda_t > (std::move (that.value));
         break;
 
-      case symbol_kind::S_115_let_decl: // let-decl
-      case symbol_kind::S_116_let_decl_start: // let-decl-start
-      case symbol_kind::S_117_let_decl_start_with_opt_type: // let-decl-start-with-opt-type
+      case symbol_kind::S_116_let_decl: // let-decl
+      case symbol_kind::S_117_let_decl_start: // let-decl-start
+      case symbol_kind::S_118_let_decl_start_with_opt_type: // let-decl-start-with-opt-type
         value.move< let_statement > (std::move (that.value));
         break;
 
       case symbol_kind::S_statement_any: // statement_any
-      case symbol_kind::S_113_finished_statement_any: // finished-statement-any
-      case symbol_kind::S_118_infunction_statement_any: // infunction-statement-any
-      case symbol_kind::S_119_finished_infunction_statement_any: // finished-infunction-statement-any
-      case symbol_kind::S_120_function_body: // function-body
-      case symbol_kind::S_121_braced_statements: // braced-statements
-      case symbol_kind::S_123_infunction_statement_set: // infunction-statement-set
+      case symbol_kind::S_114_finished_statement_any: // finished-statement-any
+      case symbol_kind::S_119_infunction_statement_any: // infunction-statement-any
+      case symbol_kind::S_120_finished_infunction_statement_any: // finished-infunction-statement-any
+      case symbol_kind::S_121_function_body: // function-body
+      case symbol_kind::S_122_braced_statements: // braced-statements
+      case symbol_kind::S_124_infunction_statement_set: // infunction-statement-set
         value.move< managed_statement_list > (std::move (that.value));
         break;
 
-      case symbol_kind::S_143_argument_list_opt: // argument-list-opt
-      case symbol_kind::S_144_argument_list: // argument-list
-      case symbol_kind::S_178_pack_expression_opt: // pack-expression-opt
-      case symbol_kind::S_179_pack_expression: // pack-expression
+      case symbol_kind::S_144_argument_list_opt: // argument-list-opt
+      case symbol_kind::S_145_argument_list: // argument-list
+      case symbol_kind::S_179_pack_expression_opt: // pack-expression-opt
+      case symbol_kind::S_180_pack_expression: // pack-expression
         value.move< named_expression_list_t > (std::move (that.value));
         break;
 
@@ -1094,25 +1096,25 @@ namespace annium_lang {
         value.move< named_expression_t > (std::move (that.value));
         break;
 
-      case symbol_kind::S_134_fn_requirement_opt: // fn-requirement-opt
+      case symbol_kind::S_135_fn_requirement_opt: // fn-requirement-opt
         value.move< optional<syntax_expression_t> > (std::move (that.value));
         break;
 
-      case symbol_kind::S_151_parameter_list_opt: // parameter-list-opt
-      case symbol_kind::S_152_parameter_list: // parameter-list
+      case symbol_kind::S_152_parameter_list_opt: // parameter-list-opt
+      case symbol_kind::S_153_parameter_list: // parameter-list
         value.move< parameter_list_t > (std::move (that.value));
         break;
 
-      case symbol_kind::S_155_parameter_decl: // parameter-decl
+      case symbol_kind::S_156_parameter_decl: // parameter-decl
         value.move< parameter_t > (std::move (that.value));
         break;
 
-      case symbol_kind::S_154_parameter_default_value_opt: // parameter-default-value-opt
+      case symbol_kind::S_155_parameter_default_value_opt: // parameter-default-value-opt
         value.move< parameter_t::default_spec > (std::move (that.value));
         break;
 
       case symbol_kind::S_subpatterns: // subpatterns
-      case symbol_kind::S_161_pattern_list: // pattern-list
+      case symbol_kind::S_162_pattern_list: // pattern-list
         value.move< pattern_list_t > (std::move (that.value));
         break;
 
@@ -1120,12 +1122,12 @@ namespace annium_lang {
         value.move< pattern_t > (std::move (that.value));
         break;
 
-      case symbol_kind::S_162_pattern_field_sfx: // pattern-field-sfx
-      case symbol_kind::S_163_pattern_field: // pattern-field
+      case symbol_kind::S_163_pattern_field_sfx: // pattern-field-sfx
+      case symbol_kind::S_164_pattern_field: // pattern-field
         value.move< pattern_t::field > (std::move (that.value));
         break;
 
-      case symbol_kind::S_170_reference_expression: // reference-expression
+      case symbol_kind::S_171_reference_expression: // reference-expression
         value.move< reference_expression_t > (std::move (that.value));
         break;
 
@@ -1168,51 +1170,51 @@ namespace annium_lang {
         break;
 
       case symbol_kind::S_statement: // statement
-      case symbol_kind::S_125_infunction_statement: // infunction-statement
+      case symbol_kind::S_126_infunction_statement: // infunction-statement
         value.move< statement > (std::move (that.value));
         break;
 
-      case symbol_kind::S_164_pattern_mod: // pattern-mod
-      case symbol_kind::S_165_pattern_sfx: // pattern-sfx
+      case symbol_kind::S_165_pattern_mod: // pattern-mod
+      case symbol_kind::S_166_pattern_sfx: // pattern-sfx
         value.move< std::pair<pattern_t, parameter_constraint_modifier_t> > (std::move (that.value));
         break;
 
-      case symbol_kind::S_131_fn_prefix_decl: // fn-prefix-decl
+      case symbol_kind::S_132_fn_prefix_decl: // fn-prefix-decl
         value.move< std::pair<sonia::lang::lex::resource_location, fn_kind> > (std::move (that.value));
         break;
 
-      case symbol_kind::S_156_constraint_expression_specified_mod: // constraint-expression-specified-mod
-      case symbol_kind::S_158_constraint_expression_mod: // constraint-expression-mod
+      case symbol_kind::S_157_constraint_expression_specified_mod: // constraint-expression-specified-mod
+      case symbol_kind::S_159_constraint_expression_mod: // constraint-expression-mod
         value.move< std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t> > (std::move (that.value));
         break;
 
-      case symbol_kind::S_157_constraint_expression_specified: // constraint-expression-specified
-      case symbol_kind::S_159_constraint_expression: // constraint-expression
+      case symbol_kind::S_158_constraint_expression_specified: // constraint-expression-specified
+      case symbol_kind::S_160_constraint_expression: // constraint-expression
         value.move< std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t> > (std::move (that.value));
         break;
 
-      case symbol_kind::S_137_case_list_opt: // case-list-opt
-      case symbol_kind::S_138_case_list: // case-list
+      case symbol_kind::S_138_case_list_opt: // case-list-opt
+      case symbol_kind::S_139_case_list: // case-list
         value.move< std::vector<annium::identifier> > (std::move (that.value));
         break;
 
-      case symbol_kind::S_140_struct_decl: // struct-decl
+      case symbol_kind::S_141_struct_decl: // struct-decl
         value.move< struct_decl > (std::move (that.value));
         break;
 
-      case symbol_kind::S_167_concept_expression: // concept-expression
-      case symbol_kind::S_171_any_reference_expression: // any-reference-expression
-      case symbol_kind::S_172_syntax_expression: // syntax-expression
-      case symbol_kind::S_173_apostrophe_expression: // apostrophe-expression
-      case symbol_kind::S_174_new_expression: // new-expression
-      case symbol_kind::S_175_call_expression: // call-expression
-      case symbol_kind::S_177_lambda_expression: // lambda-expression
-      case symbol_kind::S_180_compound_expression: // compound-expression
-      case symbol_kind::S_181_type_expr: // type-expr
+      case symbol_kind::S_168_concept_expression: // concept-expression
+      case symbol_kind::S_172_any_reference_expression: // any-reference-expression
+      case symbol_kind::S_173_syntax_expression: // syntax-expression
+      case symbol_kind::S_174_apostrophe_expression: // apostrophe-expression
+      case symbol_kind::S_175_new_expression: // new-expression
+      case symbol_kind::S_176_call_expression: // call-expression
+      case symbol_kind::S_178_lambda_expression: // lambda-expression
+      case symbol_kind::S_181_compound_expression: // compound-expression
+      case symbol_kind::S_182_type_expr: // type-expr
         value.move< syntax_expression_t > (std::move (that.value));
         break;
 
-      case symbol_kind::S_141_using_decl: // using-decl
+      case symbol_kind::S_142_using_decl: // using-decl
         value.move< using_decl > (std::move (that.value));
         break;
 
@@ -1861,685 +1863,685 @@ namespace annium_lang {
       case symbol_kind::S_STRING: // STRING
 #line 331 "annium.y"
                     { }
-#line 1865 "annium.tab.hpp"
+#line 1867 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_IDENTIFIER: // IDENTIFIER
 #line 331 "annium.y"
                     { }
-#line 1871 "annium.tab.hpp"
+#line 1873 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_CONTEXT_IDENTIFIER: // CONTEXT_IDENTIFIER
 #line 331 "annium.y"
                     { }
-#line 1877 "annium.tab.hpp"
+#line 1879 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_RESERVED_IDENTIFIER: // RESERVED_IDENTIFIER
 #line 331 "annium.y"
                     { }
-#line 1883 "annium.tab.hpp"
+#line 1885 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_CT_IDENTIFIER: // CT_IDENTIFIER
 #line 331 "annium.y"
                     { }
-#line 1889 "annium.tab.hpp"
+#line 1891 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_INTEGER_INDEX: // INTEGER_INDEX
 #line 331 "annium.y"
                     { }
-#line 1895 "annium.tab.hpp"
+#line 1897 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_INTEGER: // INTEGER
 #line 331 "annium.y"
                     { }
-#line 1901 "annium.tab.hpp"
+#line 1903 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_DECIMAL: // DECIMAL
 #line 331 "annium.y"
                     { }
-#line 1907 "annium.tab.hpp"
+#line 1909 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_DECIMAL_S: // DECIMAL_S
 #line 331 "annium.y"
                     { }
-#line 1913 "annium.tab.hpp"
+#line 1915 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_OPERATOR_TERM: // OPERATOR_TERM
 #line 331 "annium.y"
                     { }
-#line 1919 "annium.tab.hpp"
+#line 1921 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_ASSIGN: // "`=`"
 #line 331 "annium.y"
                     { }
-#line 1925 "annium.tab.hpp"
+#line 1927 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_UNDERSCORE: // "`_`"
 #line 331 "annium.y"
                     { }
-#line 1931 "annium.tab.hpp"
+#line 1933 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_EQ: // "`==`"
 #line 331 "annium.y"
                     { }
-#line 1937 "annium.tab.hpp"
+#line 1939 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_NE: // "`!=`"
 #line 331 "annium.y"
                     { }
-#line 1943 "annium.tab.hpp"
+#line 1945 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_LOGIC_AND: // "`&&`"
 #line 331 "annium.y"
                     { }
-#line 1949 "annium.tab.hpp"
+#line 1951 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_LOGIC_OR: // "`||`"
 #line 331 "annium.y"
                     { }
-#line 1955 "annium.tab.hpp"
+#line 1957 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_CONCAT: // "`..`"
 #line 331 "annium.y"
                     { }
-#line 1961 "annium.tab.hpp"
+#line 1963 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_ELLIPSIS: // "`...`"
 #line 331 "annium.y"
                     { }
-#line 1967 "annium.tab.hpp"
+#line 1969 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_OPEN_PARENTHESIS: // "`(`"
 #line 331 "annium.y"
                     { }
-#line 1973 "annium.tab.hpp"
+#line 1975 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_OPEN_BRACE: // "`{`"
 #line 331 "annium.y"
                     { }
-#line 1979 "annium.tab.hpp"
+#line 1981 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_OPEN_SQUARE_BRACKET: // "`[`"
 #line 331 "annium.y"
                     { }
-#line 1985 "annium.tab.hpp"
+#line 1987 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_OPEN_SQUARE_DBL_BRACKET: // "`[[`"
 #line 331 "annium.y"
                     { }
-#line 1991 "annium.tab.hpp"
+#line 1993 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_POINT: // "`.`"
 #line 331 "annium.y"
                     { }
-#line 1997 "annium.tab.hpp"
+#line 1999 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_PLUS: // "`+`"
 #line 331 "annium.y"
                     { }
-#line 2003 "annium.tab.hpp"
+#line 2005 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_MINUS: // "`-`"
 #line 331 "annium.y"
                     { }
-#line 2009 "annium.tab.hpp"
+#line 2011 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_ASTERISK: // "`*`"
 #line 331 "annium.y"
                     { }
-#line 2015 "annium.tab.hpp"
+#line 2017 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_AMPERSAND: // "`&`"
 #line 331 "annium.y"
                     { }
-#line 2021 "annium.tab.hpp"
+#line 2023 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_BITOR: // "`|`"
 #line 331 "annium.y"
                     { }
-#line 2027 "annium.tab.hpp"
+#line 2029 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_EXCLPT: // "`!`"
 #line 331 "annium.y"
                     { }
-#line 2033 "annium.tab.hpp"
+#line 2035 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_QMARK: // "`?`"
 #line 331 "annium.y"
                     { }
-#line 2039 "annium.tab.hpp"
+#line 2041 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_NEW: // "`new`"
 #line 331 "annium.y"
                     { }
-#line 2045 "annium.tab.hpp"
+#line 2047 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_CONTINUE: // "`continue`"
 #line 331 "annium.y"
                     { }
-#line 2051 "annium.tab.hpp"
+#line 2053 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_BREAK: // "`break`"
 #line 331 "annium.y"
                     { }
-#line 2057 "annium.tab.hpp"
+#line 2059 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_RETURN: // "`return`"
 #line 331 "annium.y"
                     { }
-#line 2063 "annium.tab.hpp"
+#line 2065 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_YIELD: // "`yield`"
 #line 331 "annium.y"
                     { }
-#line 2069 "annium.tab.hpp"
+#line 2071 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_FN: // "`fn`"
 #line 331 "annium.y"
                     { }
-#line 2075 "annium.tab.hpp"
+#line 2077 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_TYPEFN: // "`typefn`"
 #line 331 "annium.y"
                     { }
-#line 2081 "annium.tab.hpp"
+#line 2083 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_TYPENAME: // "typename modifier"
 #line 331 "annium.y"
                     { }
-#line 2087 "annium.tab.hpp"
+#line 2089 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_CONSTEXPR: // "constexpr modifier"
 #line 331 "annium.y"
                     { }
-#line 2093 "annium.tab.hpp"
+#line 2095 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_RUNTIME: // "runctime modifier"
 #line 331 "annium.y"
                     { }
-#line 2099 "annium.tab.hpp"
+#line 2101 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_NIL_WORD: // "nil"
 #line 331 "annium.y"
                     { }
-#line 2105 "annium.tab.hpp"
+#line 2107 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_TRUE_WORD: // "true"
 #line 331 "annium.y"
                     { }
-#line 2111 "annium.tab.hpp"
+#line 2113 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_FALSE_WORD: // "false"
 #line 331 "annium.y"
                     { }
-#line 2117 "annium.tab.hpp"
+#line 2119 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_PROBE: // PROBE
 #line 331 "annium.y"
                     { }
-#line 2123 "annium.tab.hpp"
+#line 2125 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_statement_any: // statement_any
 #line 331 "annium.y"
                     { }
-#line 2129 "annium.tab.hpp"
+#line 2131 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_113_finished_statement_any: // finished-statement-any
+      case symbol_kind::S_114_finished_statement_any: // finished-statement-any
 #line 331 "annium.y"
                     { }
-#line 2135 "annium.tab.hpp"
+#line 2137 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_statement: // statement
 #line 331 "annium.y"
                     { }
-#line 2141 "annium.tab.hpp"
+#line 2143 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_115_let_decl: // let-decl
+      case symbol_kind::S_116_let_decl: // let-decl
 #line 331 "annium.y"
                     { }
-#line 2147 "annium.tab.hpp"
+#line 2149 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_116_let_decl_start: // let-decl-start
+      case symbol_kind::S_117_let_decl_start: // let-decl-start
 #line 331 "annium.y"
                     { }
-#line 2153 "annium.tab.hpp"
+#line 2155 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_117_let_decl_start_with_opt_type: // let-decl-start-with-opt-type
+      case symbol_kind::S_118_let_decl_start_with_opt_type: // let-decl-start-with-opt-type
 #line 331 "annium.y"
                     { }
-#line 2159 "annium.tab.hpp"
+#line 2161 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_118_infunction_statement_any: // infunction-statement-any
+      case symbol_kind::S_119_infunction_statement_any: // infunction-statement-any
 #line 331 "annium.y"
                     { }
-#line 2165 "annium.tab.hpp"
+#line 2167 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_119_finished_infunction_statement_any: // finished-infunction-statement-any
+      case symbol_kind::S_120_finished_infunction_statement_any: // finished-infunction-statement-any
 #line 331 "annium.y"
                     { }
-#line 2171 "annium.tab.hpp"
+#line 2173 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_120_function_body: // function-body
+      case symbol_kind::S_121_function_body: // function-body
 #line 331 "annium.y"
                     { }
-#line 2177 "annium.tab.hpp"
+#line 2179 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_121_braced_statements: // braced-statements
+      case symbol_kind::S_122_braced_statements: // braced-statements
 #line 331 "annium.y"
                     { }
-#line 2183 "annium.tab.hpp"
+#line 2185 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_122_finished_statement: // finished-statement
+      case symbol_kind::S_123_finished_statement: // finished-statement
 #line 331 "annium.y"
                     { }
-#line 2189 "annium.tab.hpp"
+#line 2191 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_123_infunction_statement_set: // infunction-statement-set
+      case symbol_kind::S_124_infunction_statement_set: // infunction-statement-set
 #line 331 "annium.y"
                     { }
-#line 2195 "annium.tab.hpp"
+#line 2197 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_124_generic_statement: // generic-statement
+      case symbol_kind::S_125_generic_statement: // generic-statement
 #line 331 "annium.y"
                     { }
-#line 2201 "annium.tab.hpp"
+#line 2203 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_125_infunction_statement: // infunction-statement
+      case symbol_kind::S_126_infunction_statement: // infunction-statement
 #line 331 "annium.y"
                     { }
-#line 2207 "annium.tab.hpp"
+#line 2209 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_identifier: // identifier
 #line 331 "annium.y"
                     { }
-#line 2213 "annium.tab.hpp"
+#line 2215 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_127_internal_identifier: // internal-identifier
+      case symbol_kind::S_128_internal_identifier: // internal-identifier
 #line 331 "annium.y"
                     { }
-#line 2219 "annium.tab.hpp"
+#line 2221 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_qname: // qname
 #line 331 "annium.y"
                     { }
-#line 2225 "annium.tab.hpp"
+#line 2227 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_129_fn_kind: // fn-kind
+      case symbol_kind::S_130_fn_kind: // fn-kind
 #line 331 "annium.y"
                     { }
-#line 2231 "annium.tab.hpp"
+#line 2233 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_130_fn_kind_set: // fn-kind-set
+      case symbol_kind::S_131_fn_kind_set: // fn-kind-set
 #line 331 "annium.y"
                     { }
-#line 2237 "annium.tab.hpp"
+#line 2239 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_131_fn_prefix_decl: // fn-prefix-decl
+      case symbol_kind::S_132_fn_prefix_decl: // fn-prefix-decl
 #line 331 "annium.y"
                     { }
-#line 2243 "annium.tab.hpp"
+#line 2245 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_132_fn_name: // fn-name
+      case symbol_kind::S_133_fn_name: // fn-name
 #line 331 "annium.y"
                     { }
-#line 2249 "annium.tab.hpp"
+#line 2251 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_133_fn_start_decl: // fn-start-decl
+      case symbol_kind::S_134_fn_start_decl: // fn-start-decl
 #line 331 "annium.y"
                     { }
-#line 2255 "annium.tab.hpp"
+#line 2257 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_134_fn_requirement_opt: // fn-requirement-opt
+      case symbol_kind::S_135_fn_requirement_opt: // fn-requirement-opt
 #line 331 "annium.y"
                     { }
-#line 2261 "annium.tab.hpp"
+#line 2263 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_135_fn_decl: // fn-decl
+      case symbol_kind::S_136_fn_decl: // fn-decl
 #line 331 "annium.y"
                     { }
-#line 2267 "annium.tab.hpp"
+#line 2269 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_136_enum_decl: // enum-decl
+      case symbol_kind::S_137_enum_decl: // enum-decl
 #line 331 "annium.y"
                     { }
-#line 2273 "annium.tab.hpp"
+#line 2275 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_137_case_list_opt: // case-list-opt
+      case symbol_kind::S_138_case_list_opt: // case-list-opt
 #line 331 "annium.y"
                     { }
-#line 2279 "annium.tab.hpp"
+#line 2281 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_138_case_list: // case-list
+      case symbol_kind::S_139_case_list: // case-list
 #line 331 "annium.y"
                     { }
-#line 2285 "annium.tab.hpp"
+#line 2287 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_139_case_decl: // case-decl
+      case symbol_kind::S_140_case_decl: // case-decl
 #line 331 "annium.y"
                     { }
-#line 2291 "annium.tab.hpp"
+#line 2293 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_140_struct_decl: // struct-decl
+      case symbol_kind::S_141_struct_decl: // struct-decl
 #line 331 "annium.y"
                     { }
-#line 2297 "annium.tab.hpp"
+#line 2299 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_141_using_decl: // using-decl
+      case symbol_kind::S_142_using_decl: // using-decl
 #line 331 "annium.y"
                     { }
-#line 2303 "annium.tab.hpp"
+#line 2305 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_142_expression_list: // expression-list
+      case symbol_kind::S_143_expression_list: // expression-list
 #line 331 "annium.y"
                     { }
-#line 2309 "annium.tab.hpp"
+#line 2311 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_143_argument_list_opt: // argument-list-opt
+      case symbol_kind::S_144_argument_list_opt: // argument-list-opt
 #line 331 "annium.y"
                     { }
-#line 2315 "annium.tab.hpp"
+#line 2317 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_144_argument_list: // argument-list
+      case symbol_kind::S_145_argument_list: // argument-list
 #line 331 "annium.y"
                     { }
-#line 2321 "annium.tab.hpp"
+#line 2323 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_argument: // argument
 #line 331 "annium.y"
                     { }
-#line 2327 "annium.tab.hpp"
+#line 2329 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_146_argument_name: // argument-name
+      case symbol_kind::S_147_argument_name: // argument-name
 #line 331 "annium.y"
                     { }
-#line 2333 "annium.tab.hpp"
+#line 2335 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_147_field_list_opt: // field-list-opt
+      case symbol_kind::S_148_field_list_opt: // field-list-opt
 #line 331 "annium.y"
                     { }
-#line 2339 "annium.tab.hpp"
+#line 2341 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_148_field_list: // field-list
+      case symbol_kind::S_149_field_list: // field-list
 #line 331 "annium.y"
                     { }
-#line 2345 "annium.tab.hpp"
+#line 2347 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_149_field_default_value_opt: // field-default-value-opt
+      case symbol_kind::S_150_field_default_value_opt: // field-default-value-opt
 #line 331 "annium.y"
                     { }
-#line 2351 "annium.tab.hpp"
+#line 2353 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_field: // field
 #line 331 "annium.y"
                     { }
-#line 2357 "annium.tab.hpp"
+#line 2359 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_151_parameter_list_opt: // parameter-list-opt
+      case symbol_kind::S_152_parameter_list_opt: // parameter-list-opt
 #line 331 "annium.y"
                     { }
-#line 2363 "annium.tab.hpp"
+#line 2365 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_152_parameter_list: // parameter-list
+      case symbol_kind::S_153_parameter_list: // parameter-list
 #line 331 "annium.y"
                     { }
-#line 2369 "annium.tab.hpp"
+#line 2371 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_153_internal_identifier_opt: // internal-identifier-opt
+      case symbol_kind::S_154_internal_identifier_opt: // internal-identifier-opt
 #line 331 "annium.y"
                     { }
-#line 2375 "annium.tab.hpp"
+#line 2377 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_154_parameter_default_value_opt: // parameter-default-value-opt
+      case symbol_kind::S_155_parameter_default_value_opt: // parameter-default-value-opt
 #line 331 "annium.y"
                     { }
-#line 2381 "annium.tab.hpp"
+#line 2383 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_155_parameter_decl: // parameter-decl
+      case symbol_kind::S_156_parameter_decl: // parameter-decl
 #line 331 "annium.y"
                     { }
-#line 2387 "annium.tab.hpp"
+#line 2389 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_156_constraint_expression_specified_mod: // constraint-expression-specified-mod
+      case symbol_kind::S_157_constraint_expression_specified_mod: // constraint-expression-specified-mod
 #line 331 "annium.y"
                     { }
-#line 2393 "annium.tab.hpp"
+#line 2395 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_157_constraint_expression_specified: // constraint-expression-specified
+      case symbol_kind::S_158_constraint_expression_specified: // constraint-expression-specified
 #line 331 "annium.y"
                     { }
-#line 2399 "annium.tab.hpp"
+#line 2401 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_158_constraint_expression_mod: // constraint-expression-mod
+      case symbol_kind::S_159_constraint_expression_mod: // constraint-expression-mod
 #line 331 "annium.y"
                     { }
-#line 2405 "annium.tab.hpp"
+#line 2407 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_159_constraint_expression: // constraint-expression
+      case symbol_kind::S_160_constraint_expression: // constraint-expression
 #line 331 "annium.y"
                     { }
-#line 2411 "annium.tab.hpp"
+#line 2413 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_subpatterns: // subpatterns
 #line 331 "annium.y"
                     { }
-#line 2417 "annium.tab.hpp"
+#line 2419 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_161_pattern_list: // pattern-list
+      case symbol_kind::S_162_pattern_list: // pattern-list
 #line 331 "annium.y"
                     { }
-#line 2423 "annium.tab.hpp"
+#line 2425 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_162_pattern_field_sfx: // pattern-field-sfx
+      case symbol_kind::S_163_pattern_field_sfx: // pattern-field-sfx
 #line 331 "annium.y"
                     { }
-#line 2429 "annium.tab.hpp"
+#line 2431 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_163_pattern_field: // pattern-field
+      case symbol_kind::S_164_pattern_field: // pattern-field
 #line 331 "annium.y"
                     { }
-#line 2435 "annium.tab.hpp"
+#line 2437 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_164_pattern_mod: // pattern-mod
+      case symbol_kind::S_165_pattern_mod: // pattern-mod
 #line 331 "annium.y"
                     { }
-#line 2441 "annium.tab.hpp"
+#line 2443 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_165_pattern_sfx: // pattern-sfx
+      case symbol_kind::S_166_pattern_sfx: // pattern-sfx
 #line 331 "annium.y"
                     { }
-#line 2447 "annium.tab.hpp"
+#line 2449 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_pattern: // pattern
 #line 331 "annium.y"
                     { }
-#line 2453 "annium.tab.hpp"
+#line 2455 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_167_concept_expression: // concept-expression
+      case symbol_kind::S_168_concept_expression: // concept-expression
 #line 331 "annium.y"
                     { }
-#line 2459 "annium.tab.hpp"
+#line 2461 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_168_concept_expression_list_opt: // concept-expression-list-opt
+      case symbol_kind::S_169_concept_expression_list_opt: // concept-expression-list-opt
 #line 331 "annium.y"
                     { }
-#line 2465 "annium.tab.hpp"
+#line 2467 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_169_concept_expression_list: // concept-expression-list
+      case symbol_kind::S_170_concept_expression_list: // concept-expression-list
 #line 331 "annium.y"
                     { }
-#line 2471 "annium.tab.hpp"
+#line 2473 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_170_reference_expression: // reference-expression
+      case symbol_kind::S_171_reference_expression: // reference-expression
 #line 331 "annium.y"
                     { }
-#line 2477 "annium.tab.hpp"
+#line 2479 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_171_any_reference_expression: // any-reference-expression
+      case symbol_kind::S_172_any_reference_expression: // any-reference-expression
 #line 331 "annium.y"
                     { }
-#line 2483 "annium.tab.hpp"
+#line 2485 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_172_syntax_expression: // syntax-expression
+      case symbol_kind::S_173_syntax_expression: // syntax-expression
 #line 331 "annium.y"
                     { }
-#line 2489 "annium.tab.hpp"
+#line 2491 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_173_apostrophe_expression: // apostrophe-expression
+      case symbol_kind::S_174_apostrophe_expression: // apostrophe-expression
 #line 331 "annium.y"
                     { }
-#line 2495 "annium.tab.hpp"
+#line 2497 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_174_new_expression: // new-expression
+      case symbol_kind::S_175_new_expression: // new-expression
 #line 331 "annium.y"
                     { }
-#line 2501 "annium.tab.hpp"
+#line 2503 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_175_call_expression: // call-expression
+      case symbol_kind::S_176_call_expression: // call-expression
 #line 331 "annium.y"
                     { }
-#line 2507 "annium.tab.hpp"
+#line 2509 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_176_lambda_start_decl: // lambda-start-decl
+      case symbol_kind::S_177_lambda_start_decl: // lambda-start-decl
 #line 331 "annium.y"
                     { }
-#line 2513 "annium.tab.hpp"
+#line 2515 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_177_lambda_expression: // lambda-expression
+      case symbol_kind::S_178_lambda_expression: // lambda-expression
 #line 331 "annium.y"
                     { }
-#line 2519 "annium.tab.hpp"
+#line 2521 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_178_pack_expression_opt: // pack-expression-opt
+      case symbol_kind::S_179_pack_expression_opt: // pack-expression-opt
 #line 331 "annium.y"
                     { }
-#line 2525 "annium.tab.hpp"
+#line 2527 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_179_pack_expression: // pack-expression
+      case symbol_kind::S_180_pack_expression: // pack-expression
 #line 331 "annium.y"
                     { }
-#line 2531 "annium.tab.hpp"
+#line 2533 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_180_compound_expression: // compound-expression
+      case symbol_kind::S_181_compound_expression: // compound-expression
 #line 331 "annium.y"
                     { }
-#line 2537 "annium.tab.hpp"
+#line 2539 "annium.tab.hpp"
         break;
 
-      case symbol_kind::S_181_type_expr: // type-expr
+      case symbol_kind::S_182_type_expr: // type-expr
 #line 331 "annium.y"
                     { }
-#line 2543 "annium.tab.hpp"
+#line 2545 "annium.tab.hpp"
         break;
 
        default:
@@ -2555,7 +2557,7 @@ switch (yykind)
         break;
 
       case symbol_kind::S_identifier: // identifier
-      case symbol_kind::S_146_argument_name: // argument-name
+      case symbol_kind::S_147_argument_name: // argument-name
         value.template destroy< annium::annotated_identifier > ();
         break;
 
@@ -2564,7 +2566,7 @@ switch (yykind)
         break;
 
       case symbol_kind::S_qname: // qname
-      case symbol_kind::S_132_fn_name: // fn-name
+      case symbol_kind::S_133_fn_name: // fn-name
         value.template destroy< annium::annotated_qname > ();
         break;
 
@@ -2577,12 +2579,12 @@ switch (yykind)
         value.template destroy< annium::annotated_string_view > ();
         break;
 
-      case symbol_kind::S_127_internal_identifier: // internal-identifier
-      case symbol_kind::S_153_internal_identifier_opt: // internal-identifier-opt
+      case symbol_kind::S_128_internal_identifier: // internal-identifier
+      case symbol_kind::S_154_internal_identifier_opt: // internal-identifier-opt
         value.template destroy< annium::context_identifier > ();
         break;
 
-      case symbol_kind::S_139_case_decl: // case-decl
+      case symbol_kind::S_140_case_decl: // case-decl
         value.template destroy< annium::identifier > ();
         break;
 
@@ -2595,21 +2597,21 @@ switch (yykind)
         value.template destroy< annotated_nil > ();
         break;
 
-      case symbol_kind::S_168_concept_expression_list_opt: // concept-expression-list-opt
-      case symbol_kind::S_169_concept_expression_list: // concept-expression-list
+      case symbol_kind::S_169_concept_expression_list_opt: // concept-expression-list-opt
+      case symbol_kind::S_170_concept_expression_list: // concept-expression-list
         value.template destroy< concept_expression_list_t > ();
         break;
 
-      case symbol_kind::S_136_enum_decl: // enum-decl
+      case symbol_kind::S_137_enum_decl: // enum-decl
         value.template destroy< enum_decl > ();
         break;
 
-      case symbol_kind::S_142_expression_list: // expression-list
+      case symbol_kind::S_143_expression_list: // expression-list
         value.template destroy< expression_list_t > ();
         break;
 
-      case symbol_kind::S_147_field_list_opt: // field-list-opt
-      case symbol_kind::S_148_field_list: // field-list
+      case symbol_kind::S_148_field_list_opt: // field-list-opt
+      case symbol_kind::S_149_field_list: // field-list
         value.template destroy< field_list_t > ();
         break;
 
@@ -2617,52 +2619,52 @@ switch (yykind)
         value.template destroy< field_t > ();
         break;
 
-      case symbol_kind::S_149_field_default_value_opt: // field-default-value-opt
+      case symbol_kind::S_150_field_default_value_opt: // field-default-value-opt
         value.template destroy< field_t::default_spec > ();
         break;
 
-      case symbol_kind::S_122_finished_statement: // finished-statement
+      case symbol_kind::S_123_finished_statement: // finished-statement
         value.template destroy< finished_statement_type > ();
         break;
 
-      case symbol_kind::S_129_fn_kind: // fn-kind
-      case symbol_kind::S_130_fn_kind_set: // fn-kind-set
+      case symbol_kind::S_130_fn_kind: // fn-kind
+      case symbol_kind::S_131_fn_kind_set: // fn-kind-set
         value.template destroy< fn_kind > ();
         break;
 
-      case symbol_kind::S_133_fn_start_decl: // fn-start-decl
-      case symbol_kind::S_135_fn_decl: // fn-decl
+      case symbol_kind::S_134_fn_start_decl: // fn-start-decl
+      case symbol_kind::S_136_fn_decl: // fn-decl
         value.template destroy< fn_pure_t > ();
         break;
 
-      case symbol_kind::S_124_generic_statement: // generic-statement
+      case symbol_kind::S_125_generic_statement: // generic-statement
         value.template destroy< generic_statement_type > ();
         break;
 
-      case symbol_kind::S_176_lambda_start_decl: // lambda-start-decl
+      case symbol_kind::S_177_lambda_start_decl: // lambda-start-decl
         value.template destroy< lambda_t > ();
         break;
 
-      case symbol_kind::S_115_let_decl: // let-decl
-      case symbol_kind::S_116_let_decl_start: // let-decl-start
-      case symbol_kind::S_117_let_decl_start_with_opt_type: // let-decl-start-with-opt-type
+      case symbol_kind::S_116_let_decl: // let-decl
+      case symbol_kind::S_117_let_decl_start: // let-decl-start
+      case symbol_kind::S_118_let_decl_start_with_opt_type: // let-decl-start-with-opt-type
         value.template destroy< let_statement > ();
         break;
 
       case symbol_kind::S_statement_any: // statement_any
-      case symbol_kind::S_113_finished_statement_any: // finished-statement-any
-      case symbol_kind::S_118_infunction_statement_any: // infunction-statement-any
-      case symbol_kind::S_119_finished_infunction_statement_any: // finished-infunction-statement-any
-      case symbol_kind::S_120_function_body: // function-body
-      case symbol_kind::S_121_braced_statements: // braced-statements
-      case symbol_kind::S_123_infunction_statement_set: // infunction-statement-set
+      case symbol_kind::S_114_finished_statement_any: // finished-statement-any
+      case symbol_kind::S_119_infunction_statement_any: // infunction-statement-any
+      case symbol_kind::S_120_finished_infunction_statement_any: // finished-infunction-statement-any
+      case symbol_kind::S_121_function_body: // function-body
+      case symbol_kind::S_122_braced_statements: // braced-statements
+      case symbol_kind::S_124_infunction_statement_set: // infunction-statement-set
         value.template destroy< managed_statement_list > ();
         break;
 
-      case symbol_kind::S_143_argument_list_opt: // argument-list-opt
-      case symbol_kind::S_144_argument_list: // argument-list
-      case symbol_kind::S_178_pack_expression_opt: // pack-expression-opt
-      case symbol_kind::S_179_pack_expression: // pack-expression
+      case symbol_kind::S_144_argument_list_opt: // argument-list-opt
+      case symbol_kind::S_145_argument_list: // argument-list
+      case symbol_kind::S_179_pack_expression_opt: // pack-expression-opt
+      case symbol_kind::S_180_pack_expression: // pack-expression
         value.template destroy< named_expression_list_t > ();
         break;
 
@@ -2670,25 +2672,25 @@ switch (yykind)
         value.template destroy< named_expression_t > ();
         break;
 
-      case symbol_kind::S_134_fn_requirement_opt: // fn-requirement-opt
+      case symbol_kind::S_135_fn_requirement_opt: // fn-requirement-opt
         value.template destroy< optional<syntax_expression_t> > ();
         break;
 
-      case symbol_kind::S_151_parameter_list_opt: // parameter-list-opt
-      case symbol_kind::S_152_parameter_list: // parameter-list
+      case symbol_kind::S_152_parameter_list_opt: // parameter-list-opt
+      case symbol_kind::S_153_parameter_list: // parameter-list
         value.template destroy< parameter_list_t > ();
         break;
 
-      case symbol_kind::S_155_parameter_decl: // parameter-decl
+      case symbol_kind::S_156_parameter_decl: // parameter-decl
         value.template destroy< parameter_t > ();
         break;
 
-      case symbol_kind::S_154_parameter_default_value_opt: // parameter-default-value-opt
+      case symbol_kind::S_155_parameter_default_value_opt: // parameter-default-value-opt
         value.template destroy< parameter_t::default_spec > ();
         break;
 
       case symbol_kind::S_subpatterns: // subpatterns
-      case symbol_kind::S_161_pattern_list: // pattern-list
+      case symbol_kind::S_162_pattern_list: // pattern-list
         value.template destroy< pattern_list_t > ();
         break;
 
@@ -2696,12 +2698,12 @@ switch (yykind)
         value.template destroy< pattern_t > ();
         break;
 
-      case symbol_kind::S_162_pattern_field_sfx: // pattern-field-sfx
-      case symbol_kind::S_163_pattern_field: // pattern-field
+      case symbol_kind::S_163_pattern_field_sfx: // pattern-field-sfx
+      case symbol_kind::S_164_pattern_field: // pattern-field
         value.template destroy< pattern_t::field > ();
         break;
 
-      case symbol_kind::S_170_reference_expression: // reference-expression
+      case symbol_kind::S_171_reference_expression: // reference-expression
         value.template destroy< reference_expression_t > ();
         break;
 
@@ -2744,51 +2746,51 @@ switch (yykind)
         break;
 
       case symbol_kind::S_statement: // statement
-      case symbol_kind::S_125_infunction_statement: // infunction-statement
+      case symbol_kind::S_126_infunction_statement: // infunction-statement
         value.template destroy< statement > ();
         break;
 
-      case symbol_kind::S_164_pattern_mod: // pattern-mod
-      case symbol_kind::S_165_pattern_sfx: // pattern-sfx
+      case symbol_kind::S_165_pattern_mod: // pattern-mod
+      case symbol_kind::S_166_pattern_sfx: // pattern-sfx
         value.template destroy< std::pair<pattern_t, parameter_constraint_modifier_t> > ();
         break;
 
-      case symbol_kind::S_131_fn_prefix_decl: // fn-prefix-decl
+      case symbol_kind::S_132_fn_prefix_decl: // fn-prefix-decl
         value.template destroy< std::pair<sonia::lang::lex::resource_location, fn_kind> > ();
         break;
 
-      case symbol_kind::S_156_constraint_expression_specified_mod: // constraint-expression-specified-mod
-      case symbol_kind::S_158_constraint_expression_mod: // constraint-expression-mod
+      case symbol_kind::S_157_constraint_expression_specified_mod: // constraint-expression-specified-mod
+      case symbol_kind::S_159_constraint_expression_mod: // constraint-expression-mod
         value.template destroy< std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t> > ();
         break;
 
-      case symbol_kind::S_157_constraint_expression_specified: // constraint-expression-specified
-      case symbol_kind::S_159_constraint_expression: // constraint-expression
+      case symbol_kind::S_158_constraint_expression_specified: // constraint-expression-specified
+      case symbol_kind::S_160_constraint_expression: // constraint-expression
         value.template destroy< std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t> > ();
         break;
 
-      case symbol_kind::S_137_case_list_opt: // case-list-opt
-      case symbol_kind::S_138_case_list: // case-list
+      case symbol_kind::S_138_case_list_opt: // case-list-opt
+      case symbol_kind::S_139_case_list: // case-list
         value.template destroy< std::vector<annium::identifier> > ();
         break;
 
-      case symbol_kind::S_140_struct_decl: // struct-decl
+      case symbol_kind::S_141_struct_decl: // struct-decl
         value.template destroy< struct_decl > ();
         break;
 
-      case symbol_kind::S_167_concept_expression: // concept-expression
-      case symbol_kind::S_171_any_reference_expression: // any-reference-expression
-      case symbol_kind::S_172_syntax_expression: // syntax-expression
-      case symbol_kind::S_173_apostrophe_expression: // apostrophe-expression
-      case symbol_kind::S_174_new_expression: // new-expression
-      case symbol_kind::S_175_call_expression: // call-expression
-      case symbol_kind::S_177_lambda_expression: // lambda-expression
-      case symbol_kind::S_180_compound_expression: // compound-expression
-      case symbol_kind::S_181_type_expr: // type-expr
+      case symbol_kind::S_168_concept_expression: // concept-expression
+      case symbol_kind::S_172_any_reference_expression: // any-reference-expression
+      case symbol_kind::S_173_syntax_expression: // syntax-expression
+      case symbol_kind::S_174_apostrophe_expression: // apostrophe-expression
+      case symbol_kind::S_175_new_expression: // new-expression
+      case symbol_kind::S_176_call_expression: // call-expression
+      case symbol_kind::S_178_lambda_expression: // lambda-expression
+      case symbol_kind::S_181_compound_expression: // compound-expression
+      case symbol_kind::S_182_type_expr: // type-expr
         value.template destroy< syntax_expression_t > ();
         break;
 
-      case symbol_kind::S_141_using_decl: // using-decl
+      case symbol_kind::S_142_using_decl: // using-decl
         value.template destroy< using_decl > ();
         break;
 
@@ -4390,6 +4392,21 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
+      make_PREFIXMINUS (location_type l)
+      {
+        return symbol_type (token::PREFIXMINUS, std::move (l));
+      }
+#else
+      static
+      symbol_type
+      make_PREFIXMINUS (const location_type& l)
+      {
+        return symbol_type (token::PREFIXMINUS, l);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
       make_INCLUDE (location_type l)
       {
         return symbol_type (token::INCLUDE, std::move (l));
@@ -4972,9 +4989,9 @@ switch (yykind)
     /// Constants.
     enum
     {
-      yylast_ = 1278,     ///< Last index in yytable_.
+      yylast_ = 1271,     ///< Last index in yytable_.
       yynnts_ = 72,  ///< Number of nonterminal symbols.
-      yyfinal_ = 98 ///< Termination state number.
+      yyfinal_ = 100 ///< Termination state number.
     };
 
 
@@ -4986,7 +5003,7 @@ switch (yykind)
 
 
 } // annium_lang
-#line 4990 "annium.tab.hpp"
+#line 5007 "annium.tab.hpp"
 
 
 

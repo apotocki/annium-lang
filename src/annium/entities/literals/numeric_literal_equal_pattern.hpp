@@ -25,7 +25,7 @@ public:
     apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const override;
 
     std::ostream& print(environment const&, std::ostream& s) const override
-    { return s << "equal(:integer|decimal|bool|i8|u8|i16|u16|i32|u32|i64|u64|f16|f32|f64, :integer|decimal|bool|i8|u8|i16|u16|i32|u32|i64|u64|f16|f32|f64)->bool"sv; }
+    { return s << "equal(@is_numeric, @is_numeric)->bool"sv; }
 };
 
 } // namespace annium

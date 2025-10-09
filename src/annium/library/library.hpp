@@ -24,7 +24,8 @@ void annium_array_set_at(vm::context&);
 void annium_create_extern_object(vm::context&);
 void annium_set_object_property(vm::context&);
 
-void annium_negate(vm::context&);
+void annium_logical_not(vm::context&);
+void annium_unary_minus(vm::context&);
 void annium_concat_string(vm::context&);
 
 void annium_operator_plus_integer(vm::context&);

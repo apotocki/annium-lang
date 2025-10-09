@@ -224,8 +224,10 @@ void annium_array_tail(vm::context& ctx)
         using type = typename decltype(ident)::type;
         if constexpr (std::is_same_v<type, std::nullptr_t>) { }
         else if constexpr (std::is_void_v<type>) { }
-        else if constexpr (std::is_same_v<type, numetron::basic_integer_view<invocation_bigint_limb_type>>) { 
-            THROW_NOT_IMPLEMENTED_ERROR("bigint tail");
+        else if constexpr (numetron::is_basic_integer_view_v<type>) { 
+            THROW_NOT_IMPLEMENTED_ERROR("bigint tail"); }
+        else if constexpr (numetron::is_basic_decimal_view_v<type>) {
+            THROW_NOT_IMPLEMENTED_ERROR("decimal tail");
         } else if constexpr (std::is_same_v<type, sonia::basic_string_view<char>>) {
             THROW_NOT_IMPLEMENTED_ERROR("string tail");
         } else {
@@ -256,7 +258,7 @@ void annium_array_tail(vm::context& ctx)
     });
 }
 
-void annium_negate(vm::context& ctx)
+void annium_logical_not(vm::context& ctx)
 {
     auto val = *ctx.stack_back();
     while (val.type == blob_type::blob_reference) {
@@ -266,16 +268,39 @@ void annium_negate(vm::context& ctx)
         using type = typename decltype(ident)::type;
         if (!is_array(b)) {
             if constexpr (std::is_same_v<type, bool>) { return bool_blob_result(!b.bp.i8value); }
-            else if constexpr (std::is_integral_v<type> || std::is_same_v<type, numetron::basic_integer_view<invocation_bigint_limb_type>>) { return bool_blob_result(!as<type>(b)); }
+            else if constexpr (std::is_integral_v<type> || numetron::is_basic_integer_view_v<type>) { return bool_blob_result(!as<type>(b)); }
             else {
-                throw exception("cna't negate value: %1%"_fmt % b);
+                throw exception("Logical not operation cannot be applied to the provided argument: %1%"_fmt % b);
             }
         } else if (contains_string(b)) {
             auto sv = as<std::string_view>(b);
             return bool_blob_result(sv.empty());
         } else {
-            throw exception("cna't negate value: %1%"_fmt % b);
+            throw exception("Logical not operation cannot be applied to the provided argument: %1%"_fmt % b);
         }
+    });
+    ctx.stack_pop(1);
+    ctx.stack_push(val);
+}
+
+void annium_unary_minus(vm::context& ctx)
+{
+    auto val = *ctx.stack_back();
+    while (val.type == blob_type::blob_reference) {
+        val = *data_of<blob_result>(val);
+    }
+    val = blob_type_selector(val, [](auto ident, blob_result const& b) -> blob_result {
+        using type = typename decltype(ident)::type;
+        if (!is_array(b)) {
+            if constexpr (std::is_same_v<type, bool>) { return b; }
+            else if constexpr (std::is_unsigned_v<type>) {
+                return particular_blob_result(static_cast<type>(-as<std::make_signed_t<type>>(b))); }
+            else if constexpr (std::is_signed_v<type> || numetron::is_basic_integer_view_v<type> || std::is_floating_point_v<type> || std::is_same_v<type, numetron::float16>) {
+                return particular_blob_result(-as<type>(b)); }
+            else if constexpr (numetron::is_basic_decimal_view_v<type>) {
+                return particular_blob_result(-as<type>(b)); }
+        }
+        throw exception("Unary minus operation cannot be applied to the provided argument: %1%"_fmt % b);
     });
     ctx.stack_pop(1);
     ctx.stack_push(val);
