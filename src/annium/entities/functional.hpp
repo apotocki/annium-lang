@@ -26,18 +26,20 @@ class functional_binding
 public:
     virtual ~functional_binding() = default;
 
-    using value_type = variant<entity_identifier, shared_ptr<entity>, local_variable>;
+    using value_type = variant<entity_identifier, local_variable>;
 
-    // bound entity_identifier can not be changed, but bound entity can be updated
     virtual value_type const* lookup(identifier) const noexcept = 0;
-    virtual value_type& emplace_back(annotated_identifier, value_type) = 0;
+    virtual void emplace_back(annotated_identifier, value_type) = 0;
 };
 
 class functional_binding_set : public functional_binding
 {
-    small_vector<value_type, 16> binding_;
-    small_vector<identifier, 16> binding_names_;
-    small_vector<resource_location, 16> binding_locations_;
+    //small_vector<value_type, 16> binding_;
+    std::vector<value_type> binding_;
+    //small_vector<identifier, 16> binding_names_;
+    std::vector<identifier> binding_names_;
+    //small_vector<resource_location, 16> binding_locations_;
+    std::vector<resource_location> binding_locations_;
     size_t bound_variables_count_{ 0 };
 
 public:
@@ -47,7 +49,7 @@ public:
 
     value_type const* lookup(identifier, resource_location const**) const noexcept;
 
-    value_type& emplace_back(annotated_identifier, value_type) override;
+    void emplace_back(annotated_identifier, value_type) override;
 
     template <typename FT>
     requires std::is_invocable_v<FT, identifier, resource_location const&, value_type&>
@@ -252,6 +254,13 @@ public:
     inline void emplace_back(intptr_t idx, syntax_expression_result result, resource_location loc = {})
     {
         matches.emplace_back(idx, std::move(result), std::move(loc));
+    }
+
+    inline void append_arg(identifier name, syntax_expression_result arg_er, resource_location loc = {})
+    {
+        intptr_t argindex = signature.fields().size();
+        signature.emplace_back(name, arg_er.value_or_type, arg_er.is_const_result);
+        emplace_back(argindex, std::move(arg_er), std::move(loc));
     }
 
     inline void append_arg(syntax_expression_result arg_er, resource_location loc = {})

@@ -243,16 +243,14 @@ fn_compiler_context::~fn_compiler_context()
     //expression_store_.splice_back(root_expressions_);
 }
 
-optional<variant<entity_identifier, local_variable const&>> fn_compiler_context::get_bound(identifier name) const noexcept
+optional<variant<entity_identifier, local_variable>> fn_compiler_context::get_bound(identifier name) const noexcept
 {
     // then look for bound entities
     for (functional_binding const* binding : boost::adaptors::reverse(bindings_)) {
         if (auto optval = binding->lookup(name); optval) {
-            if (entity_identifier const* eid = get<entity_identifier>(optval); eid) return *eid;
-            if (local_variable const* lv = get<local_variable>(optval); lv) return *lv;
-            // temporary entity is bound
-            // it's not propper value to return, so just skip it
-            // ?? or return nullopt ??
+            return *optval;
+            //if (entity_identifier const* eid = get<entity_identifier>(optval); eid) return *eid;
+            //if (local_variable const* lv = get<local_variable>(optval); lv) return *lv;
         }
     }
     for (functional_binding const& binding : boost::adaptors::reverse(scoped_locals_)) {
@@ -314,11 +312,12 @@ size_t fn_compiler_context::pop_scope()
     return cleared_vars_count;
 }
 
-local_variable& fn_compiler_context::push_scope_variable(annotated_identifier name, local_variable lv)
+void fn_compiler_context::push_scope_variable(annotated_identifier name, local_variable lv)
 {
     int64_t index = scope_offset_ + scoped_locals_.back().size();
     fent_.push_variable(lv.varid, index);
-    return *get<local_variable>(&scoped_locals_.back().emplace_back(std::move(name), std::move(lv)));
+    scoped_locals_.back().emplace_back(std::move(name), std::move(lv));
+    //return *get<local_variable>(&);
 }
 
 void fn_compiler_context::push_chain()
@@ -513,7 +512,7 @@ std::expected<qname_identifier, error_storage> fn_compiler_context::lookup_qname
     return std::unexpected(make_error<undeclared_identifier_error>(name));
 }
 
-variant<entity_identifier, local_variable const&> fn_compiler_context::lookup_entity(annotated_identifier const& name) const
+variant<entity_identifier, local_variable> fn_compiler_context::lookup_entity(annotated_identifier const& name) const
 {
     auto optbv = get_bound(name.value);
     if (optbv) return std::move(*optbv);
@@ -531,7 +530,7 @@ variant<entity_identifier, local_variable const&> fn_compiler_context::lookup_en
     return entity_identifier{}; // undeclared
 }
 
-variant<entity_identifier, local_variable const&> fn_compiler_context::lookup_entity(annotated_qname const& name) const
+variant<entity_identifier, local_variable> fn_compiler_context::lookup_entity(annotated_qname const& name) const
 {
     //using result_t = variant<entity_identifier, local_variable>;
     if (name.value.is_relative() && name.value.size() == 1) {
@@ -818,22 +817,20 @@ fn_compiler_context_scope::~fn_compiler_context_scope()
     ctx_.pop_scope();
 }
 
-local_variable& fn_compiler_context_scope::new_temporary(identifier name, entity_identifier type)
+local_variable fn_compiler_context_scope::new_temporary(identifier name, entity_identifier type)
 {
-    local_variable& lv = get<local_variable>(bound_temporaries_.emplace_back(
-        annotated_identifier(name),
-        local_variable{ .type = std::move(type), .varid = ctx_.env().new_variable_identifier(), .is_weak = false }));
+    local_variable lv{ .type = std::move(type), .varid = ctx_.env().new_variable_identifier(), .is_weak = false };
+    bound_temporaries_.emplace_back(annotated_identifier(name), lv);
     return lv;
 }
 
-std::pair<identifier, local_variable&> fn_compiler_context_scope::push_scope_variable(entity_identifier type)
+std::pair<identifier, local_variable> fn_compiler_context_scope::push_scope_variable(entity_identifier type)
 {
     environment& env = ctx_.env();
     identifier unnamedid = env.new_identifier();
-    return { unnamedid, ctx_.push_scope_variable(
-        annotated_identifier{ unnamedid },
-        local_variable{ .type = std::move(type), .varid = env.new_variable_identifier(), .is_weak = false })
-    };
+    local_variable lv{ .type = std::move(type), .varid = env.new_variable_identifier(), .is_weak = false };
+    ctx_.push_scope_variable(annotated_identifier{ unnamedid }, lv);
+    return { std::move(unnamedid), std::move(lv) };
 }
 
 void fn_compiler_context_scope::skip_scope_variables()

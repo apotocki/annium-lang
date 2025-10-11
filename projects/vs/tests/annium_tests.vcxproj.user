@@ -18,7 +18,7 @@ TESTS_HOME=$(ProjectDir)..\..\..\tests</LocalDebuggerEnvironment>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerEnvironment>PATH=%PATH%;$(SolutionDir)vcpkg_installed\x64-windows-cpp23\release\bin
+    <LocalDebuggerEnvironment>PATH=%PATH%;$(SolutionDir)vcpkg_installed\x64-windows-cpp23\bin
 TESTS_HOME=$(ProjectDir)..\..\..\tests</LocalDebuggerEnvironment>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>

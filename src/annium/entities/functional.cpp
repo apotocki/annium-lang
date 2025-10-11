@@ -35,7 +35,7 @@ functional_binding::value_type const* functional_binding_set::lookup(identifier 
     return &binding_[it - binding_names_.begin()];
 }
 
-functional_binding::value_type& functional_binding_set::emplace_back(annotated_identifier id, value_type value)
+void functional_binding_set::emplace_back(annotated_identifier id, value_type value)
 {
     auto it = std::lower_bound(binding_names_.begin(), binding_names_.end(), id.value);
     if (it == binding_names_.end() || *it != id.value) {
@@ -43,12 +43,13 @@ functional_binding::value_type& functional_binding_set::emplace_back(annotated_i
 #ifdef SONIA_LANG_DEBUG
             pvar->debug_name = id;
 #endif
+            BOOST_ASSERT(pvar->type);
             ++bound_variables_count_;
         }
         it = binding_names_.emplace(it, id.value);
         auto pos = it - binding_names_.begin();
         binding_locations_.emplace(binding_locations_.begin() + pos, id.location);
-        return *binding_.emplace(binding_.begin() + pos, std::move(value));
+        /*return */ binding_.emplace(binding_.begin() + pos, std::move(value));
     } else {
         THROW_INTERNAL_ERROR("functional_binding_set::emplace_back duplicate binding");
         //for (++it; it != binding_names_.end() && *it == id; ++it);

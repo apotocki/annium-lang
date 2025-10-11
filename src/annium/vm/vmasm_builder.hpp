@@ -300,9 +300,9 @@ size_t builder<ContextT>::add_pooled_const(variable_type&& value)
     if (it == literals_.end()) {
         size_t index = vm_.add_const(std::move(value));
         it = literals_.emplace_hint(it, *vm_.consts()[index], index);
-        GLOBAL_LOG_DEBUG() << "new const value: " << vm_.consts()[index] << " -> C["sv << index << "]"sv;
+        //GLOBAL_LOG_DEBUG() << "new const value: " << vm_.consts()[index] << " -> C["sv << index << "]"sv;
     } else {
-        GLOBAL_LOG_DEBUG() << "found value: " << value << " at C[" << it->second << "]"sv;
+        //GLOBAL_LOG_DEBUG() << "found value: " << value << " at C[" << it->second << "]"sv;
     }
     return it->second;
 }

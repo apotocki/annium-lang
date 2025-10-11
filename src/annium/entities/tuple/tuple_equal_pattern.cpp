@@ -90,8 +90,8 @@ tuple_equal_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
     }
 
     auto pmd = make_shared<tuple_equal_match_descriptor>(call, lhs_entity_type, rhs_entity_type);
-    pmd->emplace_back(0, lhs_arg_er);
-    pmd->emplace_back(1, rhs_arg_er);
+    pmd->append_arg(lhs_arg_er, get_start_location(*get<0>(lhs_expr)));
+    pmd->append_arg(rhs_arg_er, get_start_location(*get<0>(rhs_expr)));
     return pmd;
 }
 
@@ -137,11 +137,11 @@ tuple_equal_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
     //    .is_const_result = false
     //};
 
-    local_variable* lhs_tuple_var = nullptr, * rhs_tuple_var = nullptr;
+    optional<local_variable> lhs_tuple_var, rhs_tuple_var;
     identifier lhs_tuple_var_name, rhs_tuple_var_name;
 
     // Helper lambda to append field value (const or non-const) for tuple fields
-    auto append_tuple_field_value = [&](pure_call_t& call, const auto& field, size_t fidx, local_variable*& tuple_var, identifier& tuple_var_name, entity const& tuple_entity_type) -> error_storage {
+    auto append_tuple_field_value = [&](pure_call_t& call, const auto& field, size_t fidx, optional<local_variable>& tuple_var, identifier& tuple_var_name, entity const& tuple_entity_type) -> error_storage {
         if (field.is_const()) {
             // Use the const entity directly
             if (field.name()) { // get constexpr tuple field implementation
@@ -154,9 +154,9 @@ tuple_equal_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
                 call.emplace_back(annotated_entity_identifier{ field.entity_id(), md.call_location });
             }
         } else {
-            if (!tuple_var) {
+            if (!tuple_var_name) {
                 tuple_var_name = e.new_identifier();
-                tuple_var = &fn_scope.new_temporary(tuple_var_name, tuple_entity_type.id);
+                tuple_var.emplace(fn_scope.new_temporary(tuple_var_name, tuple_entity_type.id));
             }
             pure_call_t get_call{ md.call_location };
             get_call.emplace_back(annotated_identifier{ e.get(builtin_id::self), md.call_location },

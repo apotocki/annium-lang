@@ -111,6 +111,7 @@ class external_fn_pattern;
     ((head, "head"sv))                     \
     ((tail, "tail"sv))                     \
     ((to_string, "to_string"sv))           \
+    ((to_integer, "to_integer"sv))         \
     ((string_concat, "concat"sv))          \
     ((is_const, "is_const"sv))             \
     ((apply, "apply"sv))                   \

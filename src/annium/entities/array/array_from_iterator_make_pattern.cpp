@@ -63,13 +63,13 @@ std::expected<syntax_expression_result, error_storage> array_from_iterator_make_
 
     // Create variable for iterator
     identifier iterator_var_name = env.new_identifier();
-    local_variable& iterator_var = fn_scope.new_temporary(iterator_var_name, er.type());
+    local_variable iterator_var = fn_scope.new_temporary(iterator_var_name, er.type());
     
     env.push_back_expression(el, result.expressions, semantic::set_local_variable(iterator_var));
     env.push_back_expression(el, result.expressions, semantic::truncate_values{ .count = 1, .keep_back = 0 });
 
     identifier stack_size_var_name = env.new_identifier();
-    local_variable& stack_size_var = fn_scope.new_temporary(stack_size_var_name, env.get(builtin_eid::integer));
+    local_variable stack_size_var = fn_scope.new_temporary(stack_size_var_name, env.get(builtin_eid::integer));
     
 
     // put current stack size on top of the stack to track number of elements added

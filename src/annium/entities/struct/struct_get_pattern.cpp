@@ -99,7 +99,11 @@ std::expected<syntax_expression_result, error_storage> struct_get_pattern::apply
     auto& slfer = get<1>(md.matches[0]);
     auto& proper = get<1>(md.matches[1]);
 
-    local_variable* tuple_var = nullptr, *property_var = nullptr;
+    syntax_expression_result result{
+        .temporaries = std::move(slfer.temporaries),
+        .branches_expressions = el.concat(slfer.branches_expressions, proper.branches_expressions)
+    };
+
     identifier tuple_var_name, property_var_name;
     fn_compiler_context_scope fn_scope{ ctx };
 
@@ -111,7 +115,8 @@ std::expected<syntax_expression_result, error_storage> struct_get_pattern::apply
             annotated_entity_identifier{ slfer.value(), md.call_location });
     } else {
         tuple_var_name = e.new_identifier();
-        tuple_var = &fn_scope.new_temporary(tuple_var_name, tmd.tpl_entity.id); // here we substitute the tuple entity id instead of the original struct type id
+        local_variable tuple_var = fn_scope.new_temporary(tuple_var_name, tmd.tpl_entity.id); // here we substitute the tuple entity id instead of the original struct type id
+        result.temporaries.emplace_back(tuple_var_name, std::move(tuple_var), slfer.expressions);
         get_call.emplace_back(
             annotated_identifier{ e.get(builtin_id::self), md.call_location },
             name_reference{ annotated_identifier{ tuple_var_name } });
@@ -123,7 +128,8 @@ std::expected<syntax_expression_result, error_storage> struct_get_pattern::apply
             annotated_entity_identifier{ proper.value(), md.call_location });
     } else {
         property_var_name = e.new_identifier();
-        property_var = &fn_scope.new_temporary(property_var_name, proper.type());
+        local_variable property_var = fn_scope.new_temporary(property_var_name, proper.type());
+        result.temporaries.emplace_back(property_var_name, std::move(property_var), proper.expressions);
         get_call.emplace_back(
             annotated_identifier{ e.get(builtin_id::property), md.call_location },
             name_reference{ annotated_identifier{ property_var_name } });
@@ -141,13 +147,10 @@ std::expected<syntax_expression_result, error_storage> struct_get_pattern::apply
         return std::unexpected(std::move(res.error()));
     }
 
-    syntax_expression_result result{
-        .temporaries = std::move(slfer.temporaries),
-        .branches_expressions = el.concat(slfer.branches_expressions, proper.branches_expressions),
-        .expressions = res->expressions,
-        .value_or_type = res->value_or_type,
-        .is_const_result = res->is_const_result
-    };
+    result.expressions = res->expressions;
+    result.value_or_type = res->value_or_type;
+    result.is_const_result = res->is_const_result;
+
     if (!proper.temporaries.empty()) {
         result.temporaries.insert(
             result.temporaries.end(),
@@ -155,12 +158,12 @@ std::expected<syntax_expression_result, error_storage> struct_get_pattern::apply
             std::make_move_iterator(proper.temporaries.end()));
     }
 
-    if (tuple_var) {
-        result.temporaries.emplace_back(tuple_var_name, std::move(*tuple_var), slfer.expressions);
-    }
-    if (property_var) {
-        result.temporaries.emplace_back(property_var_name, std::move(*property_var), proper.expressions);
-    }
+    //if (tuple_var) {
+    //    result.temporaries.emplace_back(tuple_var_name, std::move(*tuple_var), slfer.expressions);
+    //}
+    //if (property_var) {
+    //    result.temporaries.emplace_back(property_var_name, std::move(*property_var), proper.expressions);
+    //}
 
     return result;
 }

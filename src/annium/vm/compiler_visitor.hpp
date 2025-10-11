@@ -260,6 +260,8 @@ public:
 
         size_t branch_index = 1;
         for (auto const& br : branches) {
+            if (branch_index != 1) fnbuilder_.append_pop(); // pop previous branch compare result
+            
             fnbuilder_.append_push_pooled_const(ui64_blob_result(branch_index));
             fnbuilder_.append_op(asm_builder_t::op_t::cmp);
             fnbuilder_.append_op(asm_builder_t::op_t::jne);

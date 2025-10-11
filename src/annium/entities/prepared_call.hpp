@@ -21,9 +21,14 @@ public:
     functional const* pfnl;
     semantic::expression_list_t& expressions;
     resource_location location;
-    small_vector<named_expression_t, 8> args;
+
+    //using args_type = small_vector<named_expression_t, 8>;
+    using args_type = std::vector<named_expression_t>;
+    args_type args;
+
     functional_binding_set bound_temporaries;
-    small_vector<std::tuple<identifier, local_variable*, semantic::expression_span>, 4> temporaries;
+    //small_vector<std::tuple<identifier, local_variable*, semantic::expression_span>, 4> temporaries;
+    std::vector<std::tuple<identifier, local_variable, semantic::expression_span>> temporaries;
     semantic::expression_span arguments_auxiliary_expressions;
 
     // cache
@@ -38,7 +43,9 @@ public:
         {}
     };
 
-    mutable small_vector<std::tuple<identifier, resource_location, argument_cache>, 8> argument_caches_;
+    //using argument_caches_type = small_vector<std::tuple<identifier, resource_location, argument_cache>, 8>;
+    using argument_caches_type = std::vector<std::tuple<identifier, resource_location, argument_cache>>;
+    mutable argument_caches_type argument_caches_;
     uint64_t named_map_, positioned_map_; // bitmasks of named and positional arguments
 
     prepared_call(fn_compiler_context&, functional const*, span<const named_expression_t>, resource_location call_loc, semantic::expression_list_t&);
@@ -85,7 +92,7 @@ public:
 
     session new_session(fn_compiler_context&) const;
 
-    local_variable& new_temporary(environment&, identifier, entity_identifier type, semantic::expression_span);
+    local_variable new_temporary(environment&, identifier, entity_identifier type, semantic::expression_span);
     void export_auxiliaries(syntax_expression_result&);
 
     qname_view functional_name() const noexcept;

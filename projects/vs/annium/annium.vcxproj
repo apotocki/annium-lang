@@ -23,6 +23,7 @@
     <ClCompile Include="..\..\..\src\annium\entities\array\array_implicit_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\enum\enum_equal_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\enum\enum_get_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\entities\enum\enum_to_integer_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\enum\enum_to_string_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\fixed_array\fixed_array_elements_implicit_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\fixed_array\fixed_array_get_pattern.cpp" />
@@ -158,6 +159,7 @@
     <ClInclude Include="..\..\..\src\annium\entities\array\array_implicit_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\enum\enum_equal_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\enum\enum_get_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\enum\enum_to_integer_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\enum\enum_to_string_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\fixed_array\fixed_array_elements_implicit_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\fixed_array\fixed_array_get_pattern.hpp" />
@@ -393,7 +395,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <SDLCheck>true</SDLCheck>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_LIB;SONIA_PRIME_STATIC;BOOST_NO_USER_CONFIG;BOOST_ALL_DYN_LINK;BOOST_STACKTRACE_LINK;SONIA_LANG_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -416,7 +418,7 @@
       <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_LIB;SONIA_PRIME_STATIC;BOOST_NO_USER_CONFIG;BOOST_ALL_DYN_LINK;BOOST_STACKTRACE_LINK;SONIA_LANG_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -427,6 +429,7 @@
       <PrecompiledHeaderOutputFile />
       <AdditionalIncludeDirectories>$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include\;$(SolutionDir)tpls\sonia-prime;$(SolutionDir)tpls\lexertl14\include;$(SolutionDir)tpls\dataforge\include;$(SolutionDir)tpls\numetron\include;$(ProjectDir)..\..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
     </ClCompile>
     <Link>
       <SubSystem>

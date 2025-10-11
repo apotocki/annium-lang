@@ -248,11 +248,11 @@ std::expected<syntax_expression_result, error_storage> array_implicit_cast_patte
     BOOST_ASSERT(array_size <= (std::numeric_limits<decltype(semantic::truncate_values::count)>::max)());
     env.push_back_expression(el, result.expressions, semantic::truncate_values{ .count = static_cast<uint16_t>(array_size), .keep_back = 1 });
 
-    std::ostringstream fn_code_str;
-    result.expressions.for_each([&env, &fn_code_str](semantic::expression const& e) {
-        fn_code_str << env.print(e);
-    });
-    GLOBAL_LOG_INFO() << "function expressions:\n"sv << fn_code_str.str();
+    //std::ostringstream fn_code_str;
+    //result.expressions.for_each([&env, &fn_code_str](semantic::expression const& e) {
+    //    fn_code_str << env.print(e);
+    //});
+    //GLOBAL_LOG_INFO() << "function expressions:\n"sv << fn_code_str.str();
     return std::move(result);
 }
 

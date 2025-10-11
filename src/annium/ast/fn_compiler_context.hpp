@@ -90,7 +90,7 @@ public:
     qname_view ns() const { return ns_; }
     qname_view base_ns() const { return span{ns_.parts().data(), base_ns_size_}; }
 
-    optional<variant<entity_identifier, local_variable const&>> get_bound(identifier) const noexcept;
+    optional<variant<entity_identifier, local_variable>> get_bound(identifier) const noexcept;
     inline void push_binding(functional_binding const& binding)
     {
         bindings_.push_back(std::addressof(binding));
@@ -110,7 +110,7 @@ public:
 
 
     void push_scope();
-    local_variable& push_scope_variable(annotated_identifier name, local_variable);
+    void push_scope_variable(annotated_identifier name, local_variable);
     size_t pop_scope();
     inline functional_binding_set const& current_scope_binding() const noexcept { return scoped_locals_.back(); }
 
@@ -121,8 +121,8 @@ public:
 
     functional const* lookup_functional(qname_view) const;
     std::expected<qname_identifier, error_storage> lookup_qname(annotated_qname const&) const;
-    variant<entity_identifier, local_variable const&> lookup_entity(annotated_identifier const&) const;
-    variant<entity_identifier, local_variable const&> lookup_entity(annotated_qname const&) const;
+    variant<entity_identifier, local_variable> lookup_entity(annotated_identifier const&) const;
+    variant<entity_identifier, local_variable> lookup_entity(annotated_qname const&) const;
     std::expected<functional::match, error_storage> find(builtin_qnid, pure_call_t const&, semantic::expression_list_t&, expected_result_t const& = expected_result_t{});
     std::expected<functional::match, error_storage> find(qname_identifier, pure_call_t const&, semantic::expression_list_t&, expected_result_t const& = expected_result_t{});
     
@@ -342,8 +342,8 @@ public:
     explicit fn_compiler_context_scope(fn_compiler_context& ctx);
     ~fn_compiler_context_scope();
     
-    local_variable& new_temporary(identifier name, entity_identifier type);
-    std::pair<identifier, local_variable&> push_scope_variable(entity_identifier type);
+    local_variable new_temporary(identifier name, entity_identifier type);
+    std::pair<identifier, local_variable> push_scope_variable(entity_identifier type);
     void skip_scope_variables();
 };
 

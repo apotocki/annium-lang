@@ -66,6 +66,7 @@
 #include "entities/enum/enum_get_pattern.hpp"
 #include "entities/enum/enum_equal_pattern.hpp"
 #include "entities/enum/enum_to_string_pattern.hpp"
+#include "entities/enum/enum_to_integer_pattern.hpp"
 
 #include "entities/array/array_implicit_cast_pattern.hpp"
 #include "entities/array/array_from_iterator_make_pattern.hpp"
@@ -1343,6 +1344,9 @@ environment::environment()
     functional& to_string_fnl = fregistry_resolve(get(builtin_qnid::to_string));
     to_string_fnl.push(make_shared<to_string_pattern>());
     to_string_fnl.push(make_shared<enum_to_string_pattern>());
+
+    functional& to_integer_fnl = fregistry_resolve(get(builtin_qnid::to_integer));
+    to_integer_fnl.push(make_shared<enum_to_integer_pattern>());
 
     functional& tuple_fnl = fregistry_resolve(get(builtin_qnid::tuple));
     tuple_fnl.push(make_shared<tuple_pattern>());

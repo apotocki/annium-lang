@@ -369,7 +369,7 @@ void annium_impl::compile(statement_span decls, span<string_view> args)
 
 void annium_impl::do_compile(internal_function_entity const& fe)
 {
-    GLOBAL_LOG_INFO() << "compiling function: " << environment_.print(fe.name());
+    //GLOBAL_LOG_DEBUG() << "compiling function: " << environment_.print(fe.name());
 
     if (!fe.is_built()) {
         auto err = const_cast<internal_function_entity&>(fe).build(environment_);

@@ -523,9 +523,9 @@ size_t virtual_stack_machine::add_pooled_const(smart_blob&& value)
     if (it == literals_.end()) {
         size_t index = base_t::add_const(std::move(value));
         it = literals_.insert(it, std::pair{ *base_t::consts()[index], index });
-        GLOBAL_LOG_DEBUG() << "placing new const value: " << base_t::consts()[index] << ", at index: " << index;
+        //GLOBAL_LOG_DEBUG() << "placing new const value: " << base_t::consts()[index] << ", at index: " << index;
     } else {
-        GLOBAL_LOG_DEBUG() << "found existing value: " << value << ", at index: " << it->second;
+        //GLOBAL_LOG_DEBUG() << "found existing value: " << value << ", at index: " << it->second;
     }
     return it->second;
 }
@@ -537,7 +537,7 @@ void virtual_stack_machine::set_const(size_t index, smart_blob&& value)
         literals_.insert(it, std::pair{ *value, index });
     }
     base_t::set_const(index, std::move(value));
-    GLOBAL_LOG_DEBUG() << "set const value: " << base_t::consts()[index] << ", at index: " << index;
+    //GLOBAL_LOG_DEBUG() << "set const value: " << base_t::consts()[index] << ", at index: " << index;
 }
 
 void virtual_stack_machine::append_push_pooled_const(smart_blob&& value)

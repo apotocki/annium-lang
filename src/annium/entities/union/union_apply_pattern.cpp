@@ -82,7 +82,6 @@ union_apply_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
     {
         fn_compiler_context_scope fn_scope{ ctx };
         optional<syntax_expression_t> visitor_expr;
-        local_variable* visitor_var = nullptr;
         if (visitor_arg_er.is_const_result) {
             visitor_expr.emplace(annotated_entity_identifier{ visitor_arg_er.value(), visitor_arg_loc });
         } else {
@@ -125,10 +124,8 @@ union_apply_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
     }
 
     auto pmd = make_shared<union_apply_match_descriptor>(call, union_entity_type);
-    pmd->emplace_back(0, union_arg_er, union_arg_loc);
-    pmd->emplace_back(1, visitor_arg_er, visitor_arg_loc);
-    pmd->signature.emplace_back(env.get(builtin_id::to), union_arg_er.type(), false);
-    pmd->signature.emplace_back(env.get(builtin_id::visitor), visitor_arg_er.value_or_type, visitor_arg_er.is_const_result);
+    pmd->append_arg(env.get(builtin_id::to), union_arg_er, union_arg_loc);
+    pmd->append_arg(env.get(builtin_id::visitor), visitor_arg_er, visitor_arg_loc);
     return pmd;
 }
 
@@ -146,7 +143,6 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
 
     // Prepare visitor object expression
     optional<syntax_expression_t> visitor_expr;
-    local_variable* visitor_var = nullptr;
     if (visitor_er.is_const_result) {
         visitor_expr.emplace(annotated_entity_identifier{ visitor_er.value(), get<2>(md.matches[1]) });
     } else {
@@ -166,7 +162,7 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
     env.push_back_expression(el, result.expressions, semantic::invoke_function{ env.get(builtin_eid::unfold) });
     //env.push_back_expression(el, result.expressions, semantic::truncate_values{ .count = 1, .keep_back = 0 }); // keep only the unfolded union value on stack
 
-    auto union_value_var_pair = fn_scope.push_scope_variable(entity_identifier{}); // yet unknown type
+    //auto union_value_var_pair = fn_scope.push_scope_variable(entity_identifier{}); // yet unknown type
     //auto which_var_pair = fn_scope.push_scope_variable(env.get(builtin_eid::integer));
 
     // 'which' is on top of stack now
@@ -181,11 +177,12 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
     entity_signature const& union_sig = *apply_md.union_entity_type.signature();
     for (size_t i = 0; i < union_sig.field_count(); ++i) {
         auto const& union_field = union_sig.field(i);
-
+        fn_compiler_context_scope fn_scope_inner{ ctx };
         function_call_t visitor_call{ get<2>(md.matches[1]), syntax_expression_t{ *visitor_expr } };
         if (!union_field.is_const()) {
             // set union_value_var_pair type for this branch
-            union_value_var_pair.second.type = union_field.entity_id();
+            auto union_value_var_pair = fn_scope_inner.push_scope_variable(union_field.entity_id());
+            //union_value_var_pair.second.type = union_field.entity_id();
             visitor_call.emplace_back(name_reference{ annotated_identifier{ union_value_var_pair.first } });
         } else {
             visitor_call.emplace_back(annotated_entity_identifier{ union_field.entity_id() });

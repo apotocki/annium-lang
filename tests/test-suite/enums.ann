@@ -10,5 +10,8 @@ fn to_test_enum(:__identifier) -> test_enum {
 
 assert_equal(to_test_enum(.A), test_enum.A);
 assert_not_equal(to_test_enum(.B), test_enum.A);
+assert_equal(to_integer(to_test_enum(.B)), 1);
+assert_equal(to_integer(runtime_cast(to_test_enum(.C))), 2);
+
 print(to_string(to_test_enum(.C)));
 print(to_string(test_enum.B));

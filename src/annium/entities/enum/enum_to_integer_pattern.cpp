@@ -2,7 +2,7 @@
 //  Annium is licensed under the terms of the MIT License.
 
 #include "sonia/config.hpp"
-#include "enum_to_string_pattern.hpp"
+#include "enum_to_integer_pattern.hpp"
 #include "enum_entity.hpp"
 
 #include "annium/ast/fn_compiler_context.hpp"
@@ -33,7 +33,7 @@ public:
     size_t which;
 };
 
-std::expected<functional_match_descriptor_ptr, error_storage> enum_to_string_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
+std::expected<functional_match_descriptor_ptr, error_storage> enum_to_integer_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
 {
     environment& env = ctx.env();
     value_modifier_t arg_req_mod = can_be_only_constexpr(exp.modifier) ? exp.modifier : value_modifier_t::constexpr_or_runtime_value;
@@ -62,58 +62,36 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_to_string_pat
         return std::unexpected(make_error<type_mismatch_error>(argloc, arg_type, "an enumeration"sv));
     }
 
-    auto pmd = make_shared<enum_to_string_match_descriptor>(call, *pe);
+    auto pmd = make_shared<functional_match_descriptor>(call);
     pmd->append_arg(arg_er, argloc);
-    
-    if (arg_er.is_const_result) {
-        BOOST_ASSERT(pcent);
-        size_t which = static_cast<generic_literal_entity const&>(*pcent).value().as<size_t>();
-        BOOST_ASSERT(which < pe->case_count());
-        if (can_be_only_runtime(exp.modifier)) {
-            pmd->signature.result.emplace(env.get(builtin_eid::string), false);
-            pmd->which = which;
-        } else {
-            identifier case_id = pe->case_at(which);
-            pmd->signature.result.emplace(env.make_string_entity(env.print(case_id)).id, true);
-        }
-    } else {
-        pmd->signature.result.emplace(env.get(builtin_eid::string), false);
-    }
 
+    if (can_be_only_constexpr(exp.modifier) || (arg_er.is_const_result && !can_be_only_runtime(exp.modifier))) {
+        BOOST_ASSERT(arg_er.is_const_result);
+        size_t which = static_cast<generic_literal_entity const&>(*pcent).value().as<size_t>();
+        pmd->signature.result.emplace(env.make_integer_entity(static_cast<int64_t>(which)).id, true);
+    } else {
+        pmd->signature.result.emplace(env.get(builtin_eid::integer), false);
+    }
+    
     return pmd;
 }
 
-
-std::expected<syntax_expression_result, error_storage> enum_to_string_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> enum_to_integer_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
-    environment& env = ctx.env();
-    enum_to_string_match_descriptor& emd = static_cast<enum_to_string_match_descriptor&>(md);
-    auto &[_, ser, argloc] = emd.matches.front();
-
-    auto const& rfd = *emd.signature.result;
+    auto const& res = *md.signature.result;
     syntax_expression_result result{
-        .value_or_type = rfd.entity_id(),
-        .is_const_result = rfd.is_const()
+        .value_or_type = res.entity_id(),
+        .is_const_result = res.is_const()
     };
-    if (!result.is_const_result) {
+
+    if (!res.is_const()) {
+        environment& env = ctx.env();
+        auto &[_, ser, argloc] = md.matches.front();
         if (ser.is_const_result) {
-            identifier case_id = emd.ent.case_at(emd.which);
-            env.push_back_expression(el, result.expressions, semantic::push_value{ smart_blob{ string_blob_result(env.print(case_id)) } });
+            smart_blob which = static_cast<generic_literal_entity const&>(get_entity(env, ser.value())).value();
+            env.push_back_expression(el, result.expressions, semantic::push_value{ which });
         } else {
-            // create array of strings with enum case names
-            small_vector<blob_result, 16> case_names;
-            SCOPE_EXIT([&case_names] { for (auto& cn : case_names) blob_result_unpin(&cn); });
-            case_names.reserve(emd.ent.case_count());
-            for (size_t i = 0; i < emd.ent.case_count(); ++i) {
-                identifier case_id = emd.ent.case_at(i);
-                case_names.push_back(string_blob_result(env.print(case_id)));
-            }
-            smart_blob cases_arr{ array_blob_result(span{ case_names }) };
-            cases_arr.allocate();
-            case_names.clear(); // we can clear it now, because array_blob_result made copies of string blobs
-            env.push_back_expression(el, result.expressions, semantic::push_value{ cases_arr });
-            append_semantic_result(el, ser, result); // which
-            env.push_back_expression(el, result.expressions, semantic::invoke_function{ env.get(builtin_eid::array_at) });
+            append_semantic_result(el, ser, result); // arg
         }
     }
     return result;

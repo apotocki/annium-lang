@@ -48,12 +48,11 @@ qname_identifier prepared_call::functional_id() const noexcept
     return pfnl ? pfnl->id() : qname_identifier{};
 }
 
-local_variable& prepared_call::new_temporary(environment& e, identifier name, entity_identifier type, semantic::expression_span el)
+local_variable prepared_call::new_temporary(environment& e, identifier name, entity_identifier type, semantic::expression_span el)
 {
-    local_variable& lv = get<local_variable>(bound_temporaries.emplace_back(
-        annotated_identifier(name),
-        local_variable{ .type = std::move(type), .varid = e.new_variable_identifier(), .is_weak = false }));
-    temporaries.emplace_back(name, &lv, el);
+    local_variable lv{ .type = std::move(type), .varid = e.new_variable_identifier(), .is_weak = false };
+    bound_temporaries.emplace_back(annotated_identifier{ name }, lv);
+    temporaries.emplace_back(name, lv, el);
     return lv;
 }
 
@@ -61,7 +60,7 @@ void prepared_call::export_auxiliaries(syntax_expression_result& ser)
 {
     ser.expressions = expressions.concat(ser.expressions, arguments_auxiliary_expressions);
     for(auto& [name, plv, el] : temporaries) {
-        ser.temporaries.emplace_back(name, std::move(*plv), el);
+        ser.temporaries.emplace_back(name, std::move(plv), el);
     }
 }
 
@@ -83,7 +82,7 @@ std::expected<syntax_expression_t, error_storage> deref(fn_compiler_context& ctx
 error_storage prepared_call::prepare()
 {
     environment& e = caller_ctx.env();
-    small_vector<named_expression_t, 8> rebuilt_args;
+    args_type rebuilt_args;
     bool use_rebuilt_args = false;
 
     auto append_arg = [&rebuilt_args](annotated_identifier const* groupname, syntax_expression_t&& e) {
@@ -144,16 +143,16 @@ error_storage prepared_call::prepare()
         }
 
         // tuple signature, append its elements
-        local_variable* ptuple_object_var = nullptr;
+        //local_variable* ptuple_object_var = nullptr;
         identifier tuple_name;
         if (!ser.is_const_result) {
             BOOST_ASSERT(ser.expressions);
             tuple_name = e.new_identifier();
             semantic::expression_span reserve_expression;
             e.push_back_expression(expressions, reserve_expression, semantic::push_value{ smart_blob{} });
-            ptuple_object_var = &new_temporary(e, tuple_name, ser.type(), reserve_expression);
+            local_variable tuple_object_var = new_temporary(e, tuple_name, ser.type(), reserve_expression);
             arguments_auxiliary_expressions = expressions.concat(arguments_auxiliary_expressions, ser.expressions);
-            e.push_back_expression(expressions, arguments_auxiliary_expressions, semantic::set_local_variable{ *ptuple_object_var });
+            e.push_back_expression(expressions, arguments_auxiliary_expressions, semantic::set_local_variable{ tuple_object_var });
             e.push_back_expression(expressions, arguments_auxiliary_expressions, semantic::truncate_values{ 1, 0 });
         }
         size_t argpos = 0;
@@ -170,7 +169,7 @@ error_storage prepared_call::prepare()
                     append_arg(fd_groupname, annotated_entity_identifier{ fd.entity_id(), arg_expr_loc });
                 }
             } else {
-                BOOST_ASSERT(ptuple_object_var);
+                BOOST_ASSERT(tuple_name);
                 pure_call_t get_call{ arg_expr_loc };
                 get_call.emplace_back(annotated_identifier{ e.get(builtin_id::self), arg_expr_loc },
                     name_reference{ annotated_identifier{ tuple_name } });

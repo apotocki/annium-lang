@@ -118,7 +118,7 @@ tuple_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic::expressio
     fn_compiler_context_scope fn_scope{ ctx };
 
     semantic::expression_span fn_code;
-    local_variable* src_tuple_var = nullptr;
+    //local_variable* src_tuple_var = nullptr;
     identifier src_tuple_var_name;
     size_t mut_field_count = 0;
     for (size_t i = 0; i < src_sig.field_count(); ++i) {
@@ -137,9 +137,10 @@ tuple_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic::expressio
         if (src_field.is_const()) {
             cast_call.emplace_back(annotated_entity_identifier{ src_field.entity_id(), md.call_location });
         } else {
-            if (!src_tuple_var) {
+            if (!src_tuple_var_name) {
                 src_tuple_var_name = e.new_identifier();
-                src_tuple_var = &fn_scope.new_temporary(src_tuple_var_name, self_md.src_entity_type->id);
+                local_variable src_tuple_var = fn_scope.new_temporary(src_tuple_var_name, self_md.src_entity_type->id);
+                src_er.temporaries.emplace_back(src_tuple_var_name, std::move(src_tuple_var), src_er.expressions);
             }
 
             pure_call_t get_call{ md.call_location };
@@ -185,9 +186,9 @@ tuple_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic::expressio
         e.push_back_expression(el, fn_code, semantic::push_value{ smart_blob{ ui64_blob_result(mut_field_count) } });
         e.push_back_expression(el, fn_code, semantic::invoke_function(e.get(builtin_eid::arrayify)));
     }
-    if (src_tuple_var) {
-        src_er.temporaries.emplace_back(src_tuple_var_name, std::move(*src_tuple_var), src_er.expressions);
-    }
+    //if (src_tuple_var) {
+    //    src_er.temporaries.emplace_back(src_tuple_var_name, std::move(*src_tuple_var), src_er.expressions);
+    //}
 
     src_er.expressions = fn_code;
     src_er.value_or_type = self_md.signature.result->entity_id();
