@@ -106,7 +106,7 @@ std::ostream& error_printer_visitor::print_general(error::location_t const& loc,
     s_ << errstr;
     if (optseeloc) {
         s_ << '\n' << indent() << ": see "sv;
-        optseeloc->print_to(s_, indent(), resource_print_mode_t::just_pointer);
+        e_.print_to(s_, *optseeloc, indent(), resource_print_mode_t::just_pointer);
     }
 
     return s_;

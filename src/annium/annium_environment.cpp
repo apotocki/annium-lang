@@ -77,12 +77,91 @@
 #include "entities/fixed_array/fixed_array_get_pattern.hpp"
 #include "entities/fixed_array/fixed_array_elements_implicit_cast_pattern.hpp"
 
-
-
 #include "semantic/expression_printer.hpp"
 #include "auxiliary.hpp"
 
 namespace annium {
+
+class file_resource : public ast_resource
+{
+    fs::path path_;
+
+public:
+    inline file_resource(fs::path p, shared_ptr<arena> aval = {}) noexcept
+        : ast_resource{ std::string{}, std::move(aval) }
+        , path_{ std::move(p) }
+    {
+        std::vector<char> src;
+        std::ifstream file{ path_.string().c_str(), std::ios::binary };
+        std::copy(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>{}, std::back_inserter(src));
+        src_ = std::move(src);
+    }
+
+    std::ostream& print_description(std::ostream& s) const override
+    {
+        auto u8str = path_.generic_u8string();
+        return s << string_view{ reinterpret_cast<char const*>(u8str.data()), u8str.size() };
+    }
+
+    inline fs::path const& path() const noexcept { return path_; }
+
+    //void prepare_lines() const override
+    //{
+    //    if (get_source().empty()) {
+    //        // Read file content if not already done
+    //        try {
+    //            std::vector<char> src;
+    //            std::ifstream file{ path_.string().c_str(), std::ios::binary };
+    //            std::copy(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>{}, std::back_inserter(src));
+    //            src_ = std::move(src);
+    //        } catch (std::exception const& e) {
+    //            src_ = ("<failed to read file '%1%': %2%?"_fmt % path_ % e.what()).str();
+    //            return;
+    //        }
+    //    }
+    //    ast_resource::prepare_lines();
+    //}
+
+    size_t hash() const noexcept override
+    {
+        return std::hash<fs::path>{}(path_);
+    }
+
+    bool equal(code_resource const& rhs) const noexcept override
+    {
+        if (auto fr = dynamic_cast<file_resource const*>(&rhs)) {
+            return path_ == fr->path_;
+        }
+        return false;
+    }
+};
+
+class string_resource : public ast_resource
+{
+public:
+    using ast_resource::ast_resource;
+
+    std::ostream& print_description(std::ostream& s) const override
+    {
+        return s << "<internal resource>"sv;
+    }
+};
+
+bool environment::resource_equal::operator() (string_view const& l, shared_ptr<ast_resource> const& r) const noexcept
+{
+    if (auto const* prc = dynamic_cast<string_resource const*>(r.get()); prc) {
+        return l == prc->get_source();
+    }
+    return false;
+}
+
+bool environment::resource_equal::operator() (fs::path const& l, shared_ptr<ast_resource> const& r) const noexcept
+{
+    if (auto const* prc = dynamic_cast<file_resource const*>(r.get()); prc) {
+        return l == prc->path();
+    }
+    return false;
+}
 
 functional& environment::resolve_functional(qname_view qn)
 {
@@ -301,25 +380,58 @@ void environment::set_efn(size_t idx, qname_identifier fnq)
     vm_builtins_[idx] = std::move(fnq);
 }
 
-std::vector<char> environment::get_file_content(fs::path const& rpath, fs::path const* context)
+ast_resource const& environment::get_resource(resource_identifier const& rid) const
 {
+    lock_guard lg{ resources_mutex_ };
+    auto res = flat_resources_.at(rid.value - 1);
+    if (!res) {
+        throw exception("resource %1% is not found"_fmt % rid);
+    }
+    return *res;
+}
+
+ast_resource const& environment::get_resource(string_view code)
+{
+    lock_guard lg{ resources_mutex_ };
+    auto it = resources_.find(code);
+    if (it == resources_.end()) {
+        flat_resources_.emplace_back(make_shared<string_resource>(std::string{ code }));
+        it = resources_.insert(it, flat_resources_.back());
+        (*it)->id = resource_identifier{ flat_resources_.size() };
+    }
+    return **it;
+}
+
+ast_resource const& environment::get_resource(fs::path const& rpath, fs::path const* context)
+{
+    optional<fs::path> normalized_path;
+    fs::path const* key_path;
     if (rpath.is_absolute()) {
         if (!fs::exists(rpath) || fs::is_directory(rpath)) {
             throw exception("can't resolve path: %1%"_fmt % rpath);
         }
-        return read_file(rpath);
-    }
-            
-    auto tested_path = context ? context->parent_path() / rpath : rpath;
-    for (auto it = additional_paths_.begin();;) {
-        if (fs::exists(tested_path) && fs::is_regular_file(tested_path)) {
-            return read_file(tested_path);
+        key_path = &rpath;
+    } else {
+        normalized_path = context ? context->parent_path() / rpath : rpath;
+        for (auto it = additional_paths_.begin();;) {
+            if (fs::exists(*normalized_path) && fs::is_regular_file(*normalized_path)) {
+                key_path = &(*normalized_path);
+                break;
+            }
+            if (it == additional_paths_.end()) {
+                throw exception("can't resolve path: %1%"_fmt % rpath);
+            }
+            normalized_path = (*it++) / rpath;
         }
-        if (it == additional_paths_.end()) {
-            throw exception("can't resolve path: %1%"_fmt % rpath);
-        }
-        tested_path = (*it++) / rpath;
     }
+    lock_guard lg{ resources_mutex_ };
+    auto it = resources_.find(*key_path);
+    if (it == resources_.end()) {
+        flat_resources_.emplace_back(make_shared<file_resource>(normalized_path ? std::move(*normalized_path) : fs::path{ *key_path }));
+        it = resources_.insert(it, flat_resources_.back());
+        (*it)->id = resource_identifier{ flat_resources_.size() };
+    }
+    return **it;
 }
 
 statement_span environment::push_ast(fs::path const&, managed_statement_list&& msl)
@@ -529,10 +641,14 @@ std::ostream& environment::print_to(std::ostream& os, small_u32string const& str
     return os;
 }
 
-std::ostream& environment::print_to(std::ostream& os, resource_location const& loc, string_view indent) const
+std::ostream& environment::print_to(std::ostream& os, resource_location const& loc, string_view indent, resource_print_mode_t mode) const
 {
-    return loc.print_to(os, indent);
-    //return os << loc.resource << '(' << loc.line << ',' << loc.column << ')';
+    try {
+        return get_resource(loc.resource_id).print_to(os, indent, loc.line, loc.column, mode);
+    }
+    catch (std::exception const&) {
+        return os << "<unknown resource>"sv << '(' << loc.line << ',' << loc.column << ')';
+    }
     //return os << ("%1%(%2%,%3%)"_fmt % loc.resource % loc.line % loc.column).str();
 }
 
@@ -726,15 +842,6 @@ struct type_printer_visitor : static_visitor<void>
 //    return small_u32string{ result.data(), result.size() };
 //}
 
-
-std::vector<char> environment::read_file(fs::path const& rpath)
-{
-    std::vector<char> result;
-    result.reserve(fs::file_size(rpath));
-    std::ifstream file{ rpath.string().c_str(), std::ios::binary };
-    std::copy(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>{}, std::back_inserter(result));
-    return result;
-}
 
 struct expr_printer_visitor : static_visitor<void>
 {

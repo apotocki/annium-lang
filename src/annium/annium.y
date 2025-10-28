@@ -42,10 +42,7 @@ int annium_langlex(YYSTYPE * yylval_param, YYLTYPE * yylloc_param, parser_contex
 
 void annium_lang::parser::error(const location_type& loc, const std::string& msg)
 {
-    ctx.append_error(
-        resource_location{ loc.begin.line, loc.begin.column, ctx.get_resource() },
-        resource_location{ loc.end.line, loc.end.column, ctx.get_resource() },
-        msg);
+    ctx.append_error(loc.begin.line, loc.begin.column, loc.end.line, loc.end.column, msg);
 }
 
 #define IGNORE_TERM(...)
@@ -822,7 +819,7 @@ constraint-expression-mod:
       %empty
         {
             location_type const& loc = @-1;
-            $$ = std::pair{ sonia::lang::lex::resource_location{ loc.begin.line, loc.begin.column, ctx.get_resource() }, parameter_constraint_modifier_t::const_or_runtime_type };
+            $$ = std::pair{ sonia::lang::lex::resource_location{ loc.begin.line, loc.begin.column, ctx.get_resource_id() }, parameter_constraint_modifier_t::const_or_runtime_type };
         }
     | constraint-expression-specified-mod
     ;

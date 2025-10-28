@@ -30,6 +30,7 @@ using qname_identifier = sonia::lang::qname_identifier;
 using entity_identifier = sonia::lang::identifier<uint32_t, enity_tag>;
 using variable_identifier = sonia::lang::identifier<uint32_t, variable_tag>;
 
+using resource_identifier = sonia::lang::lex::resource_identifier;
 using resource_location = sonia::lang::lex::resource_location;
 using code_resource = sonia::lang::lex::code_resource;
 using resource_print_mode_t = sonia::lang::lex::resource_print_mode_t;

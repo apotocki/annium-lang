@@ -4,6 +4,7 @@
 #pragma once
 
 #include <fstream>
+#include <unordered_set>
 
 #include <boost/preprocessor/seq/for_each.hpp>
 #include <boost/preprocessor/seq/for_each_i.hpp>
@@ -27,6 +28,8 @@
 #include "entities/variable_entity.hpp"
 #include "entities/functional.hpp"
 #include "entities/functional_registry.hpp"
+
+#include "annium/ast/ast_resource.hpp"
 
 namespace annium {
 
@@ -352,7 +355,9 @@ public:
         additional_paths_.emplace_back(std::move(p));
     }
 
-    std::vector<char> get_file_content(fs::path const& rpath, fs::path const* context = nullptr);
+    ast_resource const& get_resource(resource_identifier const&) const;
+    ast_resource const& get_resource(string_view code);
+    ast_resource const& get_resource(fs::path const& rpath, fs::path const* context = nullptr);
     
     functional& resolve_functional(qname_view);
 
@@ -365,7 +370,7 @@ public:
     std::ostream& print_to(std::ostream&, qname_identifier const&) const;
     std::ostream& print_to(std::ostream&, field_descriptor const&) const;
     std::ostream& print_to(std::ostream&, small_u32string const&, bool in_quotes = false) const;
-    std::ostream& print_to(std::ostream&, resource_location const&, string_view indent = {}) const;
+    std::ostream& print_to(std::ostream&, resource_location const&, string_view indent = {}, resource_print_mode_t = resource_print_mode_t::default_mode) const;
     std::ostream& print_to(std::ostream&, syntax_expression_t const&) const;
     std::ostream& print_to(std::ostream&, pattern_t::signature_descriptor const&) const;
     std::ostream& print_to(std::ostream&, pattern_t const&) const;
@@ -437,8 +442,6 @@ public:
 protected:
     void setup_type(builtin_qnid, builtin_eid);
 
-    std::vector<char> read_file(fs::path const& rpath);
-
     template <typename OutputIteratorT, typename UndefinedFT>
     OutputIteratorT identifier_printer(identifier const&, string_view prefix, OutputIteratorT, UndefinedFT const&) const;
 
@@ -458,6 +461,30 @@ protected:
     entity_identifier set_builtin_extern(string_view name, void(*pfn)(vm::context&));
 
 private:
+    struct resource_hash
+    {
+        using is_transparent = void;
+        inline size_t operator() (shared_ptr<ast_resource> const& res) const noexcept { return res->hash(); }
+        inline size_t operator() (string_view const& sv) const noexcept { return std::hash<string_view>{}(sv); }
+        inline size_t operator() (fs::path const& p) const noexcept { return std::hash<fs::path>{}(p); }
+    };
+
+    struct resource_equal
+    {
+        using is_transparent = void;
+        inline bool operator() (shared_ptr<ast_resource> const& l, shared_ptr<ast_resource> const& r) const noexcept
+        {
+            return l->equal(*r);
+        }
+
+        bool operator() (string_view const& l, shared_ptr<ast_resource> const& r) const noexcept;
+        bool operator() (fs::path const& l, shared_ptr<ast_resource> const& r) const noexcept;
+    };
+
+    mutable fibers::mutex resources_mutex_;
+    std::unordered_set<shared_ptr<ast_resource>, resource_hash, resource_equal> resources_;
+    small_vector<shared_ptr<ast_resource>, 4> flat_resources_;
+    
     std::atomic<size_t> variable_identifier_gencount_ = 1;
 
     std::array<identifier, (size_t)builtin_id::eof_builtin_id_value> builtin_ids_;

@@ -119,6 +119,9 @@
     <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\services\bundle.cpp">
       <Filter>sonia\services</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\fibers\context_shared.cpp">
+      <Filter>sonia\fibers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="sonia">

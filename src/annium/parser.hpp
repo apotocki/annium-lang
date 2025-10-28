@@ -6,13 +6,13 @@
 #include <vector>
 #include <expected>
 
-#include "sonia/variant.hpp"
 #include "sonia/type_traits.hpp"
 #include "sonia/filesystem.hpp"
-#include "sonia/small_vector.hpp"
 
 #include "ast_terms.hpp"
 #include "sonia/logger/logger.hpp"
+
+#include "annium/ast/ast_resource.hpp"
 
 namespace annium {
 
@@ -41,23 +41,19 @@ public:
     //annotated_qname_identifier make_qname_identifier(annotated_qname) const;
     //annotated_qname_identifier make_qname_identifier(annotated_string_view, bool is_abs) const;
 
-    syntax_expression_entry& push(syntax_expression_t&&);
-
     managed_statement_list new_statement_list() const;
     statement_span push(managed_statement_list&&);
 
     //identifier make_required_identifier(string_view);
-    //small_u32string make_string(string_view);
 
     void set_root_statements(managed_statement_list&&);
     inline managed_statement_list const& statements() const noexcept { return statements_; }
     inline managed_statement_list& statements() noexcept { return statements_; }
 
-    void append_error(resource_location const& loc_begin, resource_location const& loc_end, std::string errmsg);
-    void append_error(resource_location const& loc, std::string errmsg);
+    void append_error(int line_begin, int col_begin, int line_end, int col_end, string_view tok);
     void append_error(std::string errmsg);
 
-    shared_ptr<code_resource> get_resource() const noexcept;
+    resource_identifier get_resource_id() const noexcept { return resource_ ? resource_->id : resource_identifier{}; }
 
     std::expected<statement_span, std::string> parse(fs::path const& f, fs::path const* base_path = nullptr);
     std::expected<statement_span, std::string> parse_string(string_view);
@@ -67,7 +63,7 @@ private:
 
     environment& environment_;
 
-    shared_ptr<syntax_expression_resource> resource_;
+    ast_resource const* resource_ = nullptr;
     
     std::vector<std::string> error_messages_;
     

@@ -61,12 +61,7 @@ using YYSTYPE = annium_lang::parser::semantic_type;
 using YYLTYPE = annium_lang::parser::location_type;
 
 #define ECHO do { \
-	ctx.append_error(("%1%:%2%.%3%-%4%.%5%: error: %6%"_fmt \
-		% ctx.get_resource() \
-		% yylloc->begin.line % yylloc->begin.column % yylloc->end.line % yylloc->end.column % string_view{ yytext, (size_t) yyleng }).str()); } while (0)
-
-
-// annium_lang::parser::error(*yylloc, string_view{ yytext, (size_t) yyleng });  while (0)
+	ctx.append_error(yylloc->begin.line, yylloc->begin.column, yylloc->end.line, yylloc->end.column, string_view{ yytext, (size_t) yyleng }); } while (0)
 
 //sonia::lang::lex::undefined_lexem(yytext, (size_t) yyleng ); } while (0)
 
@@ -79,15 +74,13 @@ using YYLTYPE = annium_lang::parser::location_type;
 #endif
 
 #define text_view string_view{yytext, (size_t)yyleng}
-#define location lex::resource_location{yylloc->begin.line, yylloc->begin.column, ctx.get_resource()}
+#define location lex::resource_location{yylloc->begin.line, yylloc->begin.column, ctx.get_resource_id()}
 #define variant_emplace(...) \
 	try { \
 		auto value = (__VA_ARGS__); \
 		yylval->template emplace<decltype(value)>(std::move(value)); \
 	} catch (std::exception const& ex) { \
-		ctx.append_error(("%1%(%2%,%3%-%4%,%5%): error: %6%"_fmt \
-			% ctx.get_resource() \
-			% yylloc->begin.line % yylloc->begin.column % yylloc->end.line % yylloc->end.column % ex.what()).str()); \
+		ctx.append_error(yylloc->begin.line, yylloc->begin.column, yylloc->end.line, yylloc->end.column, ex.what()); \
 	}
 
 %}
