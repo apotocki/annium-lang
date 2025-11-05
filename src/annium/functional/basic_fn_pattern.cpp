@@ -27,10 +27,20 @@ namespace annium {
 //    THROW_NOT_IMPLEMENTED_ERROR("basic_fn_pattern::init is not implemented yet");
 //}
 
-error_storage basic_fn_pattern::init(fn_compiler_context& ctx, fn_pure_t const& fnd)
+error_storage basic_fn_pattern::init(fn_compiler_context& ctx, fn_pure const& fnd)
 {
     location_ = fnd.location;
-    result_ = fnd.result;
+    visit([this](auto&& expr) {
+        if constexpr (std::is_same_v<std::decay_t<decltype(expr)>, nullptr_t>) {
+            result_ = nullptr;
+        } else {
+            static_assert(
+                std::is_same_v<std::decay_t<decltype(expr)>, syntax_expression const*> ||
+                std::is_same_v<std::decay_t<decltype(expr)>, syntax_pattern const*>
+            );
+            result_ = *expr;
+        }
+    }, fnd.result);
 
     parameters_.reserve(fnd.parameters.size());
 
@@ -53,7 +63,7 @@ error_storage basic_fn_pattern::init(fn_compiler_context& ctx, fn_pure_t const& 
     size_t argindex = 0;
 
     for (auto& param : fnd.parameters) {
-        auto [external_name, internal_name] = apply_visitor(param_name_retriever{}, param.name);
+        auto [external_name, internal_name] = visit(param_name_retriever{}, param.name);
         parameters_.emplace_back(
             external_name ? *external_name : annotated_identifier{},
             std::initializer_list<annotated_identifier>{},
@@ -76,9 +86,13 @@ error_storage basic_fn_pattern::init(fn_compiler_context& ctx, fn_pure_t const& 
             }
 
             if (!internal_name || internal_name->value != nid) {
-                auto loc = apply_visitor(make_functional_visitor<resource_location>([](auto const& f) {
-                    return get_start_location(f);
-                }), param.constraint);
+                auto loc = visit([](auto && f) -> resource_location {
+                    if constexpr (std::is_same_v<std::decay_t<decltype(f)>, syntax_expression const*>) {
+                        return f->location;
+                    } else {
+                        return get_start_location(*f);
+                    }
+                }, param.constraint);
                 if (auto err = insert_param_name(parameter_names_, annotated_identifier{ nid, loc }); err) return err;
                 pd.inames.emplace_back(annotated_identifier{ nid, loc });
             }
@@ -98,10 +112,9 @@ error_storage basic_fn_pattern::init(fn_compiler_context& ctx, fn_pure_t const& 
 std::expected<functional_match_descriptor_ptr, error_storage> basic_fn_pattern::try_match(fn_compiler_context& caller_ctx, prepared_call const& call, expected_result_t const& exp) const
 {
     // quick mismatch check
-    if (pattern_t const* rpattern = get<pattern_t>(&result_)) {
-        if (!exp.type) {
-            return std::unexpected(make_error<basic_general_error>(call.location, "Cannot match pattern without expected result"sv, nullptr, get_start_location(*rpattern)));
-        }
+    syntax_pattern const* rpattern = get_if<syntax_pattern>(&result_);
+    if (rpattern && !exp.type) {
+        return std::unexpected(make_error<basic_general_error>(call.location, "Cannot match pattern without expected result"sv, nullptr, get_start_location(*rpattern)));
     }
 
     environment& e = caller_ctx.env();
@@ -121,7 +134,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> basic_fn_pattern::
     entity_signature& call_sig = pmd->signature;
 
     // If the result is a pattern, we should handle it first.
-    if (pattern_t const* rpattern = get<pattern_t>(&result_)) {
+    if (rpattern) {
         BOOST_ASSERT(exp);
         auto err = pattern_matcher{ callee_ctx, pmd->bindings, call.expressions }.match(*rpattern, annotated_entity_identifier{ exp.type, exp.location });
         if (err) {
@@ -139,11 +152,11 @@ std::expected<functional_match_descriptor_ptr, error_storage> basic_fn_pattern::
         return std::unexpected(std::move(err));
     }
 
-    if (syntax_expression_t const* rexpr = get<syntax_expression_t>(&result_)) {
-        auto res = apply_visitor(base_expression_visitor{ callee_ctx, call.expressions, expected_result_t{ .modifier = value_modifier_t::constexpr_value } }, *rexpr);
+    if (syntax_expression const* rexpr = get_if<syntax_expression>(&result_)) {
+        auto res = base_expression_visitor::visit(callee_ctx, call.expressions, expected_result_t{ .modifier = value_modifier_t::constexpr_value }, *rexpr);
         if (!res) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(call.location, "Cannot evaluate result expression"sv, nullptr, get_start_location(*rexpr)),
+                make_error<basic_general_error>(call.location, "Cannot evaluate result expression"sv, nullptr, rexpr->location),
                 std::move(res.error())
             ));
         }
@@ -167,12 +180,8 @@ std::pair<syntax_expression_result, size_t> basic_fn_pattern::apply_arguments(fn
     return { result, count };
 }
 
-shared_ptr<internal_function_entity> basic_fn_pattern::build(fn_compiler_context& ctx, functional_match_descriptor& md, entity_signature signature) const
+shared_ptr<internal_function_entity> basic_fn_pattern::build(fn_compiler_context& ctx, entity_signature&& signature, functional_binding_set&& mdbindings) const
 {
-    if (md.call_location.line == 15 && md.call_location.column == 90) {
-        int u = 0;
-    }
-
     environment& e = ctx.env();
 
     qname_view fnqn = e.fregistry_resolve(signature.name).name();
@@ -184,26 +193,26 @@ shared_ptr<internal_function_entity> basic_fn_pattern::build(fn_compiler_context
         location());
 
     pife->location = location();
-    build_scope(e, md, *pife);
+    build_scope(e, std::move(mdbindings), *pife);
 
     return pife;
 }
 
-void basic_fn_pattern::build_scope(environment& e, functional_match_descriptor& md, internal_function_entity& fent) const
+void basic_fn_pattern::build_scope(environment& e, functional_binding_set&& mdbindings, internal_function_entity& fent) const
 {
     // bind variables (rt arguments)
     for (parameter_descriptor const& pd : parameters_) {
-        functional_binding::value_type const* bsp = md.bindings.lookup(pd.inames.front().value);
+        functional_binding::value_type const* bsp = mdbindings.lookup(pd.inames.front().value);
         BOOST_ASSERT(bsp);
 
         if (!has(pd.modifier, parameter_constraint_modifier_t::ellipsis)) {
-            if (local_variable const* plv = get<local_variable>(bsp); plv) {
+            if (local_variable const* plv = get_if<local_variable>(bsp); plv) {
                 fent.push_argument(plv->varid);
             } // else arg is constant
             continue;
         }
 
-        entity_identifier const* peid = get<entity_identifier>(bsp);
+        entity_identifier const* peid = get_if<entity_identifier>(bsp);
         if (!peid) {
             THROW_INTERNAL_ERROR("internal_fn_pattern::build_scope: expected entity_identifier in functional_binding::value_type for ellipsis");
         }
@@ -219,9 +228,9 @@ void basic_fn_pattern::build_scope(environment& e, functional_match_descriptor& 
                 qname const& qn = pqent->value();
                 BOOST_ASSERT(qn.size() == 1);
                 identifier varname = qn.parts().front();
-                functional_binding::value_type const* bvar = md.bindings.lookup(varname);
+                functional_binding::value_type const* bvar = mdbindings.lookup(varname);
                 BOOST_ASSERT(bvar);
-                local_variable const* plv = get<local_variable>(bvar);
+                local_variable const* plv = get_if<local_variable>(bvar);
                 BOOST_ASSERT(plv);
                 fent.push_argument(plv->varid);
             }
@@ -229,8 +238,8 @@ void basic_fn_pattern::build_scope(environment& e, functional_match_descriptor& 
     }
 
     // bind constants
-    md.bindings.for_each([&e, &fent](identifier name, resource_location const& loc, functional_binding::value_type& value) {
-        if (entity_identifier const* peid = get<entity_identifier>(&value); peid) {
+    mdbindings.for_each([&e, &fent](identifier name, resource_location const& loc, functional_binding::value_type& value) {
+        if (entity_identifier const* peid = get_if<entity_identifier>(&value); peid) {
             qname infn_name = fent.name() / name;
             functional& fnl = e.fregistry_resolve(infn_name);
             fnl.set_default_entity(annotated_entity_identifier{ *peid, loc });
@@ -274,7 +283,7 @@ void basic_fn_pattern::build_scope(environment& e, functional_match_descriptor& 
         }
         });
 #endif
-    fent.bindings = std::move(md.bindings);
+    fent.bindings = std::move(mdbindings);
 }
 
 std::ostream& basic_fn_pattern::print(environment const& e, std::ostream& ss) const
@@ -299,25 +308,32 @@ std::ostream& basic_fn_pattern::print(environment const& e, std::ostream& ss) co
             }
         }
         
-        apply_visitor(make_functional_visitor<void>([&e, &ss](auto const& m) {
-            if constexpr (std::is_same_v<pattern_t, std::decay_t<decltype(m)>>) {
-                e.print_to(ss << ":~ "sv, m);
-            } else if constexpr (std::is_same_v<syntax_expression_t, std::decay_t<decltype(m)>>) {
-                e.print_to(ss << ": "sv, m);
+        visit([&e, &ss](auto const* m) {
+            if constexpr (std::is_same_v<syntax_pattern const*, std::decay_t<decltype(m)>>) {
+                e.print_to(ss << ":~ "sv, *m);
+            } else if constexpr (std::is_same_v<syntax_expression const*, std::decay_t<decltype(m)>>) {
+                e.print_to(ss << ": "sv, *m);
+            } else {
+                static_assert(false);
             }
-        }), pd.constraint);
-        if ((pd.modifier & parameter_constraint_modifier_t::ellipsis) == parameter_constraint_modifier_t::ellipsis) {
+        }, pd.constraint);
+        if (has(pd.modifier, parameter_constraint_modifier_t::ellipsis)) {
             ss << "... "sv;
-        }
+        } 
     }
     
-    if (0 == result_.which()) {
-        ss << ")->auto"sv;
-    } else if (auto const* pexpr = get<syntax_expression_t>(&result_)) {
-        e.print_to(ss << ")->"sv, *pexpr);
-    } else if (auto const* rpattern = get<pattern_t>(&result_)) {
-        e.print_to(ss << ")~>"sv, *rpattern);
-    }
+    visit([&ss, &e](auto&& v) {
+        if constexpr (std::is_same_v<std::decay_t<decltype(v)>, nullptr_t>) {
+            ss << ")->auto"sv;
+        } else if constexpr (std::is_same_v<std::decay_t<decltype(v)>, syntax_expression>) {
+            e.print_to(ss << ")->"sv, v);
+        } else if constexpr (std::is_same_v<std::decay_t<decltype(v)>, syntax_pattern>) {
+            e.print_to(ss << ")~>"sv, v);
+        } else {
+            static_assert(false);
+        }
+    }, result_);
+    
     return ss;
 }
 

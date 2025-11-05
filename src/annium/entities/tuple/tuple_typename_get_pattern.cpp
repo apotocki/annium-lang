@@ -20,7 +20,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_typename_get
 {
     environment& e = ctx.env();
     auto call_session = call.new_session(ctx);
-    std::pair<syntax_expression_t const*, size_t> slf_arg_expr;
+    std::pair<syntax_expression const*, size_t> slf_arg_expr;
     auto slf_arg = call_session.use_named_argument(e.get(builtin_id::self), expected_result_t{ .type = e.get(builtin_eid::typename_), .modifier = value_modifier_t::constexpr_value }, &slf_arg_expr);
     if (!slf_arg) {
         if (!slf_arg.error()) {
@@ -29,7 +29,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_typename_get
         return std::unexpected(std::move(slf_arg.error()));
     }
 
-    std::pair<syntax_expression_t const*, size_t> prop_arg;
+    std::pair<syntax_expression const*, size_t> prop_arg;
     alt_error prop_errors;
     auto property_arg = call_session.use_named_argument(e.get(builtin_id::property), expected_result_t{ .type = e.get(builtin_eid::integer), .modifier = value_modifier_t::constexpr_value }, &prop_arg);
     if (!property_arg && property_arg.error()) {
@@ -57,16 +57,16 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_typename_get
     
     // This pattern only handles const results (tuple typename)
     if (!slf_arg_er.is_const_result) {
-        return std::unexpected(make_error<type_mismatch_error>(get_start_location(*get<0>(slf_arg_expr)), slf_arg_er.type(), "a constexpr tuple typename"sv));
+        return std::unexpected(make_error<type_mismatch_error>(get<0>(slf_arg_expr)->location, slf_arg_er.type(), "a constexpr tuple typename"sv));
     }
 
     entity const& slf_entity = get_entity(e, slf_arg_er.value());
     auto psig = slf_entity.signature();
     if (!psig || psig->name != e.get(builtin_qnid::tuple)) {
-        return std::unexpected(make_error<type_mismatch_error>(get_start_location(*get<0>(slf_arg_expr)), slf_arg_er.value(), "a tuple typename"sv));
+        return std::unexpected(make_error<type_mismatch_error>(get<0>(slf_arg_expr)->location, slf_arg_er.value(), "a tuple typename"sv));
     }
     if (psig->empty()) {
-        return std::unexpected(make_error<type_mismatch_error>(get_start_location(*get<0>(slf_arg_expr)), slf_arg_er.value(), "a not empty tuple typename"sv));
+        return std::unexpected(make_error<type_mismatch_error>(get<0>(slf_arg_expr)->location, slf_arg_er.value(), "a not empty tuple typename"sv));
     }
 
     auto pmd = make_shared<tuple_typename_get_match_descriptor>(call, slf_entity, *psig);

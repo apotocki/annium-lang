@@ -41,22 +41,12 @@
     <ClCompile Include="..\..\..\src\annium\annium_environment.cpp" />
     <ClCompile Include="..\..\..\src\annium\ast\assign_expression_visitor.cpp" />
     <ClCompile Include="..\..\..\src\annium\ast\base_expression_visitor.cpp" />
-    <ClCompile Include="..\..\..\src\annium\ast\casts\expression_cast_to_vector_visitor.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\ast\casts\expression_cast_utility.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\ast\declaration_visitor.cpp" />
-    <ClCompile Include="..\..\..\src\annium\ast\expression_visitor.cpp" />
+    <ClCompile Include="..\..\..\src\annium\ast\expression_visitor.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\ast\fn_compiler_context.cpp" />
-    <ClCompile Include="..\..\..\src\annium\ast\functional_declaration_visitor.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\ellipsis\ellipsis_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\enum\enum_entity.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\enum\enum_implicit_cast_pattern.cpp" />
@@ -174,23 +164,12 @@
     <ClInclude Include="..\..\..\src\annium\annium.yy.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\assign_expression_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\base_expression_visitor.hpp" />
-    <ClInclude Include="..\..\..\src\annium\ast\casts\expression_cast_to_bool_visitor.hpp" />
-    <ClInclude Include="..\..\..\src\annium\ast\casts\expression_cast_to_enum_visitor.hpp" />
-    <ClInclude Include="..\..\..\src\annium\ast\casts\expression_cast_to_float_visitor.hpp" />
-    <ClInclude Include="..\..\..\src\annium\ast\casts\expression_cast_to_int_visitor.hpp" />
-    <ClInclude Include="..\..\..\src\annium\ast\casts\expression_cast_to_object_visitor.hpp" />
-    <ClInclude Include="..\..\..\src\annium\ast\casts\expression_cast_to_string_visitor.hpp" />
-    <ClInclude Include="..\..\..\src\annium\ast\casts\expression_cast_to_vector_visitor.hpp" />
-    <ClInclude Include="..\..\..\src\annium\ast\casts\utility.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\declaration_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\expression_decimal_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\expression_fn_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\expression_implicit_cast_visitor.hpp" />
-    <ClInclude Include="..\..\..\src\annium\ast\expression_type_visitor.hpp" />
-    <ClInclude Include="..\..\..\src\annium\ast\expression_vector_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\expression_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\fn_compiler_context.hpp" />
-    <ClInclude Include="..\..\..\src\annium\ast\functional_declaration_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\vector_expression_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast_terms.hpp" />
     <ClInclude Include="..\..\..\src\annium\auxiliary.hpp" />
@@ -405,7 +384,7 @@
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <LanguageStandard>stdcpp23</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <PrecompiledHeaderOutputFile />
       <AdditionalIncludeDirectories>$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include\;$(SolutionDir)tpls\sonia-prime;$(SolutionDir)tpls\lexertl14\include;$(SolutionDir)tpls\dataforge\include;$(SolutionDir)tpls\numetron\include;$(ProjectDir)..\..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>

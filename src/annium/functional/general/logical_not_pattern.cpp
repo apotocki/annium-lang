@@ -27,7 +27,7 @@ logical_not_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
     if (!arg) {
         if (arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get_start_location(*get<0>(arg_expr)), "invalid argument"sv),
+                make_error<basic_general_error>(get<0>(arg_expr)->location, "invalid argument"sv),
                 std::move(arg.error())));
         } else {
             return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument"sv));
@@ -42,7 +42,7 @@ logical_not_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
     
     // Create match descriptor
     auto pmd = make_shared<functional_match_descriptor>(call);
-    pmd->append_arg(arg->first, get_start_location(*get<0>(arg_expr)));
+    pmd->append_arg(arg->first, get<0>(arg_expr)->location);
     pmd->signature.result.emplace(env.get(builtin_eid::boolean), arg->first.is_const_result);
     
     return pmd;

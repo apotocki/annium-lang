@@ -41,24 +41,24 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_new_pattern
     if (!type_arg) {
         if (type_arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get_start_location(*get<0>(type_arg_expr)), "invalid `__type` argument"sv),
+                make_error<basic_general_error>(get<0>(type_arg_expr)->location, "invalid `__type` argument"sv),
                 std::move(type_arg.error())));
         }
         return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `__type`"sv));
     }
 
-    resource_location const& typeargloc = get_start_location(*get<0>(type_arg_expr));
+    resource_location const& typeargloc = get<0>(type_arg_expr)->location;
     syntax_expression_result& type_arg_er = type_arg->first;
 
     entity const& some_entity = get_entity(env, type_arg_er.value());
     struct_entity const* pse = dynamic_cast<struct_entity const*>(&some_entity);
     if (!pse) return std::unexpected(make_error<basic_general_error>(typeargloc, "argument mismatch, expected a structure"sv, type_arg_er.value()));
 
-    pure_call_t init_call{ call.location };
+    call_builder init_call{ call.location };
     for (auto const& arg : call.args) {
         annotated_identifier const* pargname = arg.name();
         if (pargname && pargname->value == tpid) continue; // skip '__type' parameter
-        syntax_expression_t const& arg_expr = arg.value();
+        syntax_expression const& arg_expr = arg.value();
         if (pargname) {
             init_call.emplace_back(*pargname, arg_expr);
         } else {
@@ -85,10 +85,10 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_new_pattern
     for (auto const& arg : call.args()) {
         annotated_identifier const* pargname = arg.name();
         if (pargname && pargname->value == tpid) continue; // skip '__type' parameter
-        syntax_expression_t const& arg_expr = arg.value();
-        pure_call_t set_call{ pargname ? pargname->location : get_start_location(arg_expr) };
+        syntax_expression const& arg_expr = arg.value();
+        pure_call set_call{ pargname ? pargname->location : get_start_location(arg_expr) };
         set_call.emplace_back(annotated_identifier{ e.get(builtin_id::self) }, context_value{ pse->id(), typeloc });
-        set_call.emplace_back(annotated_identifier{ e.get(builtin_id::property) }, pargname ? syntax_expression_t{ *pargname } : annotated_integer{ pos_arg_num++ });
+        set_call.emplace_back(annotated_identifier{ e.get(builtin_id::property) }, pargname ? syntax_expression{ *pargname } : annotated_integer{ pos_arg_num++ });
         set_call.emplace_back(arg_expr);
 
         auto match = fn.find(ctx, set_call);

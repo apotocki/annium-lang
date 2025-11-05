@@ -6630,7 +6630,6 @@ static const flex_int32_t yy_rule_can_match_eol[91] =
 #include "parser.hpp"
 
 using namespace sonia;
-using namespace sonia::lang;
 using namespace annium;
 
 #include "annium.tab.hpp"
@@ -6652,7 +6651,7 @@ using YYLTYPE = annium_lang::parser::location_type;
 #endif
 
 #define text_view string_view{yytext, (size_t)yyleng}
-#define location lex::resource_location{yylloc->begin.line, yylloc->begin.column, ctx.get_resource_id()}
+#define location resource_location{ yylloc->begin.line, yylloc->begin.column, ctx.get_resource_id() }
 #define variant_emplace(...) \
 	try { \
 		auto value = (__VA_ARGS__); \
@@ -6661,7 +6660,7 @@ using YYLTYPE = annium_lang::parser::location_type;
 		ctx.append_error(yylloc->begin.line, yylloc->begin.column, yylloc->end.line, yylloc->end.column, ex.what()); \
 	}
 
-#line 6664 "annium.yy.cpp"
+#line 6663 "annium.yy.cpp"
 /*DECIMAL                 ([0-9]+"."?|[0-9]*"."[0-9]+){EXPONENT}?*/
 /*
 VOID					"void"
@@ -6713,7 +6712,7 @@ HASHTAG					"#"
 
 */
 
-#line 6716 "annium.yy.cpp"
+#line 6715 "annium.yy.cpp"
 
 #define INITIAL 0
 #define COMMENT 1
@@ -6982,10 +6981,10 @@ YY_DECL
 		}
 
 	{
-#line 251 "annium.l"
+#line 250 "annium.l"
 
 
-#line 6988 "annium.yy.cpp"
+#line 6987 "annium.yy.cpp"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -7052,12 +7051,12 @@ do_action:	/* This label is used only to access EOF actions. */
 case 1:
 /* rule 1 can match eol */
 YY_RULE_SETUP
-#line 253 "annium.l"
+#line 252 "annium.l"
 /* ignore whitespaces */
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 255 "annium.l"
+#line 254 "annium.l"
 {
 	//GLOBAL_LOG_INFO() << "COMMENT at: line: " << yylloc->begin.line << ", col: " << yylloc->begin.column;
 	yy_push_state(COMMENT, yyscanner);
@@ -7068,12 +7067,12 @@ YY_RULE_SETUP
 case 3:
 /* rule 3 can match eol */
 YY_RULE_SETUP
-#line 261 "annium.l"
+#line 260 "annium.l"
 
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 262 "annium.l"
+#line 261 "annium.l"
 {
 		//GLOBAL_LOG_INFO() << "COMMENT CLOSED at: line: " << yylloc->begin.line << ", col: " << yylloc->begin.column;
 		yy_pop_state(yyscanner);
@@ -7083,19 +7082,19 @@ YY_RULE_SETUP
 
 case 5:
 YY_RULE_SETUP
-#line 268 "annium.l"
+#line 267 "annium.l"
 { yy_push_state(LINE_COMMENT, yyscanner); }
 	YY_BREAK
 case 6:
 /* rule 6 can match eol */
 YY_RULE_SETUP
-#line 269 "annium.l"
+#line 268 "annium.l"
 { yy_pop_state(yyscanner); }
 	YY_BREAK
 
 case 7:
 YY_RULE_SETUP
-#line 272 "annium.l"
+#line 271 "annium.l"
 { 
 		yyextra->str_buff_begin = yytext + 1;
 		yyextra->loc_stack.emplace_back(location);
@@ -7104,7 +7103,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 277 "annium.l"
+#line 276 "annium.l"
 { 
 		yyextra->str_buff_begin = yytext + 1;
 		yyextra->loc_stack.emplace_back(location);
@@ -7115,22 +7114,22 @@ YY_RULE_SETUP
 case 9:
 /* rule 9 can match eol */
 YY_RULE_SETUP
-#line 284 "annium.l"
+#line 283 "annium.l"
 
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 285 "annium.l"
+#line 284 "annium.l"
 
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 286 "annium.l"
+#line 285 "annium.l"
 
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 287 "annium.l"
+#line 286 "annium.l"
 {
 		variant_emplace(annotated_string_view{string_view{yyextra->str_buff_begin, yytext}, yyextra->loc_stack.back()});
 		yyextra->loc_stack.pop_back();
@@ -7143,22 +7142,22 @@ YY_RULE_SETUP
 case 13:
 /* rule 13 can match eol */
 YY_RULE_SETUP
-#line 296 "annium.l"
+#line 295 "annium.l"
 
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 297 "annium.l"
+#line 296 "annium.l"
 
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 298 "annium.l"
+#line 297 "annium.l"
 
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 299 "annium.l"
+#line 298 "annium.l"
 {
 		variant_emplace(annotated_string_view{string_view{yyextra->str_buff_begin, yytext}, yyextra->loc_stack.back()});
 		yyextra->loc_stack.pop_back();
@@ -7170,147 +7169,147 @@ YY_RULE_SETUP
 
 case 17:
 YY_RULE_SETUP
-#line 308 "annium.l"
+#line 307 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::FN); }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 309 "annium.l"
+#line 308 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::TYPEFN); }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 310 "annium.l"
+#line 309 "annium.l"
 { return (annium_lang::parser::token::LET); }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 311 "annium.l"
+#line 310 "annium.l"
 { return (annium_lang::parser::token::VAR); }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 312 "annium.l"
+#line 311 "annium.l"
 { return (annium_lang::parser::token::ENUM); }
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 313 "annium.l"
+#line 312 "annium.l"
 { return (annium_lang::parser::token::STRUCT); }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 314 "annium.l"
+#line 313 "annium.l"
 { return (annium_lang::parser::token::REQUIRES); }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 315 "annium.l"
+#line 314 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::PROBE); }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 316 "annium.l"
+#line 315 "annium.l"
 { return (annium_lang::parser::token::VIABLE); }
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 317 "annium.l"
+#line 316 "annium.l"
 { return (annium_lang::parser::token::USING); }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 318 "annium.l"
+#line 317 "annium.l"
 { return (annium_lang::parser::token::EXTENDS); }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 319 "annium.l"
+#line 318 "annium.l"
 { return (annium_lang::parser::token::EXTERN); }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 320 "annium.l"
+#line 319 "annium.l"
 { return (annium_lang::parser::token::INCLUDE); }
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 321 "annium.l"
+#line 320 "annium.l"
 { return (annium_lang::parser::token::INLINE); }
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 322 "annium.l"
+#line 321 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::NEW); }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 324 "annium.l"
+#line 323 "annium.l"
 { return (annium_lang::parser::token::WHILE); }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 325 "annium.l"
+#line 324 "annium.l"
 { return (annium_lang::parser::token::FOR); }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 326 "annium.l"
+#line 325 "annium.l"
 { return (annium_lang::parser::token::IN_); }
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 327 "annium.l"
+#line 326 "annium.l"
 { return (annium_lang::parser::token::IF); }
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 328 "annium.l"
+#line 327 "annium.l"
 { return (annium_lang::parser::token::ELSE); }
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 330 "annium.l"
+#line 329 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::CONTINUE); }
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 331 "annium.l"
+#line 330 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::BREAK); }
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 332 "annium.l"
+#line 331 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::RETURN); }
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 333 "annium.l"
+#line 332 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::YIELD); }
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 335 "annium.l"
+#line 334 "annium.l"
 { return (annium_lang::parser::token::WEAK); }
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 337 "annium.l"
+#line 336 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::TYPENAME); }
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 338 "annium.l"
+#line 337 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::CONSTEXPR); }
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 339 "annium.l"
+#line 338 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::RUNTIME); }
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 341 "annium.l"
+#line 340 "annium.l"
 {
 		variant_emplace(annotated_nil{location});
 		return (annium_lang::parser::token::NIL_WORD);
@@ -7318,7 +7317,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 345 "annium.l"
+#line 344 "annium.l"
 {
 		variant_emplace(annotated_bool{true, location});
 		return (annium_lang::parser::token::TRUE_WORD);
@@ -7326,7 +7325,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 349 "annium.l"
+#line 348 "annium.l"
 {
 		variant_emplace(annotated_bool{false, location});
 		return (annium_lang::parser::token::FALSE_WORD);
@@ -7334,177 +7333,177 @@ YY_RULE_SETUP
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 354 "annium.l"
+#line 353 "annium.l"
 { return (annium_lang::parser::token::APOSTROPHE); }
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 355 "annium.l"
+#line 354 "annium.l"
 { return (annium_lang::parser::token::AT_SYMBOL); }
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 356 "annium.l"
+#line 355 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::OPEN_BRACE); }
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 357 "annium.l"
+#line 356 "annium.l"
 { return (annium_lang::parser::token::CLOSE_BRACE); }
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 358 "annium.l"
+#line 357 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::OPEN_PARENTHESIS); }
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 359 "annium.l"
+#line 358 "annium.l"
 { return (annium_lang::parser::token::CLOSE_PARENTHESIS);	}
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
-#line 360 "annium.l"
+#line 359 "annium.l"
 { return (annium_lang::parser::token::END_STATEMENT); }
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
-#line 361 "annium.l"
+#line 360 "annium.l"
 { return (annium_lang::parser::token::COMMA);	}
 	YY_BREAK
 case 56:
 YY_RULE_SETUP
-#line 362 "annium.l"
+#line 361 "annium.l"
 { return (annium_lang::parser::token::COLON); }
 	YY_BREAK
 case 57:
 YY_RULE_SETUP
-#line 363 "annium.l"
+#line 362 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::OPEN_SQUARE_BRACKET); }
 	YY_BREAK
 case 58:
 YY_RULE_SETUP
-#line 364 "annium.l"
+#line 363 "annium.l"
 { return (annium_lang::parser::token::CLOSE_SQUARE_BRACKET); }
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
-#line 365 "annium.l"
+#line 364 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::OPEN_SQUARE_DBL_BRACKET); }
 	YY_BREAK
 case 60:
 YY_RULE_SETUP
-#line 366 "annium.l"
+#line 365 "annium.l"
 { return (annium_lang::parser::token::CLOSE_SQUARE_DBL_BRACKET); }
 	YY_BREAK
 case 61:
 YY_RULE_SETUP
-#line 367 "annium.l"
+#line 366 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::ASSIGN); }
 	YY_BREAK
 case 62:
 YY_RULE_SETUP
-#line 368 "annium.l"
+#line 367 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::POINT); }
 	YY_BREAK
 case 63:
 YY_RULE_SETUP
-#line 369 "annium.l"
+#line 368 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::UNDERSCORE); }
 	YY_BREAK
 case 64:
 YY_RULE_SETUP
-#line 370 "annium.l"
+#line 369 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::BITOR); }
 	YY_BREAK
 case 65:
 YY_RULE_SETUP
-#line 371 "annium.l"
+#line 370 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::AMPERSAND); }
 	YY_BREAK
 case 66:
 YY_RULE_SETUP
-#line 372 "annium.l"
+#line 371 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::EXCLPT); }
 	YY_BREAK
 case 67:
 YY_RULE_SETUP
-#line 373 "annium.l"
+#line 372 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::QMARK); }
 	YY_BREAK
 case 68:
 YY_RULE_SETUP
-#line 374 "annium.l"
+#line 373 "annium.l"
 { return (annium_lang::parser::token::DBLCOLON); }
 	YY_BREAK
 case 69:
 YY_RULE_SETUP
-#line 375 "annium.l"
+#line 374 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::PLUS); }
 	YY_BREAK
 case 70:
 YY_RULE_SETUP
-#line 376 "annium.l"
+#line 375 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::MINUS); }
 	YY_BREAK
 case 71:
 YY_RULE_SETUP
-#line 377 "annium.l"
+#line 376 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::ASTERISK); }
 	YY_BREAK
 case 72:
 YY_RULE_SETUP
-#line 378 "annium.l"
+#line 377 "annium.l"
 { return (annium_lang::parser::token::TILDA); }
 	YY_BREAK
 case 73:
 YY_RULE_SETUP
-#line 379 "annium.l"
+#line 378 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::LOGIC_OR); }
 	YY_BREAK
 case 74:
 YY_RULE_SETUP
-#line 380 "annium.l"
+#line 379 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::LOGIC_AND); }
 	YY_BREAK
 case 75:
 YY_RULE_SETUP
-#line 381 "annium.l"
+#line 380 "annium.l"
 { return (annium_lang::parser::token::ARROW); }
 	YY_BREAK
 case 76:
 YY_RULE_SETUP
-#line 382 "annium.l"
+#line 381 "annium.l"
 { return (annium_lang::parser::token::ARROWEXPR); }
 	YY_BREAK
 case 77:
 YY_RULE_SETUP
-#line 383 "annium.l"
+#line 382 "annium.l"
 { return (annium_lang::parser::token::FARROW); }
 	YY_BREAK
 case 78:
 YY_RULE_SETUP
-#line 384 "annium.l"
+#line 383 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::CONCAT); }
 	YY_BREAK
 case 79:
 YY_RULE_SETUP
-#line 385 "annium.l"
+#line 384 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::EQ); }
 	YY_BREAK
 case 80:
 YY_RULE_SETUP
-#line 386 "annium.l"
+#line 385 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::NE); }
 	YY_BREAK
 case 81:
 YY_RULE_SETUP
-#line 387 "annium.l"
+#line 386 "annium.l"
 { variant_emplace(location); return (annium_lang::parser::token::ELLIPSIS); }
 	YY_BREAK
 case 82:
 YY_RULE_SETUP
-#line 389 "annium.l"
+#line 388 "annium.l"
 {
 		variant_emplace(annotated_string_view{ text_view, location });
 		return (annium_lang::parser::token::IDENTIFIER);
@@ -7512,7 +7511,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 83:
 YY_RULE_SETUP
-#line 393 "annium.l"
+#line 392 "annium.l"
 {
 		variant_emplace(annotated_string_view{ text_view, location });
 		return (annium_lang::parser::token::CONTEXT_IDENTIFIER);
@@ -7520,7 +7519,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 84:
 YY_RULE_SETUP
-#line 397 "annium.l"
+#line 396 "annium.l"
 {
 		variant_emplace(annotated_string_view{ text_view, location });
 		return (annium_lang::parser::token::RESERVED_IDENTIFIER);
@@ -7528,23 +7527,23 @@ YY_RULE_SETUP
 	YY_BREAK
 case 85:
 YY_RULE_SETUP
-#line 401 "annium.l"
+#line 400 "annium.l"
 {
-		variant_emplace(annotated_string_view{ text_view, location });
+		variant_emplace(ctx.make_identifier(annotated_string_view{ text_view, location }));
 		return (annium_lang::parser::token::CT_IDENTIFIER);
 	}
 	YY_BREAK
 case 86:
 YY_RULE_SETUP
-#line 406 "annium.l"
+#line 405 "annium.l"
 {
-		variant_emplace(annotated_integer{ ctx.make_integer(text_view), location });
+		variant_emplace(annotated_integer_view{ ctx.make_integer_view(text_view), location });
 		return (annium_lang::parser::token::INTEGER);
 	}
 	YY_BREAK
 case 87:
 YY_RULE_SETUP
-#line 410 "annium.l"
+#line 409 "annium.l"
 {
 		variant_emplace(annotated_string_view{ text_view, location });
 		return (annium_lang::parser::token::INTEGER_INDEX);
@@ -7552,17 +7551,17 @@ YY_RULE_SETUP
 	YY_BREAK
 case 88:
 YY_RULE_SETUP
-#line 414 "annium.l"
+#line 413 "annium.l"
 {
-		variant_emplace(annotated_decimal{ ctx.make_decimal(text_view), location });
+		variant_emplace(annotated_decimal_view{ ctx.make_decimal_view(text_view), location });
 		return (annium_lang::parser::token::DECIMAL);
 	}
 	YY_BREAK
 case 89:
 YY_RULE_SETUP
-#line 418 "annium.l"
+#line 417 "annium.l"
 {
-		variant_emplace(annotated_decimal{ctx.make_decimal(text_view), location});
+		variant_emplace(annotated_decimal_view{ctx.make_decimal_view(text_view), location});
 		return (annium_lang::parser::token::DECIMAL);
 	}
 	YY_BREAK
@@ -7610,15 +7609,15 @@ case YY_STATE_EOF(LINE_COMMENT):
 case YY_STATE_EOF(STR):
 case YY_STATE_EOF(STR2):
 case YY_STATE_EOF(USER_LITERAL):
-#line 461 "annium.l"
+#line 460 "annium.l"
 return (annium_lang::parser::token::END);
 	YY_BREAK
 case 90:
 YY_RULE_SETUP
-#line 463 "annium.l"
+#line 462 "annium.l"
 ECHO;
 	YY_BREAK
-#line 7621 "annium.yy.cpp"
+#line 7620 "annium.yy.cpp"
 
 	case YY_END_OF_BUFFER:
 		{
@@ -8855,7 +8854,7 @@ void yyfree (void * ptr , yyscan_t yyscanner)
 
 #define YYTABLES_NAME "yytables"
 
-#line 463 "annium.l"
+#line 462 "annium.l"
 
 
 /*

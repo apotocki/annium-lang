@@ -1,11 +1,18 @@
 //  Annium programming language (c) 2025 by Alexander Pototskiy
 //  Annium is licensed under the terms of the MIT License.
 
+// implementation notes:
+// if an ast term can embed other ast terms recursively, use pointer to arena-allocated term to avoid large struct sizes,
+// e.g.: statement const* and expression const*,
+// and collections of them are spans of pointers,
+// e.g: span<statement const*> and span<syntax_expression const*>
+
 #pragma once
 
 #include <vector>
 #include <cstdlib>
 #include <tuple>
+#include <variant>
 
 #include <boost/preprocessor/seq/for_each.hpp>
 #include <boost/preprocessor/tuple/elem.hpp>
@@ -30,17 +37,16 @@ namespace annium {
 
 using namespace std::string_view_literals;
 using namespace sonia;
-//using sonia::small_vector;
-//using sonia::optional;
-//using sonia::variant_compare_three_way;
 
 class environment;
+struct statement;
+struct syntax_expression;
 
-struct statement_entry;
-using statement_span = linked_list_node_span<statement_entry>;
-
-struct syntax_expression_entry;
-using syntax_expression_span = linked_list_node_span<syntax_expression_entry>;
+using statement_list_t = small_vector<statement, 1>;
+using syntax_expression_list_t = small_vector<syntax_expression, 1>;
+template <typename TermT> struct opt_named_term;
+using opt_named_expression_t = opt_named_term<syntax_expression>;
+using opt_named_expression_list_t = small_vector<opt_named_expression_t, 2>;
 
 // e.g. fn (externalName: string); fn (externalName $internalName: string);
 struct named_parameter_name
@@ -61,7 +67,7 @@ struct unnamed_parameter_name
     annotated_identifier internal_name; // can be empty
 };
 
-using parameter_name = variant<named_parameter_name, unnamed_parameter_name>;
+using parameter_name = std::variant<named_parameter_name, unnamed_parameter_name>;
 
 struct param_name_retriever : static_visitor<std::tuple<annotated_identifier const*, annotated_identifier const*>>
 {
@@ -78,133 +84,30 @@ struct param_name_retriever : static_visitor<std::tuple<annotated_identifier con
     }
 };
 
-//template <typename T>
-//struct parameter_type
-//{
-//    T value;
-//    bool is_const = false;
-//
-//    parameter_type() = default;
-//
-//    template <typename TArgT>
-//    inline explicit parameter_type(TArgT&& t, bool cval = false)
-//        : value{ std::forward<TArgT>(t) }, is_const{ cval }
-//    {}
-//};
-
-template <typename TermT>
-struct opt_named_term
+struct annium_fn_type
 {
-    using named_pair_t = std::tuple<annotated_identifier, TermT>;
-    variant<named_pair_t, TermT, nullptr_t> term;
+    syntax_expression const* arg;
+    syntax_expression const* result = nullptr; // optional
 
-    inline opt_named_term() noexcept : term{ nullptr } {}
+    //inline annium_fn_type() = default;
 
-    template <typename TermArgT>
-    requires(std::is_constructible_v<TermT, std::decay_t<TermArgT>>)
-    inline explicit opt_named_term(TermArgT&& t) noexcept : term{ std::forward<TermArgT>(t) } {}
-    
-    template <typename NameT, typename TermArgT>
-    requires(std::is_constructible_v<TermT, std::decay_t<TermArgT>>)
-    inline explicit opt_named_term(NameT&& narg, TermArgT&& t) noexcept
-        : term{ named_pair_t{std::forward<NameT>(narg), std::forward<TermArgT>(t)} }
-    {
-        BOOST_ASSERT(get<0>(get<named_pair_t>(term)));
-    }
+    //inline annium_fn_type(span<const opt_named_expression_t> && a, syntax_expression const* r) noexcept
+    //    : arg{ std::move(a) }
+    //    , result{ r }
+    //{}
 
-    inline explicit operator bool() const noexcept { return !get<nullptr_t>(&term); }
-
-    inline bool has_name() const noexcept { return !!get<named_pair_t>(&term); }
-    inline const annotated_identifier * name() const noexcept
-    {
-        if (named_pair_t const* p = get<named_pair_t>(&term); p) return &get<0>(*p);
-        return nullptr;
-    }
-
-    std::tuple<annotated_identifier const*, TermT const&> operator*() const noexcept
-    {
-        if (named_pair_t const* p = get<named_pair_t>(&term); p) return { &get<0>(*p), get<1>(*p) };
-        return { nullptr, get<TermT>(term) };
-    }
-
-    std::tuple<annotated_identifier const*, TermT &> operator*() noexcept
-    {
-        if (named_pair_t * p = get<named_pair_t>(&term); p) return { &get<0>(*p), get<1>(*p) };
-        return { nullptr, get<TermT>(term) };
-    }
-
-    inline TermT const& value() const noexcept
-    {
-        if (named_pair_t const* p = get<named_pair_t>(&term); p) return get<1>(*p);
-        return get<TermT>(term);
-    }
-
-    inline TermT & value() noexcept
-    {
-        if (named_pair_t * p = get<named_pair_t>(&term); p) return get<1>(*p);
-        return get<TermT>(term);
-    }
-
-    inline resource_location const& location() const noexcept
-    {
-        if (named_pair_t const* p = get<named_pair_t>(&term); p) return get<0>(*p).location;
-        return get_start_location(get<TermT>(term));
-    }
-};
-
-
-//template <typename T> struct annium_tuple
-//{
-//    resource_location location;
-//    opt_named_term_list<T> fields;
-//    inline bool operator==(annium_tuple const&) const = default;
-//};
-
-template <typename TermT>
-using opt_named_term_list = small_vector<opt_named_term<TermT>, 2>;
-
-//struct empty_syntax_expression_list
-//{
-//    resource_location location;
-//};
-//
-//template <typename T> struct named_syntax_expression_list
-//{
-//    opt_named_term_list<T> elements;
-//    inline resource_location const& location() const noexcept
-//    {
-//        BOOST_ASSERT(!elements.empty());
-//        return elements.front().location();
-//    }
-//};
-
-template <typename T> struct annium_fn_type
-{
-    opt_named_term_list<T> arg;
-    optional<T> result;
-    resource_location location;
-
-    inline annium_fn_type() = default;
-
-    template <typename RT>
-    inline annium_fn_type(opt_named_term_list<T>&& a, RT && r, resource_location loc) noexcept
-        : arg{ std::move(a) }
-        , result{ std::forward<RT>(r) }
-        , location{ std::move(loc) }
-    {}
-
-    template <typename ArgT, typename RT>
-    annium_fn_type(ArgT a, RT && r, resource_location loc) noexcept
-        : result{ std::forward<RT>(r) }
-        , location{ std::move(loc) }
-    {
-        if (auto * ptuple = sonia::get<opt_named_term_list<T>>(&a); ptuple) {
-            arg = std::move(*ptuple);
-        } else {
-            //arg.location = get_start_location(a);
-            arg.emplace_back(std::move(a));
-        }
-    }
+    //template <typename ArgT>
+    //annium_fn_type(ArgT a, syntax_expression const* r, resource_location loc) noexcept
+    //    : result{ r }
+    //    , location{ std::move(loc) }
+    //{
+    //    if (auto * ptuple = sonia::get<opt_named_term_list<T>>(&a); ptuple) {
+    //        arg = std::move(*ptuple);
+    //    } else {
+    //        //arg.location = get_start_location(a);
+    //        arg.emplace_back(std::move(a));
+    //    }
+    //}
 
     //inline bool operator==(ANNIUM_fn_type const&) const = default;
     //inline auto operator<=>(annium_fn_type const& r) const
@@ -214,37 +117,6 @@ template <typename T> struct annium_fn_type
     //    return variant_compare_three_way{}(result, r.result);
     //}
 };
-
-//template <typename T> struct annium_array
-//{
-//    T type; size_t size;
-//    inline bool operator==(annium_array const&) const = default;
-//    inline auto operator<=>(annium_array const& r) const
-//    {
-//        if (auto res = variant_compare_three_way{}(type, r.type); res != std::strong_ordering::equivalent) return res;
-//        return size <=> r.size;
-//    }
-//};
-
-template <typename ExprT> struct bracket_expression
-{
-    resource_location location;
-    ExprT type;
-    //inline bool operator==(bracket_expression const&) const noexcept = default;
-    //inline auto operator<=>(bracket_expression const& r) const noexcept { return variant_compare_three_way{}(type, r.type); }
-};
-
-//template <typename T> struct annium_union
-//{
-//    small_vector<T, 8> members;
-//    inline bool operator==(annium_union const&) const = default;
-//    inline auto operator<=>(annium_union const& r) const
-//    {
-//        return std::lexicographical_compare_three_way(members.begin(), members.end(), r.members.begin(), r.members.end(), variant_compare_three_way{});
-//    }
-//};
-
-// ========================================================================
 
 // ========================================================================
 
@@ -303,57 +175,12 @@ inline auto annium_binary_switcher(BinaryExprT && exp, VisitorT && vis) {
 #undef ANNIUM_BINARY_OPERATOR_ENUM
 #undef ANNIUM_PRINT_SIMPLE_ENUM
 
-
-
-//template <typename ExprT>
-//struct binary_expression
-//{
-//    ExprT left;
-//    ExprT right;
-//    resource_location location;
-//    binary_operator_type op;
-//    resource_location const& start() const { return get_start_location(left); }
-//
-//    template <typename LET, typename RET>
-//    binary_expression(binary_operator_type opval, LET && let, RET && ret, resource_location loc)
-//        : left{std::forward<LET>(let)}, right{ std::forward<RET>(ret) }, location{std::move(loc)}, op{ opval }
-//    {}
-//};
-
-//template <typename ExprT = recursive_variant_>
-//struct negate_expression : unary_expression<unary_operator_type::NEGATE, ExprT> {};
-
-//'coz recursive variant problem when template has not type parameters
-//template <typename ExprT = recursive_variant_>
-//struct assign_expression : binary_expression<binary_operator_type::ASSIGN, ExprT> {};
-
-//template <typename ExprT = recursive_variant_>
-//struct logic_and_expression : binary_expression<binary_operator_type::LOGIC_AND, ExprT> {};
-//
-//template <typename ExprT = recursive_variant_>
-//struct logic_or_expression : binary_expression<binary_operator_type::LOGIC_OR, ExprT> {};
-
-//template <typename ExprT = recursive_variant_>
-//struct concat_expression : binary_expression<binary_operator_type::CONCAT, ExprT> {};
-
-//template <typename ExprT>
-//struct expression_vector
-//{
-//    small_vector<ExprT, 4> elements;
-//    resource_location start;
-//};
-
-template <typename ExprT>
 struct pure_call
 {
-    opt_named_term_list<ExprT> args;
-    resource_location location; // operator or OPEN_PARENTHESIS location
+    span<const opt_named_expression_t> args;
 
-    inline explicit pure_call(resource_location loc) noexcept : location{ std::move(loc) } {}
-
-    inline pure_call(resource_location loc, opt_named_term_list<ExprT>&& args_val) noexcept
+    inline explicit pure_call(span<const opt_named_expression_t> args_val) noexcept
         : args{ std::move(args_val) }
-        , location{ std::move(loc) }
     {}
 
     //pure_call(resource_location loc, opt_named_term_list<ExprT> && args)
@@ -373,68 +200,64 @@ struct pure_call
     //}
 
 
-    inline void emplace_back(annotated_identifier name, ExprT expr) { args.emplace_back(std::move(name), std::move(expr)); }
-    inline void emplace_back(ExprT expr) { args.emplace_back(std::move(expr)); }
+    //inline void emplace_back(annotated_identifier name, ExprT expr) { args.emplace_back(std::move(name), std::move(expr)); }
+    //inline void emplace_back(ExprT expr) { args.emplace_back(std::move(expr)); }
 
     //inline opt_named_term<ExprT> const& operator[](size_t index) const noexcept { return args_[index]; }
     //inline std::span<const opt_named_term<ExprT>> args() const noexcept { return args_; }
     //inline resource_location const& location() const noexcept { return location_; }
 };
 
-template <typename ExprT>
-struct function_call : pure_call<ExprT>
+struct function_call : pure_call
 {
-    using base_t = pure_call<ExprT>;
-    ExprT fn_object;
-    inline function_call(resource_location callloc, ExprT && n, opt_named_term_list<ExprT>&& args = {}) noexcept
-        : base_t{ std::move(callloc), std::move(args) }
-        , fn_object{ std::move(n) }
+    syntax_expression const* fn_object;
+    inline function_call(syntax_expression const* n, span<const opt_named_expression_t> args = {}) noexcept
+        : pure_call{ std::move(args) }
+        , fn_object{ n }
     {}
 };
 
-template <typename ExprT>
-struct unary_expression : pure_call<ExprT>
+struct unary_expression : pure_call
 {
-    using base_t = pure_call<ExprT>;
     unary_operator_type op;
 
-    template <typename ET>
-    inline unary_expression(unary_operator_type opval, bool /*is_prefix*/, ET&& e, resource_location loc) noexcept
-        : base_t{ std::move(loc) }
+    template <size_t N>
+    requires(N == 1 || N == std::dynamic_extent)
+    inline unary_expression(unary_operator_type opval, bool /*is_prefix*/, std::span<const opt_named_expression_t, N> args) noexcept
+        : pure_call{ args }
         , op{ opval }
     {
+        if constexpr (N == std::dynamic_extent) {
+            BOOST_ASSERT(args.size() == 1);
+        }
         //if (!base_t::location) base_t::location_ = get_start_location(base_t::args);
-        base_t::args.emplace_back(ExprT{ std::forward<ET>(e) });
     }
 };
 
-template <typename ExprT>
-struct binary_expression : pure_call<ExprT>
+struct binary_expression : pure_call
 {
-    using base_t = pure_call<ExprT>;
     binary_operator_type op;
 
-    template <typename LeftET, typename RightET>
-    inline binary_expression(binary_operator_type opval, LeftET&& le, RightET&& re, resource_location loc) noexcept
-        : base_t{ std::move(loc) }
+    template <size_t N>
+    requires(N == 2 || N == std::dynamic_extent)
+    inline binary_expression(binary_operator_type opval, std::span<const opt_named_expression_t, N> lrargs) noexcept
+        : pure_call{ lrargs }
         , op{ opval }
     {
-        //if (!base_t::location) base_t::location_ = get_start_location(le);
-        base_t::args.emplace_back(ExprT{ std::forward<LeftET>(le) });
-        base_t::args.emplace_back(ExprT{ std::forward<RightET>(re) });
+        if constexpr (N == std::dynamic_extent) {
+            BOOST_ASSERT(lrargs.size() == 2);
+        }
     }
 };
 
-template <typename ExprT>
-using opt_chain_link = variant<annotated_identifier, pure_call<ExprT>>;
-template <typename ExprT>
-using opt_chain = std::vector<opt_chain_link<ExprT>>;
+using opt_chain_link = std::variant<annotated_identifier, pure_call>;
 
-template <typename ExprT>
+using opt_chain = std::vector<opt_chain_link>;
+
 struct chained_expression
 {
-    ExprT expression;
-    opt_chain<ExprT> chaining;
+    syntax_expression const& expression;
+    opt_chain chaining;
 };
 
 // e.g. backgroundColor: .red
@@ -444,27 +267,10 @@ struct chained_expression
 //    resource_location location;
 //};
 
-template <typename ExprT>
 struct member_expression
 {
-    ExprT object;
-    ExprT property;
-    //annotated_identifier property;
-    //bool is_object_optional = false;
-
-    resource_location const& start() const { return get_start_location(object); }
-};
-
-// e.g. for identifiers started with $ or #, e.g.: $0, $$, #call_location
-struct name_reference
-{
-    annotated_identifier name;
-};
-
-struct qname_reference
-{
-    annotated_qname name;
-    //bool implicit; // true for identifiers started with $ or #, e.g.: $0, $$, #call_location
+    syntax_expression const* object;
+    syntax_expression const* property;
 };
 
 struct placeholder
@@ -476,133 +282,68 @@ using indirect_value_store_t = automatic_polymorphic<indirect, ANNIUM_AST_INDIRE
 
 struct indirect_value
 {
-    resource_location location;
     entity_identifier type;
     indirect_value_store_t store;
 };
 
-//template <typename ExprT>
-//struct assign_decl
-//{
-//    ExprT lvalue;
-//    ExprT rvalue;
-//    resource_location location;
-//};
-
-template <typename ExprT>
-struct expression_decl
-{
-    ExprT expression;
-};
-
-template <typename ExprT>
-struct return_statement
-{
-    optional<ExprT> expression;
-    resource_location location;
-};
-
-template <typename ExprT>
-struct yield_statement
-{
-    ExprT expression;
-    resource_location location;
-};
-
-struct break_statement_t
-{
-    resource_location location;
-};
-
-struct continue_statement_t
-{
-    resource_location location;
-};
-
-template <typename ExprT>
 struct not_empty_expression
 {
-    ExprT value;
+    syntax_expression const* value;
 };
 
-template <typename ExprT>
 struct new_expression
 {
-    resource_location location;
-    ExprT name;
-    opt_named_term_list<ExprT> arguments;
+    syntax_expression const* name;
+    span<const opt_named_expression_t> arguments;
 };
 
-template <typename T>
-using expression_list = small_vector<T, 4>;
-
-template <typename T>
-struct array_expression
-{
-    resource_location location;
-    expression_list<T> elements;
-};
-
-template <typename T>
-struct array_with_body_expression
-{
-    resource_location location;
-    statement_span body;
-};
-
-template <typename ExprT>
 struct index_expression
 {
-    ExprT base;
-    ExprT index;
-    resource_location location;
+    syntax_expression const* base;
+    syntax_expression const* index;
 };
 
 struct required_t {};
 struct optional_t {};
 
-template <typename ExprT>
-struct pattern
+struct syntax_pattern
 {
     struct field
     {
         // unnamed, any name, particular name, bind name to identifier, name is the result of an expression
-        variant<nullptr_t, placeholder, annotated_identifier, context_identifier, ExprT> name;
+        std::variant<nullptr_t, placeholder, annotated_identifier, context_identifier, syntax_expression const*> name;
         // used for binding the value to a variable
         annotated_identifier bound_variable;
-        pattern<ExprT> value;
+        syntax_pattern const* value;
         bool ellipsis = false;
     };
 
-    using pattern_list_t = std::vector<field>;
-
-    using concept_expression_list_t = small_vector<ExprT, 2>;
-    
     struct signature_descriptor
     {
-        variant<placeholder, annotated_qname, ExprT> name;
-        pattern_list_t fields;
+        std::variant<placeholder, annotated_qname_view, syntax_expression const*> name;
+        std::span<const field> fields;
     };
 
-    variant<placeholder, context_identifier, signature_descriptor, ExprT> descriptor;
-    concept_expression_list_t concepts;
+    std::variant<placeholder, context_identifier, signature_descriptor, syntax_expression const*> descriptor;
+    span<const syntax_expression> concepts;
 };
 
-template <typename ExprT>
+using syntax_pattern_field_list_t = small_vector<syntax_pattern::field, 1>;
+
 struct parameter
 {
-    using default_spec = variant<required_t, optional_t, ExprT>;
+    using default_spec = std::variant<required_t, optional_t, syntax_expression const*>;
 
     parameter_name name;
 
-    variant<ExprT, pattern<ExprT>> constraint;
+    std::variant<syntax_expression const*, syntax_pattern const*> constraint;
 
     default_spec default_value = required_t{};
 
     parameter_constraint_modifier_t modifier = parameter_constraint_modifier_t::const_or_runtime_type;
 };
 
-template <typename ExprT> using parameter_list = std::vector<parameter<ExprT>>;
+using parameter_list_t = small_vector<parameter, 4>;
 
 enum class fn_kind : int8_t
 {
@@ -621,59 +362,196 @@ inline bool has(fn_kind value, fn_kind flag) noexcept
     return (static_cast<int8_t>(value) & static_cast<int8_t>(flag)) != 0;
 }
 
-struct viable_clause
-{
-    resource_location location;
-    optional<statement_span> body;
-};
+//struct viable_clause
+//{
+//    resource_location location;
+//    span<statement const*> body; // may be empty
+//};
 
-template <typename ExprT>
 struct fn_pure
 {
-    variant<qname, qname_view> nameval = {};
+    qname_view name;
     resource_location location;
-    parameter_list<ExprT> parameters;
-    optional<ExprT> requirement;
-    variant<nullptr_t, ExprT, pattern<ExprT>> result; // undefined or type expression or pattern
+    span<const parameter> parameters;
+    syntax_expression const* requirement; // optional
+    std::variant<nullptr_t, syntax_expression const*, syntax_pattern const*> result; // undefined or type expression or pattern
 
     fn_kind kind = fn_kind::DEFAULT;
-
-    inline qname_view name() const noexcept
-    {
-        return apply_visitor(make_functional_visitor<qname_view>(
-            [](auto const& q)->qname_view { return q; })
-            , nameval);
-    }
 };
 
-template <typename ExprT>
-struct typefn_decl : fn_pure<ExprT> {};
+struct typefn_decl : fn_pure {};
 
 // used for both function declaration and lambda expression
-template <typename ExprT>
-struct fn_decl : fn_pure<ExprT>
+struct fn_decl : fn_pure
 {
-    statement_span body;
-    opt_named_term_list<ExprT> captures;
+    span<const statement> body;
+    span<const opt_named_expression_t> captures;
     resource_location captures_location;
 };
 
-struct stack_value_reference
-{
-    annotated_identifier name;
-    entity_identifier type;
-    size_t offset; // offset from the stack top
-};
-
-using reference_expression_t = variant<name_reference, qname_reference>;
+using lambda = fn_decl;
 
 struct probe_expression
 {
-    resource_location location; // of the 'probe' keyword
-    statement_span body;
+    span<const statement> body;
 };
 
-using syntax_expression_t = make_recursive_variant<
+struct nil_expression {};
+struct name_reference_expression { identifier name; }; // e.g. for identifiers started with $ or #, e.g.: $0, $$, #call_location
+struct qname_reference_expression { qname_view name; };
+struct stack_value_reference_expression
+{
+    identifier name;
+    entity_identifier type;
+    size_t offset; // offset from the stack top
+};
+struct array_expression
+{
+    span<const syntax_expression> elements;
+};
+struct array_with_body_expression
+{
+    span<const statement> body;
+};
+struct bracket_expression
+{
+    syntax_expression const* type;
+};
+
+struct syntax_expression
+{
+    resource_location location;
+    std::variant<
+        // literals
+        nil_expression, bool, numetron::integer_view, numetron::decimal_view, string_view, identifier, entity_identifier,
+        
+        // named references
+        name_reference_expression, qname_reference_expression,
+        
+        // on stack reference
+        stack_value_reference_expression,
+
+        // constructors
+        array_expression, // like [value1, value2, ...]
+        array_with_body_expression, // like [ { ... } ]
+
+        // types
+        bracket_expression, // like [ElementType]
+        fn_decl, // like fn (args) -> result { body }
+        annium_fn_type, // like (args) -> result
+
+        // sugar
+        index_expression, // like base[index]
+        member_expression, // like object.property
+        new_expression, // like new Type(args)
+        unary_expression, // like -value
+        binary_expression, // like left + right
+        /*not_empty_expression, // like value?
+
+        // special statements
+        */probe_expression,
+
+        // auxiliary
+        indirect_value,
+
+        //assign_expression<>, logic_and_expression<>, logic_or_expression<>, concat_expression<>,
+        //expression_vector<recursive_variant_>,
+
+        function_call
+        
+        //, opt_named_term_list<recursive_variant_>
+        //, chained_expression<recursive_variant_>
+        //, ctprocedure
+        
+    > value;
+
+    syntax_expression& operator=(syntax_expression const& r)
+    {
+        location = r.location;
+        value = r.value;
+        return *this;
+    }
+};
+
+template <typename TermT>
+struct opt_named_term
+{
+    using named_pair_t = std::tuple<annotated_identifier, TermT>;
+    std::variant<named_pair_t, TermT, nullptr_t> term;
+
+    inline opt_named_term() noexcept : term{ nullptr } {
+        BOOST_ASSERT(term.index() >= 0);
+    }
+
+    template <typename TermArgT>
+    requires(std::is_constructible_v<TermT, std::decay_t<TermArgT>>)
+    inline opt_named_term(TermArgT&& t) noexcept : term{ std::forward<TermArgT>(t) } {
+        BOOST_ASSERT(term.index() >= 0);
+    }
+    
+    //inline opt_named_term(opt_named_term const& rhs)
+    //    : term{ rhs.term }
+    //{
+    //    BOOST_ASSERT(term.index() >= 0);
+    //}
+
+    //inline opt_named_term& operator=(opt_named_term const& rhs)
+    //{
+    //    term = rhs.term;
+    //    BOOST_ASSERT(term.index() >= 0);
+    //    return *this;
+    //}
+
+    template <typename NameT, typename TermArgT>
+    requires(std::is_constructible_v<TermT, std::decay_t<TermArgT>>)
+    inline explicit opt_named_term(NameT&& narg, TermArgT&& t) noexcept
+        : term{ named_pair_t{std::forward<NameT>(narg), std::forward<TermArgT>(t)} }
+    {
+        BOOST_ASSERT(get<0>(get<named_pair_t>(term)));
+    }
+
+    inline explicit operator bool() const noexcept { return !std::holds_alternative<nullptr_t>(term); }
+
+    inline bool has_name() const noexcept { return std::holds_alternative<named_pair_t>(term); }
+    inline const annotated_identifier * name() const noexcept
+    {
+        if (named_pair_t const* p = get_if<named_pair_t>(&term); p) return &get<0>(*p);
+        return nullptr;
+    }
+
+    std::tuple<annotated_identifier const*, TermT const&> operator*() const noexcept
+    {
+        if (named_pair_t const* p = get_if<named_pair_t>(&term); p) return { &get<0>(*p), get<1>(*p) };
+        return { nullptr, get<TermT>(term) };
+    }
+
+    std::tuple<annotated_identifier const*, TermT &> operator*() noexcept
+    {
+        if (named_pair_t * p = get_if<named_pair_t>(&term); p) return { &get<0>(*p), get<1>(*p) };
+        return { nullptr, get<TermT>(term) };
+    }
+
+    inline TermT const& value() const noexcept
+    {
+        if (named_pair_t const* p = get_if<named_pair_t>(&term); p) return get<1>(*p);
+        return get<TermT>(term);
+    }
+
+    inline TermT & value() noexcept
+    {
+        if (named_pair_t * p = get_if<named_pair_t>(&term); p) return get<1>(*p);
+        return get<TermT>(term);
+    }
+
+    inline resource_location const& location() const noexcept
+    {
+        if (named_pair_t const* p = get_if<named_pair_t>(&term); p) return get<0>(*p).location;
+        return get<TermT>(term).location;
+    }
+};
+
+#if 0
+using syntax_expression = make_recursive_variant<
     // literals
     annotated_nil, annotated_bool, annotated_integer, annotated_decimal, annotated_string, annotated_identifier,
     
@@ -715,219 +593,85 @@ using syntax_expression_t = make_recursive_variant<
     //, ctprocedure
 >::type;
 
-//using parameter_constraint_set_t = parameter_constraint_set<syntax_expression_t>;
-using parameter_t = parameter<syntax_expression_t>;
-using fn_pure_t = fn_pure<syntax_expression_t>;
-using fn_decl_t = fn_decl<syntax_expression_t>;
-using lambda_t = fn_decl_t;
-using typefn_decl_t = typefn_decl<syntax_expression_t>;
-using array_expression_t = array_expression<syntax_expression_t>;
-using array_with_body_expression_t = array_with_body_expression<syntax_expression_t>;
-using index_expression_t = index_expression<syntax_expression_t>;
+#endif
 
-using syntax_expression_entry_type = linked_list_node<syntax_expression_t>;
-struct syntax_expression_entry : syntax_expression_entry_type { using syntax_expression_entry_type::syntax_expression_entry_type; };
-using syntax_expression_list_t = linked_list<syntax_expression_t>;
-using managed_syntax_expression_list = managed_linked_list<syntax_expression_t, environment>;
-
-struct field_t
+struct field
 {
-    using default_spec = variant<required_t, syntax_expression_t>;
+    using default_spec = std::variant<required_t, syntax_expression>;
 
     annotated_identifier name;
     parameter_constraint_modifier_t modifier;
-    syntax_expression_t type_or_value;
+    syntax_expression type_or_value;
     default_spec value = required_t{};
 };
-using field_list_t = std::vector<field_t>;
 
-using parameter_list_t = parameter_list<syntax_expression_t>;
 
-using expression_list_t = expression_list<syntax_expression_t>;
-using opt_chain_t = opt_chain<syntax_expression_t>;
-using opt_chain_link_t = opt_chain_link<syntax_expression_t>;
-using chained_expression_t = chained_expression<syntax_expression_t>;
-using named_expression_t = opt_named_term<syntax_expression_t>;
-using named_expression_list_t = opt_named_term_list<syntax_expression_t>;
-using not_empty_expression_t = not_empty_expression<syntax_expression_t>;
-using member_expression_t = member_expression<syntax_expression_t>;
-using unary_expression_t = unary_expression<syntax_expression_t>;
-using binary_expression_t = binary_expression<syntax_expression_t>;
-using pure_call_t = pure_call<syntax_expression_t>;
-using new_expression_t = new_expression<syntax_expression_t>;
-using function_call_t = function_call<syntax_expression_t>;
-//using expression_vector_t = expression_vector<syntax_expression_t>;
+#if 0
+using parameter_list_t = parameter_list<syntax_expression>;
 
-using annium_fn_type_t = annium_fn_type<syntax_expression_t>;
-//using annium_tuple_t = annium_tuple<syntax_expression_t>;
-using bracket_expression_t = bracket_expression<syntax_expression_t>;
-//using annium_union_t = annium_union<syntax_expression_t>;
-//template <unary_operator_type Op> using unary_expression_t = unary_expression<Op, syntax_expression_t>;
+using expression_list_t = expression_list<syntax_expression>;
+using opt_chain_t = opt_chain<syntax_expression>;
+using opt_chain_link_t = opt_chain_link<syntax_expression>;
+using chained_expression_t = chained_expression<syntax_expression>;
+using named_expression_t = opt_named_term<syntax_expression>;
+using named_expression_list_t = opt_named_term_list<syntax_expression>;
+using not_empty_expression_t = not_empty_expression<syntax_expression>;
+using member_expression = member_expression<syntax_expression>;
+using unary_expression_t = unary_expression<syntax_expression>;
+using binary_expression_t = binary_expression<syntax_expression>;
+using pure_call = pure_call<syntax_expression>;
+using new_expression_t = new_expression<syntax_expression>;
+using function_call_t = function_call<syntax_expression>;
+//using expression_vector_t = expression_vector<syntax_expression>;
+
+using annium_fn_type_t = annium_fn_type<syntax_expression>;
+//using annium_tuple_t = annium_tuple<syntax_expression>;
+//using bracket_expression_t = bracket_expression<syntax_expression>;
+//using annium_union_t = annium_union<syntax_expression>;
+//template <unary_operator_type Op> using unary_expression_t = unary_expression<Op, syntax_expression>;
+#endif
 
 template <typename T> struct is_unary_expression : false_type {};
 template <typename T> requires(std::is_same_v<decltype(T::op), const unary_operator_type>) struct is_unary_expression<T> : true_type {};
 
-resource_location const& get_start_location(syntax_expression_t const&); // auxiliary
+//resource_location const& get_start_location(syntax_expression const&); // auxiliary
 
 // {particular location or expression, optional reference location}
 struct error_context
 {
-    variant<resource_location, syntax_expression_t> loc_or_expr;
+    std::variant<resource_location, syntax_expression const*> loc_or_expr;
     resource_location refloc;
 
     resource_location const& location() const
     {
-        if (resource_location const* ploc = get<resource_location>(&loc_or_expr); ploc) {
-            return *ploc;
-        } else {
-            return get_start_location(get<syntax_expression_t>(loc_or_expr));
-        }
+        return std::visit([](auto const& v) -> resource_location const& {
+            using VType = std::decay_t<decltype(v)>;
+            if constexpr (std::is_same_v<VType, resource_location>) {
+                return v;
+            } else {
+                return v->location;
+            }
+        }, loc_or_expr);
     }
 
-    optional<syntax_expression_t> expression() const
+    syntax_expression const* expression() const
     {
-        if (syntax_expression_t const* pe = get<syntax_expression_t>(&loc_or_expr); pe) {
-            return *pe;
-        }
-        return nullopt;
+        auto const* opt_se = get_if<syntax_expression const*>(&loc_or_expr);
+        return opt_se ? *opt_se : nullptr;
     }
 };
 
-
-using pattern_t = pattern<syntax_expression_t>;
-using pattern_list_t = pattern_t::pattern_list_t;
-using concept_expression_list_t = pattern_t::concept_expression_list_t;
-
-resource_location get_start_location(pattern_t const&);
+resource_location get_start_location(syntax_pattern const&);
 
 using context_locator_t = function<error_context()>;
-/*
-enum class call_type
-{
-    FUNCTION_CALL,
-    SUBSCRIPT
-};
-*/
-
-/*
-
-struct ctprocedure;
-struct expression_group;
-//struct comma {};
-//using syntax_expression_t = boost::variant<operator_type, identifier, decimal, string_literal, integer_literal, function_t>;
-//using syntax_expression_t = boost::variant<qname, numeric_literal, expression_group>;
-
-//using expression_term_t = boost::variant<qname, u32string, string_literal, numeric, numeric_literal, procedure, ctprocedure>;
-
-using expression_terms_t = std::vector<expression_term_t>;
-//using signature_named_expression_terms_t = std::tuple<identifier, expression_terms_t>;
-//using signature_named_expression_terms_list_t = std::vector<signature_named_expression_terms_t>;
-
-
-struct ctprocedure
-{
-    qname name;
-    expression_named_terms_list_t args;
-};
-
-struct expression_group
-{
-    expression_terms_t terms;
-};
-
-struct noop_statement{};
-
-struct return_statement_t
-{
-    expression_terms_t value;
-};
-
-struct decl_var_statement_t
-{
-    identifier name;
-    expression_terms_t type;
-    expression_terms_t value;
-};
-
-struct for_statement_t;
-
-using statement_t = boost::variant<
-    noop_statement,
-    expression_terms_t,
-    decl_var_statement_t,
-    shared_ptr<for_statement_t>,
-    return_statement_t
->;
-using statement_list_t = std::vector<statement_t>;
-
-struct for_statement_t
-{
-    statement_t init;
-    expression_terms_t condition;
-    expression_terms_t update;
-    statement_list_t body;
-};
-
-struct function_def
-{
-    expression_named_terms_list_t args;
-    expression_terms_t result;
-    boost::variant<char_array_t, statement_list_t> body; // external or body
-};
-*/
-
-/*
-inline size_t hash_value(function_def const& v)
-{
-    size_t hv = hash_init_value();
-    hash_combine(hv, hash_value(v.result));
-
-    return hasher()(v.args, v.result);
-}
-
-inline bool operator== (function_def const& l, function_def const& r)
-{
-    if (l.result != r.result || l.args.size() != r.args.size()) return false;
-    for (auto lit = l.args.begin(), leit = l.args.end(), rit = r.args.begin(); lit != leit; ++lit, ++rit) {
-        if (std::get<0>(*lit) != std::get<0>(*rit)) return false;
-    }
-    return true;
-}
-*/
-
-/*
-
-
-struct function_decl
-{
-    qname name;
-    function_def def;
-};
-
-struct extern_function_decl
-{
-    identifier name;
-    function_def def;
-};
-
-//inline size_t hash_value(function_decl const& v)
-//{
-//    return hasher()(v.name, v.def);
-//}
-//
-//inline bool operator== (function_decl const& l, function_decl const& r)
-//{
-//    return l.name == r.name && l.def == r.def;
-//}
-*/
 
 using extension_list_t = std::vector<annotated_qname_identifier>;
 
-struct using_decl : fn_decl_t
+struct using_decl : fn_decl
 {
     //annotated_qname aname;
     //optional<parameter_list_t> parameters;
-    //syntax_expression_t expression;
+    //syntax_expression expression;
 
     //qname_view name() const { return aname.value; }
     //resource_location const& location() const { return aname.location; }
@@ -935,10 +679,10 @@ struct using_decl : fn_decl_t
 
 struct struct_decl
 {
-    annotated_qname name;
-    parameter_list_t parameters;
-    //variant<field_list_t, statement_span> body;
-    field_list_t body;
+    annotated_qname_view name;
+    span<const parameter> parameters;
+    //std::variant<field_list_t, statement_span> body;
+    span<const field> body;
 
     inline resource_location const& location() const noexcept
     {
@@ -948,37 +692,26 @@ struct struct_decl
 
 struct enum_decl
 {
-    annotated_qname name;
-    std::vector<identifier> cases;
+    annotated_qname_view name;
+    span<const identifier> cases;
 };
-
-// e.g: type View(disabled: bool, enabled: bool, hidden:bool, empty: bool, backgroundColor: Color);
-//struct type_decl
-//{
-//    annotated_qname_identifier aname;
-//    extension_list_t bases;
-//    parameter_list_t parameters;
-//
-//    qname_identifier name() const { return aname.value; }
-//    resource_location const& location() const { return aname.location; }
-//};
 
 struct extern_var
 {
     annotated_identifier name;
-    syntax_expression_t type;
+    syntax_expression type;
 };
 
 struct include_decl
 {
-    annotated_string path;
+    annotated_string_view path;
 };
 
 struct let_statement
 {
     annotated_identifier aname;
-    named_expression_list_t expressions;
-    optional<syntax_expression_t> type;
+    span<const opt_named_expression_t> expressions;
+    optional<syntax_expression> type;
     resource_location assign_location; // location of '=' operator
     bool weakness;
 
@@ -986,98 +719,76 @@ struct let_statement
     resource_location const& location() const { return assign_location; }
 };
 
-using yield_statement_t = yield_statement<syntax_expression_t>;
-using return_statement_t = return_statement<syntax_expression_t>;
-using expression_statement_t = expression_decl<syntax_expression_t>;
-//using assign_decl_t = assign_decl<syntax_expression_t>;
+//using yield_statement_t = yield_statement<syntax_expression>;
+//using return_statement_t = return_statement<syntax_expression>;
+//using expression_statement_t = expression_decl<syntax_expression>;
+//using assign_decl_t = assign_decl<syntax_expression>;
 
-//using fn_decl_t = fn_decl<infunction_declaration_t>;
+//using fn_decl = fn_decl<infunction_declaration_t>;
 
 struct if_decl
 {
-    syntax_expression_t condition;
-    statement_span true_body;
-    statement_span false_body;
+    syntax_expression condition;
+    span<const statement> true_body;
+    span<const statement> false_body;
 };
 
 struct while_decl
 {
-    syntax_expression_t condition;
-    statement_span body;
-    optional<syntax_expression_t> continue_expression; // called before condition starting with second condition check (like c/c++ for expression)
+    syntax_expression condition;
+    span<const statement> body;
+    optional<syntax_expression> continue_expression; // called before condition starting with second condition check (like c/c++ for expression)
+};
+
+struct reference_expression
+{
+    resource_location location;
+    std::variant<name_reference_expression, qname_reference_expression> value;
 };
 
 struct for_statement
 {
-    reference_expression_t iter;
-    syntax_expression_t coll;
-    statement_span body;
+    reference_expression iter;
+    syntax_expression coll;
+    span<const statement> body;
 };
 
-// statements that don't need ';' separator at the end
-using finished_statement_type = variant<
-    while_decl, for_statement, if_decl, fn_decl_t, struct_decl, enum_decl
->;
-
-using generic_statement_type = variant<
-    let_statement, expression_statement_t, return_statement_t, fn_decl_t, typefn_decl_t, struct_decl, using_decl
->;
-
-using statement = variant<
-    extern_var, let_statement, expression_statement_t, fn_pure_t,
-    include_decl, struct_decl, using_decl, enum_decl, return_statement_t,
-    fn_decl_t, typefn_decl_t, if_decl, while_decl, for_statement, break_statement_t, continue_statement_t, yield_statement_t
->;
-
-//using infunction_statement_type = variant<
-//    extern_var, let_statement, expression_statement_t, fn_pure, struct_decl, using_decl,
-//    fn_decl_t, if_decl_t, while_decl_t, continue_statement_t, break_statement_t, return_statement_t
-//>;
-
-using statement_entry_type = linked_list_node<statement>;
-using statement_list = linked_list<statement>;
-//struct statement : statement_type { using statement_type::statement_type; };
-
-struct statement_entry : statement_entry_type { using statement_entry_type::statement_entry_type; };
-using managed_statement_list = managed_linked_list<statement, environment>;
-
-static_assert(sizeof(statement_entry) == sizeof(statement_entry_type));
-
-//using declaration_t = variant<
-//    extern_var, let_statement_decl_t, expression_statement_t, fn_pure,
-//    include_decl, type_decl, enum_decl, return_statement_t,
-//    fn_decl_t, if_decl_t, while_decl_t
-//>;
-
-template <typename StatementT>
-struct statement_adopt_visitor : static_visitor<StatementT>
+struct expression_statement
 {
-    statement_adopt_visitor() = default;
-    template <typename IDT>
-    inline StatementT operator()(IDT& v) const { return StatementT{ std::move(v) }; }
+    syntax_expression expression;
 };
-//using declaration_t = make_recursive_variant<
-//    extern_var, let_statement_decl_t, expression_statement_t, fn_pure,
-//    include_decl, type_decl, enum_decl, return_statement_t,
-//    fn_decl<infunction_declaration_t>, if_decl<expression_statement_t, infunction_declaration_t>, while_decl<expression_statement_t, infunction_declaration_t>
-//>::type;
-    
 
-//using declaration_t = variant<
-//    extern_var, let_statement_decl_t, expression_statement_t,
-//    fn_pure, fn_decl<infunction_declaration_t>,
-//    if_decl<infunction_declaration_t>,
-//    while_decl<infunction_declaration_t>
-//>;
-//
-//using generic_declaration_t = variant<
-//    extern_var, let_statement_decl_t, expression_statement_t,
-//    fn_pure, fn_decl<infunction_declaration_t>,
-//    if_decl<infunction_declaration_t>,
-//    while_decl<infunction_declaration_t>,
-//    include_decl, type_decl, enum_decl
-//>;
+struct return_statement
+{
+    optional<syntax_expression> expression;
+    resource_location location;
+};
 
+struct break_statement
+{
+    resource_location location;
+};
+
+struct continue_statement
+{
+    resource_location location;
+};
+
+struct yield_statement
+{
+    syntax_expression expression;
+    resource_location location;
+};
+
+struct statement
+{
+    using statement_value_type = std::variant<
+        extern_var, let_statement, expression_statement, fn_pure,
+        include_decl, struct_decl, using_decl, enum_decl, return_statement,
+        fn_decl, typefn_decl, if_decl, while_decl, for_statement, break_statement, continue_statement, yield_statement
+    >;
+    statement_value_type value;
+};
 
 template <typename LocationT>
 void update_location(LocationT & loc, const char* text)

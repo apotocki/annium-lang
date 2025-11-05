@@ -24,13 +24,14 @@ entity_identifier get_result_type(environment const& env, syntax_expression_resu
     return er.type();
 }
 
+#if 0
 struct expression_location_visitor : static_visitor<resource_location const&>
 {
     expression_location_visitor() = default;
 
-    inline result_type operator()(name_reference const& v) const noexcept { return v.name.location; }
-    inline result_type operator()(qname_reference const& v) const noexcept { return v.name.location; }
-    inline result_type operator()(stack_value_reference const& v) const noexcept { return v.name.location; }
+    inline result_type operator()(name_reference_expression const& v) const noexcept { return v.name.location; }
+    inline result_type operator()(qname_reference_expression const& v) const noexcept { return v.name.location; }
+    inline result_type operator()(stack_value_reference_expression const& v) const noexcept { return v.name.location; }
 
     //inline result_type operator()(annium_fn_type_t const& b) const noexcept
     //{
@@ -48,7 +49,7 @@ struct expression_location_visitor : static_visitor<resource_location const&>
     //}
 
     inline result_type operator()(not_empty_expression_t const& me) const noexcept { return apply_visitor(*this, me.value); }
-    inline result_type operator()(member_expression_t const& me) const noexcept { return me.start(); }
+    inline result_type operator()(member_expression const& me) const noexcept { return me.start(); }
     //inline result_type operator()(lambda_t const& le) const noexcept { return le.location(); }
 
     //inline result_type operator()(unary_expression_t const& ue) const noexcept { return ue.start(); }
@@ -68,34 +69,35 @@ struct expression_location_visitor : static_visitor<resource_location const&>
     }
 };
 
-resource_location const& get_start_location(syntax_expression_t const& e)
+resource_location const& get_start_location(syntax_expression const& e)
 {
     return apply_visitor(expression_location_visitor{}, e);
 }
+#endif
 
-resource_location get_start_location(pattern_t const& ptrn)
+resource_location get_start_location(syntax_pattern const& ptrn)
 {
-    return apply_visitor(make_functional_visitor<resource_location>([](auto const& d) {
+    return visit([](auto const& d)->resource_location {
         if constexpr (std::is_same_v<placeholder, std::decay_t<decltype(d)>>) {
             return d.location;
         } else if constexpr (std::is_same_v<context_identifier, std::decay_t<decltype(d)>>) {
             return d.name.location;
-        } else if constexpr (std::is_same_v<pattern_t::signature_descriptor, std::decay_t<decltype(d)>>) {
-            return apply_visitor(make_functional_visitor<resource_location>([](auto const& f) {
-                if constexpr (std::is_same_v<syntax_expression_t, std::decay_t<decltype(f)>>) {
-                    return get_start_location(f);
-                } else if constexpr (std::is_same_v<annotated_qname, std::decay_t<decltype(f)>>) {
+        } else if constexpr (std::is_same_v<syntax_pattern::signature_descriptor, std::decay_t<decltype(d)>>) {
+            return visit([](auto && f)->resource_location {
+                if constexpr (std::is_same_v<syntax_expression const*, std::decay_t<decltype(f)>>) {
+                    return f->location;
+                } else if constexpr (std::is_same_v<annotated_qname_view, std::decay_t<decltype(f)>>) {
                     return f.location;
                 } else if constexpr (std::is_same_v<placeholder, std::decay_t<decltype(f)>>) {
                     return f.location;
-                }else { // context_identifier
+                } else { // context_identifier
                     return f.name.location;
                 }
-            }), d.name);
-        } else { // syntax_expression_t
-            return get_start_location(d);
+            }, d.name);
+        } else { // syntax_expression
+            return d->location;
         }
-    }), ptrn.descriptor);
+    }, ptrn.descriptor);
 }
 
 }

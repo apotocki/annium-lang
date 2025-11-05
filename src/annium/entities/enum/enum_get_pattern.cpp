@@ -39,13 +39,13 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_get_pattern::
     if (!slf_arg) {
         if (slf_arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get_start_location(*get<0>(slf_arg_expr)), "invalid `self` argument"sv),
+                make_error<basic_general_error>(get<0>(slf_arg_expr)->location, "invalid `self` argument"sv),
                 std::move(slf_arg.error())));
         }
         return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `self`"sv));
     }
 
-    resource_location const& slfargloc = get_start_location(*get<0>(slf_arg_expr));
+    resource_location const& slfargloc = get<0>(slf_arg_expr)->location;
     syntax_expression_result& slf_arg_er = slf_arg->first;
     if (!slf_arg_er.is_const_result) {
         return std::unexpected(make_error<type_mismatch_error>(slfargloc, slf_arg_er.value_or_type, "an enumeration typename"sv));
@@ -62,7 +62,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_get_pattern::
     if (!property_arg) {
         if (property_arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get_start_location(*get<0>(prop_arg)), "invalid `property` argument"sv),
+                make_error<basic_general_error>(get<0>(prop_arg)->location, "invalid `property` argument"sv),
                 std::move(property_arg.error())));
         }
         return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `property`"sv));
@@ -72,7 +72,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_get_pattern::
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    resource_location const& propargloc = get_start_location(*get<0>(prop_arg));
+    resource_location const& propargloc = get<0>(prop_arg)->location;
     syntax_expression_result& prop_arg_er = property_arg->first;
     identifier_entity const& ident = dynamic_cast<identifier_entity const&>(get_entity(env, prop_arg_er.value()));
     auto opt_which = pe->find(ident.value());

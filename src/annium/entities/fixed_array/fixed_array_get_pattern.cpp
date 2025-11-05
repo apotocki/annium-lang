@@ -37,13 +37,13 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_get_pa
     if (!slf_arg) {
         if (slf_arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get_start_location(*get<0>(slf_arg_expr)), "invalid `self` argument"sv),
+                make_error<basic_general_error>(get<0>(slf_arg_expr)->location, "invalid `self` argument"sv),
                 std::move(slf_arg.error())));
         }
         return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `self`"sv));
     }
 
-    resource_location const& slfargloc = get_start_location(*get<0>(slf_arg_expr));
+    resource_location const& slfargloc = get<0>(slf_arg_expr)->location;
     syntax_expression_result& slf_arg_er = slf_arg->first;
     entity_identifier slftype = get_result_type(env, slf_arg_er);
     
@@ -58,7 +58,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_get_pa
     if (!property_arg) {
         if (property_arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get_start_location(*get<0>(prop_arg)), "invalid `property` argument"sv),
+                make_error<basic_general_error>(get<0>(prop_arg)->location, "invalid `property` argument"sv),
                 std::move(property_arg.error())));
         }
         return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `property`"sv));
@@ -68,7 +68,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_get_pa
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    resource_location const& propargloc = get_start_location(*get<0>(prop_arg));
+    resource_location const& propargloc = get<0>(prop_arg)->location;
 
     shared_ptr<fixed_array_get_match_descriptor> pmd = make_shared<fixed_array_get_match_descriptor>(call, *psig);
     

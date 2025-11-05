@@ -55,7 +55,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_implicit_cast
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    resource_location const& argloc = get_start_location(*get<0>(arg_expr));
+    resource_location const& argloc = get<0>(arg_expr)->location;
     syntax_expression_result& arg_er = arg->first;
     entity const& ent = get_entity(env, arg_er.value());
     identifier_entity const* pident = dynamic_cast<identifier_entity const*>(&ent);

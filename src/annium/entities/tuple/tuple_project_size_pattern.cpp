@@ -46,12 +46,12 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_project_size
     entity const& tpl_prj_entity = get_entity(e, slftype);
     auto psig = tpl_prj_entity.signature();
     if (!psig || psig->name != e.get(builtin_qnid::tuple_project)) {
-        return std::unexpected(make_error<type_mismatch_error>(get_start_location(*get<0>(arg_descr)), arg_er.value_or_type, "a tuple_project"sv));
+        return std::unexpected(make_error<type_mismatch_error>(get<0>(arg_descr)->location, arg_er.value_or_type, "a tuple_project"sv));
     }
         
     // Extract project name and original tuple from signature
     if (psig->field_count() != 2 || !psig->result || psig->result->entity_id() != e.get(builtin_eid::typename_)) { // tuple_project, (id, orig_tuple)
-        return std::unexpected(make_error<basic_general_error>(get_start_location(*get<0>(arg_descr)), "invalid tuple_project signature"sv, tpl_prj_entity.id));
+        return std::unexpected(make_error<basic_general_error>(get<0>(arg_descr)->location, "invalid tuple_project signature"sv, tpl_prj_entity.id));
     }
         
     // Get project name from signature (first field)
@@ -60,14 +60,14 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_project_size
     if (identifier_entity const* pident = dynamic_cast<const identifier_entity*>(&name_entity)) {
         project_name = pident->value();
     } else {
-        return std::unexpected(make_error<basic_general_error>(get_start_location(*get<0>(arg_descr)), "invalid tuple_project name"sv, name_entity.id));
+        return std::unexpected(make_error<basic_general_error>(get<0>(arg_descr)->location, "invalid tuple_project name"sv, name_entity.id));
     }
         
     // Get original tuple entity (second field)
     entity const& orig_tuple = get_entity(e, psig->field(1).entity_id());
     auto orig_sig = orig_tuple.signature();
     if (!orig_sig || orig_sig->name != e.get(builtin_qnid::tuple)) {
-        return std::unexpected(make_error<basic_general_error>(get_start_location(*get<0>(arg_descr)), "invalid tuple_project origin tuple"sv, orig_tuple.id));
+        return std::unexpected(make_error<basic_general_error>(get<0>(arg_descr)->location, "invalid tuple_project origin tuple"sv, orig_tuple.id));
     }
     
     // Count the number of fields with the projection name

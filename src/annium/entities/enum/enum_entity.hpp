@@ -16,7 +16,7 @@ class enum_entity : public basic_signatured_entity
     std::vector<identifier> cases_;
 
 public:
-    enum_entity(environment& e, functional& fn, std::vector<identifier> cases);
+    enum_entity(environment& e, functional& fn, span<const identifier> cases);
 
     inline qname_view name() const noexcept { return name_; }
 

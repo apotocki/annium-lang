@@ -47,14 +47,14 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_make_p
         // Check that it's a valid type
         entity const& etype = get_entity(e, of_arg.value());
         if (etype.get_type() != e.get(builtin_eid::typename_)) {
-            return std::unexpected(make_error<type_mismatch_error>(get_start_location(*get<0>(of_arg_descr)), of_arg.value(), "a type"sv));
+            return std::unexpected(make_error<type_mismatch_error>(get<0>(of_arg_descr)->location, of_arg.value(), "a type"sv));
         }
         pmd->element_type = of_arg.value();
         pmd->has_explicit_type = true;
-        pmd->emplace_back(0, of_arg, get_start_location(*get<0>(of_arg_descr)));
+        pmd->emplace_back(0, of_arg, get<0>(of_arg_descr)->location);
     } else if (of_res.error()) {
         return std::unexpected(append_cause(
-            make_error<basic_general_error>(get_start_location(*get<0>(of_arg_descr)), "invalid 'of' argument"sv),
+            make_error<basic_general_error>(get<0>(of_arg_descr)->location, "invalid 'of' argument"sv),
             std::move(of_res.error())));
     } else {
         // No explicit type, will be inferred from elements
@@ -74,7 +74,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_make_p
         if (!elem_res) {
             if (elem_res.error()) 
                 return std::unexpected(append_cause(
-                    make_error<basic_general_error>(get_start_location(*get<0>(elem_descr)), "invalid argument"sv),
+                    make_error<basic_general_error>(get<0>(elem_descr)->location, "invalid argument"sv),
                     std::move(elem_res.error())));
             break;
         }
@@ -100,7 +100,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_make_p
         }
 
         pmd->signature.emplace_back(ser.value_or_type, ser.is_const_result);
-        pmd->emplace_back(arg_num, ser, get_start_location(*get<0>(elem_descr)));
+        pmd->emplace_back(arg_num, ser, get<0>(elem_descr)->location);
     }
 
     if (auto argterm = call_session.unused_argument(); argterm) {
@@ -182,9 +182,9 @@ std::expected<syntax_expression_result, error_storage> fixed_array_make_pattern:
                 append_semantic_result(el, er, result);
                 continue;
             }
-            pure_call_t cast_call{ loc };
+            call_builder cast_call{ loc };
             if (er.is_const_result) {
-                cast_call.emplace_back(annotated_entity_identifier{ er.value(), loc });
+                cast_call.emplace_back(loc, er.value());
             } else {
                 cast_call.emplace_back(make_indirect_value(env, el, std::move(er), loc));
             }

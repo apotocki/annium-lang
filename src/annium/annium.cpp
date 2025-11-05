@@ -44,7 +44,7 @@ public:
     smart_blob call(string_view name, span<const std::pair<string_view, const blob_result>> namedargs, span<const blob_result> args);
 
 protected:
-    void compile(statement_span, span<string_view> args);
+    void compile(span<const statement>, span<string_view> args);
     void do_compile(internal_function_entity const&);
 
     void bootstrap();
@@ -197,7 +197,6 @@ void annium_impl::bootstrap()
     parser_context parser{ environment_ };
     auto decls = parser.parse_string(string_view{ annium_bootstrap_code });
     if (!decls.has_value()) throw exception(decls.error());
-    environment_.push_ast({}, std::move(parser.statements()));
     
     internal_function_entity dummy{ qname{}, entity_signature{}, {} };
     dummy.set_body(*decls);
@@ -221,7 +220,6 @@ void annium_impl::load(fs::path const& f, span<string_view> args)
         parser_context parser{ environment_ };
         auto decls = parser.parse(f);
         if (!decls.has_value()) throw exception(decls.error());
-        environment_.push_ast(f, std::move(parser.statements()));
         compile(std::move(*decls), args);
     } catch (error const& e) {
         throw exception(environment_.print(e));
@@ -235,19 +233,18 @@ void annium_impl::load(string_view code, span<string_view> args)
         parser_context parser{ environment_ };
         auto decls = parser.parse_string(code);
         if (!decls.has_value()) throw exception(decls.error());
-        environment_.push_ast({}, std::move(parser.statements()));
         compile(std::move(*decls), args);
     } catch (error const& e) {
         throw exception(environment_.print(e));
     }
 }
 
-void annium_impl::compile(statement_span decls, span<string_view> args)
+void annium_impl::compile(span<const statement> decls, span<string_view> args)
 {
     identifier main_id = environment_.new_identifier();
     entity_signature main_sig{};
     internal_function_entity main_fn_ent{ qname{}, std::move(main_sig), {} };
-    main_fn_ent.set_body(std::move(decls));
+    main_fn_ent.set_body(decls);
     //fn_compiler_context ctx{ environment_, qname{ main_id } };
     fn_compiler_context ctx{ environment_, main_fn_ent };
     size_t argindex = 0;

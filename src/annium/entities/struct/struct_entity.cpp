@@ -13,14 +13,14 @@
 
 namespace annium {
 
-struct_entity::struct_entity(environment& env, functional& fn, field_list_t const& body)
+struct_entity::struct_entity(environment& env, functional& fn, span<const annium::field> body)
     : name_{ fn.name() }, body_{ body }
 {
     sig_.name = fn.id();
     sig_.result.emplace(env.get(builtin_eid::typename_));
 }
 
-struct_entity::struct_entity(qname qn, entity_signature&& sgn, field_list_t const& body)
+struct_entity::struct_entity(qname qn, entity_signature&& sgn, span<const annium::field> body)
     : basic_signatured_entity{ std::move(sgn) }
     , name_{ std::move(qn) }
     , body_{ body }
@@ -52,14 +52,14 @@ error_storage struct_entity::build(fn_compiler_context& extctx, semantic::expres
     return err;
 }
 
-error_storage struct_entity::build(fn_compiler_context& ctx, field_list_t const& fl, semantic::expression_list_t& el) const
+error_storage struct_entity::build(fn_compiler_context& ctx, span<const annium::field> fl, semantic::expression_list_t& el) const
 {
     environment& e = ctx.env();
     std::vector<field> fields;
     fields.reserve(fl.size());
     entity_signature tuple_signature{ e.get(builtin_qnid::tuple), e.get(builtin_eid::typename_) };
-    for (field_t const& f : fl) {
-        auto res = apply_visitor(base_expression_visitor{ ctx, el, expected_result_t{ .modifier = value_modifier_t::constexpr_value } }, f.type_or_value);
+    for (annium::field const& f : fl) {
+        auto res = base_expression_visitor::visit(ctx, el, expected_result_t{ .modifier = value_modifier_t::constexpr_value }, f.type_or_value);
         if (!res) return std::move(res.error());
         bool is_const = can_be_constexpr(f.modifier);
         if (f.name) {
@@ -77,7 +77,7 @@ error_storage struct_entity::build(fn_compiler_context& ctx, field_list_t const&
     return {};
 }
 
-error_storage struct_entity::build(fn_compiler_context& ctx, statement_span const& sts, semantic::expression_list_t&) const
+error_storage struct_entity::build(fn_compiler_context& ctx, span<const statement> sts, semantic::expression_list_t&) const
 {
     THROW_NOT_IMPLEMENTED_ERROR("struct_entity::build(statement_set_t)");
     //declaration_visitor dvis{ ctx };
@@ -92,7 +92,7 @@ error_storage struct_entity::build(fn_compiler_context& ctx, statement_span cons
 //    // no need to store the context expression state here
 //    ctx.push_chain(pmd_->call_expressions);
 //
-//    //small_vector<std::tuple<field_t const&, syntax_expression_t>, 16> initializers; // [field, field name expression]
+//    //small_vector<std::tuple<field_t const&, syntax_expression>, 16> initializers; // [field, field name expression]
 //    size_t pos_arg_num = 0;
 //    entity_signature tuple_signature{ e.get(builtin_qnid::tuple) };
 //    for (field_t const& f : fl) {
@@ -134,7 +134,7 @@ error_storage struct_entity::build(fn_compiler_context& ctx, statement_span cons
 
 
 
-//std::expected<functional::match, error_storage> struct_entity::find_init(fn_compiler_context& ctx, pure_call_t const& call) const
+//std::expected<functional::match, error_storage> struct_entity::find_init(fn_compiler_context& ctx, pure_call const& call) const
 //{
 //    if (built_.load() == build_state::not_built) {
 //        if (auto err = build(ctx); err) return std::unexpected(std::move(err));

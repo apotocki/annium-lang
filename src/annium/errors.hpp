@@ -114,7 +114,7 @@ public:
 class basic_general_error : public general_error
 {
 protected:
-    using object_t = variant<nullptr_t, syntax_expression_t, qname, qname_view, qname_identifier, entity_identifier, identifier>;
+    using object_t = std::variant<nullptr_t, syntax_expression, qname, qname_view, qname_identifier, entity_identifier, identifier>;
 
     location_t location_;
     resource_location reflocation_;
@@ -129,7 +129,7 @@ public:
     basic_general_error(error_context const& errctx, string_t descr)
         : location_{ errctx.location() }, reflocation_{ errctx.refloc }, description_{ descr }
     {
-        if (auto optexpr = errctx.expression(); optexpr) {
+        if (syntax_expression const* optexpr = errctx.expression(); optexpr) {
             object_ = *optexpr;
         }
     }
@@ -145,7 +145,7 @@ public:
 class binary_relation_error : public error
 {
 protected:
-    using object_t = variant<nullptr_t, syntax_expression_t, qname, qname_view, qname_identifier, entity_identifier, identifier>;
+    using object_t = std::variant<nullptr_t, syntax_expression const*, qname, qname_view, qname_identifier, entity_identifier, identifier>;
 
     resource_location location_;
     resource_location reflocation_;
@@ -178,12 +178,20 @@ public:
         : idname_{ qname{ std::move(idname.value), false }, idname.location }
     {}
 
+    inline undeclared_identifier_error(resource_location loc, identifier idname) noexcept
+        : idname_{ qname{ std::move(idname), false }, loc }
+    {}
+
     inline explicit undeclared_identifier_error(annotated_qname idname) noexcept
         : idname_{ std::move(idname) }
     {}
 
-    undeclared_identifier_error(resource_location loc, qname_view idname)
-        : idname_{ qname{idname}, std::move(loc) }
+    inline undeclared_identifier_error(resource_location loc, qname_view idname)
+        : idname_{ qname{ idname }, std::move(loc) }
+    {}
+
+    inline undeclared_identifier_error(annotated_qname_view idname)
+        : idname_{ qname{ idname.value }, std::move(idname.location) }
     {}
 
     void visit(error_visitor& vis) const override { vis(*this); }
@@ -216,12 +224,12 @@ class cast_error : public general_error
 {
 public:
     resource_location location_;
-    optional<syntax_expression_t> expr_;
+    optional<syntax_expression> expr_;
     entity_identifier from_;
     entity_identifier to_;
     resource_location refloc_;
 
-    cast_error(resource_location loc, entity_identifier to, entity_identifier from = {}, optional<syntax_expression_t> expr = nullopt)
+    cast_error(resource_location loc, entity_identifier to, entity_identifier from = {}, optional<syntax_expression> expr = nullopt)
         : location_{ std::move(loc) }, from_{std::move(from)}, to_{ std::move(to) }, expr_{ std::move(expr) }
     {}
 
@@ -275,16 +283,16 @@ public:
 
 class wrong_lvalue_error : public general_error
 {
-    syntax_expression_t expr_;
+    syntax_expression const& expr_;
 
 public:
-    explicit wrong_lvalue_error(syntax_expression_t const& expr)
+    explicit wrong_lvalue_error(syntax_expression const& expr)
         : expr_{ expr }
     {}
 
     void visit(error_visitor& vis) const override { vis(*this); }
 
-    location_t location() const noexcept override { return get_start_location(expr_); }
+    location_t location() const noexcept override { return expr_.location; }
     string_t object(environment const&) const noexcept override;
     string_t description(environment const&) const noexcept override { return "is not rvalue"sv; }
 };

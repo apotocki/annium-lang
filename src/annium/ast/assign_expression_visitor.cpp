@@ -10,25 +10,24 @@ namespace annium {
 
 inline environment& assign_expression_visitor::env() const noexcept { return ctx_.env(); }
 
-assign_expression_visitor::result_type assign_expression_visitor::operator()(qname_reference const& v) const
+assign_expression_visitor::result_type assign_expression_visitor::operator()(qname_reference_expression const& v) const
 {
     auto e = ctx_.lookup_entity(v.name);
-    return apply_visitor(make_functional_visitor<result_type>([this, &v](auto & eid_or_var) -> result_type
+    return visit([this, &v](auto & eid_or_var) -> result_type
     {
         entity_identifier assign_type;
         extern_variable_entity const* peve = nullptr;
         if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, local_variable>) {
             assign_type = eid_or_var.type;
         } else {
-            if (!eid_or_var) return std::unexpected(make_error<undeclared_identifier_error>(v.name));
+            if (!eid_or_var) return std::unexpected(make_error<undeclared_identifier_error>(lhs_.location, v.name));
             if (peve = dynamic_cast<extern_variable_entity const*>(&env().eregistry_get(eid_or_var)); peve) {
                 assign_type = peve->get_type();
             } else {
-                return std::unexpected(make_error<assign_error>(assign_location_, syntax_expression_t{ v }));
+                return std::unexpected(make_error<assign_error>(assign_location_, lhs_));
             }
         }
-        base_expression_visitor rvis{ ctx_, expressions, expected_result_t{ assign_type, assign_location_ } };
-        auto res = apply_visitor(rvis, rhs_);
+        auto res = base_expression_visitor::visit(ctx_, expressions, expected_result_t{ assign_type, assign_location_ }, rhs_);
         if (!res) return std::unexpected(std::move(res.error()));
         auto& ser = res->first;
         if (ser.is_const_result) {
@@ -49,7 +48,7 @@ assign_expression_visitor::result_type assign_expression_visitor::operator()(qna
         }
         ser.value_or_type = env().get(builtin_eid::void_);
         return std::move(ser);
-    }), e);
+    }, e);
     //    if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, local_variable>) {
     //        base_expression_visitor rvis{ ctx_, annotated_entity_identifier{ eid_or_var.type, assign_location_ } };
     //        auto res = apply_visitor(rvis, rhs_);
@@ -72,26 +71,26 @@ assign_expression_visitor::result_type assign_expression_visitor::operator()(qna
     //            ctx_.append_expression(semantic::set_variable{ peve });
     //            return error_storage{};
     //        }
-    //        return make_error<assign_error>(assign_location_, syntax_expression_t{ v });
+    //        return make_error<assign_error>(assign_location_, syntax_expression{ v });
     //    }
     
 }
 
-assign_expression_visitor::result_type assign_expression_visitor::operator()(member_expression_t const& me) const
+assign_expression_visitor::result_type assign_expression_visitor::operator()(member_expression const& me) const
 {
     //if (auto res = apply_visitor(expression_visitor{ ctx_ }, me.object); !res) {
     //    return std::move(res.error());
     //}
 
-    pure_call_t set_call{ assign_location_ };
-    set_call.emplace_back(annotated_identifier{ env().get(builtin_id::self) }, me.object);
-    set_call.emplace_back(annotated_identifier{ env().get(builtin_id::property) }, me.property);
+    call_builder set_call{ assign_location_ };
+    set_call.emplace_back(env().get(builtin_id::self), *me.object);
+    set_call.emplace_back(env().get(builtin_id::property), *me.property);
     set_call.emplace_back(rhs_);
 
     auto match = ctx_.find(builtin_qnid::set, set_call, expressions);
     if (!match) {
         return std::unexpected(append_cause(
-            make_error<basic_general_error>(assign_location_, "can't assign"sv, syntax_expression_t{ me }),
+            make_error<basic_general_error>(assign_location_, "can't assign"sv, lhs_),
             std::move(match.error())
         ));
     }

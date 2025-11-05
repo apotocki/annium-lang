@@ -4,6 +4,7 @@
 #pragma once
 
 #include "sonia/function.hpp"
+#include "sonia/span.hpp"
 #include <memory_resource>
 #include <vector>
 #include <string>
@@ -26,7 +27,8 @@ public:
 
     // Construct T in the arena and return a stable pointer.
     template <class T, class... Args>
-    T* make(Args&&... args) {
+    T* make(Args&&... args)
+    {
         static_assert(!std::is_array_v<T>);
         std::pmr::polymorphic_allocator<T> pa(mr_);
         T* p = pa.allocate(1);
@@ -34,6 +36,38 @@ public:
         return p;
     }
 
+    template <class T>
+    inline span<T> make_array(size_t sz)
+    {
+        std::pmr::polymorphic_allocator<T> pa(mr_);
+        T* p = pa.allocate(sz);
+        return {p, sz};
+    }
+
+    template <class T>
+    span<T const*> make_array(span<T const*> src)
+    {
+        span<T*> result = make_array<T*>(src.size());
+        std::memcpy(result.data(), src.data(), src.size_bytes());
+        return result;
+    }
+
+    template <class T>
+    span<T> make_array(span<const T> src)
+    {
+        span<T> result = make_array<T>(src.size());
+
+        if constexpr (std::is_trivially_copyable_v<T>) {
+            std::memcpy(result.data(), src.data(), src.size_bytes());
+        } else {
+            T const* srcplace = src.data();
+            for (T* place = result.data(); place < result.data() + src.size(); ++place, ++srcplace) {
+                new (place) T(*srcplace);
+            }
+        }
+        return result;
+    }
+    
     // PMR-aware containers/strings should be constructed with resource().
     using PmrString = std::basic_string<char, std::char_traits<char>, std::pmr::polymorphic_allocator<char>>;
     template <class T>

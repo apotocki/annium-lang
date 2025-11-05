@@ -33,16 +33,16 @@ public:
 std::expected<functional_match_descriptor_ptr, error_storage> ellipsis_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const&) const
 {
     environment& e = ctx.env();
-    syntax_expression_t const* object_arg = nullptr;
+    syntax_expression const* object_arg = nullptr;
 
     for (auto const& arg : call.args) {
         annotated_identifier const* pargname = arg.name();
         if (pargname) {
             return std::unexpected(make_error<basic_general_error>(pargname->location, "argument mismatch, unexpected argument"sv, *pargname));
         }
-        syntax_expression_t const& e = arg.value();
+        syntax_expression const& e = arg.value();
         if (object_arg) {
-            return std::unexpected(make_error<basic_general_error>(get_start_location(e), "argument mismatch, unexpected argument"sv, e));
+            return std::unexpected(make_error<basic_general_error>(e.location, "argument mismatch, unexpected argument"sv, e));
         }
         object_arg = &e;
     }
@@ -51,13 +51,12 @@ std::expected<functional_match_descriptor_ptr, error_storage> ellipsis_pattern::
         return std::unexpected(make_error<basic_general_error>(call.location, "unmatched parameter"sv));
     }
 
-    base_expression_visitor eobjvis{ ctx, call.expressions, expected_result_t{ .modifier = value_modifier_t::constexpr_value } };
-    auto obj = apply_visitor(eobjvis, *object_arg);
+    auto obj = base_expression_visitor::visit(ctx, call.expressions, expected_result_t{ .modifier = value_modifier_t::constexpr_value }, *object_arg);
     if (!obj) return std::unexpected(std::move(obj.error()));
     BOOST_ASSERT(!obj->first.expressions); // not impelemented const value expressions
     entity const& metaobject_ent = get_entity(e, obj->first.value());
     if (identifier_entity const* pie = dynamic_cast<identifier_entity const*>(&metaobject_ent); pie) {
-        return make_shared<ellipsis_match_descriptor>(call.functional_id(), pie, get_start_location(*object_arg));
+        return make_shared<ellipsis_match_descriptor>(call.functional_id(), pie, object_arg->location);
     }
     else if (basic_signatured_entity const* bse = dynamic_cast<basic_signatured_entity const*>(&metaobject_ent); bse) {
         entity_signature const& signature = *bse->signature();
@@ -72,9 +71,9 @@ std::expected<functional_match_descriptor_ptr, error_storage> ellipsis_pattern::
 
 std::expected<field_descriptor, error_storage> push_by_name(fn_compiler_context& ctx, semantic::expression_list_t& el, annotated_qname const& name, semantic::expression_span & result)
 {
-    auto optent = ctx.lookup_entity(name);
+    auto optent = ctx.lookup_entity(name.value);
     using result_t = std::expected<field_descriptor, error_storage>;
-    return apply_visitor(make_functional_visitor<result_t>([&ctx, &el, &name, &result](auto& eid_or_var) -> result_t
+    return visit([&ctx, &el, &name, &result](auto& eid_or_var) -> result_t
     {
         if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, entity_identifier>) {
             if (!eid_or_var) return std::unexpected(make_error<undeclared_identifier_error>(std::move(name)));
@@ -83,7 +82,7 @@ std::expected<field_descriptor, error_storage> push_by_name(fn_compiler_context&
             ctx.env().push_back_expression(el, result, semantic::push_local_variable{ eid_or_var });
             return field_descriptor{ eid_or_var.type, false };
         }
-    }), optent);
+    }, optent);
 }
 
 std::expected<syntax_expression_result, error_storage> ellipsis_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const

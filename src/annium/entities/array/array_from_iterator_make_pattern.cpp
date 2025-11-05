@@ -29,7 +29,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_from_iterato
     if (!from_iterator_res) {
         if (from_iterator_res.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get_start_location(*get<0>(from_iterator_arg_descr)), "invalid 'from_iterator' argument"sv),
+                make_error<basic_general_error>(get<0>(from_iterator_arg_descr)->location, "invalid 'from_iterator' argument"sv),
                 std::move(from_iterator_res.error())));
         }
         return std::unexpected(make_error<basic_general_error>(call.location, "missing required 'from_iterator' argument"sv));
@@ -40,8 +40,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_from_iterato
     }
 
     auto pmd = make_shared<functional_match_descriptor>(call);
-    pmd->emplace_back(0, from_iterator_res->first, get_start_location(*get<0>(from_iterator_arg_descr)));
-    pmd->signature.emplace_back(from_iterator_res->first.value_or_type, from_iterator_res->first.is_const_result);
+    pmd->append_arg(from_iterator_res->first, get<0>(from_iterator_arg_descr)->location);
     return pmd;
 }
 
@@ -81,8 +80,8 @@ std::expected<syntax_expression_result, error_storage> array_from_iterator_make_
     semantic::loop_scope_t& ls = get<semantic::loop_scope_t>(result.expressions.back());
 
     // Check has_next(iterator)
-    pure_call_t has_next_call{ loc };
-    has_next_call.emplace_back(name_reference{ annotated_identifier{ iterator_var_name, loc } });
+    call_builder has_next_call{ loc };
+    has_next_call.emplace_back(loc, name_reference_expression{ iterator_var_name });
     
     auto has_next_result = ctx.find_and_apply(builtin_qnid::has_next, has_next_call, el,
         expected_result_t{ env.get(builtin_eid::boolean), loc });
@@ -102,8 +101,8 @@ std::expected<syntax_expression_result, error_storage> array_from_iterator_make_
     syntax_expression_result true_branch_res{ .is_const_result = false };
 
     // Call next(iterator)
-    pure_call_t next_call{ loc };
-    next_call.emplace_back(name_reference{ annotated_identifier{ iterator_var_name, loc }});
+    call_builder next_call{ loc };
+    next_call.emplace_back(loc, name_reference_expression{ iterator_var_name});
     
     auto next_result = ctx.find_and_apply(builtin_qnid::next, next_call, el);
     if (!next_result) {

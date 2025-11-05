@@ -14,10 +14,10 @@
 
 namespace annium {
 
-error_storage typefn_pattern::init(fn_compiler_context& ctx, fn_decl_t const& fnd)
+error_storage typefn_pattern::init(fn_compiler_context& ctx, fn_decl const& fnd)
 {
     return basic_fn_pattern::init(ctx, fnd);
-    // if (auto err = init(ctx, static_cast<fn_pure_t const&>(fnd))) return err;
+    // if (auto err = init(ctx, static_cast<fn_pure const&>(fnd))) return err;
 }
 
 std::expected<syntax_expression_result, error_storage> typefn_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const

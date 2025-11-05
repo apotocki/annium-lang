@@ -65,6 +65,48 @@ public:
     size_t hash() const noexcept override { return hash_value(qnmid_); }
 };
 
+struct call_builder
+{
+    resource_location location;
+    small_vector<opt_named_expression_t, 8> arguments;
+
+    inline void emplace_back(annotated_identifier name, syntax_expression expr)
+    {
+        arguments.emplace_back(std::move(name), std::move(expr));
+    }
+
+    inline void emplace_back(identifier name, syntax_expression expr)
+    {
+        resource_location loc = expr.location;
+        arguments.emplace_back(annotated_identifier{ name, loc }, std::move(expr));
+    }
+
+    template <typename ParticularExprT>
+    inline void emplace_back(annotated_identifier name, resource_location loc, ParticularExprT && expr)
+    {
+        arguments.emplace_back(std::move(name), syntax_expression{ std::move(loc), std::forward<ParticularExprT>(expr) });
+    }
+
+    template <typename ParticularExprT>
+    inline void emplace_back(identifier name, resource_location loc, ParticularExprT&& expr)
+    {
+        arguments.emplace_back(annotated_identifier{ name, loc }, syntax_expression{ loc, std::forward<ParticularExprT>(expr) });
+    }
+
+    inline void emplace_back(syntax_expression expr) { arguments.emplace_back(std::move(expr)); }
+
+    template <typename ParticularExprT>
+    inline void emplace_back(resource_location loc, ParticularExprT && expr)
+    {
+        arguments.emplace_back(syntax_expression{ std::move(loc), std::forward<ParticularExprT>(expr) });
+    }
+
+    inline operator span<const opt_named_expression_t>() const noexcept
+    {
+        return span<const opt_named_expression_t>{ arguments.data(), arguments.size() };
+    }
+};
+
 class fn_compiler_context
 {
     environment& environment_;
@@ -90,7 +132,7 @@ public:
     qname_view ns() const { return ns_; }
     qname_view base_ns() const { return span{ns_.parts().data(), base_ns_size_}; }
 
-    optional<variant<entity_identifier, local_variable>> get_bound(identifier) const noexcept;
+    optional<std::variant<entity_identifier, local_variable>> get_bound(identifier) const noexcept;
     inline void push_binding(functional_binding const& binding)
     {
         bindings_.push_back(std::addressof(binding));
@@ -120,13 +162,19 @@ public:
     //error_storage build_function_descriptor(fn_pure const& pure_decl, function_descriptor& fds);
 
     functional const* lookup_functional(qname_view) const;
-    std::expected<qname_identifier, error_storage> lookup_qname(annotated_qname const&) const;
-    variant<entity_identifier, local_variable> lookup_entity(annotated_identifier const&) const;
-    variant<entity_identifier, local_variable> lookup_entity(annotated_qname const&) const;
-    std::expected<functional::match, error_storage> find(builtin_qnid, pure_call_t const&, semantic::expression_list_t&, expected_result_t const& = expected_result_t{});
-    std::expected<functional::match, error_storage> find(qname_identifier, pure_call_t const&, semantic::expression_list_t&, expected_result_t const& = expected_result_t{});
+    std::expected<qname_identifier, error_storage> lookup_qname(annotated_qname_view) const;
+    std::variant<entity_identifier, local_variable> lookup_entity(identifier) const;
+    std::variant<entity_identifier, local_variable> lookup_entity(qname_view) const;
+    std::expected<functional::match, error_storage> find(builtin_qnid, resource_location const& call_location, span<const opt_named_expression_t> const& call_args, semantic::expression_list_t&, expected_result_t const& = expected_result_t{});
+    std::expected<functional::match, error_storage> find(qname_identifier, resource_location const& call_location, span<const opt_named_expression_t> const& call_args, semantic::expression_list_t&, expected_result_t const& = expected_result_t{});
     
-    std::expected<syntax_expression_result, error_storage> find_and_apply(builtin_qnid, pure_call_t const&, semantic::expression_list_t&, expected_result_t const& = expected_result_t{});
+    //std::expected<syntax_expression_result, error_storage> find_and_apply(builtin_qnid, resource_location const& call_location, span<const opt_named_expression_t> const& call_args, semantic::expression_list_t&, expected_result_t const& = expected_result_t{});
+    std::expected<syntax_expression_result, error_storage> find_and_apply(builtin_qnid, call_builder const&, semantic::expression_list_t&, expected_result_t const& = expected_result_t{});
+
+    inline std::expected<functional::match, error_storage> find(builtin_qnid qnid, call_builder const& cb, semantic::expression_list_t& el, expected_result_t const& er = expected_result_t{})
+    {
+        return find(qnid, cb.location, cb, el, er);
+    }
 
 #if 0
     // to do: resolving depends on qname

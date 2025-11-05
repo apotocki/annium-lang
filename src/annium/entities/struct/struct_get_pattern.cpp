@@ -41,7 +41,7 @@ struct stucture_get_pattern_matcher : public generic_get_pattern_matcher<stuctur
         entity const& some_entity = get_entity(ctx.env(), slftype);
         pse = dynamic_cast<struct_entity const*>(&some_entity);
         if (!pse) {
-            return make_error<basic_general_error>(get_start_location(*get<0>(slf_arg_descr)), "argument type mismatch: a structure was expected."sv, slftype);
+            return make_error<basic_general_error>(get<0>(slf_arg_descr)->location, "argument type mismatch: a structure was expected."sv, slftype);
         }
         return {};
     }
@@ -107,32 +107,24 @@ std::expected<syntax_expression_result, error_storage> struct_get_pattern::apply
     identifier tuple_var_name, property_var_name;
     fn_compiler_context_scope fn_scope{ ctx };
 
-    pure_call_t get_call{ md.call_location };
+    call_builder get_call{ md.call_location };
     if (slfer.is_const_result) {
         // if self is a constant, then we can use it directly
-        get_call.emplace_back(
-            annotated_identifier{ e.get(builtin_id::self), md.call_location },
-            annotated_entity_identifier{ slfer.value(), md.call_location });
+        get_call.emplace_back(e.get(builtin_id::self), md.call_location, slfer.value());
     } else {
         tuple_var_name = e.new_identifier();
         local_variable tuple_var = fn_scope.new_temporary(tuple_var_name, tmd.tpl_entity.id); // here we substitute the tuple entity id instead of the original struct type id
         result.temporaries.emplace_back(tuple_var_name, std::move(tuple_var), slfer.expressions);
-        get_call.emplace_back(
-            annotated_identifier{ e.get(builtin_id::self), md.call_location },
-            name_reference{ annotated_identifier{ tuple_var_name } });
+        get_call.emplace_back(e.get(builtin_id::self), md.call_location, name_reference_expression{ tuple_var_name });
     }
     if (proper.is_const_result) {
         // if property is a constant, then we can use it directly
-        get_call.emplace_back(
-            annotated_identifier{ e.get(builtin_id::property) },
-            annotated_entity_identifier{ proper.value(), md.call_location });
+        get_call.emplace_back(e.get(builtin_id::property), md.call_location, proper.value());
     } else {
         property_var_name = e.new_identifier();
         local_variable property_var = fn_scope.new_temporary(property_var_name, proper.type());
         result.temporaries.emplace_back(property_var_name, std::move(property_var), proper.expressions);
-        get_call.emplace_back(
-            annotated_identifier{ e.get(builtin_id::property), md.call_location },
-            name_reference{ annotated_identifier{ property_var_name } });
+        get_call.emplace_back(e.get(builtin_id::property), md.call_location, name_reference_expression{ property_var_name });
     }
 
     auto match = ctx.find(builtin_qnid::get, get_call, el);

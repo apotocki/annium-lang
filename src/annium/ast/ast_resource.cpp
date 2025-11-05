@@ -9,20 +9,20 @@ namespace annium {
 
 ast_resource::ast_resource(std::vector<char> src, shared_ptr<arena> aval) noexcept
     : src_{ std::move(src) }
-    , expressions_arena_{ std::move(aval) }
+    , arena_{ std::move(aval) }
 {
-    if (!expressions_arena_) {
-        expressions_arena_ = make_shared<arena>();
+    if (!arena_) {
+        arena_ = make_shared<arena>();
     }
     rebuild_hash();
 }
 
 ast_resource::ast_resource(std::string src, shared_ptr<arena> aval) noexcept
     : src_{ std::move(src) }
-    , expressions_arena_{ std::move(aval) }
+    , arena_{ std::move(aval) }
 {
-    if (!expressions_arena_) {
-        expressions_arena_ = make_shared<arena>();
+    if (!arena_) {
+        arena_ = make_shared<arena>();
     }
     rebuild_hash();
 }

@@ -10,10 +10,10 @@ namespace annium {
 class expression_resolver : public functional::entity_resolver
 {
     resource_location location_;
-    syntax_expression_t expression_;
+    syntax_expression expression_;
 
 public:
-    expression_resolver(resource_location, syntax_expression_t const& expr);
+    expression_resolver(resource_location, syntax_expression const& expr);
 
     std::expected<entity_identifier, error_storage> const_resolve(fn_compiler_context&) const override;
     resource_location const& location() const override;

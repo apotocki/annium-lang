@@ -22,7 +22,7 @@ protected:
     mutable std::vector<string_view> lines;
     size_t hash_;
 
-    shared_ptr<arena> expressions_arena_;
+    shared_ptr<arena> arena_;
 
     virtual void prepare_lines() const;
     void rebuild_hash() noexcept;
@@ -42,7 +42,7 @@ public:
 
     string_view get_source() const noexcept;
 
-    inline shared_ptr<arena> get_expressions_arena() const noexcept { return expressions_arena_; }
+    inline shared_ptr<arena> get_arena() const noexcept { return arena_; }
 };
 
 }

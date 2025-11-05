@@ -10,9 +10,9 @@
 
 namespace annium {
 
-enum_entity::enum_entity(environment& e, functional& fn, std::vector<identifier> cases)
+enum_entity::enum_entity(environment& e, functional& fn, span<const identifier> cases)
     : name_{ fn.name() }
-    , cases_{ std::move(cases) }
+    , cases_{ cases.begin(), cases.end() }
 {
     sig_.name = fn.id();
     sig_.result.emplace(e.get(builtin_eid::typename_));

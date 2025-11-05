@@ -52,7 +52,7 @@ tuple_implicit_cast_pattern::try_match(fn_compiler_context& ctx, prepared_call c
 
     auto call_session = call.new_session(ctx);
     // Get (source tuple)
-    std::pair<syntax_expression_t const*, size_t> self_expr;
+    std::pair<syntax_expression const*, size_t> self_expr;
     auto src_arg = call_session.use_next_positioned_argument(&self_expr);
     if (!src_arg) {
         return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument"sv));
@@ -133,9 +133,9 @@ tuple_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic::expressio
             continue; // No cast needed, boath are const and same type
         }
 
-        pure_call_t cast_call{ md.call_location };
+        call_builder cast_call{ md.call_location };
         if (src_field.is_const()) {
-            cast_call.emplace_back(annotated_entity_identifier{ src_field.entity_id(), md.call_location });
+            cast_call.emplace_back(md.call_location, src_field.entity_id());
         } else {
             if (!src_tuple_var_name) {
                 src_tuple_var_name = e.new_identifier();
@@ -143,20 +143,19 @@ tuple_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic::expressio
                 src_er.temporaries.emplace_back(src_tuple_var_name, std::move(src_tuple_var), src_er.expressions);
             }
 
-            pure_call_t get_call{ md.call_location };
-            get_call.emplace_back(annotated_identifier{ e.get(builtin_id::self), md.call_location },
-                name_reference{ annotated_identifier{ src_tuple_var_name } });
-            get_call.emplace_back(annotated_identifier{ e.get(builtin_id::property) }, annotated_integer{ numetron::integer{ i } });
+            call_builder get_call{ md.call_location };
+            get_call.emplace_back(e.get(builtin_id::self), md.call_location, name_reference_expression{ src_tuple_var_name });
+            get_call.emplace_back(e.get(builtin_id::property), md.call_location, numetron::integer_view{ i });
             auto match = ctx.find(builtin_qnid::get, get_call, el);
             if (!match) {
                 return std::unexpected(append_cause(
-                    make_error<basic_general_error>(md.call_location, "internal error: can't get tuple element"sv, annotated_integer{ numetron::integer{ i } }),
+                    make_error<basic_general_error>(md.call_location, "internal error: can't get tuple element"sv, syntax_expression{ .value = numetron::integer_view{ i } }),
                     std::move(match.error())));
             }
             auto res = match->apply(ctx);
             if (!res) {
                 return std::unexpected(append_cause(
-                    make_error<basic_general_error>(md.call_location, "internal error: can't get tuple element"sv, annotated_integer{ numetron::integer{ i } }),
+                    make_error<basic_general_error>(md.call_location, "internal error: can't get tuple element"sv, syntax_expression{ .value = numetron::integer_view{ i } }),
                     std::move(res.error())));
             }
 

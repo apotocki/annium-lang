@@ -19,8 +19,8 @@ protected:
     {
         annotated_identifier ename;
         small_vector<annotated_identifier, 2> inames;
-        variant<syntax_expression_t, pattern_t> constraint;
-        variant<required_t, optional_t, syntax_expression_t> default_value;
+        std::variant<syntax_expression const*, syntax_pattern const*> constraint;
+        std::variant<required_t, optional_t, syntax_expression const*> default_value;
         parameter_constraint_modifier_t modifier;
     };
 
@@ -28,12 +28,12 @@ protected:
     using parameters_t = small_vector<parameter_descriptor, 8>;
     parameters_t parameters_;
 
-    variant<nullptr_t, syntax_expression_t, pattern_t> result_; // auto or type/value expression or pattern
+    std::variant<nullptr_t, syntax_expression, syntax_pattern> result_; // auto or type/value expression or pattern
 
 public:
     basic_fn_pattern() = default;
 
-    error_storage init(fn_compiler_context&, fn_pure_t const&);
+    error_storage init(fn_compiler_context&, fn_pure const&);
 
     std::expected<functional_match_descriptor_ptr, error_storage> try_match(fn_compiler_context&, prepared_call const&, expected_result_t const&) const override;
 
@@ -43,8 +43,8 @@ protected:
     std::pair<syntax_expression_result, size_t> apply_arguments(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const;
     
     // builds entity that represents the function
-    virtual shared_ptr<internal_function_entity> build(fn_compiler_context&, functional_match_descriptor&, entity_signature) const;
-    virtual void build_scope(environment&, functional_match_descriptor&, internal_function_entity& /* out */) const;
+    virtual shared_ptr<internal_function_entity> build(fn_compiler_context&, entity_signature&&, functional_binding_set&&) const;
+    virtual void build_scope(environment&, functional_binding_set&&, internal_function_entity& /* out */) const;
 };
 
 }

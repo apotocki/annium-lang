@@ -21,7 +21,7 @@ public:
     //result_type operator()(function_call_t const& sp) const;
 
     // returns true if implicit cast was applied
-    //std::expected<bool, error_storage> try_match(fn_compiler_context&, syntax_expression_t const&) const;
+    //std::expected<bool, error_storage> try_match(fn_compiler_context&, syntax_expression const&) const;
 
     template <typename T>
     result_type operator()(T const& v) const

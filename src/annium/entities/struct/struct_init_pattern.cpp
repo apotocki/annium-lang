@@ -56,28 +56,27 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_init_patter
             call_session.use_next_positioned_argument(argexp, &arg_expr);
         resource_location const* pargloc;
         if (res) {
-            pargloc = &get_start_location(*get<0>(arg_expr));
+            pargloc = &get<0>(arg_expr)->location;
         } else {
             if (res.error()) {
                 return std::unexpected(append_cause(
-                    make_error<basic_general_error>(get_start_location(*get<0>(arg_expr)), "invalid argument"sv),
+                    make_error<basic_general_error>(get<0>(arg_expr)->location, "invalid argument"sv),
                     std::move(res.error())
                 ));
             }
-            if (syntax_expression_t const* default_expr = get<syntax_expression_t>(&field.default_value)) {
+            if (syntax_expression const* default_expr = get_if<syntax_expression>(&field.default_value)) {
                 if (!scope_bindings.empty()) {
                     ctx.push_binding(scope_bindings);
                 }
                 SCOPE_EXIT([&ctx, &scope_bindings] { if (!scope_bindings.empty()) ctx.pop_binding(&scope_bindings); });
-                base_expression_visitor bev(ctx, call.expressions, argexp);
-                res = apply_visitor(bev, *default_expr);
+                res = base_expression_visitor::visit(ctx, call.expressions, argexp, *default_expr);
                 if (!res) {
                     return std::unexpected(append_cause(
-                        make_error<basic_general_error>(get_start_location(*default_expr), "unable to evaluate default value expression"sv),
+                        make_error<basic_general_error>(default_expr->location, "unable to evaluate default value expression"sv),
                         std::move(res.error())
                     ));
                 }
-                pargloc = &get_start_location(*default_expr);
+                pargloc = &default_expr->location;
             } else {
                 return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument"sv));
             }
@@ -119,7 +118,7 @@ struct_init_pattern::struct_init_pattern(variant<field_list_t, statement_span> c
 
 error_storage struct_init_pattern::init(fn_compiler_context& ctx, annotated_entity_identifier result)
 {
-    fn_pure_t init_fn{ .location = result.location };
+    fn_pure init_fn{ .location = result.location };
     init_fn.parameters = std::move(body_parameters_);
     init_fn.result = result;
     return basic_fn_pattern::init(ctx, init_fn);
@@ -127,27 +126,27 @@ error_storage struct_init_pattern::init(fn_compiler_context& ctx, annotated_enti
 
 error_storage struct_init_pattern::init(fn_compiler_context& ctx, annotated_qname name, parameter_list_t const& fparameters)
 {
-    pattern_t::signature_descriptor sigdesc{ .name = name };
+    pattern::signature_descriptor sigdesc{ .name = name };
     for (parameter_t const& param : fparameters) {
         auto [external_name, internal_name] = apply_visitor(param_name_retriever{}, param.name);
         if (external_name) {
             if (internal_name) {
-                sigdesc.fields.emplace_back(*external_name, annotated_identifier{ internal_name->value, internal_name->location }, pattern_t{ .descriptor = placeholder{} });
+                sigdesc.fields.emplace_back(*external_name, annotated_identifier{ internal_name->value, internal_name->location }, pattern{ .descriptor = placeholder{} });
             } else {
                 // to do: prepare and use replacement
-                sigdesc.fields.emplace_back(*external_name, annotated_identifier{ external_name->value, external_name->location }, pattern_t{ .descriptor = placeholder{} });
+                sigdesc.fields.emplace_back(*external_name, annotated_identifier{ external_name->value, external_name->location }, pattern{ .descriptor = placeholder{} });
             }
         } else if (internal_name) {
             BOOST_ASSERT(*internal_name);
-            sigdesc.fields.emplace_back(nullptr, annotated_identifier{ internal_name->value, internal_name->location }, pattern_t{ .descriptor = placeholder{} });
+            sigdesc.fields.emplace_back(nullptr, annotated_identifier{ internal_name->value, internal_name->location }, pattern{ .descriptor = placeholder{} });
         } else {
-            sigdesc.fields.emplace_back(nullptr, annotated_identifier{}, pattern_t{ .descriptor = placeholder{} });
+            sigdesc.fields.emplace_back(nullptr, annotated_identifier{}, pattern{ .descriptor = placeholder{} });
         }
     }
 
-    fn_pure_t init_fn{ .location = name.location };
+    fn_pure init_fn{ .location = name.location };
     init_fn.parameters = std::move(body_parameters_);
-    init_fn.result = pattern_t{ .descriptor = std::move(sigdesc) };
+    init_fn.result = pattern{ .descriptor = std::move(sigdesc) };
     
     return basic_fn_pattern::init(ctx, init_fn);
 }

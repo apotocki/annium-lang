@@ -11,10 +11,10 @@ namespace annium {
 class assign_error : public general_error
 {
     location_t location_;
-    syntax_expression_t lhs_;
+    syntax_expression lhs_;
 
 public:
-    assign_error(location_t loc, syntax_expression_t const& expr)
+    assign_error(location_t loc, syntax_expression const& expr)
         : location_{ std::move(loc) }
         , lhs_{ expr }
     {}

@@ -28,14 +28,14 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_equal_pattern
     if (!lhs_arg) {
         if (lhs_arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get_start_location(*get<0>(lhs_expr)), "invalid first argument for enum equality comparison"sv),
+                make_error<basic_general_error>(get<0>(lhs_expr)->location, "invalid first argument for enum equality comparison"sv),
                 std::move(lhs_arg.error())));
         } else {
             return std::unexpected(make_error<basic_general_error>(call.location, "enum equality comparison requires two arguments: missing first argument"sv));
         }
     }
 
-    resource_location const& lhs_loc = get_start_location(*get<0>(lhs_expr));
+    resource_location const& lhs_loc = get<0>(lhs_expr)->location;
     syntax_expression_result& lhs_arg_er = lhs_arg->first;
     
     // Check if first argument is an enum
@@ -51,14 +51,14 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_equal_pattern
     if (!rhs_arg) {
         if (rhs_arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get_start_location(*get<0>(rhs_expr)), "invalid second argument for enum equality comparison"sv),
+                make_error<basic_general_error>(get<0>(rhs_expr)->location, "invalid second argument for enum equality comparison"sv),
                 std::move(rhs_arg.error())));
         } else {
             return std::unexpected(make_error<basic_general_error>(call.location, "enum equality comparison requires two arguments: missing second argument"sv));
         }
     }
 
-    resource_location const& rhs_loc = get_start_location(*get<0>(rhs_expr));
+    resource_location const& rhs_loc = get<0>(rhs_expr)->location;
     syntax_expression_result& rhs_arg_er = rhs_arg->first;
 
     // Check if second argument is also an enum of the same type

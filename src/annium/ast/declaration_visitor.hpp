@@ -16,7 +16,7 @@ class internal_function_entity;
 class declaration_visitor : public static_visitor<error_storage>
 {
     fn_compiler_context& ctx;
-    mutable std::vector<statement_span> decl_stack_;
+    mutable small_vector<span<const statement>, 4> decl_stack_;
     //mutable small_vector<statement_span, 4> decl_stack_;
 
 public:
@@ -24,7 +24,7 @@ public:
         : ctx{ c }
     {}
 
-    [[nodiscard]] error_storage apply(statement_span) const;
+    [[nodiscard]] error_storage apply(span<const statement>) const;
 
     //void operator()(empty_t const&) const {}
 
@@ -38,31 +38,31 @@ public:
     [[nodiscard]] result_type operator()(enum_decl const&) const;
 
     // extern function declaration
-    [[nodiscard]] result_type operator()(fn_pure_t const&) const;
+    [[nodiscard]] result_type operator()(fn_pure const&) const;
 
-    [[nodiscard]] result_type operator()(fn_decl_t const&) const;
-    [[nodiscard]] result_type operator()(typefn_decl_t const&) const;
+    [[nodiscard]] result_type operator()(fn_decl const&) const;
+    [[nodiscard]] result_type operator()(typefn_decl const&) const;
 
     [[nodiscard]] result_type operator()(if_decl const&) const;
     [[nodiscard]] result_type operator()(while_decl const&) const;
     [[nodiscard]] result_type operator()(for_statement const&) const;
-    [[nodiscard]] result_type operator()(continue_statement_t const&) const;
-    [[nodiscard]] result_type operator()(break_statement_t const&) const;
-    [[nodiscard]] result_type operator()(yield_statement_t const&) const;
+    [[nodiscard]] result_type operator()(continue_statement const&) const;
+    [[nodiscard]] result_type operator()(break_statement const&) const;
+    [[nodiscard]] result_type operator()(yield_statement const&) const;
 
     [[nodiscard]] result_type operator()(let_statement const&) const;
     //void operator()(assign_decl_t const&) const;
 
-    [[nodiscard]] result_type operator()(expression_statement_t const&) const;
+    [[nodiscard]] result_type operator()(expression_statement const&) const;
 
-    [[nodiscard]] result_type operator()(return_statement_t const&) const;
+    [[nodiscard]] result_type operator()(return_statement const&) const;
 
     template <typename T>
     result_type operator()(T const& d) const {
         THROW_NOT_IMPLEMENTED_ERROR("declaration_visitor");
     }
 
-    void append_fnsig(fn_pure_t& /*in*/, functional** ppf = nullptr) const;
+    void append_fnsig(fn_pure& /*in*/, functional** ppf = nullptr) const;
     
     //function_entity& append_fnent(fn_pure&, function_signature& sig, span<infunction_declaration_t>) const;
 

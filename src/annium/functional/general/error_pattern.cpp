@@ -21,7 +21,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> error_pattern::try
     
     // Accept a single unnamed string argument
     expected_result_t string_exp{ e.get(builtin_eid::string), call.location };
-    std::pair<syntax_expression_t const*, size_t> argexpr;
+    std::pair<syntax_expression const*, size_t> argexpr;
     auto arg = call_session.use_next_positioned_argument(string_exp, &argexpr);
     
     if (!arg) {

@@ -43,23 +43,23 @@ public:
         , parameters{ ps }
     {}
 
-    inline result_type operator()(annotated_bool const&) const { return expression_analysis_result::this_is_not_pattern(); }
-    inline result_type operator()(annotated_integer const&) const { return expression_analysis_result::this_is_not_pattern(); }
-    inline result_type operator()(annotated_decimal const&) const { return expression_analysis_result::this_is_not_pattern(); }
-    inline result_type operator()(annotated_string const&) const { return expression_analysis_result::this_is_not_pattern(); }
-    inline result_type operator()(annotated_identifier const&) const { return expression_analysis_result::this_is_not_pattern(); }
-    inline result_type operator()(annotated_entity_identifier const&) const { return expression_analysis_result::this_is_not_pattern(); }
+    inline result_type operator()(bool) const { return expression_analysis_result::this_is_not_pattern(); }
+    inline result_type operator()(numetron::integer_view const&) const { return expression_analysis_result::this_is_not_pattern(); }
+    inline result_type operator()(numetron::decimal_view const&) const { return expression_analysis_result::this_is_not_pattern(); }
+    inline result_type operator()(string_view) const { return expression_analysis_result::this_is_not_pattern(); }
+    inline result_type operator()(identifier) const { return expression_analysis_result::this_is_not_pattern(); }
+    inline result_type operator()(entity_identifier const&) const { return expression_analysis_result::this_is_not_pattern(); }
     //inline result_type operator()(annotated_qname const&) const { return expression_analysis_result::this_is_not_pattern(); }
 
-    result_type operator()(name_reference const&) const;
-    result_type operator()(qname_reference const&) const;
+    result_type operator()(name_reference_expression const&) const;
+    result_type operator()(qname_reference_expression const&) const;
 
-    result_type operator()(member_expression_t const&) const;
-    result_type operator()(unary_expression_t const&) const;
-    result_type operator()(binary_expression_t const&) const;
-    result_type operator()(pure_call_t const&) const;
+    result_type operator()(member_expression const&) const;
+    result_type operator()(unary_expression const&) const;
+    result_type operator()(binary_expression const&) const;
+    result_type operator()(pure_call const&) const;
 
-    result_type operator()(function_call_t const&) const;
+    result_type operator()(function_call const&) const;
 
     template <typename T>
     result_type operator()(T const& v) const

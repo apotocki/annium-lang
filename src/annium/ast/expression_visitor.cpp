@@ -42,7 +42,7 @@ inline expression_visitor::result_type expression_visitor::apply_cast(entity_ide
     //GLOBAL_LOG_DEBUG() << ("expected type: %1%, actual type: %2%"_fmt % env().print(expected_result.value) % env().print(typeeid)).str();
 
     resource_location expr_loc = get_start_location(e);
-    pure_call_t cast_call{ expected_result.location };
+    pure_call cast_call{ expected_result.location };
     //cast_call.emplace_back(annotated_identifier{ env().get(builtin_id::to) }, annotated_entity_identifier{ expected_result.value, expected_result.location });
     cast_call.emplace_back(context_value{ typeeid, expr_loc });
 
@@ -510,7 +510,7 @@ expression_visitor::result_type expression_visitor::operator()(binary_operator_t
     // find a functional
     auto & func_ent = ctx.env().get_functional_entity(BOpV);
     
-    pure_call_t proc(std::move(op.location), {});
+    pure_call proc(std::move(op.location), {});
     proc.positioned_args.emplace_back(std::move(op.left), op.start());
     proc.positioned_args.emplace_back(std::move(op.right), op.location);
     auto optres = func_ent.find(ctx, proc);
@@ -529,7 +529,7 @@ expression_visitor::result_type expression_visitor::operator()(binary_operator_t
 //    auto func_ent = dynamic_pointer_cast<functional_entity>(ctx.env().eregistry().find(ctx.env().make_qname_identifier("concat"sv)));
 //    BOOST_ASSERT(func_ent);
 //
-//    pure_call_t proc(std::move(op.location), {});
+//    pure_call proc(std::move(op.location), {});
 //    proc.positioned_args.emplace_back(std::move(op.left), op.start());
 //    proc.positioned_args.emplace_back(std::move(op.right), op.location); // ~
 //    return func_ent->find(ctx, proc);
@@ -601,9 +601,9 @@ expression_visitor::result_type expression_visitor::operator()(binary_operator_t
 //}
 
 #if 0
-expression_visitor::result_type expression_visitor::operator()(member_expression_t const& me) const
+expression_visitor::result_type expression_visitor::operator()(member_expression const& me) const
 {
-    pure_call_t get_call{ me.start() };
+    pure_call get_call{ me.start() };
     get_call.emplace_back(annotated_identifier{ env().get(builtin_id::self), get_start_location(me.object) }, me.object);
     get_call.emplace_back(annotated_identifier{ env().get(builtin_id::property), get_start_location(me.property) }, me.property);
 
@@ -611,7 +611,7 @@ expression_visitor::result_type expression_visitor::operator()(member_expression
     
     if (!match) {
         return std::unexpected(append_cause(
-            make_error<basic_general_error>(me.start(), "can't resolve"sv, syntax_expression_t{ me }),
+            make_error<basic_general_error>(me.start(), "can't resolve"sv, syntax_expression{ me }),
             std::move(match.error())
         ));
     }
@@ -696,7 +696,7 @@ expression_visitor::result_type expression_visitor::operator()(property_expressi
 //}
 
 #if 0
-template <std::derived_from<pure_call_t> CallExpressionT>
+template <std::derived_from<pure_call> CallExpressionT>
 expression_visitor::result_type expression_visitor::operator()(builtin_qnid qnid, CallExpressionT const& call) const
 {
     auto match = ctx.find(qnid, call, expected_result);
@@ -707,7 +707,7 @@ expression_visitor::result_type expression_visitor::operator()(builtin_qnid qnid
 
 expression_visitor::result_type expression_visitor::operator()(new_expression_t const& ne) const
 {
-    pure_call_t new_call{ ne.location };
+    pure_call new_call{ ne.location };
     new_call.emplace_back(annotated_identifier{ env().get(builtin_id::type) }, ne.name);
     for (auto const& arg: ne.arguments) {
         if (annotated_identifier const* optname = arg.name(); optname) {
@@ -817,7 +817,7 @@ expression_visitor::result_type expression_visitor::operator()(opt_named_syntax_
 
     //if (!expected_result) {
     //    // e.g. case: let val = (a, b, c)
-    //    pure_call_t tuple_call{ nel.location };
+    //    pure_call tuple_call{ nel.location };
     //    for (opt_named_syntax_expression_t const& ne : nel) {
     //        if (auto const* pname = ne.name(); pname) {
     //            tuple_call.emplace_back(annotated_identifier{pname->value}, ne.value());

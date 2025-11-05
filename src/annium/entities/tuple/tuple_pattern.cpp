@@ -31,12 +31,12 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_pattern::try
 
     for (auto const& arg : call.args) { // { argname, expr }
         annotated_identifier const* pargname = arg.name();
-        auto res = apply_visitor(
-            base_expression_visitor{ ctx, call.expressions, expected_result_t{.modifier = value_modifier_t::constexpr_value } },
+        auto res = base_expression_visitor::visit(
+            ctx, call.expressions, expected_result_t{.modifier = value_modifier_t::constexpr_value },
             arg.value());
         if (!res) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(pargname ? pargname->location : get_start_location(arg.value()), "argument error"sv, arg.value()),
+                make_error<basic_general_error>(pargname ? pargname->location : arg.value().location, "argument error"sv, arg.value()),
                 std::move(res.error())
             ));
         }

@@ -16,13 +16,13 @@ struct_fn_pattern::struct_fn_pattern(struct_body_t const& body)
     : body_{ body }
 {}
 
-error_storage struct_fn_pattern::init(fn_compiler_context& ctx, annotated_qname const& name, parameter_list_t const& pl)
+error_storage struct_fn_pattern::init(fn_compiler_context& ctx, annotated_qname const& name, span<const parameter> pl)
 {
-    fn_pure_t fn{ .nameval = (qname_view)name.value,
-                  .location = name.location,
-                  .parameters = pl,
-                  .result = nullptr,
-                  .kind = fn_kind::DEFAULT };
+    fn_pure fn{ .name = name.value,
+                .location = name.location,
+                .parameters = pl,
+                .result = nullptr,
+                .kind = fn_kind::DEFAULT };
     return basic_fn_pattern::init(ctx, fn);
 }
 

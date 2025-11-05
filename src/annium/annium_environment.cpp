@@ -213,7 +213,7 @@ std::string environment::describe_efn(size_t fn_index) const
     }
 }
 
-std::pair<functional*, fn_pure_t> environment::parse_extern_fn(string_view signature)
+std::pair<functional*, fn_pure> environment::parse_extern_fn(string_view signature, arena & a)
 {
     parser_context parser{ *this };
     auto decls = parser.parse_string(("extern fn ::%1%;"_fmt % signature).str());
@@ -221,14 +221,14 @@ std::pair<functional*, fn_pure_t> environment::parse_extern_fn(string_view signa
         throw exception(decls.error());
     }
 
-    fn_pure_t fndecl = sonia::get<fn_pure_t>(decls->front());
+    fn_pure fndecl = std::get<fn_pure>(decls->front().value);
 
     // If the result is not defined, we cannot resolve it (e.g., from the function body) � assume it is void.
-    if (!fndecl.result.which()) {
-        fndecl.result = annotated_entity_identifier{ this->get(builtin_eid::void_), fndecl.location };
+    if (!fndecl.result.index()) {
+        fndecl.result = a.make<syntax_expression>(fndecl.location, this->get(builtin_eid::void_));
     }
 
-    return { &resolve_functional(qname{ fndecl.name() }), std::move(fndecl) };
+    return { &resolve_functional(fndecl.name), std::move(fndecl) };
 }
 
 //template <std::derived_from<functional::pattern> PT>
@@ -265,7 +265,8 @@ std::pair<functional*, fn_pure_t> environment::parse_extern_fn(string_view signa
 template <std::derived_from<external_fn_pattern> PT>
 entity_identifier environment::set_builtin_extern(string_view signature, void(*pfn)(vm::context&))
 {
-    auto [pf, fndecl] = parse_extern_fn(signature);
+    arena a;
+    auto [pf, fndecl] = parse_extern_fn(signature, a);
     auto ptrn = make_shared<PT>(fn_identifier_counter_);
     internal_function_entity default_fentity{ qname{}, entity_signature{}, {} };
     fn_compiler_context ctx{ *this, default_fentity };
@@ -434,17 +435,6 @@ ast_resource const& environment::get_resource(fs::path const& rpath, fs::path co
     return **it;
 }
 
-statement_span environment::push_ast(fs::path const&, managed_statement_list&& msl)
-{
-    if (msl) {
-        statement_span sp{ static_cast<statement_entry*>(&msl.front_entry()), static_cast<statement_entry*>(&msl.back_entry()) };
-        ast_.splice_back(msl);
-        BOOST_ASSERT(!msl);
-        return sp;
-    }
-    return {};
-}
-
 void environment::store(semantic::managed_expression_list&& el)
 {
     expressions_.splice_back(el);
@@ -548,40 +538,40 @@ std::ostream& environment::print_to(std::ostream& os, entity_signature const& sg
     return os;
 }
 
-std::ostream& environment::print_to(std::ostream& os, pattern_t::signature_descriptor const& ptrnsig) const
+std::ostream& environment::print_to(std::ostream& os, syntax_pattern::signature_descriptor const& ptrnsig) const
 {
-    apply_visitor(make_functional_visitor<void>([&os, this](auto const& p) {
-        if constexpr (std::is_same_v<annotated_qname, std::decay_t<decltype(p)>>) {
+    visit([&os, this](auto const& p) {
+        if constexpr (std::is_same_v<annotated_qname_view, std::decay_t<decltype(p)>>) {
             print_to(os, p.value);
         } else if constexpr (std::is_same_v<context_identifier, std::decay_t<decltype(p)>>) {
             print_to(os, p.name.value);
         } else if constexpr (std::is_same_v<placeholder, std::decay_t<decltype(p)>>) {
             os << '_';
-        } else { // syntax_expression_t
+        } else { // syntax_expression
             print_to(os << '{', p) << '}';
         }
-    }), ptrnsig.name);
+    }, ptrnsig.name);
     if (!ptrnsig.fields.empty()) {
         os << '(';
         bool first = true;
         for (auto const& f : ptrnsig.fields) {
             if (first) first = false; else os << ", "sv;
 
-            apply_visitor(make_functional_visitor<void>([&os, this](auto const& p) {
+            visit([&os, this](auto const& p) {
                 if constexpr (std::is_same_v<placeholder, std::decay_t<decltype(p)>>) {
                     os << "_ : "sv;
                 } else if constexpr (std::is_same_v<annotated_identifier, std::decay_t<decltype(p)>>) {
                     print_to(os, p.value) << ": "sv;
                 } else if constexpr (std::is_same_v<context_identifier, std::decay_t<decltype(p)>>) {
                     print_to(os, p.name.value) << ": "sv;
-                } else if constexpr (std::is_same_v<syntax_expression_t, std::decay_t<decltype(p)>>) {
+                } else if constexpr (std::is_same_v<syntax_expression, std::decay_t<decltype(p)>>) {
                     print_to(os << '{', p) << "}: "sv;
                 } else { // nullptr_t
                     BOOST_ASSERT(p == nullptr);
                 }
-            }), f.name);
+            }, f.name);
 
-            print_to(os, f.value);
+            print_to(os, *f.value);
             if (f.ellipsis) { os << "... "sv; }
         }
         os << ')';
@@ -589,17 +579,21 @@ std::ostream& environment::print_to(std::ostream& os, pattern_t::signature_descr
     return os;
 }
 
-std::ostream& environment::print_to(std::ostream& os, pattern_t const& ptrn) const
+std::ostream& environment::print_to(std::ostream& os, syntax_pattern const& ptrn) const
 {
-    apply_visitor(make_functional_visitor<void>([&os, this](auto const& d) {
+    visit([&os, this](auto const& d) {
         if constexpr (std::is_same_v<placeholder, std::decay_t<decltype(d)>>) {
             os << '_';
-        } else if constexpr (std::is_same_v<pattern_t::signature_descriptor, std::decay_t<decltype(d)>>) {
+        } else if constexpr (std::is_same_v<syntax_pattern::signature_descriptor, std::decay_t<decltype(d)>>) {
             print_to(os, d);
-        } else if constexpr (std::is_same_v<syntax_expression_t, std::decay_t<decltype(d)>>) {
+        } else if constexpr (std::is_same_v<syntax_expression const*, std::decay_t<decltype(d)>>) {
             print_to(os << "={"sv, d) << '}';
+        } else if constexpr (std::is_same_v<context_identifier, std::decay_t<decltype(d)>>) {
+            print_to(os, d.name.value);
+        } else {
+            static_assert(false);
         }
-    }), ptrn.descriptor);
+    }, ptrn.descriptor);
 
     if (!ptrn.concepts.empty()) {
         bool first = true;
@@ -669,18 +663,18 @@ struct type_printer_visitor : static_visitor<void>
     inline void operator()(annotated_identifier const& obj) const { ss << e_.print(obj.value); }
     //inline void operator()(annium_object_t const& obj) const { ss << e_.print(obj.id()); }
         
-    inline void operator()(annium_fn_type_t const& fn) const
+    inline void operator()(annium_fn_type const& fn) const
     {
         (*this)(fn.arg);
         ss << "->"sv;
         if (fn.result) {
-            apply_visitor(*this, *fn.result);
+            std::visit(*this, fn.result->value);
         } else {
             ss << "()"sv;
         }
     }
 
-    inline void operator()(named_expression_list_t const& nel) const
+    inline void operator()(span<const opt_named_expression_t> nel) const
     {
         ss << '(';
         bool first = true;
@@ -689,24 +683,23 @@ struct type_printer_visitor : static_visitor<void>
             if (auto* pname = f.name(); pname) {
                 ss << e_.print(pname->value) << ": "sv;
             }
-            apply_visitor(*this, f.value());
+            std::visit(*this, f.value().value);
         }
         ss << ')';
     }
 
-    inline void operator()(bracket_expression_t const& v) const
+    inline void operator()(bracket_expression const& v) const
     {
         ss << '[';
-        apply_visitor(*this, v.type);
+        std::visit(*this, v.type->value);
         ss << ']';
     }
 
-    template <typename FamilyT>
-    inline void operator()(index_expression<FamilyT> const& ie) const
+    inline void operator()(index_expression const& ie) const
     {
-        apply_visitor(*this, ie.base);
+        std::visit(*this, ie.base->value);
         ss << '[';
-        apply_visitor(*this, ie.index);
+        std::visit(*this, ie.index->value);
         ss << ']';
     }
 
@@ -847,12 +840,19 @@ struct expr_printer_visitor : static_visitor<void>
 {
     environment const& e_;
     std::ostream& ss;
-    explicit expr_printer_visitor(environment const& e, std::ostream& s) : e_{ e }, ss{ s } {}
+    explicit expr_printer_visitor(environment const& e, std::ostream& s) noexcept
+        : e_{ e }, ss{ s }
+    {}
 
     template <typename T>
     void operator()(annotated<T> const& ae) const
     {
         this->operator()(ae.value);
+    }
+
+    void operator()(nil_expression const&) const
+    {
+        ss << "nil"sv;
     }
 
     void operator()(qname const& qn) const
@@ -880,12 +880,17 @@ struct expr_printer_visitor : static_visitor<void>
         ss << '"' << s << '"';
     }
 
-    void operator()(numetron::integer const& i) const
+    void operator()(string_view s) const
     {
-        ss << to_string(i);
+        ss << '"' << s << '"';
     }
 
-    void operator()(numetron::decimal const& d) const
+    void operator()(numetron::integer_view const& i) const
+    {
+        ss << i;
+    }
+
+    void operator()(numetron::decimal_view const& d) const
     {
         ss << to_string(d);
     }
@@ -897,22 +902,22 @@ struct expr_printer_visitor : static_visitor<void>
         ss << ')';
     }
 
-    void operator()(name_reference const& vi) const
+    void operator()(name_reference_expression const& vi) const
     {
         //if (vi.implicit) {
         //    ss << "IMPLICIT"sv;
         //}
         //ss << "VAR("sv << e_.print(vi.name.value) << ")"sv;
-        e_.print_to(ss, vi.name.value);
+        e_.print_to(ss, vi.name);
     }
 
-    void operator()(qname_reference const& vi) const
+    void operator()(qname_reference_expression const& vi) const
     {
         //if (vi.implicit) {
         //    ss << "IMPLICIT"sv;
         //}
         //ss << "VAR("sv << e_.print(vi.name.value) << ")"sv;
-        e_.print_to(ss, vi.name.value);
+        e_.print_to(ss, vi.name);
     }
 
     /*
@@ -931,20 +936,20 @@ struct expr_printer_visitor : static_visitor<void>
     }
     */
 
-    void operator()(not_empty_expression_t const& c) const
+    void operator()(not_empty_expression const& c) const
     {
         ss << "NOTEMPTY("sv;
-        apply_visitor(*this, c.value);
+        visit(*this, c.value->value);
         ss << ")"sv;
     }
 
-    void operator()(member_expression_t const& c) const
+    void operator()(member_expression const& c) const
     {
         ss << "MEMBER("sv;
         //if (c.is_object_optional) {
         //    ss << "OPT "sv;
         //}
-        apply_visitor(*this, c.object);
+        visit(*this, c.object->value);
         e_.print_to(ss << ", "sv, c.property) << ')';
     }
 
@@ -960,10 +965,14 @@ struct expr_printer_visitor : static_visitor<void>
     //    ss << ']';
     //}
 
-    void operator()(function_call_t const& f) const
+    void operator()(function_call const& f) const
     {
         ss << "CALL("sv;
-        apply_visitor(*this, f.fn_object);
+        if (f.fn_object) {
+            visit(*this, f.fn_object->value);
+        } else {
+            ss << "tuple"sv;
+        }
         ss << ")(args)"sv;
     }
 
@@ -976,14 +985,14 @@ struct expr_printer_visitor : static_visitor<void>
     //    ss << ')';
     //}
 
-    void operator()(unary_expression_t const& be) const
+    void operator()(unary_expression const& be) const
     {
         ss << "unary("sv << (int)be.op << ", "sv;
         (*this)(be.args);
         ss << ')';
     }
 
-    void operator()(binary_expression_t const& be) const
+    void operator()(binary_expression const& be) const
     {
         ss << "binary("sv << to_string(be.op) << ", "sv;
         (*this)(be.args);
@@ -995,7 +1004,7 @@ struct expr_printer_visitor : static_visitor<void>
     //    ss << "CONTEXT("sv << e_.print(f.name.value) << ")"sv;
     //}
 
-    void operator()(lambda_t const& f) const
+    void operator()(lambda const& f) const
     {
         (void)f; // suppress unused warning
         THROW_NOT_IMPLEMENTED_ERROR();
@@ -1015,7 +1024,7 @@ struct expr_printer_visitor : static_visitor<void>
         }
     }
 
-    void operator()(named_expression_list_t const& nel) const
+    void operator()(span<const opt_named_expression_t> nel) const
     {
         ss << '(';
         bool is_first = true;
@@ -1026,7 +1035,7 @@ struct expr_printer_visitor : static_visitor<void>
                 this->operator()(pname->value);
                 ss << ": "sv;
             }
-            apply_visitor(*this, ne.value());
+            visit(*this, ne.value().value);
         }
         ss << ')';
     }
@@ -1036,38 +1045,38 @@ struct expr_printer_visitor : static_visitor<void>
         ss << '_';
     }
 
-    void operator()(array_expression_t const& ae) const
+    void operator()(array_expression const& ae) const
     {
         ss << '[';
         bool first = true;
         for (auto const& e : ae.elements) {
             if (!first) ss << ", "sv;
             else first = false;
-            apply_visitor(*this, e);
+            visit(*this, e.value);
         }
         ss << ']';
     }
 
-    void operator()(index_expression_t const& ie) const
+    void operator()(index_expression const& ie) const
     {
         ss << "INDEX("sv;
-        apply_visitor(*this, ie.base);
+        visit(*this, ie.base->value);
         ss << ", "sv;
-        apply_visitor(*this, ie.index);
+        visit(*this, ie.index->value);
         ss << ')';
     }
 
-    void operator()(bracket_expression_t const& v) const
+    void operator()(bracket_expression const& v) const
     {
         ss << '[';
-        apply_visitor(*this, v.type);
+        visit(*this, v.type->value);
         ss << ']';
     }
 
-    void operator()(new_expression_t const& ne) const
+    void operator()(new_expression const& ne) const
     {
         ss << "new "sv;
-        apply_visitor(*this, ne.name);
+        visit(*this, ne.name->value);
         (*this)(ne.arguments);
     }
 
@@ -1079,10 +1088,9 @@ struct expr_printer_visitor : static_visitor<void>
     }
 };
 
-std::ostream& environment::print_to(std::ostream& os, syntax_expression_t const& e) const
-{
-    expr_printer_visitor vis{ *this, os };
-    apply_visitor(vis, e);
+std::ostream& environment::print_to(std::ostream& os, syntax_expression const* e) const
+{   
+    visit(expr_printer_visitor{ *this, os }, e->value);
     return os;
 }
 
@@ -1129,13 +1137,6 @@ std::ostream& environment::print_to(std::ostream& os, error const& err) const
 //#endif
 //}
 
-syntax_expression_entry& environment::push_back_expression(syntax_expression_list_t& l, syntax_expression_t && e)
-{
-    syntax_expression_list_t::entry_type* pentry = syntax_expression_list_entry_pool_.new_object(std::move(e));
-    l.push_back(*pentry);
-    return static_cast<syntax_expression_entry&>(*pentry);
-}
-
 void environment::push_back_expression(semantic::expression_list_t& l, semantic::expression_span& sp, semantic::expression&& e)
 {
     semantic::expression_list_t::entry_type* pentry = semantic_expression_list_entry_pool_.new_object(std::move(e));
@@ -1154,24 +1155,9 @@ void environment::push_back_expression(semantic::expression_list_t& l, semantic:
     l.push_back(*pentry);
 }
 
-statement_entry& environment::acquire(statement&& st)
-{
-    return *statements_entry_pool_.new_object(std::move(st));
-}
-
-void environment::release(syntax_expression_list_t::entry_type&& e)
-{
-    syntax_expression_list_entry_pool_.delete_object(&e);
-}
-
 void environment::release(semantic::expression_list_t::entry_type&& e)
 {
     semantic_expression_list_entry_pool_.delete_object(&e);
-}
-
-void environment::release(statement_entry_type&& e)
-{
-    statements_entry_pool_.delete_object(static_cast<statement_entry*>(&e));
 }
 
 functional* environment::fregistry_find(qname_view qnid)
@@ -1334,12 +1320,9 @@ entity const& environment::make_union_type_entity(span<entity_identifier> const&
 }
 
 environment::environment()
-    : syntax_expression_list_entry_pool_{ 128, 128 }
-    , semantic_expression_list_entry_pool_{ 128, 128 }
-    , statements_entry_pool_{ 128, 128 }
+    : semantic_expression_list_entry_pool_{ 128, 128 }
     , slregistry_{ identifier_builder_ }
     , piregistry_{ identifier_builder_ }
-    , ast_{ *this }
     , expressions_{ *this }
     , fn_identifier_counter_ { (size_t)virtual_stack_machine::builtin_fn::eof_type }
     , bvm_{ std::make_unique<virtual_stack_machine>() }
@@ -1476,9 +1459,6 @@ environment::environment()
 
     functional& union_fnl = fregistry_resolve(get(builtin_qnid::union_));
     union_fnl.push(union_pattern);
-
-    //functional& bit_and_fnl = fregistry_resolve(get(builtin_qnid::bit_and));
-    //bit_and_fnl.push(make_shared<metaobject_bit_and_pattern>());
 
     // apply(union(...), visitor) -> auto  
     functional& apply_fnl = fregistry_resolve(get(builtin_qnid::apply));

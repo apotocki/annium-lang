@@ -23,7 +23,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> to_string_pattern:
     if (!arg) {
         if (arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get_start_location(*get<0>(arg_descr)), "invalid argument"sv),
+                make_error<basic_general_error>(get<0>(arg_descr)->location, "invalid argument"sv),
                 std::move(arg.error())));
         }
         return std::unexpected(make_error<basic_general_error>(call.location, "missing argument"sv));

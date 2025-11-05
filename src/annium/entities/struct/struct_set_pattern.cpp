@@ -45,14 +45,14 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_set_pattern
     if (!slf_arg) {
         if (slf_arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get_start_location(*get<0>(slf_arg_expr)), "invalid `self` argument"sv),
+                make_error<basic_general_error>(get<0>(slf_arg_expr)->location, "invalid `self` argument"sv),
                 std::move(slf_arg.error())));
         }
         return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `self`"sv));
     }
 
     auto& slf_er = slf_arg->first;
-    resource_location const& slf_loc = get_start_location(*get<0>(slf_arg_expr));
+    resource_location const& slf_loc = get<0>(slf_arg_expr)->location;
     entity_identifier selftp = get_result_type(env, slf_er);
     struct_entity const* pstruct = dynamic_cast<struct_entity const*>(&get_entity(env, selftp)); // ensure entity exists
     if (!pstruct) {
@@ -73,12 +73,12 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_set_pattern
         }
         prop_errors.alternatives.emplace_back(std::move(property_arg.error()));
         return std::unexpected(append_cause(
-            make_error<basic_general_error>(get_start_location(*get<0>(prop_arg_expr)), "invalid `property` argument"sv),
+            make_error<basic_general_error>(get<0>(prop_arg_expr)->location, "invalid `property` argument"sv),
             make_error<alt_error>(std::move(prop_errors))
         ));
     }
     auto& prop_er = property_arg->first;
-    resource_location const& prop_loc = get_start_location(*get<0>(prop_arg_expr));
+    resource_location const& prop_loc = get<0>(prop_arg_expr)->location;
 
     // Get underlying tuple entity for the struct
     auto uteid = pstruct->underlying_tuple_eid(ctx);
@@ -124,7 +124,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_set_pattern
         if (!valarg) {
             if (valarg.error()) {
                 return std::unexpected(append_cause(
-                    make_error<basic_general_error>(get_start_location(*get<0>(prop_val_arg_expr)), "invalid value argument"sv),
+                    make_error<basic_general_error>(get<0>(prop_val_arg_expr)->location, "invalid value argument"sv),
                     std::move(valarg.error())));
             }
             return std::unexpected(make_error<basic_general_error>(call.location, "missing required value argument"sv));
@@ -133,7 +133,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_set_pattern
         auto pmd = make_shared<struct_set_match_descriptor>(call, *utl_sig);
         pmd->emplace_back(0, slf_er, slf_loc);
         pmd->emplace_back(1, prop_er, prop_loc);
-        pmd->emplace_back(2, valarg->first, get_start_location(*get<0>(prop_val_arg_expr)));
+        pmd->emplace_back(2, valarg->first, get<0>(prop_val_arg_expr)->location);
         pmd->property_index = field_index;
 
         pmd->signature.emplace_back(env.get(builtin_id::self), pstruct->id, slf_er.is_const_result);
@@ -192,7 +192,7 @@ std::expected<syntax_expression_result, error_storage> struct_set_pattern::apply
     identifier tuple_var_name, property_var_name, value_var_name;
     fn_compiler_context_scope fn_scope{ ctx };
 
-    pure_call_t set_call{ md.call_location };
+    pure_call set_call{ md.call_location };
     
     // Handle 'self' argument - convert struct to tuple
     if (slfer.is_const_result) {

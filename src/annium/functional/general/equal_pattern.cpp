@@ -24,27 +24,27 @@ std::expected<functional_match_descriptor_ptr, error_storage> equal_pattern::try
     if (!lhs_arg) {
         if (lhs_arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get_start_location(*get<0>(lhs_expr)), "invalid first argument for equality comparison"sv),
+                make_error<basic_general_error>(get<0>(lhs_expr)->location, "invalid first argument for equality comparison"sv),
                 std::move(lhs_arg.error())));
         } else {
             return std::unexpected(make_error<basic_general_error>(call.location, "equality comparison requires two arguments: missing first argument"sv));
         }
     }
     syntax_expression_result& lhs_arg_er = lhs_arg->first;
-    resource_location lhs_loc = get_start_location(*get<0>(lhs_expr));
+    resource_location lhs_loc = get<0>(lhs_expr)->location;
     entity_identifier lhs_type = lhs_arg_er.is_const_result ? get_entity(ctx.env(), lhs_arg_er.value()).get_type() : lhs_arg_er.type();
 
     auto rhs_arg = call_session.use_next_positioned_argument(expected_result_t{ lhs_type }, &rhs_expr);
     if (!rhs_arg) {
         if (rhs_arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get_start_location(*get<0>(rhs_expr)), "invalid second argument for equality comparison"sv),
+                make_error<basic_general_error>(get<0>(rhs_expr)->location, "invalid second argument for equality comparison"sv),
                 std::move(rhs_arg.error())));
         } else {
             return std::unexpected(make_error<basic_general_error>(call.location, "equality comparison requires two arguments: missing second argument"sv));
         }
     }
-    resource_location rhs_loc = get_start_location(*get<0>(rhs_expr));
+    resource_location rhs_loc = get<0>(rhs_expr)->location;
     syntax_expression_result& rhs_arg_er = rhs_arg->first;
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "equality comparison accepts exactly two arguments, but more were provided"sv, std::move(argterm.value())));
@@ -80,8 +80,8 @@ std::expected<syntax_expression_result, error_storage> equal_pattern::apply(fn_c
         entity_identifier lhs_type = get_entity(e, lhs_er.value()).get_type();
         
         // Create implicit cast call instead of direct push_value
-        pure_call_t cast_call{ md.call_location };
-        cast_call.emplace_back(annotated_entity_identifier{ lhs_er.value(), lhs_loc });
+        call_builder cast_call{ md.call_location };
+        cast_call.emplace_back(lhs_loc, lhs_er.value());
 
         // Try to find an implicit cast from const value to non-const type
         auto match = ctx.find(builtin_qnid::implicit_cast, cast_call, el, expected_result_t{ .type = lhs_type, .location = lhs_loc, .modifier = value_modifier_t::runtime_value });
@@ -110,8 +110,8 @@ std::expected<syntax_expression_result, error_storage> equal_pattern::apply(fn_c
         entity_identifier rhs_type = get_entity(e, rhs_er.value()).get_type();
         
         // Create implicit cast call instead of direct push_value
-        pure_call_t cast_call{ md.call_location };
-        cast_call.emplace_back(annotated_entity_identifier{ rhs_er.value(), rhs_loc });
+        call_builder cast_call{ md.call_location };
+        cast_call.emplace_back(rhs_loc, rhs_er.value());
 
         // Try to find an implicit cast from const value to non-const type
         auto match = ctx.find(builtin_qnid::implicit_cast, cast_call, el, expected_result_t{ .type = rhs_type, .location = rhs_loc, .modifier = value_modifier_t::runtime_value });

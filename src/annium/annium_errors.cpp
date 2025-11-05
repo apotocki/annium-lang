@@ -15,17 +15,17 @@ void error::rethrow(environment& e) const
 
 error::string_t binary_relation_error::left_object(environment const& e) const
 {
-    return apply_visitor(printer_resolver_visitor{ e }, left_);
+    return std::visit(printer_resolver_visitor{ e }, left_);
 }
 
 error::string_t binary_relation_error::right_object(environment const& e) const
 {
-    return apply_visitor(printer_resolver_visitor{ e }, right_);
+    return std::visit(printer_resolver_visitor{ e }, right_);
 }
 
 general_error::string_t basic_general_error::object(environment const& e) const
 { 
-    return apply_visitor(printer_resolver_visitor{e}, object_);
+    return std::visit(printer_resolver_visitor{ e }, object_);
 }
 
 #if 0

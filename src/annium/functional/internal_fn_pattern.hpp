@@ -9,14 +9,14 @@ namespace annium {
 class internal_fn_pattern : public basic_fn_pattern
 {
     basic_signatured_entity const * captures_ = nullptr;
-    statement_span body_;
+    span<const statement> body_;
     fn_kind kind_;
 
 public:
     using basic_fn_pattern::basic_fn_pattern;
 
     using basic_fn_pattern::init;
-    error_storage init(fn_compiler_context&, fn_decl_t const&);
+    error_storage init(fn_compiler_context&, fn_decl const&);
 
     inline void set_captures(basic_signatured_entity const& captures) noexcept { captures_ = &captures; }
 
@@ -25,8 +25,8 @@ public:
     std::expected<syntax_expression_result, error_storage> apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const override;
 
 protected:
-    shared_ptr<internal_function_entity> build(fn_compiler_context&, functional_match_descriptor&, entity_signature) const override;
-    void build_scope(environment&, functional_match_descriptor&, internal_function_entity& /* out */) const override;
+    shared_ptr<internal_function_entity> build(fn_compiler_context&, entity_signature&&, functional_binding_set&&) const override;
+    void build_scope(environment&, functional_binding_set&&, internal_function_entity& /* out */) const override;
 };
 
 }

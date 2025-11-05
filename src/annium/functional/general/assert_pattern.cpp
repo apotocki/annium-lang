@@ -26,7 +26,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> assert_pattern::tr
 {
     auto call_session = call.new_session(ctx);
     expected_result_t bool_exp{ ctx.env().get(builtin_eid::boolean), call.location };
-    std::pair<syntax_expression_t const*, size_t> argexpr;
+    std::pair<syntax_expression const*, size_t> argexpr;
     auto firstarg = call_session.use_next_positioned_argument(bool_exp, &argexpr);
     if (!firstarg) return std::unexpected(firstarg.error());
     auto pmd = make_shared<assert_match_descriptor>(call);
@@ -39,7 +39,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> assert_pattern::tr
         } else {
            // assert failed
             pmd->reserved_errors.emplace_back(
-                make_error<basic_general_error>(get_start_location(*get<0>(argexpr)), "Assertion failed!"sv, *get<0>(argexpr))
+                make_error<basic_general_error>(get<0>(argexpr)->location, "Assertion failed!"sv, *get<0>(argexpr))
             );
         }
     };

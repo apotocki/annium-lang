@@ -27,15 +27,15 @@ union_bit_or_pattern::try_match(fn_compiler_context& ctx, prepared_call const& c
         if (!arg) {
             if (!arg.error()) break; // no more arguments
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get_start_location(*get<0>(arg_expr)), "invalid argument"sv),
+                make_error<basic_general_error>(get<0>(arg_expr)->location, "invalid argument"sv),
                 std::move(arg.error())));
         }
         syntax_expression_result& er = arg->first;
         if (!er.is_const_result) {
-            return std::unexpected(make_error<basic_general_error>(get_start_location(*get<0>(arg_expr)), "argument must be a constant expression"sv));
+            return std::unexpected(make_error<basic_general_error>(get<0>(arg_expr)->location, "argument must be a constant expression"sv));
         }
 
-        pmd->emplace_back(argnum, er, get_start_location(*get<0>(arg_expr)));
+        pmd->emplace_back(argnum, er, get<0>(arg_expr)->location);
         pmd->signature.emplace_back(er.value(), true);
     }
 

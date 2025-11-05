@@ -47,7 +47,7 @@ struct expression_visitor
 
     result_type operator()(qname_reference const&) const;
 
-    result_type operator()(member_expression_t const&) const;
+    result_type operator()(member_expression const&) const;
 
     result_type operator()(annotated_entity_identifier const& ee) const;
 
@@ -93,7 +93,7 @@ private:
     //template <typename ExprT>
     //result_type apply_cast(entity_identifier, ExprT const& e) const;
 
-    //template <std::derived_from<pure_call_t> CallExpressionT>
+    //template <std::derived_from<pure_call> CallExpressionT>
     //result_type operator()(builtin_qnid, CallExpressionT const&) const;
 
     //result_type do_assign(binary_expression_t const&) const;

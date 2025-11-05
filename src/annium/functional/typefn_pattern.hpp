@@ -12,7 +12,7 @@ public:
     using basic_fn_pattern::basic_fn_pattern;
 
     using basic_fn_pattern::init;
-    error_storage init(fn_compiler_context&, fn_decl_t const&);
+    error_storage init(fn_compiler_context&, fn_decl const&);
 
     std::expected<syntax_expression_result, error_storage> apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const override;
 

@@ -209,7 +209,7 @@ numeric_literal_equal_pattern::try_match(fn_compiler_context& ctx, prepared_call
     if (!lhs_arg) {
         if (lhs_arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get_start_location(*get<0>(lhs_expr)), "invalid first argument"sv),
+                make_error<basic_general_error>(get<0>(lhs_expr)->location, "invalid first argument"sv),
                 std::move(lhs_arg.error())));
         } else {
             return std::unexpected(make_error<basic_general_error>(call.location, "missing required first argument"sv));
@@ -227,7 +227,7 @@ numeric_literal_equal_pattern::try_match(fn_compiler_context& ctx, prepared_call
         lhs_type_id = lhs_arg_er.type();
     }
     builtin_eid lhs_type = static_cast<builtin_eid>(lhs_type_id.value);
-    resource_location lhs_arg_loc = get_start_location(*get<0>(lhs_expr));
+    resource_location lhs_arg_loc = get<0>(lhs_expr)->location;
     // Check if first argument is numeric
     if (!is_numeric_type(lhs_type)) {
         return std::unexpected(make_error<type_mismatch_error>(lhs_arg_loc, lhs_type_id, "a numeric literal type"sv));
@@ -238,7 +238,7 @@ numeric_literal_equal_pattern::try_match(fn_compiler_context& ctx, prepared_call
     if (!rhs_arg) {
         if (rhs_arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get_start_location(*get<0>(rhs_expr)), "invalid second argument"sv),
+                make_error<basic_general_error>(get<0>(rhs_expr)->location, "invalid second argument"sv),
                 std::move(rhs_arg.error())));
         } else {
             return std::unexpected(make_error<basic_general_error>(call.location, "missing required second argument"sv));
@@ -260,7 +260,7 @@ numeric_literal_equal_pattern::try_match(fn_compiler_context& ctx, prepared_call
         rhs_type_id = rhs_arg_er.type();
     }
     builtin_eid rhs_type = static_cast<builtin_eid>(rhs_type_id.value);
-    resource_location rhs_arg_loc = get_start_location(*get<0>(rhs_expr));
+    resource_location rhs_arg_loc = get<0>(rhs_expr)->location;
 
     // Check if second argument is numeric
     if (!is_numeric_type(rhs_type)) {

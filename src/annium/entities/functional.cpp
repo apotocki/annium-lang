@@ -39,7 +39,7 @@ void functional_binding_set::emplace_back(annotated_identifier id, value_type va
 {
     auto it = std::lower_bound(binding_names_.begin(), binding_names_.end(), id.value);
     if (it == binding_names_.end() || *it != id.value) {
-        if (local_variable* pvar = get<local_variable>(&value); pvar) {
+        if (local_variable* pvar = get_if<local_variable>(&value); pvar) {
 #ifdef SONIA_LANG_DEBUG
             pvar->debug_name = id;
 #endif
@@ -333,7 +333,8 @@ struct expression_stack_checker
 std::expected<functional::match, error_storage> functional::find(
     fn_compiler_context& ctx,
     syntax_expression_result* capture_result, // optional, nullptr if not needed
-    pure_call_t const& call,
+    resource_location const& call_location,
+    span<const opt_named_expression_t> const& call_args,
     semantic::expression_list_t& ael,
     expected_result_t const& expected_result) const
 {
@@ -344,7 +345,7 @@ std::expected<functional::match, error_storage> functional::find(
 
     expression_stack_checker expr_stack_state{ ctx };
 
-    prepared_call pcall{ ctx, this, call.args, call.location, ael };
+    prepared_call pcall{ ctx, this, call_args, call_location, ael };
     if (auto err = pcall.prepare(); err) return std::unexpected(std::move(err));
 
     alt_error err;
@@ -381,7 +382,7 @@ std::expected<functional::match, error_storage> functional::find(
             return std::unexpected(std::move(err.alternatives.front()));
         }
         if (err.alternatives.empty()) {
-            return std::unexpected(make_error<function_call_match_error>(annotated_qname_identifier{ id_, call.location }, nullptr));
+            return std::unexpected(make_error<function_call_match_error>(annotated_qname_identifier{ id_, call_location }, nullptr));
         }
         return std::unexpected(make_error<alt_error>(std::move(err)));
     }
@@ -392,7 +393,7 @@ std::expected<functional::match, error_storage> functional::find(
             get<0>(a)->print(ctx.env(), ss);
             as.emplace_back(get<0>(a)->location(), ss.str(), get<1>(a)->signature);
         }
-        return std::unexpected(make_error<ambiguity_error>(annotated_qname_identifier{ id_, call.location }, std::move(as)));
+        return std::unexpected(make_error<ambiguity_error>(annotated_qname_identifier{ id_, call_location }, std::move(as)));
     }
     auto [ptrn, md] = alternatives.front();
     syntax_expression_result pre_ser;
@@ -442,19 +443,19 @@ std::expected<functional::match, error_storage> functional::find(
 //    }), *res);
 //}
 
-std::expected<syntax_expression_t const*, error_storage> try_match_single_unnamed(fn_compiler_context& ctx, prepared_call const& call)
+std::expected<syntax_expression const*, error_storage> try_match_single_unnamed(fn_compiler_context& ctx, prepared_call const& call)
 {
     environment& e = ctx.env();
-    syntax_expression_t const* matched_arg = nullptr;
+    syntax_expression const* matched_arg = nullptr;
 
     for (auto const& arg : call.args) {
         annotated_identifier const* pargname = arg.name();
         if (pargname) {
-            return std::unexpected(make_error<basic_general_error>(pargname->location, "argument mismatch, unexpected argument"sv, *pargname));
+            return std::unexpected(make_error<basic_general_error>(pargname->location, "argument mismatch, unexpected argument"sv, pargname->value));
         }
-        syntax_expression_t const& e = arg.value();
+        syntax_expression const& e = arg.value();
         if (matched_arg) {
-            return std::unexpected(make_error<basic_general_error>(get_start_location(e), "argument mismatch, unexpected argument"sv, e));
+            return std::unexpected(make_error<basic_general_error>(e.location, "argument mismatch, unexpected argument"sv, e));
         }
         matched_arg = &e;
     }

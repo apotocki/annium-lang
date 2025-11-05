@@ -200,9 +200,7 @@ class environment
     
 
     // pools first
-    object_pool<syntax_expression_list_t::entry_type> syntax_expression_list_entry_pool_;
     object_pool<semantic::expression_list_t::entry_type> semantic_expression_list_entry_pool_;
-    object_pool<statement_entry> statements_entry_pool_;
 
     identifier_builder_t identifier_builder_;
     //entity_identifier_builder_t entity_identifier_builder_;
@@ -212,9 +210,6 @@ class environment
 
     piregistry_t piregistry_;
     eregistry_t eregistry_;
-
-    // ast store
-    managed_statement_list ast_;
 
     // semantic
     semantic::managed_expression_list expressions_;
@@ -371,9 +366,10 @@ public:
     std::ostream& print_to(std::ostream&, field_descriptor const&) const;
     std::ostream& print_to(std::ostream&, small_u32string const&, bool in_quotes = false) const;
     std::ostream& print_to(std::ostream&, resource_location const&, string_view indent = {}, resource_print_mode_t = resource_print_mode_t::default_mode) const;
-    std::ostream& print_to(std::ostream&, syntax_expression_t const&) const;
-    std::ostream& print_to(std::ostream&, pattern_t::signature_descriptor const&) const;
-    std::ostream& print_to(std::ostream&, pattern_t const&) const;
+    std::ostream& print_to(std::ostream&, syntax_expression const*) const;
+    inline std::ostream& print_to(std::ostream& os, syntax_expression const& expr) const { return print_to(os, &expr); }
+    std::ostream& print_to(std::ostream&, syntax_pattern::signature_descriptor const&) const;
+    std::ostream& print_to(std::ostream&, syntax_pattern const&) const;
     std::ostream& print_to(std::ostream&, semantic::expression const&) const;
     std::ostream& print_to(std::ostream&, semantic::expression_list_t const&) const;
     std::ostream& print_to(std::ostream&, error const&) const;
@@ -418,21 +414,11 @@ public:
         }
     }
 
-    // syntax
-    syntax_expression_entry& push_back_expression(syntax_expression_list_t&, syntax_expression_t&&);
-    void release(syntax_expression_list_t::entry_type&&);
-
     // semantic
     void push_back_expression(semantic::expression_list_t&, semantic::expression&&);
     void push_back_expression(semantic::expression_list_t&, semantic::expression_span&, semantic::expression&&);
     void release(semantic::expression_list_t::entry_type&&);
     void store(semantic::managed_expression_list&&);
-
-    statement_entry& acquire(statement&& st);
-    //void push_back_statement(statement_list&, statement&&);
-    void release(statement_entry_type&&);
-
-    statement_span push_ast(fs::path const&, managed_statement_list&&);
 
     inline variable_identifier new_variable_identifier() noexcept
     {
@@ -449,7 +435,7 @@ protected:
     OutputIteratorT name_printer(qname_view const&, OutputIteratorT, UndefinedFT const&) const;
 
 
-    std::pair<functional*, fn_pure_t> parse_extern_fn(string_view signature);
+    std::pair<functional*, fn_pure> parse_extern_fn(string_view signature, arena &);
 
     //template <std::derived_from<external_fn_pattern> PT>
     //void set_extern(string_view sign, void(*pfn)(vm::context&));
@@ -495,6 +481,8 @@ private:
     std::vector<fs::path> additional_paths_;
 
     function<void(string_view)> cout_writer_;
+
+    //arena arena_;
 };
 
 }

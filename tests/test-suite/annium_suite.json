@@ -2,7 +2,7 @@
     /*
     {
         "src": "draft.ann",
-        "output": "3, 4, 5.1, "
+        "output": ""
     },*/
     {
         "src": "basic_print.ann",
@@ -32,7 +32,7 @@
     {
         "src": "arrays.ann",
         "output": ""
-    }/* */
+    }
 
     /*
     

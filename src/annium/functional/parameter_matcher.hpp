@@ -26,7 +26,7 @@ public:
     error_storage match(fn_compiler_context& callee_ctx);
 
 protected:
-    std::expected<expected_result_t, error_storage> resolve_expression_expected_result(fn_compiler_context& callee_ctx, annotated_identifier const&, parameter_constraint_modifier_t, syntax_expression_t const&, entity_identifier& pconstraint_value_eid);
+    std::expected<expected_result_t, error_storage> resolve_expression_expected_result(fn_compiler_context& callee_ctx, annotated_identifier const&, parameter_constraint_modifier_t, syntax_expression const&, entity_identifier& pconstraint_value_eid);
     error_storage handle_positioned_ellipsis(fn_compiler_context& callee_ctx, expected_result_t argexp);
 
     void finalize_ellipsis(environment&, span<std::pair<annotated_identifier, syntax_expression_result>> ellipsis_span);
@@ -44,7 +44,7 @@ public:
 
 protected:
     small_vector<annotated_identifier, 2> internal_names_;
-    variant<std::pair<syntax_expression_t, bool>, pattern_t> constraint_;
+    variant<std::pair<syntax_expression, bool>, pattern> constraint_;
 };
 
 class named_parameter_matcher : public parameter_matcher

@@ -34,7 +34,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_of_pattern::
     if (!arg) {
         if (arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get_start_location(*get<0>(arg_expr)), "invalid argument for tuple_of"sv),
+                make_error<basic_general_error>(get<0>(arg_expr)->location, "invalid argument for tuple_of"sv),
                 std::move(arg.error())));
         }
         return std::unexpected(make_error<basic_general_error>(call.location, "tuple_of requires one argument"sv));
@@ -47,7 +47,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_of_pattern::
     }
 
     syntax_expression_result& arg_er = arg->first;
-    resource_location arg_loc = get_start_location(*get<0>(arg_expr));
+    resource_location arg_loc = get<0>(arg_expr)->location;
 
     entity const* arg_entity;
     entity_identifier arg_type = get_result_type(env, arg_er, &arg_entity);

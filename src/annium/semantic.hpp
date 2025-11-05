@@ -611,7 +611,7 @@ using syntax_expression_const_result_t = syntax_expression_const_result; // synt
 void append_semantic_result(semantic::expression_list_t & el, syntax_expression_result& src, syntax_expression_result& dest);
 void append_semantic_result_to_branch(semantic::expression_list_t& el, syntax_expression_result& src, syntax_expression_result& dest, semantic::expression_span &dest_branch);
 
-indirect_value make_indirect_value(environment&, semantic::expression_list_t&, syntax_expression_result && res, resource_location loc);
+syntax_expression make_indirect_value(environment&, semantic::expression_list_t&, syntax_expression_result && res, resource_location loc);
 syntax_expression_result retrieve_indirect_value(environment&, semantic::expression_list_t&, indirect_value const&);
 
 }

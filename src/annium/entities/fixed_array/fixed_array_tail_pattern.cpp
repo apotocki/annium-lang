@@ -29,7 +29,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_tail_p
 {
     environment& e = ctx.env();
     auto call_session = call.new_session(ctx);
-    std::pair<syntax_expression_t const*, size_t> arg_expr;
+    std::pair<syntax_expression const*, size_t> arg_expr;
     auto arg = call_session.use_next_positioned_argument(&arg_expr);
     if (!arg) {
         if (!arg.error()) {
@@ -52,7 +52,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_tail_p
             argtype = arg_entity.get_type();
             pmd = make_shared<fixed_array_tail_pattern_match_descriptor>(call, psig);
         } else {
-            return std::unexpected(make_error<type_mismatch_error>(get_start_location(*get<0>(arg_expr)), er.value(), "an array"sv));
+            return std::unexpected(make_error<type_mismatch_error>(get<0>(arg_expr)->location, er.value(), "an array"sv));
         }
     } else {
         argtype = er.type();
@@ -61,10 +61,10 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_tail_p
 
     entity const& arg_type_entity = get_entity(e, argtype);
     if (auto psig = arg_type_entity.signature(); !psig || psig->name != e.get(builtin_qnid::array)) {
-        return std::unexpected(make_error<type_mismatch_error>(get_start_location(*get<0>(arg_expr)), er.value_or_type, "an array"sv));
+        return std::unexpected(make_error<type_mismatch_error>(get<0>(arg_expr)->location, er.value_or_type, "an array"sv));
     }
 
-    pmd->emplace_back(0, er, get_start_location(*get<0>(arg_expr)));
+    pmd->emplace_back(0, er, get<0>(arg_expr)->location);
     return pmd;
 }
 

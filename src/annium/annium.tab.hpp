@@ -384,127 +384,86 @@ namespace annium_lang {
     {
       // DECIMAL
       // DECIMAL_S
-      char dummy1[sizeof (annium::annotated_decimal)];
-
-      // identifier
-      // argument-name
-      char dummy2[sizeof (annium::annotated_identifier)];
+      char dummy1[sizeof (annium::annotated_decimal_view)];
 
       // INTEGER
-      char dummy3[sizeof (annium::annotated_integer)];
+      char dummy2[sizeof (annium::annotated_integer_view)];
 
-      // qname
       // fn-name
-      char dummy4[sizeof (annium::annotated_qname)];
+      char dummy3[sizeof (annium::annotated_qname_view)];
 
       // STRING
       // IDENTIFIER
       // CONTEXT_IDENTIFIER
       // RESERVED_IDENTIFIER
-      // CT_IDENTIFIER
       // INTEGER_INDEX
-      char dummy5[sizeof (annium::annotated_string_view)];
-
-      // internal-identifier
-      // internal-identifier-opt
-      char dummy6[sizeof (annium::context_identifier)];
-
-      // case-decl
-      char dummy7[sizeof (annium::identifier)];
+      char dummy4[sizeof (annium::annotated_string_view)];
 
       // "true"
       // "false"
-      char dummy8[sizeof (annotated_bool)];
+      char dummy5[sizeof (annotated_bool)];
+
+      // CT_IDENTIFIER
+      // identifier
+      // argument-name
+      char dummy6[sizeof (annotated_identifier)];
 
       // "nil"
-      char dummy9[sizeof (annotated_nil)];
+      char dummy7[sizeof (annotated_nil)];
 
-      // concept-expression-list-opt
-      // concept-expression-list
-      char dummy10[sizeof (concept_expression_list_t)];
+      // qname
+      char dummy8[sizeof (annotated_qname)];
+
+      // internal-identifier
+      // internal-identifier-opt
+      char dummy9[sizeof (context_identifier)];
 
       // enum-decl
-      char dummy11[sizeof (enum_decl)];
-
-      // expression-list
-      char dummy12[sizeof (expression_list_t)];
-
-      // field-list-opt
-      // field-list
-      char dummy13[sizeof (field_list_t)];
+      char dummy10[sizeof (enum_decl)];
 
       // field
-      char dummy14[sizeof (field_t)];
+      char dummy11[sizeof (field)];
 
       // field-default-value-opt
-      char dummy15[sizeof (field_t::default_spec)];
-
-      // finished-statement
-      char dummy16[sizeof (finished_statement_type)];
+      char dummy12[sizeof (field::default_spec)];
 
       // fn-kind
       // fn-kind-set
-      char dummy17[sizeof (fn_kind)];
+      char dummy13[sizeof (fn_kind)];
 
       // fn-start-decl
       // fn-decl
-      char dummy18[sizeof (fn_pure_t)];
+      char dummy14[sizeof (fn_pure)];
 
-      // generic-statement
-      char dummy19[sizeof (generic_statement_type)];
-
-      // lambda-start-decl
-      char dummy20[sizeof (lambda_t)];
+      // case-decl
+      char dummy15[sizeof (identifier)];
 
       // let-decl
       // let-decl-start
       // let-decl-start-with-opt-type
-      char dummy21[sizeof (let_statement)];
-
-      // statement_any
-      // finished-statement-any
-      // infunction-statement-any
-      // finished-infunction-statement-any
-      // function-body
-      // braced-statements
-      // infunction-statement-set
-      char dummy22[sizeof (managed_statement_list)];
+      char dummy16[sizeof (let_statement)];
 
       // argument-list-opt
       // argument-list
       // pack-expression-opt
       // pack-expression
-      char dummy23[sizeof (named_expression_list_t)];
+      char dummy17[sizeof (opt_named_expression_list_t)];
 
       // argument
-      char dummy24[sizeof (named_expression_t)];
+      char dummy18[sizeof (opt_named_expression_t)];
 
-      // fn-requirement-opt
-      char dummy25[sizeof (optional<syntax_expression_t>)];
+      // parameter-decl
+      char dummy19[sizeof (parameter)];
+
+      // parameter-default-value-opt
+      char dummy20[sizeof (parameter::default_spec)];
 
       // parameter-list-opt
       // parameter-list
-      char dummy26[sizeof (parameter_list_t)];
-
-      // parameter-decl
-      char dummy27[sizeof (parameter_t)];
-
-      // parameter-default-value-opt
-      char dummy28[sizeof (parameter_t::default_spec)];
-
-      // subpatterns
-      // pattern-list
-      char dummy29[sizeof (pattern_list_t)];
-
-      // pattern
-      char dummy30[sizeof (pattern_t)];
-
-      // pattern-field-sfx
-      // pattern-field
-      char dummy31[sizeof (pattern_t::field)];
+      char dummy21[sizeof (parameter_list_t)];
 
       // reference-expression
-      char dummy32[sizeof (reference_expression_t)];
+      char dummy22[sizeof (reference_expression)];
 
       // "`=`"
       // "`_`"
@@ -537,36 +496,54 @@ namespace annium_lang {
       // "constexpr modifier"
       // "runctime modifier"
       // PROBE
-      char dummy33[sizeof (sonia::lang::lex::resource_location)];
+      char dummy23[sizeof (resource_location)];
 
       // OPERATOR_TERM
-      char dummy34[sizeof (sonia::string_view)];
+      char dummy24[sizeof (sonia::string_view)];
 
       // statement
+      // finished-statement
+      // generic-statement
       // infunction-statement
-      char dummy35[sizeof (statement)];
+      char dummy25[sizeof (statement)];
 
-      // pattern-mod
-      // pattern-sfx
-      char dummy36[sizeof (std::pair<pattern_t, parameter_constraint_modifier_t>)];
+      // statement_any
+      // finished-statement-any
+      // infunction-statement-any
+      // finished-infunction-statement-any
+      // function-body
+      // braced-statements
+      // infunction-statement-set
+      char dummy26[sizeof (statement_list_t)];
 
       // fn-prefix-decl
-      char dummy37[sizeof (std::pair<sonia::lang::lex::resource_location, fn_kind>)];
+      char dummy27[sizeof (std::pair<resource_location, fn_kind>)];
+
+      // lambda-start-decl
+      char dummy28[sizeof (std::pair<resource_location, lambda>)];
 
       // constraint-expression-specified-mod
       // constraint-expression-mod
-      char dummy38[sizeof (std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t>)];
+      char dummy29[sizeof (std::pair<resource_location, parameter_constraint_modifier_t>)];
 
       // constraint-expression-specified
       // constraint-expression
-      char dummy39[sizeof (std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t>)];
+      char dummy30[sizeof (std::pair<std::variant<syntax_expression const*, syntax_pattern const*>, parameter_constraint_modifier_t>)];
+
+      // pattern-mod
+      // pattern-sfx
+      char dummy31[sizeof (std::pair<syntax_pattern, parameter_constraint_modifier_t>)];
+
+      // field-list-opt
+      // field-list
+      char dummy32[sizeof (std::vector<field>)];
 
       // case-list-opt
       // case-list
-      char dummy40[sizeof (std::vector<annium::identifier>)];
+      char dummy33[sizeof (std::vector<identifier>)];
 
       // struct-decl
-      char dummy41[sizeof (struct_decl)];
+      char dummy34[sizeof (struct_decl)];
 
       // concept-expression
       // any-reference-expression
@@ -577,10 +554,29 @@ namespace annium_lang {
       // lambda-expression
       // compound-expression
       // type-expr
-      char dummy42[sizeof (syntax_expression_t)];
+      char dummy35[sizeof (syntax_expression)];
+
+      // fn-requirement-opt
+      char dummy36[sizeof (syntax_expression const*)];
+
+      // expression-list
+      // concept-expression-list-opt
+      // concept-expression-list
+      char dummy37[sizeof (syntax_expression_list_t)];
+
+      // pattern
+      char dummy38[sizeof (syntax_pattern)];
+
+      // pattern-field-sfx
+      // pattern-field
+      char dummy39[sizeof (syntax_pattern::field)];
+
+      // subpatterns
+      // pattern-list
+      char dummy40[sizeof (syntax_pattern_field_list_t)];
 
       // using-decl
-      char dummy43[sizeof (using_decl)];
+      char dummy41[sizeof (using_decl)];
     };
 
     /// The size of the largest semantic type.
@@ -636,12 +632,12 @@ namespace annium_lang {
     IDENTIFIER = 261,              // IDENTIFIER
     CONTEXT_IDENTIFIER = 262,      // CONTEXT_IDENTIFIER
     RESERVED_IDENTIFIER = 263,     // RESERVED_IDENTIFIER
-    CT_IDENTIFIER = 264,           // CT_IDENTIFIER
-    INTEGER_INDEX = 265,           // INTEGER_INDEX
-    INTEGER = 266,                 // INTEGER
-    DECIMAL = 267,                 // DECIMAL
-    DECIMAL_S = 268,               // DECIMAL_S
-    OPERATOR_TERM = 269,           // OPERATOR_TERM
+    INTEGER_INDEX = 264,           // INTEGER_INDEX
+    INTEGER = 265,                 // INTEGER
+    DECIMAL = 266,                 // DECIMAL
+    DECIMAL_S = 267,               // DECIMAL_S
+    OPERATOR_TERM = 268,           // OPERATOR_TERM
+    CT_IDENTIFIER = 269,           // CT_IDENTIFIER
     ASSIGN = 270,                  // "`=`"
     APOSTROPHE = 271,              // "APOSTROPHE"
     AT_SYMBOL = 272,               // "`@`"
@@ -765,12 +761,12 @@ namespace annium_lang {
         S_IDENTIFIER = 6,                        // IDENTIFIER
         S_CONTEXT_IDENTIFIER = 7,                // CONTEXT_IDENTIFIER
         S_RESERVED_IDENTIFIER = 8,               // RESERVED_IDENTIFIER
-        S_CT_IDENTIFIER = 9,                     // CT_IDENTIFIER
-        S_INTEGER_INDEX = 10,                    // INTEGER_INDEX
-        S_INTEGER = 11,                          // INTEGER
-        S_DECIMAL = 12,                          // DECIMAL
-        S_DECIMAL_S = 13,                        // DECIMAL_S
-        S_OPERATOR_TERM = 14,                    // OPERATOR_TERM
+        S_INTEGER_INDEX = 9,                     // INTEGER_INDEX
+        S_INTEGER = 10,                          // INTEGER
+        S_DECIMAL = 11,                          // DECIMAL
+        S_DECIMAL_S = 12,                        // DECIMAL_S
+        S_OPERATOR_TERM = 13,                    // OPERATOR_TERM
+        S_CT_IDENTIFIER = 14,                    // CT_IDENTIFIER
         S_ASSIGN = 15,                           // "`=`"
         S_APOSTROPHE = 16,                       // "APOSTROPHE"
         S_AT_SYMBOL = 17,                        // "`@`"
@@ -977,39 +973,23 @@ namespace annium_lang {
     {
       case symbol_kind::S_DECIMAL: // DECIMAL
       case symbol_kind::S_DECIMAL_S: // DECIMAL_S
-        value.move< annium::annotated_decimal > (std::move (that.value));
-        break;
-
-      case symbol_kind::S_identifier: // identifier
-      case symbol_kind::S_147_argument_name: // argument-name
-        value.move< annium::annotated_identifier > (std::move (that.value));
+        value.move< annium::annotated_decimal_view > (std::move (that.value));
         break;
 
       case symbol_kind::S_INTEGER: // INTEGER
-        value.move< annium::annotated_integer > (std::move (that.value));
+        value.move< annium::annotated_integer_view > (std::move (that.value));
         break;
 
-      case symbol_kind::S_qname: // qname
       case symbol_kind::S_133_fn_name: // fn-name
-        value.move< annium::annotated_qname > (std::move (that.value));
+        value.move< annium::annotated_qname_view > (std::move (that.value));
         break;
 
       case symbol_kind::S_STRING: // STRING
       case symbol_kind::S_IDENTIFIER: // IDENTIFIER
       case symbol_kind::S_CONTEXT_IDENTIFIER: // CONTEXT_IDENTIFIER
       case symbol_kind::S_RESERVED_IDENTIFIER: // RESERVED_IDENTIFIER
-      case symbol_kind::S_CT_IDENTIFIER: // CT_IDENTIFIER
       case symbol_kind::S_INTEGER_INDEX: // INTEGER_INDEX
         value.move< annium::annotated_string_view > (std::move (that.value));
-        break;
-
-      case symbol_kind::S_128_internal_identifier: // internal-identifier
-      case symbol_kind::S_154_internal_identifier_opt: // internal-identifier-opt
-        value.move< annium::context_identifier > (std::move (that.value));
-        break;
-
-      case symbol_kind::S_140_case_decl: // case-decl
-        value.move< annium::identifier > (std::move (that.value));
         break;
 
       case symbol_kind::S_TRUE_WORD: // "true"
@@ -1017,38 +997,35 @@ namespace annium_lang {
         value.move< annotated_bool > (std::move (that.value));
         break;
 
+      case symbol_kind::S_CT_IDENTIFIER: // CT_IDENTIFIER
+      case symbol_kind::S_identifier: // identifier
+      case symbol_kind::S_147_argument_name: // argument-name
+        value.move< annotated_identifier > (std::move (that.value));
+        break;
+
       case symbol_kind::S_NIL_WORD: // "nil"
         value.move< annotated_nil > (std::move (that.value));
         break;
 
-      case symbol_kind::S_169_concept_expression_list_opt: // concept-expression-list-opt
-      case symbol_kind::S_170_concept_expression_list: // concept-expression-list
-        value.move< concept_expression_list_t > (std::move (that.value));
+      case symbol_kind::S_qname: // qname
+        value.move< annotated_qname > (std::move (that.value));
+        break;
+
+      case symbol_kind::S_128_internal_identifier: // internal-identifier
+      case symbol_kind::S_154_internal_identifier_opt: // internal-identifier-opt
+        value.move< context_identifier > (std::move (that.value));
         break;
 
       case symbol_kind::S_137_enum_decl: // enum-decl
         value.move< enum_decl > (std::move (that.value));
         break;
 
-      case symbol_kind::S_143_expression_list: // expression-list
-        value.move< expression_list_t > (std::move (that.value));
-        break;
-
-      case symbol_kind::S_148_field_list_opt: // field-list-opt
-      case symbol_kind::S_149_field_list: // field-list
-        value.move< field_list_t > (std::move (that.value));
-        break;
-
       case symbol_kind::S_field: // field
-        value.move< field_t > (std::move (that.value));
+        value.move< field > (std::move (that.value));
         break;
 
       case symbol_kind::S_150_field_default_value_opt: // field-default-value-opt
-        value.move< field_t::default_spec > (std::move (that.value));
-        break;
-
-      case symbol_kind::S_123_finished_statement: // finished-statement
-        value.move< finished_statement_type > (std::move (that.value));
+        value.move< field::default_spec > (std::move (that.value));
         break;
 
       case symbol_kind::S_130_fn_kind: // fn-kind
@@ -1058,15 +1035,11 @@ namespace annium_lang {
 
       case symbol_kind::S_134_fn_start_decl: // fn-start-decl
       case symbol_kind::S_136_fn_decl: // fn-decl
-        value.move< fn_pure_t > (std::move (that.value));
+        value.move< fn_pure > (std::move (that.value));
         break;
 
-      case symbol_kind::S_125_generic_statement: // generic-statement
-        value.move< generic_statement_type > (std::move (that.value));
-        break;
-
-      case symbol_kind::S_177_lambda_start_decl: // lambda-start-decl
-        value.move< lambda_t > (std::move (that.value));
+      case symbol_kind::S_140_case_decl: // case-decl
+        value.move< identifier > (std::move (that.value));
         break;
 
       case symbol_kind::S_116_let_decl: // let-decl
@@ -1075,29 +1048,23 @@ namespace annium_lang {
         value.move< let_statement > (std::move (that.value));
         break;
 
-      case symbol_kind::S_statement_any: // statement_any
-      case symbol_kind::S_114_finished_statement_any: // finished-statement-any
-      case symbol_kind::S_119_infunction_statement_any: // infunction-statement-any
-      case symbol_kind::S_120_finished_infunction_statement_any: // finished-infunction-statement-any
-      case symbol_kind::S_121_function_body: // function-body
-      case symbol_kind::S_122_braced_statements: // braced-statements
-      case symbol_kind::S_124_infunction_statement_set: // infunction-statement-set
-        value.move< managed_statement_list > (std::move (that.value));
-        break;
-
       case symbol_kind::S_144_argument_list_opt: // argument-list-opt
       case symbol_kind::S_145_argument_list: // argument-list
       case symbol_kind::S_179_pack_expression_opt: // pack-expression-opt
       case symbol_kind::S_180_pack_expression: // pack-expression
-        value.move< named_expression_list_t > (std::move (that.value));
+        value.move< opt_named_expression_list_t > (std::move (that.value));
         break;
 
       case symbol_kind::S_argument: // argument
-        value.move< named_expression_t > (std::move (that.value));
+        value.move< opt_named_expression_t > (std::move (that.value));
         break;
 
-      case symbol_kind::S_135_fn_requirement_opt: // fn-requirement-opt
-        value.move< optional<syntax_expression_t> > (std::move (that.value));
+      case symbol_kind::S_156_parameter_decl: // parameter-decl
+        value.move< parameter > (std::move (that.value));
+        break;
+
+      case symbol_kind::S_155_parameter_default_value_opt: // parameter-default-value-opt
+        value.move< parameter::default_spec > (std::move (that.value));
         break;
 
       case symbol_kind::S_152_parameter_list_opt: // parameter-list-opt
@@ -1105,30 +1072,8 @@ namespace annium_lang {
         value.move< parameter_list_t > (std::move (that.value));
         break;
 
-      case symbol_kind::S_156_parameter_decl: // parameter-decl
-        value.move< parameter_t > (std::move (that.value));
-        break;
-
-      case symbol_kind::S_155_parameter_default_value_opt: // parameter-default-value-opt
-        value.move< parameter_t::default_spec > (std::move (that.value));
-        break;
-
-      case symbol_kind::S_subpatterns: // subpatterns
-      case symbol_kind::S_162_pattern_list: // pattern-list
-        value.move< pattern_list_t > (std::move (that.value));
-        break;
-
-      case symbol_kind::S_pattern: // pattern
-        value.move< pattern_t > (std::move (that.value));
-        break;
-
-      case symbol_kind::S_163_pattern_field_sfx: // pattern-field-sfx
-      case symbol_kind::S_164_pattern_field: // pattern-field
-        value.move< pattern_t::field > (std::move (that.value));
-        break;
-
       case symbol_kind::S_171_reference_expression: // reference-expression
-        value.move< reference_expression_t > (std::move (that.value));
+        value.move< reference_expression > (std::move (that.value));
         break;
 
       case symbol_kind::S_ASSIGN: // "`=`"
@@ -1162,7 +1107,7 @@ namespace annium_lang {
       case symbol_kind::S_CONSTEXPR: // "constexpr modifier"
       case symbol_kind::S_RUNTIME: // "runctime modifier"
       case symbol_kind::S_PROBE: // PROBE
-        value.move< sonia::lang::lex::resource_location > (std::move (that.value));
+        value.move< resource_location > (std::move (that.value));
         break;
 
       case symbol_kind::S_OPERATOR_TERM: // OPERATOR_TERM
@@ -1170,32 +1115,53 @@ namespace annium_lang {
         break;
 
       case symbol_kind::S_statement: // statement
+      case symbol_kind::S_123_finished_statement: // finished-statement
+      case symbol_kind::S_125_generic_statement: // generic-statement
       case symbol_kind::S_126_infunction_statement: // infunction-statement
         value.move< statement > (std::move (that.value));
         break;
 
-      case symbol_kind::S_165_pattern_mod: // pattern-mod
-      case symbol_kind::S_166_pattern_sfx: // pattern-sfx
-        value.move< std::pair<pattern_t, parameter_constraint_modifier_t> > (std::move (that.value));
+      case symbol_kind::S_statement_any: // statement_any
+      case symbol_kind::S_114_finished_statement_any: // finished-statement-any
+      case symbol_kind::S_119_infunction_statement_any: // infunction-statement-any
+      case symbol_kind::S_120_finished_infunction_statement_any: // finished-infunction-statement-any
+      case symbol_kind::S_121_function_body: // function-body
+      case symbol_kind::S_122_braced_statements: // braced-statements
+      case symbol_kind::S_124_infunction_statement_set: // infunction-statement-set
+        value.move< statement_list_t > (std::move (that.value));
         break;
 
       case symbol_kind::S_132_fn_prefix_decl: // fn-prefix-decl
-        value.move< std::pair<sonia::lang::lex::resource_location, fn_kind> > (std::move (that.value));
+        value.move< std::pair<resource_location, fn_kind> > (std::move (that.value));
+        break;
+
+      case symbol_kind::S_177_lambda_start_decl: // lambda-start-decl
+        value.move< std::pair<resource_location, lambda> > (std::move (that.value));
         break;
 
       case symbol_kind::S_157_constraint_expression_specified_mod: // constraint-expression-specified-mod
       case symbol_kind::S_159_constraint_expression_mod: // constraint-expression-mod
-        value.move< std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t> > (std::move (that.value));
+        value.move< std::pair<resource_location, parameter_constraint_modifier_t> > (std::move (that.value));
         break;
 
       case symbol_kind::S_158_constraint_expression_specified: // constraint-expression-specified
       case symbol_kind::S_160_constraint_expression: // constraint-expression
-        value.move< std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t> > (std::move (that.value));
+        value.move< std::pair<std::variant<syntax_expression const*, syntax_pattern const*>, parameter_constraint_modifier_t> > (std::move (that.value));
+        break;
+
+      case symbol_kind::S_165_pattern_mod: // pattern-mod
+      case symbol_kind::S_166_pattern_sfx: // pattern-sfx
+        value.move< std::pair<syntax_pattern, parameter_constraint_modifier_t> > (std::move (that.value));
+        break;
+
+      case symbol_kind::S_148_field_list_opt: // field-list-opt
+      case symbol_kind::S_149_field_list: // field-list
+        value.move< std::vector<field> > (std::move (that.value));
         break;
 
       case symbol_kind::S_138_case_list_opt: // case-list-opt
       case symbol_kind::S_139_case_list: // case-list
-        value.move< std::vector<annium::identifier> > (std::move (that.value));
+        value.move< std::vector<identifier> > (std::move (that.value));
         break;
 
       case symbol_kind::S_141_struct_decl: // struct-decl
@@ -1211,7 +1177,31 @@ namespace annium_lang {
       case symbol_kind::S_178_lambda_expression: // lambda-expression
       case symbol_kind::S_181_compound_expression: // compound-expression
       case symbol_kind::S_182_type_expr: // type-expr
-        value.move< syntax_expression_t > (std::move (that.value));
+        value.move< syntax_expression > (std::move (that.value));
+        break;
+
+      case symbol_kind::S_135_fn_requirement_opt: // fn-requirement-opt
+        value.move< syntax_expression const* > (std::move (that.value));
+        break;
+
+      case symbol_kind::S_143_expression_list: // expression-list
+      case symbol_kind::S_169_concept_expression_list_opt: // concept-expression-list-opt
+      case symbol_kind::S_170_concept_expression_list: // concept-expression-list
+        value.move< syntax_expression_list_t > (std::move (that.value));
+        break;
+
+      case symbol_kind::S_pattern: // pattern
+        value.move< syntax_pattern > (std::move (that.value));
+        break;
+
+      case symbol_kind::S_163_pattern_field_sfx: // pattern-field-sfx
+      case symbol_kind::S_164_pattern_field: // pattern-field
+        value.move< syntax_pattern::field > (std::move (that.value));
+        break;
+
+      case symbol_kind::S_subpatterns: // subpatterns
+      case symbol_kind::S_162_pattern_list: // pattern-list
+        value.move< syntax_pattern_field_list_t > (std::move (that.value));
         break;
 
       case symbol_kind::S_142_using_decl: // using-decl
@@ -1242,13 +1232,13 @@ namespace annium_lang {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, annium::annotated_decimal&& v, location_type&& l)
+      basic_symbol (typename Base::kind_type t, annium::annotated_decimal_view&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const annium::annotated_decimal& v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const annium::annotated_decimal_view& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1256,13 +1246,13 @@ namespace annium_lang {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, annium::annotated_identifier&& v, location_type&& l)
+      basic_symbol (typename Base::kind_type t, annium::annotated_integer_view&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const annium::annotated_identifier& v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const annium::annotated_integer_view& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1270,27 +1260,13 @@ namespace annium_lang {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, annium::annotated_integer&& v, location_type&& l)
+      basic_symbol (typename Base::kind_type t, annium::annotated_qname_view&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const annium::annotated_integer& v, const location_type& l)
-        : Base (t)
-        , value (v)
-        , location (l)
-      {}
-#endif
-
-#if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, annium::annotated_qname&& v, location_type&& l)
-        : Base (t)
-        , value (std::move (v))
-        , location (std::move (l))
-      {}
-#else
-      basic_symbol (typename Base::kind_type t, const annium::annotated_qname& v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const annium::annotated_qname_view& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1312,34 +1288,6 @@ namespace annium_lang {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, annium::context_identifier&& v, location_type&& l)
-        : Base (t)
-        , value (std::move (v))
-        , location (std::move (l))
-      {}
-#else
-      basic_symbol (typename Base::kind_type t, const annium::context_identifier& v, const location_type& l)
-        : Base (t)
-        , value (v)
-        , location (l)
-      {}
-#endif
-
-#if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, annium::identifier&& v, location_type&& l)
-        : Base (t)
-        , value (std::move (v))
-        , location (std::move (l))
-      {}
-#else
-      basic_symbol (typename Base::kind_type t, const annium::identifier& v, const location_type& l)
-        : Base (t)
-        , value (v)
-        , location (l)
-      {}
-#endif
-
-#if 201103L <= YY_CPLUSPLUS
       basic_symbol (typename Base::kind_type t, annotated_bool&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
@@ -1347,6 +1295,20 @@ namespace annium_lang {
       {}
 #else
       basic_symbol (typename Base::kind_type t, const annotated_bool& v, const location_type& l)
+        : Base (t)
+        , value (v)
+        , location (l)
+      {}
+#endif
+
+#if 201103L <= YY_CPLUSPLUS
+      basic_symbol (typename Base::kind_type t, annotated_identifier&& v, location_type&& l)
+        : Base (t)
+        , value (std::move (v))
+        , location (std::move (l))
+      {}
+#else
+      basic_symbol (typename Base::kind_type t, const annotated_identifier& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1368,13 +1330,27 @@ namespace annium_lang {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, concept_expression_list_t&& v, location_type&& l)
+      basic_symbol (typename Base::kind_type t, annotated_qname&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const concept_expression_list_t& v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const annotated_qname& v, const location_type& l)
+        : Base (t)
+        , value (v)
+        , location (l)
+      {}
+#endif
+
+#if 201103L <= YY_CPLUSPLUS
+      basic_symbol (typename Base::kind_type t, context_identifier&& v, location_type&& l)
+        : Base (t)
+        , value (std::move (v))
+        , location (std::move (l))
+      {}
+#else
+      basic_symbol (typename Base::kind_type t, const context_identifier& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1396,13 +1372,13 @@ namespace annium_lang {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, expression_list_t&& v, location_type&& l)
+      basic_symbol (typename Base::kind_type t, field&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const expression_list_t& v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const field& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1410,55 +1386,13 @@ namespace annium_lang {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, field_list_t&& v, location_type&& l)
+      basic_symbol (typename Base::kind_type t, field::default_spec&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const field_list_t& v, const location_type& l)
-        : Base (t)
-        , value (v)
-        , location (l)
-      {}
-#endif
-
-#if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, field_t&& v, location_type&& l)
-        : Base (t)
-        , value (std::move (v))
-        , location (std::move (l))
-      {}
-#else
-      basic_symbol (typename Base::kind_type t, const field_t& v, const location_type& l)
-        : Base (t)
-        , value (v)
-        , location (l)
-      {}
-#endif
-
-#if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, field_t::default_spec&& v, location_type&& l)
-        : Base (t)
-        , value (std::move (v))
-        , location (std::move (l))
-      {}
-#else
-      basic_symbol (typename Base::kind_type t, const field_t::default_spec& v, const location_type& l)
-        : Base (t)
-        , value (v)
-        , location (l)
-      {}
-#endif
-
-#if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, finished_statement_type&& v, location_type&& l)
-        : Base (t)
-        , value (std::move (v))
-        , location (std::move (l))
-      {}
-#else
-      basic_symbol (typename Base::kind_type t, const finished_statement_type& v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const field::default_spec& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1480,13 +1414,13 @@ namespace annium_lang {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, fn_pure_t&& v, location_type&& l)
+      basic_symbol (typename Base::kind_type t, fn_pure&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const fn_pure_t& v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const fn_pure& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1494,27 +1428,13 @@ namespace annium_lang {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, generic_statement_type&& v, location_type&& l)
+      basic_symbol (typename Base::kind_type t, identifier&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const generic_statement_type& v, const location_type& l)
-        : Base (t)
-        , value (v)
-        , location (l)
-      {}
-#endif
-
-#if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, lambda_t&& v, location_type&& l)
-        : Base (t)
-        , value (std::move (v))
-        , location (std::move (l))
-      {}
-#else
-      basic_symbol (typename Base::kind_type t, const lambda_t& v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const identifier& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1536,13 +1456,13 @@ namespace annium_lang {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, managed_statement_list&& v, location_type&& l)
+      basic_symbol (typename Base::kind_type t, opt_named_expression_list_t&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const managed_statement_list& v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const opt_named_expression_list_t& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1550,13 +1470,13 @@ namespace annium_lang {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, named_expression_list_t&& v, location_type&& l)
+      basic_symbol (typename Base::kind_type t, opt_named_expression_t&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const named_expression_list_t& v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const opt_named_expression_t& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1564,13 +1484,13 @@ namespace annium_lang {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, named_expression_t&& v, location_type&& l)
+      basic_symbol (typename Base::kind_type t, parameter&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const named_expression_t& v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const parameter& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1578,13 +1498,13 @@ namespace annium_lang {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, optional<syntax_expression_t>&& v, location_type&& l)
+      basic_symbol (typename Base::kind_type t, parameter::default_spec&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const optional<syntax_expression_t>& v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const parameter::default_spec& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1606,13 +1526,13 @@ namespace annium_lang {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, parameter_t&& v, location_type&& l)
+      basic_symbol (typename Base::kind_type t, reference_expression&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const parameter_t& v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const reference_expression& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1620,83 +1540,13 @@ namespace annium_lang {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, parameter_t::default_spec&& v, location_type&& l)
+      basic_symbol (typename Base::kind_type t, resource_location&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const parameter_t::default_spec& v, const location_type& l)
-        : Base (t)
-        , value (v)
-        , location (l)
-      {}
-#endif
-
-#if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, pattern_list_t&& v, location_type&& l)
-        : Base (t)
-        , value (std::move (v))
-        , location (std::move (l))
-      {}
-#else
-      basic_symbol (typename Base::kind_type t, const pattern_list_t& v, const location_type& l)
-        : Base (t)
-        , value (v)
-        , location (l)
-      {}
-#endif
-
-#if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, pattern_t&& v, location_type&& l)
-        : Base (t)
-        , value (std::move (v))
-        , location (std::move (l))
-      {}
-#else
-      basic_symbol (typename Base::kind_type t, const pattern_t& v, const location_type& l)
-        : Base (t)
-        , value (v)
-        , location (l)
-      {}
-#endif
-
-#if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, pattern_t::field&& v, location_type&& l)
-        : Base (t)
-        , value (std::move (v))
-        , location (std::move (l))
-      {}
-#else
-      basic_symbol (typename Base::kind_type t, const pattern_t::field& v, const location_type& l)
-        : Base (t)
-        , value (v)
-        , location (l)
-      {}
-#endif
-
-#if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, reference_expression_t&& v, location_type&& l)
-        : Base (t)
-        , value (std::move (v))
-        , location (std::move (l))
-      {}
-#else
-      basic_symbol (typename Base::kind_type t, const reference_expression_t& v, const location_type& l)
-        : Base (t)
-        , value (v)
-        , location (l)
-      {}
-#endif
-
-#if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, sonia::lang::lex::resource_location&& v, location_type&& l)
-        : Base (t)
-        , value (std::move (v))
-        , location (std::move (l))
-      {}
-#else
-      basic_symbol (typename Base::kind_type t, const sonia::lang::lex::resource_location& v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const resource_location& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1732,13 +1582,13 @@ namespace annium_lang {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, std::pair<pattern_t, parameter_constraint_modifier_t>&& v, location_type&& l)
+      basic_symbol (typename Base::kind_type t, statement_list_t&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const std::pair<pattern_t, parameter_constraint_modifier_t>& v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const statement_list_t& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1746,13 +1596,13 @@ namespace annium_lang {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, std::pair<sonia::lang::lex::resource_location, fn_kind>&& v, location_type&& l)
+      basic_symbol (typename Base::kind_type t, std::pair<resource_location, fn_kind>&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const std::pair<sonia::lang::lex::resource_location, fn_kind>& v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const std::pair<resource_location, fn_kind>& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1760,13 +1610,13 @@ namespace annium_lang {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t>&& v, location_type&& l)
+      basic_symbol (typename Base::kind_type t, std::pair<resource_location, lambda>&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t>& v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const std::pair<resource_location, lambda>& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1774,13 +1624,13 @@ namespace annium_lang {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t>&& v, location_type&& l)
+      basic_symbol (typename Base::kind_type t, std::pair<resource_location, parameter_constraint_modifier_t>&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t>& v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const std::pair<resource_location, parameter_constraint_modifier_t>& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1788,13 +1638,55 @@ namespace annium_lang {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, std::vector<annium::identifier>&& v, location_type&& l)
+      basic_symbol (typename Base::kind_type t, std::pair<std::variant<syntax_expression const*, syntax_pattern const*>, parameter_constraint_modifier_t>&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const std::vector<annium::identifier>& v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const std::pair<std::variant<syntax_expression const*, syntax_pattern const*>, parameter_constraint_modifier_t>& v, const location_type& l)
+        : Base (t)
+        , value (v)
+        , location (l)
+      {}
+#endif
+
+#if 201103L <= YY_CPLUSPLUS
+      basic_symbol (typename Base::kind_type t, std::pair<syntax_pattern, parameter_constraint_modifier_t>&& v, location_type&& l)
+        : Base (t)
+        , value (std::move (v))
+        , location (std::move (l))
+      {}
+#else
+      basic_symbol (typename Base::kind_type t, const std::pair<syntax_pattern, parameter_constraint_modifier_t>& v, const location_type& l)
+        : Base (t)
+        , value (v)
+        , location (l)
+      {}
+#endif
+
+#if 201103L <= YY_CPLUSPLUS
+      basic_symbol (typename Base::kind_type t, std::vector<field>&& v, location_type&& l)
+        : Base (t)
+        , value (std::move (v))
+        , location (std::move (l))
+      {}
+#else
+      basic_symbol (typename Base::kind_type t, const std::vector<field>& v, const location_type& l)
+        : Base (t)
+        , value (v)
+        , location (l)
+      {}
+#endif
+
+#if 201103L <= YY_CPLUSPLUS
+      basic_symbol (typename Base::kind_type t, std::vector<identifier>&& v, location_type&& l)
+        : Base (t)
+        , value (std::move (v))
+        , location (std::move (l))
+      {}
+#else
+      basic_symbol (typename Base::kind_type t, const std::vector<identifier>& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1816,13 +1708,83 @@ namespace annium_lang {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, syntax_expression_t&& v, location_type&& l)
+      basic_symbol (typename Base::kind_type t, syntax_expression&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const syntax_expression_t& v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const syntax_expression& v, const location_type& l)
+        : Base (t)
+        , value (v)
+        , location (l)
+      {}
+#endif
+
+#if 201103L <= YY_CPLUSPLUS
+      basic_symbol (typename Base::kind_type t, syntax_expression const*&& v, location_type&& l)
+        : Base (t)
+        , value (std::move (v))
+        , location (std::move (l))
+      {}
+#else
+      basic_symbol (typename Base::kind_type t, const syntax_expression const*& v, const location_type& l)
+        : Base (t)
+        , value (v)
+        , location (l)
+      {}
+#endif
+
+#if 201103L <= YY_CPLUSPLUS
+      basic_symbol (typename Base::kind_type t, syntax_expression_list_t&& v, location_type&& l)
+        : Base (t)
+        , value (std::move (v))
+        , location (std::move (l))
+      {}
+#else
+      basic_symbol (typename Base::kind_type t, const syntax_expression_list_t& v, const location_type& l)
+        : Base (t)
+        , value (v)
+        , location (l)
+      {}
+#endif
+
+#if 201103L <= YY_CPLUSPLUS
+      basic_symbol (typename Base::kind_type t, syntax_pattern&& v, location_type&& l)
+        : Base (t)
+        , value (std::move (v))
+        , location (std::move (l))
+      {}
+#else
+      basic_symbol (typename Base::kind_type t, const syntax_pattern& v, const location_type& l)
+        : Base (t)
+        , value (v)
+        , location (l)
+      {}
+#endif
+
+#if 201103L <= YY_CPLUSPLUS
+      basic_symbol (typename Base::kind_type t, syntax_pattern::field&& v, location_type&& l)
+        : Base (t)
+        , value (std::move (v))
+        , location (std::move (l))
+      {}
+#else
+      basic_symbol (typename Base::kind_type t, const syntax_pattern::field& v, const location_type& l)
+        : Base (t)
+        , value (v)
+        , location (l)
+      {}
+#endif
+
+#if 201103L <= YY_CPLUSPLUS
+      basic_symbol (typename Base::kind_type t, syntax_pattern_field_list_t&& v, location_type&& l)
+        : Base (t)
+        , value (std::move (v))
+        , location (std::move (l))
+      {}
+#else
+      basic_symbol (typename Base::kind_type t, const syntax_pattern_field_list_t& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1863,685 +1825,685 @@ namespace annium_lang {
       case symbol_kind::S_STRING: // STRING
 #line 328 "annium.y"
                     { }
-#line 1867 "annium.tab.hpp"
+#line 1829 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_IDENTIFIER: // IDENTIFIER
 #line 328 "annium.y"
                     { }
-#line 1873 "annium.tab.hpp"
+#line 1835 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_CONTEXT_IDENTIFIER: // CONTEXT_IDENTIFIER
 #line 328 "annium.y"
                     { }
-#line 1879 "annium.tab.hpp"
+#line 1841 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_RESERVED_IDENTIFIER: // RESERVED_IDENTIFIER
 #line 328 "annium.y"
                     { }
-#line 1885 "annium.tab.hpp"
-        break;
-
-      case symbol_kind::S_CT_IDENTIFIER: // CT_IDENTIFIER
-#line 328 "annium.y"
-                    { }
-#line 1891 "annium.tab.hpp"
+#line 1847 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_INTEGER_INDEX: // INTEGER_INDEX
 #line 328 "annium.y"
                     { }
-#line 1897 "annium.tab.hpp"
+#line 1853 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_INTEGER: // INTEGER
 #line 328 "annium.y"
                     { }
-#line 1903 "annium.tab.hpp"
+#line 1859 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_DECIMAL: // DECIMAL
 #line 328 "annium.y"
                     { }
-#line 1909 "annium.tab.hpp"
+#line 1865 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_DECIMAL_S: // DECIMAL_S
 #line 328 "annium.y"
                     { }
-#line 1915 "annium.tab.hpp"
+#line 1871 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_OPERATOR_TERM: // OPERATOR_TERM
 #line 328 "annium.y"
                     { }
-#line 1921 "annium.tab.hpp"
+#line 1877 "annium.tab.hpp"
+        break;
+
+      case symbol_kind::S_CT_IDENTIFIER: // CT_IDENTIFIER
+#line 328 "annium.y"
+                    { }
+#line 1883 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_ASSIGN: // "`=`"
 #line 328 "annium.y"
                     { }
-#line 1927 "annium.tab.hpp"
+#line 1889 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_UNDERSCORE: // "`_`"
 #line 328 "annium.y"
                     { }
-#line 1933 "annium.tab.hpp"
+#line 1895 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_EQ: // "`==`"
 #line 328 "annium.y"
                     { }
-#line 1939 "annium.tab.hpp"
+#line 1901 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_NE: // "`!=`"
 #line 328 "annium.y"
                     { }
-#line 1945 "annium.tab.hpp"
+#line 1907 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_LOGIC_AND: // "`&&`"
 #line 328 "annium.y"
                     { }
-#line 1951 "annium.tab.hpp"
+#line 1913 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_LOGIC_OR: // "`||`"
 #line 328 "annium.y"
                     { }
-#line 1957 "annium.tab.hpp"
+#line 1919 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_CONCAT: // "`..`"
 #line 328 "annium.y"
                     { }
-#line 1963 "annium.tab.hpp"
+#line 1925 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_ELLIPSIS: // "`...`"
 #line 328 "annium.y"
                     { }
-#line 1969 "annium.tab.hpp"
+#line 1931 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_OPEN_PARENTHESIS: // "`(`"
 #line 328 "annium.y"
                     { }
-#line 1975 "annium.tab.hpp"
+#line 1937 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_OPEN_BRACE: // "`{`"
 #line 328 "annium.y"
                     { }
-#line 1981 "annium.tab.hpp"
+#line 1943 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_OPEN_SQUARE_BRACKET: // "`[`"
 #line 328 "annium.y"
                     { }
-#line 1987 "annium.tab.hpp"
+#line 1949 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_OPEN_SQUARE_DBL_BRACKET: // "`[[`"
 #line 328 "annium.y"
                     { }
-#line 1993 "annium.tab.hpp"
+#line 1955 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_POINT: // "`.`"
 #line 328 "annium.y"
                     { }
-#line 1999 "annium.tab.hpp"
+#line 1961 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_PLUS: // "`+`"
 #line 328 "annium.y"
                     { }
-#line 2005 "annium.tab.hpp"
+#line 1967 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_MINUS: // "`-`"
 #line 328 "annium.y"
                     { }
-#line 2011 "annium.tab.hpp"
+#line 1973 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_ASTERISK: // "`*`"
 #line 328 "annium.y"
                     { }
-#line 2017 "annium.tab.hpp"
+#line 1979 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_AMPERSAND: // "`&`"
 #line 328 "annium.y"
                     { }
-#line 2023 "annium.tab.hpp"
+#line 1985 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_BITOR: // "`|`"
 #line 328 "annium.y"
                     { }
-#line 2029 "annium.tab.hpp"
+#line 1991 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_EXCLPT: // "`!`"
 #line 328 "annium.y"
                     { }
-#line 2035 "annium.tab.hpp"
+#line 1997 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_QMARK: // "`?`"
 #line 328 "annium.y"
                     { }
-#line 2041 "annium.tab.hpp"
+#line 2003 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_NEW: // "`new`"
 #line 328 "annium.y"
                     { }
-#line 2047 "annium.tab.hpp"
+#line 2009 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_CONTINUE: // "`continue`"
 #line 328 "annium.y"
                     { }
-#line 2053 "annium.tab.hpp"
+#line 2015 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_BREAK: // "`break`"
 #line 328 "annium.y"
                     { }
-#line 2059 "annium.tab.hpp"
+#line 2021 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_RETURN: // "`return`"
 #line 328 "annium.y"
                     { }
-#line 2065 "annium.tab.hpp"
+#line 2027 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_YIELD: // "`yield`"
 #line 328 "annium.y"
                     { }
-#line 2071 "annium.tab.hpp"
+#line 2033 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_FN: // "`fn`"
 #line 328 "annium.y"
                     { }
-#line 2077 "annium.tab.hpp"
+#line 2039 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_TYPEFN: // "`typefn`"
 #line 328 "annium.y"
                     { }
-#line 2083 "annium.tab.hpp"
+#line 2045 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_TYPENAME: // "typename modifier"
 #line 328 "annium.y"
                     { }
-#line 2089 "annium.tab.hpp"
+#line 2051 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_CONSTEXPR: // "constexpr modifier"
 #line 328 "annium.y"
                     { }
-#line 2095 "annium.tab.hpp"
+#line 2057 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_RUNTIME: // "runctime modifier"
 #line 328 "annium.y"
                     { }
-#line 2101 "annium.tab.hpp"
+#line 2063 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_NIL_WORD: // "nil"
 #line 328 "annium.y"
                     { }
-#line 2107 "annium.tab.hpp"
+#line 2069 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_TRUE_WORD: // "true"
 #line 328 "annium.y"
                     { }
-#line 2113 "annium.tab.hpp"
+#line 2075 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_FALSE_WORD: // "false"
 #line 328 "annium.y"
                     { }
-#line 2119 "annium.tab.hpp"
+#line 2081 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_PROBE: // PROBE
 #line 328 "annium.y"
                     { }
-#line 2125 "annium.tab.hpp"
+#line 2087 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_statement_any: // statement_any
 #line 328 "annium.y"
                     { }
-#line 2131 "annium.tab.hpp"
+#line 2093 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_114_finished_statement_any: // finished-statement-any
 #line 328 "annium.y"
                     { }
-#line 2137 "annium.tab.hpp"
+#line 2099 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_statement: // statement
 #line 328 "annium.y"
                     { }
-#line 2143 "annium.tab.hpp"
+#line 2105 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_116_let_decl: // let-decl
 #line 328 "annium.y"
                     { }
-#line 2149 "annium.tab.hpp"
+#line 2111 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_117_let_decl_start: // let-decl-start
 #line 328 "annium.y"
                     { }
-#line 2155 "annium.tab.hpp"
+#line 2117 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_118_let_decl_start_with_opt_type: // let-decl-start-with-opt-type
 #line 328 "annium.y"
                     { }
-#line 2161 "annium.tab.hpp"
+#line 2123 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_119_infunction_statement_any: // infunction-statement-any
 #line 328 "annium.y"
                     { }
-#line 2167 "annium.tab.hpp"
+#line 2129 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_120_finished_infunction_statement_any: // finished-infunction-statement-any
 #line 328 "annium.y"
                     { }
-#line 2173 "annium.tab.hpp"
+#line 2135 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_121_function_body: // function-body
 #line 328 "annium.y"
                     { }
-#line 2179 "annium.tab.hpp"
+#line 2141 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_122_braced_statements: // braced-statements
 #line 328 "annium.y"
                     { }
-#line 2185 "annium.tab.hpp"
+#line 2147 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_123_finished_statement: // finished-statement
 #line 328 "annium.y"
                     { }
-#line 2191 "annium.tab.hpp"
+#line 2153 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_124_infunction_statement_set: // infunction-statement-set
 #line 328 "annium.y"
                     { }
-#line 2197 "annium.tab.hpp"
+#line 2159 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_125_generic_statement: // generic-statement
 #line 328 "annium.y"
                     { }
-#line 2203 "annium.tab.hpp"
+#line 2165 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_126_infunction_statement: // infunction-statement
 #line 328 "annium.y"
                     { }
-#line 2209 "annium.tab.hpp"
+#line 2171 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_identifier: // identifier
 #line 328 "annium.y"
                     { }
-#line 2215 "annium.tab.hpp"
+#line 2177 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_128_internal_identifier: // internal-identifier
 #line 328 "annium.y"
                     { }
-#line 2221 "annium.tab.hpp"
+#line 2183 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_qname: // qname
 #line 328 "annium.y"
                     { }
-#line 2227 "annium.tab.hpp"
+#line 2189 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_130_fn_kind: // fn-kind
 #line 328 "annium.y"
                     { }
-#line 2233 "annium.tab.hpp"
+#line 2195 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_131_fn_kind_set: // fn-kind-set
 #line 328 "annium.y"
                     { }
-#line 2239 "annium.tab.hpp"
+#line 2201 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_132_fn_prefix_decl: // fn-prefix-decl
 #line 328 "annium.y"
                     { }
-#line 2245 "annium.tab.hpp"
+#line 2207 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_133_fn_name: // fn-name
 #line 328 "annium.y"
                     { }
-#line 2251 "annium.tab.hpp"
+#line 2213 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_134_fn_start_decl: // fn-start-decl
 #line 328 "annium.y"
                     { }
-#line 2257 "annium.tab.hpp"
+#line 2219 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_135_fn_requirement_opt: // fn-requirement-opt
 #line 328 "annium.y"
                     { }
-#line 2263 "annium.tab.hpp"
+#line 2225 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_136_fn_decl: // fn-decl
 #line 328 "annium.y"
                     { }
-#line 2269 "annium.tab.hpp"
+#line 2231 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_137_enum_decl: // enum-decl
 #line 328 "annium.y"
                     { }
-#line 2275 "annium.tab.hpp"
+#line 2237 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_138_case_list_opt: // case-list-opt
 #line 328 "annium.y"
                     { }
-#line 2281 "annium.tab.hpp"
+#line 2243 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_139_case_list: // case-list
 #line 328 "annium.y"
                     { }
-#line 2287 "annium.tab.hpp"
+#line 2249 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_140_case_decl: // case-decl
 #line 328 "annium.y"
                     { }
-#line 2293 "annium.tab.hpp"
+#line 2255 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_141_struct_decl: // struct-decl
 #line 328 "annium.y"
                     { }
-#line 2299 "annium.tab.hpp"
+#line 2261 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_142_using_decl: // using-decl
 #line 328 "annium.y"
                     { }
-#line 2305 "annium.tab.hpp"
+#line 2267 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_143_expression_list: // expression-list
 #line 328 "annium.y"
                     { }
-#line 2311 "annium.tab.hpp"
+#line 2273 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_144_argument_list_opt: // argument-list-opt
 #line 328 "annium.y"
                     { }
-#line 2317 "annium.tab.hpp"
+#line 2279 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_145_argument_list: // argument-list
 #line 328 "annium.y"
                     { }
-#line 2323 "annium.tab.hpp"
+#line 2285 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_argument: // argument
 #line 328 "annium.y"
                     { }
-#line 2329 "annium.tab.hpp"
+#line 2291 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_147_argument_name: // argument-name
 #line 328 "annium.y"
                     { }
-#line 2335 "annium.tab.hpp"
+#line 2297 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_148_field_list_opt: // field-list-opt
 #line 328 "annium.y"
                     { }
-#line 2341 "annium.tab.hpp"
+#line 2303 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_149_field_list: // field-list
 #line 328 "annium.y"
                     { }
-#line 2347 "annium.tab.hpp"
+#line 2309 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_150_field_default_value_opt: // field-default-value-opt
 #line 328 "annium.y"
                     { }
-#line 2353 "annium.tab.hpp"
+#line 2315 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_field: // field
 #line 328 "annium.y"
                     { }
-#line 2359 "annium.tab.hpp"
+#line 2321 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_152_parameter_list_opt: // parameter-list-opt
 #line 328 "annium.y"
                     { }
-#line 2365 "annium.tab.hpp"
+#line 2327 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_153_parameter_list: // parameter-list
 #line 328 "annium.y"
                     { }
-#line 2371 "annium.tab.hpp"
+#line 2333 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_154_internal_identifier_opt: // internal-identifier-opt
 #line 328 "annium.y"
                     { }
-#line 2377 "annium.tab.hpp"
+#line 2339 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_155_parameter_default_value_opt: // parameter-default-value-opt
 #line 328 "annium.y"
                     { }
-#line 2383 "annium.tab.hpp"
+#line 2345 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_156_parameter_decl: // parameter-decl
 #line 328 "annium.y"
                     { }
-#line 2389 "annium.tab.hpp"
+#line 2351 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_157_constraint_expression_specified_mod: // constraint-expression-specified-mod
 #line 328 "annium.y"
                     { }
-#line 2395 "annium.tab.hpp"
+#line 2357 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_158_constraint_expression_specified: // constraint-expression-specified
 #line 328 "annium.y"
                     { }
-#line 2401 "annium.tab.hpp"
+#line 2363 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_159_constraint_expression_mod: // constraint-expression-mod
 #line 328 "annium.y"
                     { }
-#line 2407 "annium.tab.hpp"
+#line 2369 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_160_constraint_expression: // constraint-expression
 #line 328 "annium.y"
                     { }
-#line 2413 "annium.tab.hpp"
+#line 2375 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_subpatterns: // subpatterns
 #line 328 "annium.y"
                     { }
-#line 2419 "annium.tab.hpp"
+#line 2381 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_162_pattern_list: // pattern-list
 #line 328 "annium.y"
                     { }
-#line 2425 "annium.tab.hpp"
+#line 2387 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_163_pattern_field_sfx: // pattern-field-sfx
 #line 328 "annium.y"
                     { }
-#line 2431 "annium.tab.hpp"
+#line 2393 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_164_pattern_field: // pattern-field
 #line 328 "annium.y"
                     { }
-#line 2437 "annium.tab.hpp"
+#line 2399 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_165_pattern_mod: // pattern-mod
 #line 328 "annium.y"
                     { }
-#line 2443 "annium.tab.hpp"
+#line 2405 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_166_pattern_sfx: // pattern-sfx
 #line 328 "annium.y"
                     { }
-#line 2449 "annium.tab.hpp"
+#line 2411 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_pattern: // pattern
 #line 328 "annium.y"
                     { }
-#line 2455 "annium.tab.hpp"
+#line 2417 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_168_concept_expression: // concept-expression
 #line 328 "annium.y"
                     { }
-#line 2461 "annium.tab.hpp"
+#line 2423 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_169_concept_expression_list_opt: // concept-expression-list-opt
 #line 328 "annium.y"
                     { }
-#line 2467 "annium.tab.hpp"
+#line 2429 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_170_concept_expression_list: // concept-expression-list
 #line 328 "annium.y"
                     { }
-#line 2473 "annium.tab.hpp"
+#line 2435 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_171_reference_expression: // reference-expression
 #line 328 "annium.y"
                     { }
-#line 2479 "annium.tab.hpp"
+#line 2441 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_172_any_reference_expression: // any-reference-expression
 #line 328 "annium.y"
                     { }
-#line 2485 "annium.tab.hpp"
+#line 2447 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_173_syntax_expression: // syntax-expression
 #line 328 "annium.y"
                     { }
-#line 2491 "annium.tab.hpp"
+#line 2453 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_174_apostrophe_expression: // apostrophe-expression
 #line 328 "annium.y"
                     { }
-#line 2497 "annium.tab.hpp"
+#line 2459 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_175_new_expression: // new-expression
 #line 328 "annium.y"
                     { }
-#line 2503 "annium.tab.hpp"
+#line 2465 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_176_call_expression: // call-expression
 #line 328 "annium.y"
                     { }
-#line 2509 "annium.tab.hpp"
+#line 2471 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_177_lambda_start_decl: // lambda-start-decl
 #line 328 "annium.y"
                     { }
-#line 2515 "annium.tab.hpp"
+#line 2477 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_178_lambda_expression: // lambda-expression
 #line 328 "annium.y"
                     { }
-#line 2521 "annium.tab.hpp"
+#line 2483 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_179_pack_expression_opt: // pack-expression-opt
 #line 328 "annium.y"
                     { }
-#line 2527 "annium.tab.hpp"
+#line 2489 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_180_pack_expression: // pack-expression
 #line 328 "annium.y"
                     { }
-#line 2533 "annium.tab.hpp"
+#line 2495 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_181_compound_expression: // compound-expression
 #line 328 "annium.y"
                     { }
-#line 2539 "annium.tab.hpp"
+#line 2501 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_182_type_expr: // type-expr
 #line 328 "annium.y"
                     { }
-#line 2545 "annium.tab.hpp"
+#line 2507 "annium.tab.hpp"
         break;
 
        default:
@@ -2553,39 +2515,23 @@ switch (yykind)
     {
       case symbol_kind::S_DECIMAL: // DECIMAL
       case symbol_kind::S_DECIMAL_S: // DECIMAL_S
-        value.template destroy< annium::annotated_decimal > ();
-        break;
-
-      case symbol_kind::S_identifier: // identifier
-      case symbol_kind::S_147_argument_name: // argument-name
-        value.template destroy< annium::annotated_identifier > ();
+        value.template destroy< annium::annotated_decimal_view > ();
         break;
 
       case symbol_kind::S_INTEGER: // INTEGER
-        value.template destroy< annium::annotated_integer > ();
+        value.template destroy< annium::annotated_integer_view > ();
         break;
 
-      case symbol_kind::S_qname: // qname
       case symbol_kind::S_133_fn_name: // fn-name
-        value.template destroy< annium::annotated_qname > ();
+        value.template destroy< annium::annotated_qname_view > ();
         break;
 
       case symbol_kind::S_STRING: // STRING
       case symbol_kind::S_IDENTIFIER: // IDENTIFIER
       case symbol_kind::S_CONTEXT_IDENTIFIER: // CONTEXT_IDENTIFIER
       case symbol_kind::S_RESERVED_IDENTIFIER: // RESERVED_IDENTIFIER
-      case symbol_kind::S_CT_IDENTIFIER: // CT_IDENTIFIER
       case symbol_kind::S_INTEGER_INDEX: // INTEGER_INDEX
         value.template destroy< annium::annotated_string_view > ();
-        break;
-
-      case symbol_kind::S_128_internal_identifier: // internal-identifier
-      case symbol_kind::S_154_internal_identifier_opt: // internal-identifier-opt
-        value.template destroy< annium::context_identifier > ();
-        break;
-
-      case symbol_kind::S_140_case_decl: // case-decl
-        value.template destroy< annium::identifier > ();
         break;
 
       case symbol_kind::S_TRUE_WORD: // "true"
@@ -2593,38 +2539,35 @@ switch (yykind)
         value.template destroy< annotated_bool > ();
         break;
 
+      case symbol_kind::S_CT_IDENTIFIER: // CT_IDENTIFIER
+      case symbol_kind::S_identifier: // identifier
+      case symbol_kind::S_147_argument_name: // argument-name
+        value.template destroy< annotated_identifier > ();
+        break;
+
       case symbol_kind::S_NIL_WORD: // "nil"
         value.template destroy< annotated_nil > ();
         break;
 
-      case symbol_kind::S_169_concept_expression_list_opt: // concept-expression-list-opt
-      case symbol_kind::S_170_concept_expression_list: // concept-expression-list
-        value.template destroy< concept_expression_list_t > ();
+      case symbol_kind::S_qname: // qname
+        value.template destroy< annotated_qname > ();
+        break;
+
+      case symbol_kind::S_128_internal_identifier: // internal-identifier
+      case symbol_kind::S_154_internal_identifier_opt: // internal-identifier-opt
+        value.template destroy< context_identifier > ();
         break;
 
       case symbol_kind::S_137_enum_decl: // enum-decl
         value.template destroy< enum_decl > ();
         break;
 
-      case symbol_kind::S_143_expression_list: // expression-list
-        value.template destroy< expression_list_t > ();
-        break;
-
-      case symbol_kind::S_148_field_list_opt: // field-list-opt
-      case symbol_kind::S_149_field_list: // field-list
-        value.template destroy< field_list_t > ();
-        break;
-
       case symbol_kind::S_field: // field
-        value.template destroy< field_t > ();
+        value.template destroy< field > ();
         break;
 
       case symbol_kind::S_150_field_default_value_opt: // field-default-value-opt
-        value.template destroy< field_t::default_spec > ();
-        break;
-
-      case symbol_kind::S_123_finished_statement: // finished-statement
-        value.template destroy< finished_statement_type > ();
+        value.template destroy< field::default_spec > ();
         break;
 
       case symbol_kind::S_130_fn_kind: // fn-kind
@@ -2634,15 +2577,11 @@ switch (yykind)
 
       case symbol_kind::S_134_fn_start_decl: // fn-start-decl
       case symbol_kind::S_136_fn_decl: // fn-decl
-        value.template destroy< fn_pure_t > ();
+        value.template destroy< fn_pure > ();
         break;
 
-      case symbol_kind::S_125_generic_statement: // generic-statement
-        value.template destroy< generic_statement_type > ();
-        break;
-
-      case symbol_kind::S_177_lambda_start_decl: // lambda-start-decl
-        value.template destroy< lambda_t > ();
+      case symbol_kind::S_140_case_decl: // case-decl
+        value.template destroy< identifier > ();
         break;
 
       case symbol_kind::S_116_let_decl: // let-decl
@@ -2651,29 +2590,23 @@ switch (yykind)
         value.template destroy< let_statement > ();
         break;
 
-      case symbol_kind::S_statement_any: // statement_any
-      case symbol_kind::S_114_finished_statement_any: // finished-statement-any
-      case symbol_kind::S_119_infunction_statement_any: // infunction-statement-any
-      case symbol_kind::S_120_finished_infunction_statement_any: // finished-infunction-statement-any
-      case symbol_kind::S_121_function_body: // function-body
-      case symbol_kind::S_122_braced_statements: // braced-statements
-      case symbol_kind::S_124_infunction_statement_set: // infunction-statement-set
-        value.template destroy< managed_statement_list > ();
-        break;
-
       case symbol_kind::S_144_argument_list_opt: // argument-list-opt
       case symbol_kind::S_145_argument_list: // argument-list
       case symbol_kind::S_179_pack_expression_opt: // pack-expression-opt
       case symbol_kind::S_180_pack_expression: // pack-expression
-        value.template destroy< named_expression_list_t > ();
+        value.template destroy< opt_named_expression_list_t > ();
         break;
 
       case symbol_kind::S_argument: // argument
-        value.template destroy< named_expression_t > ();
+        value.template destroy< opt_named_expression_t > ();
         break;
 
-      case symbol_kind::S_135_fn_requirement_opt: // fn-requirement-opt
-        value.template destroy< optional<syntax_expression_t> > ();
+      case symbol_kind::S_156_parameter_decl: // parameter-decl
+        value.template destroy< parameter > ();
+        break;
+
+      case symbol_kind::S_155_parameter_default_value_opt: // parameter-default-value-opt
+        value.template destroy< parameter::default_spec > ();
         break;
 
       case symbol_kind::S_152_parameter_list_opt: // parameter-list-opt
@@ -2681,30 +2614,8 @@ switch (yykind)
         value.template destroy< parameter_list_t > ();
         break;
 
-      case symbol_kind::S_156_parameter_decl: // parameter-decl
-        value.template destroy< parameter_t > ();
-        break;
-
-      case symbol_kind::S_155_parameter_default_value_opt: // parameter-default-value-opt
-        value.template destroy< parameter_t::default_spec > ();
-        break;
-
-      case symbol_kind::S_subpatterns: // subpatterns
-      case symbol_kind::S_162_pattern_list: // pattern-list
-        value.template destroy< pattern_list_t > ();
-        break;
-
-      case symbol_kind::S_pattern: // pattern
-        value.template destroy< pattern_t > ();
-        break;
-
-      case symbol_kind::S_163_pattern_field_sfx: // pattern-field-sfx
-      case symbol_kind::S_164_pattern_field: // pattern-field
-        value.template destroy< pattern_t::field > ();
-        break;
-
       case symbol_kind::S_171_reference_expression: // reference-expression
-        value.template destroy< reference_expression_t > ();
+        value.template destroy< reference_expression > ();
         break;
 
       case symbol_kind::S_ASSIGN: // "`=`"
@@ -2738,7 +2649,7 @@ switch (yykind)
       case symbol_kind::S_CONSTEXPR: // "constexpr modifier"
       case symbol_kind::S_RUNTIME: // "runctime modifier"
       case symbol_kind::S_PROBE: // PROBE
-        value.template destroy< sonia::lang::lex::resource_location > ();
+        value.template destroy< resource_location > ();
         break;
 
       case symbol_kind::S_OPERATOR_TERM: // OPERATOR_TERM
@@ -2746,32 +2657,53 @@ switch (yykind)
         break;
 
       case symbol_kind::S_statement: // statement
+      case symbol_kind::S_123_finished_statement: // finished-statement
+      case symbol_kind::S_125_generic_statement: // generic-statement
       case symbol_kind::S_126_infunction_statement: // infunction-statement
         value.template destroy< statement > ();
         break;
 
-      case symbol_kind::S_165_pattern_mod: // pattern-mod
-      case symbol_kind::S_166_pattern_sfx: // pattern-sfx
-        value.template destroy< std::pair<pattern_t, parameter_constraint_modifier_t> > ();
+      case symbol_kind::S_statement_any: // statement_any
+      case symbol_kind::S_114_finished_statement_any: // finished-statement-any
+      case symbol_kind::S_119_infunction_statement_any: // infunction-statement-any
+      case symbol_kind::S_120_finished_infunction_statement_any: // finished-infunction-statement-any
+      case symbol_kind::S_121_function_body: // function-body
+      case symbol_kind::S_122_braced_statements: // braced-statements
+      case symbol_kind::S_124_infunction_statement_set: // infunction-statement-set
+        value.template destroy< statement_list_t > ();
         break;
 
       case symbol_kind::S_132_fn_prefix_decl: // fn-prefix-decl
-        value.template destroy< std::pair<sonia::lang::lex::resource_location, fn_kind> > ();
+        value.template destroy< std::pair<resource_location, fn_kind> > ();
+        break;
+
+      case symbol_kind::S_177_lambda_start_decl: // lambda-start-decl
+        value.template destroy< std::pair<resource_location, lambda> > ();
         break;
 
       case symbol_kind::S_157_constraint_expression_specified_mod: // constraint-expression-specified-mod
       case symbol_kind::S_159_constraint_expression_mod: // constraint-expression-mod
-        value.template destroy< std::pair<sonia::lang::lex::resource_location, parameter_constraint_modifier_t> > ();
+        value.template destroy< std::pair<resource_location, parameter_constraint_modifier_t> > ();
         break;
 
       case symbol_kind::S_158_constraint_expression_specified: // constraint-expression-specified
       case symbol_kind::S_160_constraint_expression: // constraint-expression
-        value.template destroy< std::pair<variant<syntax_expression_t, pattern_t>, parameter_constraint_modifier_t> > ();
+        value.template destroy< std::pair<std::variant<syntax_expression const*, syntax_pattern const*>, parameter_constraint_modifier_t> > ();
+        break;
+
+      case symbol_kind::S_165_pattern_mod: // pattern-mod
+      case symbol_kind::S_166_pattern_sfx: // pattern-sfx
+        value.template destroy< std::pair<syntax_pattern, parameter_constraint_modifier_t> > ();
+        break;
+
+      case symbol_kind::S_148_field_list_opt: // field-list-opt
+      case symbol_kind::S_149_field_list: // field-list
+        value.template destroy< std::vector<field> > ();
         break;
 
       case symbol_kind::S_138_case_list_opt: // case-list-opt
       case symbol_kind::S_139_case_list: // case-list
-        value.template destroy< std::vector<annium::identifier> > ();
+        value.template destroy< std::vector<identifier> > ();
         break;
 
       case symbol_kind::S_141_struct_decl: // struct-decl
@@ -2787,7 +2719,31 @@ switch (yykind)
       case symbol_kind::S_178_lambda_expression: // lambda-expression
       case symbol_kind::S_181_compound_expression: // compound-expression
       case symbol_kind::S_182_type_expr: // type-expr
-        value.template destroy< syntax_expression_t > ();
+        value.template destroy< syntax_expression > ();
+        break;
+
+      case symbol_kind::S_135_fn_requirement_opt: // fn-requirement-opt
+        value.template destroy< syntax_expression const* > ();
+        break;
+
+      case symbol_kind::S_143_expression_list: // expression-list
+      case symbol_kind::S_169_concept_expression_list_opt: // concept-expression-list-opt
+      case symbol_kind::S_170_concept_expression_list: // concept-expression-list
+        value.template destroy< syntax_expression_list_t > ();
+        break;
+
+      case symbol_kind::S_pattern: // pattern
+        value.template destroy< syntax_pattern > ();
+        break;
+
+      case symbol_kind::S_163_pattern_field_sfx: // pattern-field-sfx
+      case symbol_kind::S_164_pattern_field: // pattern-field
+        value.template destroy< syntax_pattern::field > ();
+        break;
+
+      case symbol_kind::S_subpatterns: // subpatterns
+      case symbol_kind::S_162_pattern_list: // pattern-list
+        value.template destroy< syntax_pattern_field_list_t > ();
         break;
 
       case symbol_kind::S_142_using_decl: // using-decl
@@ -2891,18 +2847,18 @@ switch (yykind)
 #endif
       {}
 #if 201103L <= YY_CPLUSPLUS
-      symbol_type (int tok, annium::annotated_decimal v, location_type l)
+      symbol_type (int tok, annium::annotated_decimal_view v, location_type l)
         : super_type (token_kind_type (tok), std::move (v), std::move (l))
 #else
-      symbol_type (int tok, const annium::annotated_decimal& v, const location_type& l)
+      symbol_type (int tok, const annium::annotated_decimal_view& v, const location_type& l)
         : super_type (token_kind_type (tok), v, l)
 #endif
       {}
 #if 201103L <= YY_CPLUSPLUS
-      symbol_type (int tok, annium::annotated_integer v, location_type l)
+      symbol_type (int tok, annium::annotated_integer_view v, location_type l)
         : super_type (token_kind_type (tok), std::move (v), std::move (l))
 #else
-      symbol_type (int tok, const annium::annotated_integer& v, const location_type& l)
+      symbol_type (int tok, const annium::annotated_integer_view& v, const location_type& l)
         : super_type (token_kind_type (tok), v, l)
 #endif
       {}
@@ -2923,6 +2879,14 @@ switch (yykind)
 #endif
       {}
 #if 201103L <= YY_CPLUSPLUS
+      symbol_type (int tok, annotated_identifier v, location_type l)
+        : super_type (token_kind_type (tok), std::move (v), std::move (l))
+#else
+      symbol_type (int tok, const annotated_identifier& v, const location_type& l)
+        : super_type (token_kind_type (tok), v, l)
+#endif
+      {}
+#if 201103L <= YY_CPLUSPLUS
       symbol_type (int tok, annotated_nil v, location_type l)
         : super_type (token_kind_type (tok), std::move (v), std::move (l))
 #else
@@ -2931,10 +2895,10 @@ switch (yykind)
 #endif
       {}
 #if 201103L <= YY_CPLUSPLUS
-      symbol_type (int tok, sonia::lang::lex::resource_location v, location_type l)
+      symbol_type (int tok, resource_location v, location_type l)
         : super_type (token_kind_type (tok), std::move (v), std::move (l))
 #else
-      symbol_type (int tok, const sonia::lang::lex::resource_location& v, const location_type& l)
+      symbol_type (int tok, const resource_location& v, const location_type& l)
         : super_type (token_kind_type (tok), v, l)
 #endif
       {}
@@ -3132,21 +3096,6 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_CT_IDENTIFIER (annium::annotated_string_view v, location_type l)
-      {
-        return symbol_type (token::CT_IDENTIFIER, std::move (v), std::move (l));
-      }
-#else
-      static
-      symbol_type
-      make_CT_IDENTIFIER (const annium::annotated_string_view& v, const location_type& l)
-      {
-        return symbol_type (token::CT_IDENTIFIER, v, l);
-      }
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      static
-      symbol_type
       make_INTEGER_INDEX (annium::annotated_string_view v, location_type l)
       {
         return symbol_type (token::INTEGER_INDEX, std::move (v), std::move (l));
@@ -3162,14 +3111,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_INTEGER (annium::annotated_integer v, location_type l)
+      make_INTEGER (annium::annotated_integer_view v, location_type l)
       {
         return symbol_type (token::INTEGER, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_INTEGER (const annium::annotated_integer& v, const location_type& l)
+      make_INTEGER (const annium::annotated_integer_view& v, const location_type& l)
       {
         return symbol_type (token::INTEGER, v, l);
       }
@@ -3177,14 +3126,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_DECIMAL (annium::annotated_decimal v, location_type l)
+      make_DECIMAL (annium::annotated_decimal_view v, location_type l)
       {
         return symbol_type (token::DECIMAL, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_DECIMAL (const annium::annotated_decimal& v, const location_type& l)
+      make_DECIMAL (const annium::annotated_decimal_view& v, const location_type& l)
       {
         return symbol_type (token::DECIMAL, v, l);
       }
@@ -3192,14 +3141,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_DECIMAL_S (annium::annotated_decimal v, location_type l)
+      make_DECIMAL_S (annium::annotated_decimal_view v, location_type l)
       {
         return symbol_type (token::DECIMAL_S, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_DECIMAL_S (const annium::annotated_decimal& v, const location_type& l)
+      make_DECIMAL_S (const annium::annotated_decimal_view& v, const location_type& l)
       {
         return symbol_type (token::DECIMAL_S, v, l);
       }
@@ -3222,14 +3171,29 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_ASSIGN (sonia::lang::lex::resource_location v, location_type l)
+      make_CT_IDENTIFIER (annotated_identifier v, location_type l)
+      {
+        return symbol_type (token::CT_IDENTIFIER, std::move (v), std::move (l));
+      }
+#else
+      static
+      symbol_type
+      make_CT_IDENTIFIER (const annotated_identifier& v, const location_type& l)
+      {
+        return symbol_type (token::CT_IDENTIFIER, v, l);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_ASSIGN (resource_location v, location_type l)
       {
         return symbol_type (token::ASSIGN, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_ASSIGN (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_ASSIGN (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::ASSIGN, v, l);
       }
@@ -3267,14 +3231,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_UNDERSCORE (sonia::lang::lex::resource_location v, location_type l)
+      make_UNDERSCORE (resource_location v, location_type l)
       {
         return symbol_type (token::UNDERSCORE, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_UNDERSCORE (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_UNDERSCORE (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::UNDERSCORE, v, l);
       }
@@ -3447,14 +3411,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_EQ (sonia::lang::lex::resource_location v, location_type l)
+      make_EQ (resource_location v, location_type l)
       {
         return symbol_type (token::EQ, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_EQ (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_EQ (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::EQ, v, l);
       }
@@ -3462,14 +3426,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_NE (sonia::lang::lex::resource_location v, location_type l)
+      make_NE (resource_location v, location_type l)
       {
         return symbol_type (token::NE, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_NE (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_NE (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::NE, v, l);
       }
@@ -3477,14 +3441,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_LOGIC_AND (sonia::lang::lex::resource_location v, location_type l)
+      make_LOGIC_AND (resource_location v, location_type l)
       {
         return symbol_type (token::LOGIC_AND, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_LOGIC_AND (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_LOGIC_AND (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::LOGIC_AND, v, l);
       }
@@ -3492,14 +3456,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_LOGIC_OR (sonia::lang::lex::resource_location v, location_type l)
+      make_LOGIC_OR (resource_location v, location_type l)
       {
         return symbol_type (token::LOGIC_OR, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_LOGIC_OR (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_LOGIC_OR (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::LOGIC_OR, v, l);
       }
@@ -3507,14 +3471,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_CONCAT (sonia::lang::lex::resource_location v, location_type l)
+      make_CONCAT (resource_location v, location_type l)
       {
         return symbol_type (token::CONCAT, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_CONCAT (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_CONCAT (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::CONCAT, v, l);
       }
@@ -3522,14 +3486,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_ELLIPSIS (sonia::lang::lex::resource_location v, location_type l)
+      make_ELLIPSIS (resource_location v, location_type l)
       {
         return symbol_type (token::ELLIPSIS, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_ELLIPSIS (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_ELLIPSIS (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::ELLIPSIS, v, l);
       }
@@ -3717,14 +3681,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_OPEN_PARENTHESIS (sonia::lang::lex::resource_location v, location_type l)
+      make_OPEN_PARENTHESIS (resource_location v, location_type l)
       {
         return symbol_type (token::OPEN_PARENTHESIS, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_OPEN_PARENTHESIS (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_OPEN_PARENTHESIS (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::OPEN_PARENTHESIS, v, l);
       }
@@ -3747,14 +3711,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_OPEN_BRACE (sonia::lang::lex::resource_location v, location_type l)
+      make_OPEN_BRACE (resource_location v, location_type l)
       {
         return symbol_type (token::OPEN_BRACE, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_OPEN_BRACE (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_OPEN_BRACE (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::OPEN_BRACE, v, l);
       }
@@ -3777,14 +3741,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_OPEN_SQUARE_BRACKET (sonia::lang::lex::resource_location v, location_type l)
+      make_OPEN_SQUARE_BRACKET (resource_location v, location_type l)
       {
         return symbol_type (token::OPEN_SQUARE_BRACKET, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_OPEN_SQUARE_BRACKET (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_OPEN_SQUARE_BRACKET (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::OPEN_SQUARE_BRACKET, v, l);
       }
@@ -3807,14 +3771,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_OPEN_SQUARE_DBL_BRACKET (sonia::lang::lex::resource_location v, location_type l)
+      make_OPEN_SQUARE_DBL_BRACKET (resource_location v, location_type l)
       {
         return symbol_type (token::OPEN_SQUARE_DBL_BRACKET, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_OPEN_SQUARE_DBL_BRACKET (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_OPEN_SQUARE_DBL_BRACKET (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::OPEN_SQUARE_DBL_BRACKET, v, l);
       }
@@ -3882,14 +3846,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_POINT (sonia::lang::lex::resource_location v, location_type l)
+      make_POINT (resource_location v, location_type l)
       {
         return symbol_type (token::POINT, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_POINT (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_POINT (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::POINT, v, l);
       }
@@ -3897,14 +3861,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_PLUS (sonia::lang::lex::resource_location v, location_type l)
+      make_PLUS (resource_location v, location_type l)
       {
         return symbol_type (token::PLUS, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_PLUS (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_PLUS (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::PLUS, v, l);
       }
@@ -3912,14 +3876,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_MINUS (sonia::lang::lex::resource_location v, location_type l)
+      make_MINUS (resource_location v, location_type l)
       {
         return symbol_type (token::MINUS, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_MINUS (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_MINUS (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::MINUS, v, l);
       }
@@ -3927,14 +3891,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_ASTERISK (sonia::lang::lex::resource_location v, location_type l)
+      make_ASTERISK (resource_location v, location_type l)
       {
         return symbol_type (token::ASTERISK, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_ASTERISK (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_ASTERISK (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::ASTERISK, v, l);
       }
@@ -3972,14 +3936,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_AMPERSAND (sonia::lang::lex::resource_location v, location_type l)
+      make_AMPERSAND (resource_location v, location_type l)
       {
         return symbol_type (token::AMPERSAND, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_AMPERSAND (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_AMPERSAND (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::AMPERSAND, v, l);
       }
@@ -3987,14 +3951,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_BITOR (sonia::lang::lex::resource_location v, location_type l)
+      make_BITOR (resource_location v, location_type l)
       {
         return symbol_type (token::BITOR, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_BITOR (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_BITOR (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::BITOR, v, l);
       }
@@ -4002,14 +3966,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_EXCLPT (sonia::lang::lex::resource_location v, location_type l)
+      make_EXCLPT (resource_location v, location_type l)
       {
         return symbol_type (token::EXCLPT, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_EXCLPT (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_EXCLPT (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::EXCLPT, v, l);
       }
@@ -4077,14 +4041,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_QMARK (sonia::lang::lex::resource_location v, location_type l)
+      make_QMARK (resource_location v, location_type l)
       {
         return symbol_type (token::QMARK, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_QMARK (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_QMARK (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::QMARK, v, l);
       }
@@ -4152,14 +4116,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_NEW (sonia::lang::lex::resource_location v, location_type l)
+      make_NEW (resource_location v, location_type l)
       {
         return symbol_type (token::NEW, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_NEW (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_NEW (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::NEW, v, l);
       }
@@ -4242,14 +4206,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_CONTINUE (sonia::lang::lex::resource_location v, location_type l)
+      make_CONTINUE (resource_location v, location_type l)
       {
         return symbol_type (token::CONTINUE, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_CONTINUE (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_CONTINUE (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::CONTINUE, v, l);
       }
@@ -4257,14 +4221,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_BREAK (sonia::lang::lex::resource_location v, location_type l)
+      make_BREAK (resource_location v, location_type l)
       {
         return symbol_type (token::BREAK, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_BREAK (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_BREAK (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::BREAK, v, l);
       }
@@ -4272,14 +4236,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_RETURN (sonia::lang::lex::resource_location v, location_type l)
+      make_RETURN (resource_location v, location_type l)
       {
         return symbol_type (token::RETURN, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_RETURN (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_RETURN (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::RETURN, v, l);
       }
@@ -4287,14 +4251,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_YIELD (sonia::lang::lex::resource_location v, location_type l)
+      make_YIELD (resource_location v, location_type l)
       {
         return symbol_type (token::YIELD, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_YIELD (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_YIELD (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::YIELD, v, l);
       }
@@ -4452,14 +4416,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_FN (sonia::lang::lex::resource_location v, location_type l)
+      make_FN (resource_location v, location_type l)
       {
         return symbol_type (token::FN, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_FN (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_FN (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::FN, v, l);
       }
@@ -4467,14 +4431,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_TYPEFN (sonia::lang::lex::resource_location v, location_type l)
+      make_TYPEFN (resource_location v, location_type l)
       {
         return symbol_type (token::TYPEFN, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_TYPEFN (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_TYPEFN (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::TYPEFN, v, l);
       }
@@ -4557,14 +4521,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_TYPENAME (sonia::lang::lex::resource_location v, location_type l)
+      make_TYPENAME (resource_location v, location_type l)
       {
         return symbol_type (token::TYPENAME, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_TYPENAME (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_TYPENAME (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::TYPENAME, v, l);
       }
@@ -4572,14 +4536,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_CONSTEXPR (sonia::lang::lex::resource_location v, location_type l)
+      make_CONSTEXPR (resource_location v, location_type l)
       {
         return symbol_type (token::CONSTEXPR, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_CONSTEXPR (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_CONSTEXPR (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::CONSTEXPR, v, l);
       }
@@ -4587,14 +4551,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_RUNTIME (sonia::lang::lex::resource_location v, location_type l)
+      make_RUNTIME (resource_location v, location_type l)
       {
         return symbol_type (token::RUNTIME, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_RUNTIME (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_RUNTIME (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::RUNTIME, v, l);
       }
@@ -4647,14 +4611,14 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
-      make_PROBE (sonia::lang::lex::resource_location v, location_type l)
+      make_PROBE (resource_location v, location_type l)
       {
         return symbol_type (token::PROBE, std::move (v), std::move (l));
       }
 #else
       static
       symbol_type
-      make_PROBE (const sonia::lang::lex::resource_location& v, const location_type& l)
+      make_PROBE (const resource_location& v, const location_type& l)
       {
         return symbol_type (token::PROBE, v, l);
       }
@@ -4989,7 +4953,7 @@ switch (yykind)
     /// Constants.
     enum
     {
-      yylast_ = 1271,     ///< Last index in yytable_.
+      yylast_ = 1289,     ///< Last index in yytable_.
       yynnts_ = 72,  ///< Number of nonterminal symbols.
       yyfinal_ = 100 ///< Termination state number.
     };
@@ -5003,7 +4967,7 @@ switch (yykind)
 
 
 } // annium_lang
-#line 5007 "annium.tab.hpp"
+#line 4971 "annium.tab.hpp"
 
 
 

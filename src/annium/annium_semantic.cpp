@@ -123,12 +123,14 @@ public:
 
 }
 
-indirect_value make_indirect_value(environment& e, semantic::expression_list_t & el, syntax_expression_result && res, resource_location loc)
+syntax_expression make_indirect_value(environment& e, semantic::expression_list_t & el, syntax_expression_result && res, resource_location loc)
 {
-    return indirect_value{
+    return syntax_expression {
         .location = std::move(loc),
-        .type = res.type(),
-        .store = indirect_value_store_t{ in_place_type<semantic::indirect_expression_result>, e, el, std::move(res) }
+        .value = indirect_value{
+            .type = res.type(),
+            .store = indirect_value_store_t{ in_place_type<semantic::indirect_expression_result>, e, el, std::move(res) }
+        }
     };
 }
 

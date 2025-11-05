@@ -52,7 +52,6 @@
 #include "parser.hpp"
 
 using namespace sonia;
-using namespace sonia::lang;
 using namespace annium;
 
 #include "annium.tab.hpp"
@@ -74,7 +73,7 @@ using YYLTYPE = annium_lang::parser::location_type;
 #endif
 
 #define text_view string_view{yytext, (size_t)yyleng}
-#define location lex::resource_location{yylloc->begin.line, yylloc->begin.column, ctx.get_resource_id()}
+#define location resource_location{ yylloc->begin.line, yylloc->begin.column, ctx.get_resource_id() }
 #define variant_emplace(...) \
 	try { \
 		auto value = (__VA_ARGS__); \
@@ -399,12 +398,12 @@ HASHTAG					"#"
 		return (annium_lang::parser::token::RESERVED_IDENTIFIER);
 	}
 	{CT_IDENTIFIER} {
-		variant_emplace(annotated_string_view{ text_view, location });
+		variant_emplace(ctx.make_identifier(annotated_string_view{ text_view, location }));
 		return (annium_lang::parser::token::CT_IDENTIFIER);
 	}
 
 	{INTEGER} {
-		variant_emplace(annotated_integer{ ctx.make_integer(text_view), location });
+		variant_emplace(annotated_integer_view{ ctx.make_integer_view(text_view), location });
 		return (annium_lang::parser::token::INTEGER);
 	}
 	{INTEGER_INDEX} {
@@ -412,11 +411,11 @@ HASHTAG					"#"
 		return (annium_lang::parser::token::INTEGER_INDEX);
 	}
 	{DECIMAL} {
-		variant_emplace(annotated_decimal{ ctx.make_decimal(text_view), location });
+		variant_emplace(annotated_decimal_view{ ctx.make_decimal_view(text_view), location });
 		return (annium_lang::parser::token::DECIMAL);
 	}
 	{DECIMAL_S} {
-		variant_emplace(annotated_decimal{ctx.make_decimal(text_view), location});
+		variant_emplace(annotated_decimal_view{ctx.make_decimal_view(text_view), location});
 		return (annium_lang::parser::token::DECIMAL);
 	}
 	/*

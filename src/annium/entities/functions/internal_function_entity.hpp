@@ -62,7 +62,7 @@ public:
 
     internal_function_entity(qname&& name, entity_signature&& sig, resource_location loc);
 
-    void set_body(statement_span bd) noexcept { sts_ = std::move(bd); }
+    void set_body(span<const statement> bd) noexcept { sts_ = std::move(bd); }
 
     void push_argument(variable_identifier);
     void push_variable(variable_identifier varid, intptr_t index);
@@ -117,7 +117,7 @@ protected:
 private:
     var_set_t variables_;
     //qname_view ns_;
-    statement_span sts_;
+    span<const statement> sts_;
     uint64_t arg_count_ : 16; // number of runtime arguments
     uint64_t captured_var_count_ : 16; // number of runtime captured variables
     uint64_t is_provision_ : 1;

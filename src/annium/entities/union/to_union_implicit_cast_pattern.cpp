@@ -59,7 +59,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> to_union_implicit_
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    resource_location arg_loc = get_start_location(*get<0>(arg_expr));
+    resource_location arg_loc = get<0>(arg_expr)->location;
     syntax_expression_result& er = arg->first;
     entity_identifier er_type;
     optional<std::pair<size_t, bool>> type_index_and_kind; // index and 'no cast needed'
@@ -88,12 +88,12 @@ std::expected<functional_match_descriptor_ptr, error_storage> to_union_implicit_
     if (!type_index_and_kind) {
         // try cast
         alt_error errors;
-        pure_call_t cast_call{ call.location };
+        call_builder cast_call{ call.location };
         if (er.is_const_result) {
-            cast_call.emplace_back(annotated_entity_identifier{ er.value(), arg_loc });
+            cast_call.emplace_back(arg_loc, er.value());
         } else {
             // fake stack reference
-            cast_call.emplace_back(stack_value_reference{ .name = annotated_identifier{ .location = arg_loc }, .type = er_type, .offset = 0 });
+            cast_call.emplace_back(arg_loc, stack_value_reference_expression{ .type = er_type, .offset = 0 });
         }
 
         for (size_t i = 0; i < pusig->field_count(); ++i) {
@@ -143,22 +143,33 @@ std::expected<syntax_expression_result, error_storage> to_union_implicit_cast_pa
 
     if (!umd.exact_case || (arg_er.is_const_result != result.is_const_result)) {
         // need cast
-        function_call_t cast_call{ md.call_location, qname_reference{} };
+        call_builder cast_call_builder{ md.call_location };
         if (arg_er.is_const_result) {
-            cast_call.emplace_back(annotated_entity_identifier{ arg_er.value(), arg_loc });
+            cast_call_builder.emplace_back(arg_loc, arg_er.value());
         } else {
-            cast_call.emplace_back(make_indirect_value(env, el, std::move(arg_er), arg_loc));
+            cast_call_builder.emplace_back(make_indirect_value(env, el, std::move(arg_er), arg_loc));
         }
-        auto res = base_expression_visitor{ ctx, el, 
+        auto res = ctx.find_and_apply(builtin_qnid::implicit_cast, cast_call_builder, el,
             expected_result_t{
                 .type = umd.which_field().entity_id(),
                 .modifier = result.is_const_result ? value_modifier_t::constexpr_value : value_modifier_t::runtime_value
-            }
-        }(builtin_qnid::implicit_cast, cast_call);
+            });
+        //function_call cast_call{ md.call_location, qname_reference{} };
+        //if (arg_er.is_const_result) {
+        //    cast_call.emplace_back(annotated_entity_identifier{ arg_er.value(), arg_loc });
+        //} else {
+        //    cast_call.emplace_back(make_indirect_value(env, el, std::move(arg_er), arg_loc));
+        //}
+        //auto res = base_expression_visitor{ ctx, el, 
+        //    expected_result_t{
+        //        .type = umd.which_field().entity_id(),
+        //        .modifier = result.is_const_result ? value_modifier_t::constexpr_value : value_modifier_t::runtime_value
+        //    }
+        //}(builtin_qnid::implicit_cast, cast_call);
         if (!res) {
             return std::unexpected(std::move(res.error()));
         }
-        append_semantic_result(el, res->first, result);
+        append_semantic_result(el, *res, result);
     } else {
         // no cast needed, just move expressions
         append_semantic_result(el, arg_er, result);

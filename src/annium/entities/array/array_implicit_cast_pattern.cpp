@@ -47,13 +47,13 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_implicit_cas
     }
 
     auto call_session = call.new_session(ctx);
-    std::pair<syntax_expression_t const*, size_t> arg_expr;
+    std::pair<syntax_expression const*, size_t> arg_expr;
     
     auto arg = call_session.use_next_positioned_argument(&arg_expr);
     if (!arg) {
         if (arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get_start_location(*get<0>(arg_expr)), "invalid argument"sv),
+                make_error<basic_general_error>(get<0>(arg_expr)->location, "invalid argument"sv),
                 std::move(arg.error())));
         } else {
             return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument"sv));
@@ -64,7 +64,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_implicit_cas
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    resource_location const& argloc = get_start_location(*get<0>(arg_expr));
+    resource_location const& argloc = get<0>(arg_expr)->location;
     syntax_expression_result& er = arg->first;
     entity_identifier argtype = get_result_type(env, er); // ensure type is resolved
     
@@ -106,10 +106,10 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_implicit_cas
         pmd->signature.result.emplace(exp.type, false);
         if (result_arr_element_type_eid != arg_element_type_eid) {
             // check if element cast exists
-            pure_call_t cast_call{ call.location };
+            call_builder cast_call{ call.location };
             semantic::managed_expression_list temp_expressions{ env };
             // fake stack value reference for the array element
-            cast_call.emplace_back(stack_value_reference{ .name = annotated_identifier{.location = argloc }, .type = arg_element_type_eid, .offset = 0 });
+            cast_call.emplace_back(argloc, stack_value_reference_expression{ .type = arg_element_type_eid, .offset = 0 });
             auto match = ctx.find(builtin_qnid::implicit_cast, cast_call, temp_expressions,
                 expected_result_t{ .type = result_arr_element_type_eid, .location = exp.location, .modifier = value_modifier_t::runtime_value });
             if (!match) {
@@ -135,8 +135,8 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_implicit_cas
                 // try to do constexpr casts and result
                 for (field_descriptor const& fd : arg_data->fields()) {
                     semantic::managed_expression_list temp_expressions{ env };
-                    pure_call_t cast_call{ call.location };
-                    cast_call.emplace_back(annotated_entity_identifier{ fd.entity_id(), argloc });
+                    call_builder cast_call{ call.location };
+                    cast_call.emplace_back(argloc, fd.entity_id());
                     auto res = ctx.find_and_apply(builtin_qnid::implicit_cast, cast_call, temp_expressions,
                         expected_result_t{ .type = result_arr_element_type_eid, .location = exp.location, .modifier = value_modifier_t::constexpr_value });
                     if (!res) {
@@ -170,8 +170,8 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_implicit_cas
             .is_const_result = false
         });
         for (field_descriptor const& fd : arg_data->fields()) {
-            pure_call_t cast_call{ call.location };
-            cast_call.emplace_back(annotated_entity_identifier{ fd.entity_id(), argloc });
+            call_builder cast_call{ call.location };
+            cast_call.emplace_back(argloc, fd.entity_id());
             auto res = ctx.find_and_apply(builtin_qnid::implicit_cast, cast_call, call.expressions,
                 expected_result_t{ .type = result_arr_element_type_eid, .location = exp.location, .modifier = value_modifier_t::runtime_value });
             if (!res) {
@@ -225,11 +225,18 @@ std::expected<syntax_expression_result, error_storage> array_implicit_cast_patte
     size_t array_size = *vmd.arg_size;
     for (size_t i = 0; i < array_size; ++i) {
         //identifier element_var_name = fn_scope.push_scope_variable(arr_element_type_eid).first;
+        call_builder cast_call{ md.call_location };
+        cast_call.emplace_back(md.call_location, stack_value_reference_expression{ .type = vmd.arg_element_type, .offset = array_size - i - 1 }); // we put on stack also the result of the cast => offset is const
+        auto res = ctx.find_and_apply(builtin_qnid::implicit_cast, cast_call, el, expected_result_t {
+            .type = vmd.result_element_type,
+            .location = md.call_location,
+            .modifier = value_modifier_t::runtime_value
+        });
 
-        function_call_t cast_call{ md.call_location, qname_reference{} };
-        cast_call.emplace_back(stack_value_reference{ .name = annotated_identifier{}, .type = vmd.arg_element_type, .offset = array_size - 1 }); // we put on stack also the result of the cast => offset is const
-        base_expression_visitor bev{ ctx, el, expected_result_t{ .type = vmd.result_element_type, .modifier = value_modifier_t::runtime_value } };
-        auto res = bev(builtin_qnid::implicit_cast, cast_call);
+        //function_call cast_call{ md.call_location, qname_reference{} };
+        //cast_call.emplace_back(stack_value_reference{ .name = annotated_identifier{}, .type = vmd.arg_element_type, .offset = array_size - 1 }); // we put on stack also the result of the cast => offset is const
+        //base_expression_visitor bev{ ctx, el, expected_result_t{ .type = vmd.result_element_type, .modifier = value_modifier_t::runtime_value } };
+        //auto res = bev(builtin_qnid::implicit_cast, cast_call);
         if (!res) {
             return std::unexpected(append_cause(
                 make_error<cast_error>(argloc, vmd.arg_element_type, vmd.result_element_type, "internal error: cannot cast array element to vector element type"sv),
@@ -237,7 +244,7 @@ std::expected<syntax_expression_result, error_storage> array_implicit_cast_patte
         }
 
 
-        append_semantic_result(el, res->first, result);
+        append_semantic_result(el, *res, result);
     }
 
     // Push the element count and invoke arrayify to create the vector

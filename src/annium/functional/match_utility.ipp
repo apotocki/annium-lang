@@ -15,7 +15,7 @@ namespace annium {
 
 template <typename HandlerT>
 std::expected<syntax_expression_result, error_storage> match_type(fn_compiler_context& caller_ctx, semantic::expression_list_t& expressions,
-    syntax_expression_t const& expr, entity_identifier const& eid, resource_location eidloc, HandlerT const& hf)
+    syntax_expression const& expr, entity_identifier const& eid, resource_location eidloc, HandlerT const& hf)
 {
     auto res = apply_visitor(base_expression_visitor{ caller_ctx, expressions, { eid, eidloc } }, expr);
     if (!res) return std::unexpected(std::move(res.error()));

@@ -34,7 +34,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_set_pattern:
     environment& e = ctx.env();
     
     auto call_session = call.new_session(ctx);
-    std::pair<syntax_expression_t const*, size_t> slf_arg_expr;
+    std::pair<syntax_expression const*, size_t> slf_arg_expr;
 
     auto slf_arg = call_session.use_named_argument(e.get(builtin_id::self), expected_result_t{}, &slf_arg_expr);
     if (!slf_arg) {
@@ -44,7 +44,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_set_pattern:
         return std::unexpected(std::move(slf_arg.error()));
     }
 
-    std::pair<syntax_expression_t const*, size_t> prop_arg_expr;
+    std::pair<syntax_expression const*, size_t> prop_arg_expr;
     alt_error prop_errors;
     auto property_arg = call_session.use_named_argument(e.get(builtin_id::property), expected_result_t{ e.get(builtin_eid::integer) }, &prop_arg_expr);
     if (!property_arg && property_arg.error()) {
@@ -64,7 +64,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_set_pattern:
         }
     }
 
-    std::pair<syntax_expression_t const*, size_t> prop_val_arg_expr;
+    std::pair<syntax_expression const*, size_t> prop_val_arg_expr;
     auto valarg = call_session.use_next_positioned_argument(&prop_val_arg_expr);
     if (!valarg) {
         if (!valarg.error()) {
@@ -80,13 +80,13 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_set_pattern:
     shared_ptr<tuple_set_match_descriptor> pmd = make_shared<tuple_set_match_descriptor>(call);
     auto& ser = slf_arg->first;
     if (ser.is_const_result) {
-        return std::unexpected(make_error<basic_general_error>(get_start_location(*get<0>(slf_arg_expr)), "argument mismatch, expected a mutable tuple"sv, ser.value()));
+        return std::unexpected(make_error<basic_general_error>(get<0>(slf_arg_expr)->location, "argument mismatch, expected a mutable tuple"sv, ser.value()));
     }
 
     entity const& some_entity = get_entity(e, ser.type());
     auto psig = some_entity.signature();
     if (!psig || psig->name != e.get(builtin_qnid::tuple)) {
-        return std::unexpected(make_error<type_mismatch_error>(get_start_location(*get<0>(slf_arg_expr)), ctx.context_type, e.get(builtin_qnid::tuple)));
+        return std::unexpected(make_error<type_mismatch_error>(get<0>(slf_arg_expr)->location, ctx.context_type, e.get(builtin_qnid::tuple)));
     }
 
     pmd->emplace_back(0, ser);

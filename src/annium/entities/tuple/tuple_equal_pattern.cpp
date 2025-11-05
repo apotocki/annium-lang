@@ -41,7 +41,7 @@ tuple_equal_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
     if (!lhs_arg) {
         if (lhs_arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get_start_location(*get<0>(lhs_expr)), "invalid first argument for tuple equality comparison"sv),
+                make_error<basic_general_error>(get<0>(lhs_expr)->location, "invalid first argument for tuple equality comparison"sv),
                 std::move(lhs_arg.error())));
         } else {
             return std::unexpected(make_error<basic_general_error>(call.location, "tuple equality comparison requires two arguments: missing first tuple argument"sv));
@@ -54,7 +54,7 @@ tuple_equal_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
     if (!rhs_arg) {
         if (rhs_arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get_start_location(*get<0>(rhs_expr)), "invalid second argument for tuple equality comparison"sv),
+                make_error<basic_general_error>(get<0>(rhs_expr)->location, "invalid second argument for tuple equality comparison"sv),
                 std::move(rhs_arg.error())));
         } else {
             return std::unexpected(make_error<basic_general_error>(call.location, "tuple equality comparison requires two arguments: missing second tuple argument"sv));
@@ -83,15 +83,15 @@ tuple_equal_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
     auto* rhs_sig = rhs_entity_type.signature();
 
     if (!lhs_sig || lhs_sig->name != e.get(builtin_qnid::tuple)) {
-        return std::unexpected(make_error<type_mismatch_error>(get_start_location(*get<0>(lhs_expr)), lhs_entity_type.id, "a tuple type for equality comparison"sv));
+        return std::unexpected(make_error<type_mismatch_error>(get<0>(lhs_expr)->location, lhs_entity_type.id, "a tuple type for equality comparison"sv));
     }
     if (!rhs_sig || rhs_sig->name != e.get(builtin_qnid::tuple)) {
-        return std::unexpected(make_error<type_mismatch_error>(get_start_location(*get<0>(rhs_expr)), rhs_entity_type.id, "a tuple type for equality comparison"sv));
+        return std::unexpected(make_error<type_mismatch_error>(get<0>(rhs_expr)->location, rhs_entity_type.id, "a tuple type for equality comparison"sv));
     }
 
     auto pmd = make_shared<tuple_equal_match_descriptor>(call, lhs_entity_type, rhs_entity_type);
-    pmd->append_arg(lhs_arg_er, get_start_location(*get<0>(lhs_expr)));
-    pmd->append_arg(rhs_arg_er, get_start_location(*get<0>(rhs_expr)));
+    pmd->append_arg(lhs_arg_er, get<0>(lhs_expr)->location);
+    pmd->append_arg(rhs_arg_er, get<0>(rhs_expr)->location);
     return pmd;
 }
 
@@ -141,7 +141,7 @@ tuple_equal_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
     identifier lhs_tuple_var_name, rhs_tuple_var_name;
 
     // Helper lambda to append field value (const or non-const) for tuple fields
-    auto append_tuple_field_value = [&](pure_call_t& call, const auto& field, size_t fidx, optional<local_variable>& tuple_var, identifier& tuple_var_name, entity const& tuple_entity_type) -> error_storage {
+    auto append_tuple_field_value = [&](call_builder& call, const auto& field, size_t fidx, optional<local_variable>& tuple_var, identifier& tuple_var_name, entity const& tuple_entity_type) -> error_storage {
         if (field.is_const()) {
             // Use the const entity directly
             if (field.name()) { // get constexpr tuple field implementation
@@ -149,29 +149,28 @@ tuple_equal_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
                 rsig.emplace_back(e.make_identifier_entity(field.name()).id, true);
                 rsig.emplace_back(field.entity_id(), true);
                 entity_identifier ftype = e.make_basic_signatured_entity(std::move(rsig)).id;
-                call.emplace_back(annotated_entity_identifier{ e.make_empty_entity(ftype).id, md.call_location });
+                call.emplace_back(md.call_location, e.make_empty_entity(ftype).id);
             } else {
-                call.emplace_back(annotated_entity_identifier{ field.entity_id(), md.call_location });
+                call.emplace_back(md.call_location, field.entity_id());
             }
         } else {
             if (!tuple_var_name) {
                 tuple_var_name = e.new_identifier();
                 tuple_var.emplace(fn_scope.new_temporary(tuple_var_name, tuple_entity_type.id));
             }
-            pure_call_t get_call{ md.call_location };
-            get_call.emplace_back(annotated_identifier{ e.get(builtin_id::self), md.call_location },
-                name_reference{ annotated_identifier{ tuple_var_name } });
-            get_call.emplace_back(annotated_identifier{ e.get(builtin_id::property) }, annotated_integer{ numetron::integer{ fidx } });
+            call_builder get_call{ md.call_location };
+            get_call.emplace_back(e.get(builtin_id::self), md.call_location, name_reference_expression{ tuple_var_name });
+            get_call.emplace_back(e.get(builtin_id::property), md.call_location, numetron::integer_view{ fidx });
             auto match = ctx.find(builtin_qnid::get, get_call, el);
             if (!match) {
                 return append_cause(
-                    make_error<basic_general_error>(md.call_location, ("failed to access tuple field at index %1% during equality comparison"_fmt % fidx).str(), annotated_integer{ numetron::integer{ fidx } }),
+                    make_error<basic_general_error>(md.call_location, ("failed to access tuple field at index %1% during equality comparison"_fmt % fidx).str(), syntax_expression{ .value = numetron::integer_view{ fidx } }),
                     std::move(match.error()));
             }
             auto res = match->apply(ctx);
             if (!res) {
                 return append_cause(
-                    make_error<basic_general_error>(md.call_location, ("failed to retrieve tuple field value at index %1% during equality comparison"_fmt % fidx).str(), annotated_integer{ numetron::integer{ fidx } }),
+                    make_error<basic_general_error>(md.call_location, ("failed to retrieve tuple field value at index %1% during equality comparison"_fmt % fidx).str(), syntax_expression{ .value = numetron::integer_view{ fidx } }),
                     std::move(res.error()));
             }
             //result.branches_expressions = el.concat(result.branches_expressions, res->branches_expressions);
@@ -192,7 +191,7 @@ tuple_equal_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
             return true;
         }
 
-        pure_call_t eq_call{ md.call_location };
+        call_builder eq_call{ md.call_location };
 
         // Append lhs field value
         if (auto lhs_err = append_tuple_field_value(eq_call, lhs_field, i, lhs_tuple_var, lhs_tuple_var_name, eq_md.lhs_entity_type)) {

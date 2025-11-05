@@ -15,7 +15,7 @@
 
 namespace annium {
 
-value_match_visitor::value_match_visitor(fn_compiler_context& caller, fn_compiler_context& callee, semantic::expression_list_t& ael, syntax_expression_t const& ce, functional_binding& b, bool is_type_matching) noexcept
+value_match_visitor::value_match_visitor(fn_compiler_context& caller, fn_compiler_context& callee, semantic::expression_list_t& ael, syntax_expression const& ce, functional_binding& b, bool is_type_matching) noexcept
     : caller_ctx{ caller }, callee_ctx{ callee }, expressions{ ael }
     , cexpr{ ce }, binding{ b }, matching_type{ is_type_matching }
 {}

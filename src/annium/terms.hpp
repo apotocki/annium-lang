@@ -9,7 +9,6 @@
 #include "sonia/utility/lang/qname.hpp"
 
 #include "sonia/string.hpp"
-#include "sonia/variant.hpp"
 #include "numetron/basic_decimal.hpp"
 
 namespace annium {
@@ -17,17 +16,14 @@ namespace annium {
 using namespace sonia;
 
 struct lex_tag;
-struct enity_tag;
+struct entity_tag;
 struct variable_tag;
-
-//using integer = numetron::integer;
-//using decimal = numetron::decimal;
 
 using identifier = sonia::lang::identifier<uint32_t, lex_tag>;
 using qname = sonia::lang::qname<identifier>;
 using qname_view = sonia::lang::qname_view<identifier>;
 using qname_identifier = sonia::lang::qname_identifier;
-using entity_identifier = sonia::lang::identifier<uint32_t, enity_tag>;
+using entity_identifier = sonia::lang::identifier<uint32_t, entity_tag>;
 using variable_identifier = sonia::lang::identifier<uint32_t, variable_tag>;
 
 using resource_identifier = sonia::lang::lex::resource_identifier;
@@ -46,6 +42,8 @@ struct annotated
 
     inline explicit operator bool() const noexcept { return (bool)value; }
 
+    operator T const& () const noexcept { return value; }
+
     inline annotated const& self_or(annotated const& def) const noexcept { return value ? *this : def; }
     inline T const& value_or(T const& def) const noexcept { return value ? value : def; }
 };
@@ -53,11 +51,14 @@ struct annotated
 using annotated_string_view = annotated<string_view>;
 using annotated_identifier = annotated<identifier>;
 using annotated_qname = annotated<qname>;
+using annotated_qname_view = annotated<qname_view>;
 using annotated_qname_identifier = annotated<qname_identifier>;
 using annotated_entity_identifier = annotated<entity_identifier>;
 using annotated_bool = annotated<bool>;
 using annotated_integer = annotated<numetron::integer>;
 using annotated_decimal = annotated<numetron::decimal>;
+using annotated_integer_view = annotated<numetron::integer_view>;
+using annotated_decimal_view = annotated<numetron::decimal_view>;
 using annotated_string = annotated<small_string>;
 
 struct annotated_nil

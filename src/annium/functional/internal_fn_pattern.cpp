@@ -14,12 +14,12 @@
 
 namespace annium {
 
-error_storage internal_fn_pattern::init(fn_compiler_context& ctx, fn_decl_t const& fnd)
+error_storage internal_fn_pattern::init(fn_compiler_context& ctx, fn_decl const& fnd)
 {
     body_ = fnd.body;
     kind_ = fnd.kind;
     return basic_fn_pattern::init(ctx, fnd);
-    // if (auto err = init(ctx, static_cast<fn_pure_t const&>(fnd))) return err;
+    // if (auto err = init(ctx, static_cast<fn_pure const&>(fnd))) return err;
 }
 
 std::expected<functional_match_descriptor_ptr, error_storage> internal_fn_pattern::try_match(fn_compiler_context& caller_ctx, prepared_call const& call, expected_result_t const& exp) const
@@ -35,7 +35,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> internal_fn_patter
     environment& env = caller_ctx.env();
 
     internal_function_entity& fne = static_cast<internal_function_entity&>(env.eregistry_find_or_create(smpl, [this, &caller_ctx, &md]() {
-        return build(caller_ctx, md, md.signature);
+        return build(caller_ctx, entity_signature{ md.signature }, std::move(md.bindings));
     }));
 
     sonia::lang::compiler_task_tracer::task_guard tg = caller_ctx.try_lock_task(entity_task_id{ fne });
@@ -54,16 +54,16 @@ std::expected<functional_match_descriptor_ptr, error_storage> internal_fn_patter
     return res;
 }
 
-shared_ptr<internal_function_entity> internal_fn_pattern::build(fn_compiler_context& ctx, functional_match_descriptor& md, entity_signature signature) const
+shared_ptr<internal_function_entity> internal_fn_pattern::build(fn_compiler_context& ctx, entity_signature&& signature, functional_binding_set&& bindings) const
 {
-    auto res = basic_fn_pattern::build(ctx, md, std::move(signature));
+    auto res = basic_fn_pattern::build(ctx, std::move(signature), std::move(bindings));
     res->set_body(body_);
     res->set_inline(has(kind_, fn_kind::INLINE));
     res->set_provision(false);
     return res;
 }
 
-void internal_fn_pattern::build_scope(environment& e, functional_match_descriptor& md, internal_function_entity& fent) const
+void internal_fn_pattern::build_scope(environment& e, functional_binding_set&& bindings, internal_function_entity& fent) const
 {
     // setup captures
     if (captures_) {
@@ -81,7 +81,7 @@ void internal_fn_pattern::build_scope(environment& e, functional_match_descripto
         }
         // to do: for multivalued names bound constexpr vector of captures
     }
-    basic_fn_pattern::build_scope(e, md, fent);
+    basic_fn_pattern::build_scope(e, std::move(bindings), fent);
 }
 
 std::expected<syntax_expression_result, error_storage> internal_fn_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
@@ -91,11 +91,8 @@ std::expected<syntax_expression_result, error_storage> internal_fn_pattern::appl
 
     indirect_internal_function_entity smpl{ md.signature, location() };
 
-    if (md.call_location.line == 15 && md.call_location.column == 90) {
-        int u = 0;
-    }
     internal_function_entity& fne = static_cast<internal_function_entity&>(env.eregistry_find_or_create(smpl, [this, &ctx, &md]() {
-        return build(ctx, md, std::move(md.signature));
+        return build(ctx, std::move(md.signature), std::move(md.bindings));
     }));
 
     if (!fne.result) { // we need building to resolve result type

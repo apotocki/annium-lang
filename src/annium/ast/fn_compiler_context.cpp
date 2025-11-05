@@ -20,9 +20,9 @@ namespace annium {
 struct parameter_pack_element_type_visitor : static_visitor<std::expected<pattern_expression_t, error_storage>>
 {
     fn_compiler_context& ctx;
-    syntax_expression_t const& element_type_expression_;
+    syntax_expression const& element_type_expression_;
 
-    explicit parameter_pack_element_type_visitor(fn_compiler_context& c, syntax_expression_t const& et)
+    explicit parameter_pack_element_type_visitor(fn_compiler_context& c, syntax_expression const& et)
         : ctx{ c }
         , element_type_expression_{ et }
     {}
@@ -52,7 +52,7 @@ struct parameter_pack_element_type_visitor : static_visitor<std::expected<patter
         functional& ellipsis_fnl = env().fregistry().resolve(env().get_ellipsis_qname_identifier());
         named_expression_list_t ellipsis_args;
         ellipsis_args.emplace_back(annotated_entity_identifier{ eid });
-        pure_call_t ellipsis_call{ resource_location{}, std::move(ellipsis_args) };
+        pure_call ellipsis_call{ resource_location{}, std::move(ellipsis_args) };
         functional::match_descriptor md;
         auto ptrn = ellipsis_fnl.find(ctx, ellipsis_call, {}, md);
         if (!ptrn.has_value()) {
@@ -127,7 +127,7 @@ struct parameter_visitor : static_visitor<std::expected<pattern_expression_t, er
         //    functional& ellipsis_fnl = env().fregistry().resolve(env().get_ellipsis_qname_identifier());
         //    named_expression_term_list_t ellipsis_args;
         //    ellipsis_args.emplace_back(entity_expression{ element_type, });
-        //    pure_call_t ellipsis_call{ resource_location{}, std::move(ellipsis_args) };
+        //    pure_call ellipsis_call{ resource_location{}, std::move(ellipsis_args) };
         //    auto ptrn = ellipsis_fnl.find(ctx, ellipsis_call);
         //    if (!ptrn.has_value()) {
         //        return std::unexpected(std::move(ptrn.error()));
@@ -158,7 +158,7 @@ struct parameter_visitor : static_visitor<std::expected<pattern_expression_t, er
 //    for (auto& param : params) {
 //        temp_constraint_patterns.clear();
 //        parameter_constraint_list_t const& constraints = param.constraints;
-//        for (syntax_expression_t const& expr : param.constraints) {
+//        for (syntax_expression const& expr : param.constraints) {
 //            auto res = apply_visitor(pvis, expr);
 //            if (!res.has_value()) return std::unexpected(std::move(res.error()));
 //            temp_constraint_patterns.emplace_back(res.value());
@@ -243,7 +243,7 @@ fn_compiler_context::~fn_compiler_context()
     //expression_store_.splice_back(root_expressions_);
 }
 
-optional<variant<entity_identifier, local_variable>> fn_compiler_context::get_bound(identifier name) const noexcept
+optional<std::variant<entity_identifier, local_variable>> fn_compiler_context::get_bound(identifier name) const noexcept
 {
     // then look for bound entities
     for (functional_binding const* binding : boost::adaptors::reverse(bindings_)) {
@@ -255,8 +255,8 @@ optional<variant<entity_identifier, local_variable>> fn_compiler_context::get_bo
     }
     for (functional_binding const& binding : boost::adaptors::reverse(scoped_locals_)) {
         if (auto optval = binding.lookup(name); optval) {
-            if (entity_identifier const* eid = get<entity_identifier>(optval); eid) return *eid;
-            if (local_variable const* lv = get<local_variable>(optval); lv) return *lv;
+            if (entity_identifier const* eid = get_if<entity_identifier>(optval); eid) return *eid;
+            if (local_variable const* lv = get_if<local_variable>(optval); lv) return *lv;
         }
     }
 
@@ -399,7 +399,7 @@ error_storage fn_compiler_context::build_function_descriptor(fn_pure const& pure
             if (!res.has_value()) return std::move(res.error());
             fld.constraint = res.value();
         }
-        for (syntax_expression_t const& ce : constraints.concepts) {
+        for (syntax_expression const& ce : constraints.concepts) {
             auto res = apply_visitor(pvis, ce);
             if (!res.has_value()) return std::move(res.error());
             fld.concepts.emplace_back(res.value());
@@ -505,22 +505,22 @@ functional const* fn_compiler_context::lookup_functional(qname_view name) const
     }
 }
 
-std::expected<qname_identifier, error_storage> fn_compiler_context::lookup_qname(annotated_qname const& name) const
+std::expected<qname_identifier, error_storage> fn_compiler_context::lookup_qname(annotated_qname_view name) const
 {
     functional const* pfn = lookup_functional(name.value);
     if (pfn) return pfn->id();
     return std::unexpected(make_error<undeclared_identifier_error>(name));
 }
 
-variant<entity_identifier, local_variable> fn_compiler_context::lookup_entity(annotated_identifier const& name) const
+std::variant<entity_identifier, local_variable> fn_compiler_context::lookup_entity(identifier name) const
 {
-    auto optbv = get_bound(name.value);
+    auto optbv = get_bound(name);
     if (optbv) return std::move(*optbv);
 
     qname checkns = ns_;
     size_t sz = checkns.parts().size();
     for (;;) {
-        checkns.append(name.value);
+        checkns.append(name);
         functional* f = environment_.fregistry_find(checkns);
         if (f) return f->default_entity(const_cast<fn_compiler_context&>(*this));
         if (!sz) break;
@@ -530,38 +530,38 @@ variant<entity_identifier, local_variable> fn_compiler_context::lookup_entity(an
     return entity_identifier{}; // undeclared
 }
 
-variant<entity_identifier, local_variable> fn_compiler_context::lookup_entity(annotated_qname const& name) const
+std::variant<entity_identifier, local_variable> fn_compiler_context::lookup_entity(qname_view name) const
 {
     //using result_t = variant<entity_identifier, local_variable>;
-    if (name.value.is_relative() && name.value.size() == 1) {
-        identifier varid = *name.value.begin();
+    if (name.is_relative() && name.size() == 1) {
+        identifier varid = *name.begin();
         auto optbv = get_bound(varid);
         if (optbv) return std::move(*optbv);
     }
 
-    functional const* pfn = lookup_functional(name.value);
+    functional const* pfn = lookup_functional(name);
     if (pfn) 
         return pfn->default_entity(const_cast<fn_compiler_context&>(*this));
     return entity_identifier{}; // undeclared
 }
 
-std::expected<functional::match, error_storage> fn_compiler_context::find(builtin_qnid qnid, pure_call_t const& call, semantic::expression_list_t& el, expected_result_t const& expected_result)
+std::expected<functional::match, error_storage> fn_compiler_context::find(builtin_qnid qnid, resource_location const& call_location, span<const opt_named_expression_t> const& call_args, semantic::expression_list_t& el, expected_result_t const& expected_result)
 {
     functional const& fn = env().fget(qnid);
-    return fn.find(*this, nullptr, call, el, expected_result);
+    return fn.find(*this, nullptr, call_location, call_args, el, expected_result);
 }
 
-std::expected<syntax_expression_result, error_storage> fn_compiler_context::find_and_apply(builtin_qnid qnid, pure_call_t const& call, semantic::expression_list_t& el, expected_result_t const& expected_result)
+std::expected<syntax_expression_result, error_storage> fn_compiler_context::find_and_apply(builtin_qnid qnid, call_builder const& cb, semantic::expression_list_t& el, expected_result_t const& expected_result)
 {
-    auto match = find(qnid, call, el, expected_result);
+    auto match = find(qnid, cb.location, cb, el, expected_result);
     if (!match) return std::unexpected(std::move(match.error()));
     return match->apply(*this);
 }
 
-std::expected<functional::match, error_storage> fn_compiler_context::find(qname_identifier qnid, pure_call_t const& call, semantic::expression_list_t& el, expected_result_t const& expected_result)
+std::expected<functional::match, error_storage> fn_compiler_context::find(qname_identifier qnid, resource_location const& call_location, span<const opt_named_expression_t> const& call_args, semantic::expression_list_t& el, expected_result_t const& expected_result)
 {
     functional const& fn = env().fregistry_resolve(qnid);
-    return fn.find(*this, nullptr, call, el, expected_result);
+    return fn.find(*this, nullptr, call_location, call_args, el, expected_result);
 }
 
 

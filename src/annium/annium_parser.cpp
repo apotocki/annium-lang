@@ -11,6 +11,8 @@
 #include "sonia/utility/scope_exit.hpp"
 
 #include "numetron/integer_view.hpp"
+#include "numetron/limbs_from_string.hpp"
+#include "numetron/limbs_from_decimal_string.hpp"
 
 using namespace annium;
 
@@ -25,7 +27,6 @@ using YYLTYPE = annium_lang::parser::location_type;
 #include "annium/utility/linked_list.ipp"
 
 #include "annium/ast/ast_resource.hpp"
-#include "annium/ast/arena.hpp"
 
 namespace annium {
 
@@ -34,14 +35,32 @@ identifier parser_context::new_identifier() const
     return environment_.new_identifier();
 }
 
-annotated_identifier parser_context::make_identifier(annotated_string_view astr) const
+identifier parser_context::make_identifier(string_view&& str) const
 {
-    return { environment_.slregistry().resolve(astr.value), astr.location };
+    return environment_.slregistry().resolve(str);
 }
 
-annotated_qname parser_context::make_qname(annotated_string_view astr) const
+annotated_identifier parser_context::make_identifier(annotated_string_view && astr) const
 {
-    return annotated_qname{ qname{environment_.slregistry().resolve(astr.value), false}, std::move(astr.location) };
+    return { make_identifier(std::move(astr.value)), std::move(astr.location) };
+}
+
+qname_view parser_context::make_qname_view(qname && qn) const
+{
+    auto sp = make_array<identifier>(qn.parts());
+    return qname_view{ sp, qn.is_absolute() };
+}
+
+annotated_qname_view parser_context::make_qname_view(annotated_qname && aqn) const
+{
+    return annotated_qname_view{ make_qname_view(std::move(aqn.value)), std::move(aqn.location) };
+}
+
+annotated_qname_view parser_context::make_qname_view(annotated_string_view && astr) const
+{
+    identifier strid = environment_.slregistry().resolve(astr.value);
+    auto sp = make_array<identifier>(span(&strid, 1));
+    return annotated_qname_view{ qname_view{ sp, false }, std::move(astr.location) };
 }
 
 //annotated_qname_identifier parser_context::make_qname_identifier(annotated_qname aqn) const
@@ -59,11 +78,17 @@ annotated_qname parser_context::make_qname(annotated_string_view astr) const
 //    return identifier{ env_.iregistry().resolve(str).value, true};
 //}
 
-annotated_string parser_context::make_string(annotated_string_view str) const
+annotated_string_view parser_context::make_string_view(annotated_string_view str) const
+{
+    return { make_string_view(str.value), std::move(str.location) };
+}
+
+string_view parser_context::make_string_view(string_view str) const
 {
     small_vector<char, 128> buff;
-    parsers::normilize_json_string(str.value.begin(), str.value.end(), std::back_inserter(buff));
-    return { small_string{ buff.data(), buff.size()}, str.location };
+    parsers::normilize_json_string(str.begin(), str.end(), std::back_inserter(buff));
+    auto sp = make_array<char>(buff);
+    return string_view{ sp.data(), sp.size() };
 }
 
 //integer_literal parser_context::make_integer_literal(string_view str)
@@ -76,19 +101,79 @@ annotated_string parser_context::make_string(annotated_string_view str) const
 //    };
 //}
 
-numetron::integer parser_context::make_integer(string_view str) const
+template <typename LimbT>
+struct inplace_allocator_type
 {
-    return numetron::integer(str);
+    using value_type = LimbT;
+    using size_type = std::size_t;
+    using difference_type = std::ptrdiff_t;
+    using propagate_on_container_move_assignment = std::true_type;
+
+    arena& arena_;
+    span<LimbT> inplace_limbs_;
+    bool inplace_allocation_ = false;
+    inplace_allocator_type(arena& a, span<LimbT> inplace) : arena_{ a }, inplace_limbs_{ inplace } {}
+
+    LimbT* allocate(size_t cnt)
+    {
+        if (cnt <= inplace_limbs_.size() && !inplace_allocation_) {
+            inplace_allocation_ = true;
+            return inplace_limbs_.data();
+        } else {
+            return arena_.make_array<LimbT>(cnt).data();
+        }
+    }
+
+    void deallocate(LimbT* ptr, size_t sz)
+    {
+        if (std::equal_to<LimbT*>{}(ptr, inplace_limbs_.data())) {
+            inplace_allocation_ = false;
+        }
+    }
+};
+
+numetron::integer_view parser_context::make_integer_view(string_view str) const
+{
+    using limb_t = numetron::integer_view::limb_type;
+    limb_t inplace_limbs[1];
+    auto limbs = numetron::to_limbs<uint64_t>(str, inplace_allocator_type<limb_t>{ *resource_->get_arena(), inplace_limbs });
+    if (!limbs) {
+        std::rethrow_exception(limbs.error());
+    }
+    auto [ls, sz, _, sign] = *limbs;
+    if (sz == 1) {
+        return numetron::integer_view::make_inplace(span{ ls, sz }, sign);
+    }
+    return numetron::integer_view(span{ ls, sz }, sign);
 }
 //
-numetron::decimal parser_context::make_decimal(string_view str) const
+numetron::decimal_view parser_context::make_decimal_view(string_view str) const
 {
-    return numetron::decimal(str);
+    using limb_t = numetron::integer_view::limb_type;
+    numetron::decimal tmpdec{ str };
+    auto sign_part= tmpdec.significand();
+    auto exp_part = tmpdec.exponent();
+
+    if (!sign_part.is_inplace()) {
+        auto [sign_limbs, mask, sgn] = sign_part.decompose();
+        auto arena_sign_limbs = resource_->get_arena()->make_array<limb_t>(sign_limbs);
+        arena_sign_limbs.back() &= mask;
+        sign_part = numetron::integer_view::make_inplace(arena_sign_limbs, sgn);
+    }
+
+    if (!exp_part.is_inplace()) {
+        auto [exp_limbs, mask, sgn] = exp_part.decompose();
+        auto arena_exp_limbs = resource_->get_arena()->make_array<limb_t>(exp_limbs);
+        arena_exp_limbs.back() &= mask;
+        exp_part = numetron::integer_view::make_inplace(arena_exp_limbs, sgn);
+    }
+    return numetron::decimal_view{ sign_part, exp_part };
 }
 
-annotated_entity_identifier parser_context::make_void(resource_location loc) const
+entity_identifier parser_context::make_void() const
 {
-    return annotated_entity_identifier{ environment_.get(builtin_eid::void_), std::move(loc) };
+    return environment_.get(builtin_eid::void_);
+    //return annotated_entity_identifier{ environment_.get(builtin_eid::void_), std::move(loc) };
 }
 
 void parser_context::append_error(int line_begin, int col_begin, int line_end, int col_end, string_view tok)
@@ -109,37 +194,37 @@ void parser_context::append_error(std::string errmsg)
     error_messages_.push_back(std::move(errmsg));
 }
 
-managed_statement_list parser_context::new_statement_list() const
+//managed_statement_list parser_context::new_statement_list() const
+//{
+//    return managed_statement_list{ environment_ };
+//}
+//
+//statement_span parser_context::push(managed_statement_list&& msl)
+//{
+//    statement_span result = msl;
+//    statements_.splice_back(msl);
+//    BOOST_ASSERT(!msl);
+//    return result;
+//}
+
+void parser_context::set_root_statements(statement_list_t&& sts)
 {
-    return managed_statement_list{ environment_ };
+    root_statements_ = make_array<statement>(sts);
 }
 
-statement_span parser_context::push(managed_statement_list&& msl)
-{
-    statement_span result = msl;
-    statements_.splice_back(msl);
-    BOOST_ASSERT(!msl);
-    return result;
-}
-
-void parser_context::set_root_statements(managed_statement_list&& sts)
-{
-    root_statements_ = push(std::move(sts));
-}
-
-std::expected<statement_span, std::string> parser_context::parse(fs::path const& f, fs::path const* base_path)
+std::expected<span<const statement>, std::string> parser_context::parse(fs::path const& f, fs::path const* base_path)
 {
     resource_ = &environment_.get_resource(f, base_path);
     return parse(resource_->get_source());
 }
 
-std::expected<statement_span, std::string> parser_context::parse_string(string_view code)
+std::expected<span<const statement>, std::string> parser_context::parse_string(string_view code)
 {
     resource_ = &environment_.get_resource(code);
     return parse(code);
 }
 
-std::expected<statement_span, std::string> parser_context::parse(string_view code)
+std::expected<span<const statement>, std::string> parser_context::parse(string_view code)
 {
     auto sc_data = std::make_unique<sonia::lang::lex::scanner_data>();
 

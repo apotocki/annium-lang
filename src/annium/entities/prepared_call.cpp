@@ -18,7 +18,7 @@
 
 namespace annium {
 
-prepared_call::prepared_call(fn_compiler_context &ctx, functional const* pf, span<const named_expression_t> call_args, resource_location call_loc, semantic::expression_list_t& ael)
+prepared_call::prepared_call(fn_compiler_context &ctx, functional const* pf, span<const opt_named_expression_t> call_args, resource_location call_loc, semantic::expression_list_t& ael)
     : caller_ctx{ ctx }
     , pfnl{ pf }
     , expressions{ ael }
@@ -64,19 +64,19 @@ void prepared_call::export_auxiliaries(syntax_expression_result& ser)
     }
 }
 
-std::expected<syntax_expression_t, error_storage> deref(fn_compiler_context& ctx, annotated_qname const& aqn)
+std::expected<syntax_expression, error_storage> deref(fn_compiler_context& ctx, annotated_qname_view aqn)
 {
-    auto optent = ctx.lookup_entity(aqn);
-    using result_t = std::expected<syntax_expression_t, error_storage>;
-    return apply_visitor(make_functional_visitor<result_t>([&ctx, &aqn](auto& eid_or_var) -> result_t
-    {
+    auto optent = ctx.lookup_entity(aqn.value);
+    using result_t = std::expected<syntax_expression, error_storage>;
+    return visit([&ctx, &aqn](auto& eid_or_var) -> result_t {
         if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, entity_identifier>) {
             if (!eid_or_var) return std::unexpected(make_error<undeclared_identifier_error>(std::move(aqn)));
-            return annotated_entity_identifier{ eid_or_var, aqn.location };
+            return syntax_expression{ aqn.location, eid_or_var };
         } else {
-            return qname_reference{ aqn };
+            static_assert(std::is_same_v<std::decay_t<decltype(eid_or_var)>, local_variable>);
+            return syntax_expression{ aqn.location, qname_reference_expression{ aqn.value } };
         }
-    }), optent);
+    }, optent);
 }
 
 error_storage prepared_call::prepare()
@@ -85,7 +85,7 @@ error_storage prepared_call::prepare()
     args_type rebuilt_args;
     bool use_rebuilt_args = false;
 
-    auto append_arg = [&rebuilt_args](annotated_identifier const* groupname, syntax_expression_t&& e) {
+    auto append_arg = [&rebuilt_args](annotated_identifier const* groupname, syntax_expression&& e) {
         if (groupname) {
             rebuilt_args.emplace_back(*groupname, std::move(e));
         } else {
@@ -96,9 +96,9 @@ error_storage prepared_call::prepare()
     for (auto it = args.begin(), eit = args.end(); it != eit; ++it) {
         auto& arg = *it;
         auto name_value_tpl = *arg;
-        syntax_expression_t& argvalue = get<1>(name_value_tpl);
+        syntax_expression& argvalue = get<1>(name_value_tpl);
         
-        auto * pue = get<unary_expression_t>(&argvalue);
+        unary_expression const* pue = get_if<unary_expression>(&argvalue.value);
         if (!pue || pue->op != unary_operator_type::ELLIPSIS) {
             if (!use_rebuilt_args) continue;
             rebuilt_args.emplace_back(std::move(arg));
@@ -108,12 +108,12 @@ error_storage prepared_call::prepare()
             std::move(args.begin(), it, std::back_inserter(rebuilt_args));
             use_rebuilt_args = true;
         }
-        syntax_expression_t & ellipsis_arg = pue->args.front().value();
-        auto obj = apply_visitor(base_expression_visitor{ caller_ctx, expressions }, ellipsis_arg);
+        syntax_expression const& ellipsis_arg = pue->args.front().value();
+        auto obj = base_expression_visitor::visit(caller_ctx, expressions, ellipsis_arg);
         if (!obj) return std::move(obj.error());
         
         annotated_identifier const* groupname = get<0>(name_value_tpl);
-        resource_location arg_expr_loc = get_start_location(ellipsis_arg);
+        resource_location const& arg_expr_loc = ellipsis_arg.location;
         resource_location arg_loc = groupname ? groupname->location : arg_expr_loc;
         
         auto& ser = obj->first;
@@ -121,7 +121,7 @@ error_storage prepared_call::prepare()
         if (ser.is_const_result) {
             entity const& arg_ent = get_entity(e, ser.value());
             if (qname_entity const* pqne = dynamic_cast<qname_entity const*>(&arg_ent); pqne) {
-                auto res = deref(caller_ctx, annotated_qname{ pqne->value(), arg_loc });
+                auto res = deref(caller_ctx, annotated_qname_view{ pqne->value(), arg_loc });
                 if (!res) return std::move(res.error());
                 append_arg(groupname, std::move(*res));
                 continue;
@@ -135,9 +135,9 @@ error_storage prepared_call::prepare()
         entity_signature const* signature = type_ent.signature();
         if (!signature || signature->name != e.get(builtin_qnid::tuple)) {
             if (ser.is_const_result) {
-                append_arg(groupname, annotated_entity_identifier{ ser.value(), arg_loc });
+                append_arg(groupname, syntax_expression{ arg_loc, ser.value() });
             } else {
-                append_arg(groupname, std::move(ellipsis_arg));
+                append_arg(groupname, syntax_expression{ ellipsis_arg });
             }
             continue;
         }
@@ -162,29 +162,28 @@ error_storage prepared_call::prepare()
             if (fd.is_const()) {
                 entity const& arg_ent = get_entity(e, fd.entity_id());
                 if (qname_entity const* pqne = dynamic_cast<qname_entity const*>(&arg_ent); pqne) {
-                    auto res = deref(caller_ctx, annotated_qname{ pqne->value(), arg_expr_loc });
+                    auto res = deref(caller_ctx, annotated_qname_view{ pqne->value(), arg_expr_loc });
                     if (!res) return std::move(res.error());
                     append_arg(fd_groupname, std::move(*res));
                 } else {
-                    append_arg(fd_groupname, annotated_entity_identifier{ fd.entity_id(), arg_expr_loc });
+                    append_arg(fd_groupname, syntax_expression{ arg_expr_loc, fd.entity_id() });
                 }
             } else {
                 BOOST_ASSERT(tuple_name);
-                pure_call_t get_call{ arg_expr_loc };
-                get_call.emplace_back(annotated_identifier{ e.get(builtin_id::self), arg_expr_loc },
-                    name_reference{ annotated_identifier{ tuple_name } });
-                get_call.emplace_back(annotated_identifier{ e.get(builtin_id::property) }, annotated_integer{ numetron::integer{ argpos } });
+                call_builder get_call{ arg_expr_loc };
+                get_call.emplace_back(e.get(builtin_id::self), arg_expr_loc, name_reference_expression{ tuple_name });
+                get_call.emplace_back(e.get(builtin_id::property), arg_expr_loc, numetron::integer_view{ argpos });
                 
                 auto match = caller_ctx.find(builtin_qnid::get, get_call, expressions);
                 if (!match) {
                     return append_cause(
-                        make_error<basic_general_error>(arg_expr_loc, "internal error: can't get tuple element"sv, annotated_integer{ numetron::integer{ argpos - 1 } }),
+                        make_error<basic_general_error>(arg_expr_loc, "internal error: can't get tuple element"sv, syntax_expression{ .value = numetron::integer_view{ argpos - 1 } }),
                         std::move(match.error()));
                 }
                 auto res = match->apply(caller_ctx);
                 if (!res) {
                     return append_cause(
-                        make_error<basic_general_error>(arg_expr_loc, "internal error: can't get tuple element"sv, annotated_integer{ numetron::integer{ argpos - 1 } }),
+                        make_error<basic_general_error>(arg_expr_loc, "internal error: can't get tuple element"sv, syntax_expression{ .value = numetron::integer_view{ argpos - 1 } }),
                         std::move(res.error()));
                 }
 
@@ -228,7 +227,7 @@ error_storage prepared_call::prepare()
         if (name) {
             argument_caches_.emplace_back(name->value, name->location, expr);
         } else {
-            argument_caches_.emplace_back(identifier{}, get_start_location(expr), expr);
+            argument_caches_.emplace_back(identifier{}, expr.location, expr);
         }
 
         if (name) {
@@ -269,7 +268,7 @@ prepared_call::session::do_resolve(argument_cache& arg_cache, expected_result_t 
 {
     auto cit = arg_cache.cache.find({ exp.type, exp.modifier });
     if (cit == arg_cache.cache.end()) {
-        auto res = apply_visitor(base_expression_visitor{ ctx, call.expressions, exp }, arg_cache.expression);
+        auto res = base_expression_visitor::visit(ctx, call.expressions, exp, arg_cache.expression);
         cit = arg_cache.cache.emplace_hint(cit, cache_key_t{ exp.type, exp.modifier }, res);
         if (res && can_be_constexpr_and_runtime(exp.modifier)) {
             if (res->first.is_const_result) {
@@ -336,7 +335,7 @@ prepared_call::session::use_next_positioned_argument(expected_result_t const& ex
 }
 
 std::expected<std::pair<syntax_expression_result, bool>, error_storage>
-prepared_call::session::use_named_argument(identifier name, expected_result_t const& exp, std::pair<syntax_expression_t const*, size_t>* pe)
+prepared_call::session::use_named_argument(identifier name, expected_result_t const& exp, std::pair<syntax_expression const*, size_t>* pe)
 {
     for (auto tmp_map = named_usage_map_; tmp_map;) {
         // get next unused argument index
@@ -385,14 +384,14 @@ prepared_call::session::use_next_argument(expected_result_t const& exp, next_arg
     return std::unexpected(error_storage{});
 }
 
-named_expression_t prepared_call::session::unused_argument()
+opt_named_expression_t prepared_call::session::unused_argument()
 {
     for (auto tmp_map = named_usage_map_ | positioned_usage_map_; tmp_map;) {
         uint64_t pow2_argindex = tmp_map - ((tmp_map - 1) & tmp_map);
         uint8_t argindex = sonia::sal::log2(pow2_argindex);
 
         auto& [argname, loc, arg_cache] = call.argument_caches_[argindex];
-        return argname ? named_expression_t{ annotated_identifier{ argname, loc }, arg_cache.expression } : named_expression_t{ arg_cache.expression };
+        return argname ? opt_named_expression_t{ annotated_identifier{ argname, loc }, arg_cache.expression } : opt_named_expression_t{ arg_cache.expression };
     }
 
     return {};

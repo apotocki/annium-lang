@@ -8,7 +8,7 @@
 
 namespace annium {
 
-expression_resolver::expression_resolver(resource_location loc, syntax_expression_t const& expr)
+expression_resolver::expression_resolver(resource_location loc, syntax_expression const& expr)
     : location_{ std::move(loc) }
     , expression_{ expr }
 {}
@@ -16,8 +16,7 @@ expression_resolver::expression_resolver(resource_location loc, syntax_expressio
 std::expected<entity_identifier, error_storage> expression_resolver::const_resolve(fn_compiler_context& ctx) const
 {
     semantic::managed_expression_list el{ ctx.env() };
-    base_expression_visitor evis{ ctx, el, expected_result_t{.modifier = value_modifier_t::constexpr_value }};
-    auto res = apply_visitor(evis, expression_);
+    auto res = base_expression_visitor::visit(ctx, el, expected_result_t{ .modifier = value_modifier_t::constexpr_value }, expression_);
     if (!res) return std::unexpected(res.error());
     if (res->first.expressions) THROW_NOT_IMPLEMENTED_ERROR("expression_resolver::const_resolve");
     return res->first.value();

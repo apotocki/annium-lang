@@ -22,8 +22,8 @@ public:
     semantic::expression_list_t& expressions;
     resource_location location;
 
-    //using args_type = small_vector<named_expression_t, 8>;
-    using args_type = std::vector<named_expression_t>;
+    using args_type = small_vector<opt_named_expression_t, 8>;
+    //using args_type = span<const opt_named_expression_t>;
     args_type args;
 
     functional_binding_set bound_temporaries;
@@ -35,10 +35,10 @@ public:
     using cache_key_t = std::tuple<entity_identifier, value_modifier_t>;
     struct argument_cache
     {
-        syntax_expression_t expression;
+        syntax_expression expression;
         boost::container::small_flat_map<cache_key_t, std::expected<std::pair<syntax_expression_result, bool>, error_storage>, 8> cache;
 
-        inline explicit argument_cache(syntax_expression_t e) noexcept
+        inline explicit argument_cache(syntax_expression e) noexcept
             : expression{ std::move(e) }
         {}
     };
@@ -48,7 +48,7 @@ public:
     mutable argument_caches_type argument_caches_;
     uint64_t named_map_, positioned_map_; // bitmasks of named and positional arguments
 
-    prepared_call(fn_compiler_context&, functional const*, span<const named_expression_t>, resource_location call_loc, semantic::expression_list_t&);
+    prepared_call(fn_compiler_context&, functional const*, span<const opt_named_expression_t>, resource_location call_loc, semantic::expression_list_t&);
     prepared_call(prepared_call const&) = delete;
     ~prepared_call();
 
@@ -56,8 +56,8 @@ public:
 
     error_storage prepare();
 
-    using argument_descriptor_t = std::pair<syntax_expression_t const*, size_t>;
-    using next_argument_descriptor_t = std::tuple<annotated_identifier, syntax_expression_t const*, size_t>;
+    using argument_descriptor_t = std::pair<syntax_expression const*, size_t>;
+    using next_argument_descriptor_t = std::tuple<annotated_identifier, syntax_expression const*, size_t>;
 
     struct session
     {
@@ -81,7 +81,7 @@ public:
         std::expected<std::pair<syntax_expression_result, bool>, error_storage> use_named_argument(identifier name, expected_result_t const& exp, argument_descriptor_t* = nullptr);
 
         std::expected<std::pair<syntax_expression_result, bool>, error_storage> use_next_argument(expected_result_t const& exp, next_argument_descriptor_t* pe);
-        named_expression_t unused_argument();
+        opt_named_expression_t unused_argument();
 
         void reuse_argument(size_t argindex);
 

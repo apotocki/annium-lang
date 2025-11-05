@@ -21,25 +21,27 @@ struct assign_expression_visitor : static_visitor<std::expected<syntax_expressio
     fn_compiler_context& ctx_;
     semantic::expression_list_t& expressions;
     resource_location assign_location_;
-    syntax_expression_t const& rhs_;
+    syntax_expression const& lhs_;
+    syntax_expression const& rhs_;
 
-    inline assign_expression_visitor(fn_compiler_context& c, semantic::expression_list_t& ael, resource_location const& l, syntax_expression_t const& rhs) noexcept
+    inline assign_expression_visitor(fn_compiler_context& c, semantic::expression_list_t& ael, resource_location const& l, syntax_expression const& lhs, syntax_expression const& rhs) noexcept
         : ctx_{ c }
         , expressions{ ael }
         , assign_location_{ l }
+        , lhs_{ lhs }
         , rhs_{ rhs }
     {}
 
     template <typename T>
     result_type operator()(T const& v) const
     {
-        return std::unexpected(make_error<assign_error>(assign_location_, syntax_expression_t{ v }));
+        return std::unexpected(make_error<assign_error>(assign_location_, lhs_));
         //THROW_NOT_IMPLEMENTED_ERROR("assign_expression_visitor not implemented expression");
     }
 
-    result_type operator()(qname_reference const&) const;
+    result_type operator()(qname_reference_expression const&) const;
 
-    result_type operator()(member_expression_t const&) const;
+    result_type operator()(member_expression const&) const;
     
 #if 0
     result_type operator()(annotated_qname const&) const;

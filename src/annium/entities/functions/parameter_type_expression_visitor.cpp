@@ -11,9 +11,9 @@ namespace annium {
 struct parameter_pack_element_type_visitor : static_visitor<std::expected<pattern_expression_t, error_storage>>
 {
     fn_compiler_context& ctx;
-    syntax_expression_t const& element_type_expression_;
+    syntax_expression const& element_type_expression_;
 
-    explicit parameter_pack_element_type_visitor(fn_compiler_context& c, syntax_expression_t const& et)
+    explicit parameter_pack_element_type_visitor(fn_compiler_context& c, syntax_expression const& et)
         : ctx{ c }
         , element_type_expression_{ et }
     {}
@@ -43,7 +43,7 @@ struct parameter_pack_element_type_visitor : static_visitor<std::expected<patter
         functional& ellipsis_fnl = env().fregistry().resolve(env().get_ellipsis_qname_identifier());
         named_expression_list_t ellipsis_args;
         ellipsis_args.emplace_back(entity_expression{ eid });
-        pure_call_t ellipsis_call{ resource_location{}, std::move(ellipsis_args) };
+        pure_call ellipsis_call{ resource_location{}, std::move(ellipsis_args) };
         functional::match_descriptor md;
         auto ptrn = ellipsis_fnl.find(ctx, ellipsis_call, md);
         if (!ptrn.has_value()) {

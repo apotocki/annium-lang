@@ -26,7 +26,7 @@ class functional_binding
 public:
     virtual ~functional_binding() = default;
 
-    using value_type = variant<entity_identifier, local_variable>;
+    using value_type = std::variant<entity_identifier, local_variable>;
 
     virtual value_type const* lookup(identifier) const noexcept = 0;
     virtual void emplace_back(annotated_identifier, value_type) = 0;
@@ -258,14 +258,16 @@ public:
 
     inline void append_arg(identifier name, syntax_expression_result arg_er, resource_location loc = {})
     {
-        intptr_t argindex = signature.fields().size();
+        //intptr_t argindex = signature.fields().size();
+        intptr_t argindex = matches.size();
         signature.emplace_back(name, arg_er.value_or_type, arg_er.is_const_result);
         emplace_back(argindex, std::move(arg_er), std::move(loc));
     }
 
     inline void append_arg(syntax_expression_result arg_er, resource_location loc = {})
     {
-        intptr_t argindex = signature.fields().size();
+        //intptr_t argindex = signature.fields().size();
+        intptr_t argindex = matches.size();
         signature.emplace_back(arg_er.value_or_type, arg_er.is_const_result);
         emplace_back(argindex, std::move(arg_er), std::move(loc));
     }
@@ -369,7 +371,9 @@ public:
     std::expected<match, error_storage> find(
         fn_compiler_context&,
         syntax_expression_result* capture_result,
-        pure_call_t const&, semantic::expression_list_t&, expected_result_t const& expected_result = expected_result_t{}) const;
+        resource_location const& call_location,
+        span<const opt_named_expression_t> const& call_args,
+        semantic::expression_list_t&, expected_result_t const& expected_result = expected_result_t{}) const;
 
 private:
     qname_identifier id_;
@@ -383,7 +387,7 @@ private:
 //struct pattern_local_variable { size_t var_index; };
 //struct pattern_variable { identifier id; };
 //using pattern_expression_t = variant<nullptr_t, annotated_qname_identifier, entity_identifier, pattern_local_variable, pattern_variable>;
-using patern_fieldset_t = fieldset<boost::container::small_vector<syntax_expression_t, 1>>;
+using patern_fieldset_t = fieldset<small_vector<syntax_expression const*, 1>>;
 
 class function_descriptor
 {
@@ -391,9 +395,9 @@ public:
     struct generic_field
     {
         optional<annotated_identifier> iname;
-        optional<syntax_expression_t> constraint;
-        boost::container::small_vector<syntax_expression_t, 1> concepts;
-        boost::container::small_vector<annotated_identifier, 1> bindings;
+        syntax_expression const* constraint;
+        small_vector<syntax_expression const*, 1> concepts;
+        small_vector<annotated_identifier, 1> bindings;
         parameter_constraint_modifier_t constraint_type;
     };
 
@@ -439,8 +443,8 @@ public:
     inline span<const named_field> named_fields() const noexcept { return nfields_; }
     inline span<const positioned_field> positioned_fields() const noexcept { return pfields_; }
 
-    syntax_expression_t const* result_type() const { return result_type_ ? &*result_type_ : nullptr; }
-    void set_result_type(syntax_expression_t rt) { result_type_ = rt; }
+    syntax_expression const* result_type() const { return result_type_; }
+    void set_result_type(syntax_expression const& rt) { result_type_ = &rt; }
 
     inline variables_t& variables() noexcept { return variables_; }
     inline variables_t& varparams() noexcept { return varparams_; }
@@ -451,7 +455,7 @@ private:
     std::vector<named_field> nfields_;
     std::vector<positioned_field> pfields_;
 
-    optional<syntax_expression_t> result_type_;
+    syntax_expression const* result_type_;
 
     variables_t variables_;
     variables_t varparams_;
@@ -461,7 +465,7 @@ private:
 
 // utility
 
-std::expected<syntax_expression_t const*, error_storage> try_match_single_unnamed(fn_compiler_context&, prepared_call const&);
+std::expected<syntax_expression const*, error_storage> try_match_single_unnamed(fn_compiler_context&, prepared_call const&);
 
 
 }

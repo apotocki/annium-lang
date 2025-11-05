@@ -19,7 +19,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> create_identifier_
 {
     environment& e = ctx.env();
     auto call_session = call.new_session(ctx);
-    std::pair<syntax_expression_t const*, size_t> arg_expr;
+    std::pair<syntax_expression const*, size_t> arg_expr;
     auto arg = call_session.use_next_positioned_argument(expected_result_t{ .type = ctx.env().get(builtin_eid::string), .modifier = value_modifier_t::constexpr_value }, &arg_expr);
     if (!arg) {
         if (!arg.error()) {

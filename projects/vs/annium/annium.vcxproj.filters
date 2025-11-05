@@ -19,9 +19,6 @@
     <Filter Include="annium\ast\type_visitors">
       <UniqueIdentifier>{80e79e33-86d5-4d3b-a403-fbe71616c8aa}</UniqueIdentifier>
     </Filter>
-    <Filter Include="annium\ast\casts">
-      <UniqueIdentifier>{f59ccaea-9648-41e7-b67a-38c0a88c13ce}</UniqueIdentifier>
-    </Filter>
     <Filter Include="annium\entities\ellipsis">
       <UniqueIdentifier>{3983bf7b-fb40-4177-b727-6a0f2171194c}</UniqueIdentifier>
     </Filter>
@@ -122,15 +119,6 @@
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\ast\fn_compiler_context.cpp">
       <Filter>annium\ast</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\ast\functional_declaration_visitor.cpp">
-      <Filter>annium\ast</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\ast\casts\expression_cast_to_vector_visitor.cpp">
-      <Filter>annium\ast\casts</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\ast\casts\expression_cast_utility.cpp">
-      <Filter>annium\ast\casts</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\ellipsis\ellipsis_pattern.cpp">
       <Filter>annium\entities\ellipsis</Filter>
@@ -473,47 +461,14 @@
     <ClInclude Include="..\..\..\src\annium\ast\expression_implicit_cast_visitor.hpp">
       <Filter>annium\ast</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\ast\expression_type_visitor.hpp">
-      <Filter>annium\ast</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\ast\expression_vector_visitor.hpp">
-      <Filter>annium\ast</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\src\annium\ast\expression_visitor.hpp">
       <Filter>annium\ast</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\ast\fn_compiler_context.hpp">
       <Filter>annium\ast</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\ast\functional_declaration_visitor.hpp">
-      <Filter>annium\ast</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\src\annium\ast\vector_expression_visitor.hpp">
       <Filter>annium\ast\type_visitors</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\ast\casts\expression_cast_to_bool_visitor.hpp">
-      <Filter>annium\ast\casts</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\ast\casts\expression_cast_to_enum_visitor.hpp">
-      <Filter>annium\ast\casts</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\ast\casts\expression_cast_to_float_visitor.hpp">
-      <Filter>annium\ast\casts</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\ast\casts\expression_cast_to_int_visitor.hpp">
-      <Filter>annium\ast\casts</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\ast\casts\expression_cast_to_object_visitor.hpp">
-      <Filter>annium\ast\casts</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\ast\casts\expression_cast_to_string_visitor.hpp">
-      <Filter>annium\ast\casts</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\ast\casts\expression_cast_to_vector_visitor.hpp">
-      <Filter>annium\ast\casts</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\ast\casts\utility.hpp">
-      <Filter>annium\ast\casts</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\ellipsis\ellipsis_pattern.hpp">
       <Filter>annium\entities\ellipsis</Filter>

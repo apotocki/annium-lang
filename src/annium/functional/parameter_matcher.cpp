@@ -42,8 +42,8 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
         expected_result_t argexp{ .modifier = to_value_modifier(pd.modifier) };
 
         // resolve the parameter constraint value if it is specified
-        if (syntax_expression_t const* param_expr = get<syntax_expression_t>(&pd.constraint)) {
-            auto argexp_res = resolve_expression_expected_result(callee_ctx, param_name, pd.modifier, *param_expr, pconstraint_value_eid);
+        if (syntax_expression const* const* param_expr = get_if<syntax_expression const*>(&pd.constraint)) {
+            auto argexp_res = resolve_expression_expected_result(callee_ctx, param_name, pd.modifier, **param_expr, pconstraint_value_eid);
             if (!argexp_res) return std::move(argexp_res.error());
             argexp = std::move(*argexp_res);
         }
@@ -72,38 +72,38 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
         if (!res) {
             if (res.error()) {
                 return append_cause(
-                    make_error<basic_general_error>(param_name.location, "cannot match argument"sv, param_name.value, get_start_location(*get<0>(arg_expr_idx))),
+                    make_error<basic_general_error>(param_name.location, "cannot match argument"sv, param_name.value, get<0>(arg_expr_idx)->location),
                     std::move(res.error())
                 );
             }
-            if (syntax_expression_t const* default_expr = get<syntax_expression_t>(&pd.default_value); default_expr) {
+            if (syntax_expression const* const* default_expr = get_if<syntax_expression const*>(&pd.default_value); default_expr) {
                 // try default value
-                res = apply_visitor(base_expression_visitor{ callee_ctx, call.expressions, argexp }, *default_expr);
+                res = base_expression_visitor::visit(callee_ctx, call.expressions, argexp, **default_expr);
                 if (!res) {
                     return append_cause(
                         make_error<basic_general_error>(param_name.location, "cannot evaluate default value for argument"sv, param_name.value),
                         std::move(res.error())
                     );
                 }
-            } else if (required_t const* req = get<required_t>(&pd.default_value); req) {
+            } else if (holds_alternative<required_t>(pd.default_value)) {
                 return make_error<basic_general_error>(param_name.location, "missing required argument"sv, param_name.value);
             } // else optional, do nothing
         }
 
         syntax_expression_result& arg_er = res->first;
-        error_storage err = apply_visitor(make_functional_visitor<error_storage>([&](auto const& constraint) -> error_storage {
-            if constexpr (std::is_same_v<syntax_expression_t, std::decay_t<decltype(constraint)>>) {
+        error_storage err = visit([&](auto const& constraint) -> error_storage {
+            if constexpr (std::is_same_v<syntax_expression const*, std::decay_t<decltype(constraint)>>) {
                 if (can_be_only_constexpr(argexp.modifier)) {
                     // check exact value match
                     if (pconstraint_value_eid && arg_er.value() != pconstraint_value_eid) {
-                        return make_error<value_mismatch_error>(get_start_location(*get<0>(arg_expr_idx)), arg_er.value(), pconstraint_value_eid, get_start_location(constraint));
+                        return make_error<value_mismatch_error>(get<0>(arg_expr_idx)->location, arg_er.value(), pconstraint_value_eid, constraint->location);
                         //return append_cause(
                         //    make_error<basic_general_error>(call.location, "argument value does not match constraint"sv, param_name.value, param_name.location),
                         //    make_error<value_mismatch_error>(get_start_location(*get<0>(arg_expr_idx)), arg_er.value(), pconstraint_value_eid, get_start_location(constraint))
                         //);
                     }
                 }
-            } else if constexpr (std::is_same_v<pattern_t, std::decay_t<decltype(constraint)>>) {
+            } else if constexpr (std::is_same_v<syntax_pattern const*, std::decay_t<decltype(constraint)>>) {
                 entity_identifier type_to_match;
                 if (arg_er.is_const_result) {
                     if (has(pd.modifier, parameter_constraint_modifier_t::typename_type)) { // typename as constexpr value matching
@@ -116,7 +116,7 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
                     type_to_match = arg_er.type();
                 }
                 auto err = pattern_matcher{ callee_ctx, md.bindings, call.expressions }
-                    .match(constraint, annotated_entity_identifier{ type_to_match, get_start_location(*get<0>(arg_expr_idx)) });
+                    .match(*constraint, annotated_entity_identifier{ type_to_match, get<0>(arg_expr_idx)->location });
                 if (err) {
                     return append_cause(
                         make_error<basic_general_error>(param_name.location, "cannot match argument pattern"sv, param_name.value),
@@ -125,10 +125,10 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
                 }
                 md.weight -= 1; // pattern match decreases weight
             } else {
-                return make_error<basic_general_error>(param_name.location, "unsupported parameter constraint type"sv, param_name.value);
+                static_assert(false);
             }
             return error_storage{};
-        }), pd.constraint);
+        }, pd.constraint);
         if (err) return err;
         
         md.weight -= res->second;
@@ -170,17 +170,17 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
 }
 
 std::expected<expected_result_t, error_storage>
-parameter_matcher::resolve_expression_expected_result(fn_compiler_context& callee_ctx, annotated_identifier const& pn, parameter_constraint_modifier_t param_mod, syntax_expression_t const& constraint, entity_identifier& pconstraint_value_eid)
+parameter_matcher::resolve_expression_expected_result(fn_compiler_context& callee_ctx, annotated_identifier const& pn, parameter_constraint_modifier_t param_mod, syntax_expression const& constraint, entity_identifier& pconstraint_value_eid)
 {
     environment& e = callee_ctx.env();
-    auto cnt_res = apply_visitor(base_expression_visitor{ callee_ctx, call.expressions, expected_result_t{ .modifier = value_modifier_t::constexpr_value } }, constraint);
+    auto cnt_res = base_expression_visitor::visit(callee_ctx, call.expressions, expected_result_t{ .modifier = value_modifier_t::constexpr_value }, constraint);
     if (!cnt_res) {
         return std::unexpected(append_cause(
             make_error<basic_general_error>(call.location, "Cannot evaluate constraint for parameter"sv, pn.value, pn.location),
             std::move(cnt_res.error())
         ));
     }
-    expected_result_t expr_exp{ .location = get_start_location(constraint), .modifier = to_value_modifier(param_mod) };
+    expected_result_t expr_exp{ .location = constraint.location, .modifier = to_value_modifier(param_mod) };
     syntax_expression_result& cnt_res_er = cnt_res->first;
     entity const& cnt_res_ent = get_entity(e, cnt_res_er.value());
     
@@ -191,7 +191,7 @@ parameter_matcher::resolve_expression_expected_result(fn_compiler_context& calle
         expr_exp.type = cnt_res_ent.get_type();
         if (can_be_only_runtime(expr_exp.modifier)) {
             return std::unexpected(make_error<basic_general_error>(
-                pn.location, "Constraint value is a compile-time constant, but the modifier requires runtime type"sv, nullptr, get_start_location(constraint)));
+                pn.location, "Constraint value is a compile-time constant, but the modifier requires runtime type"sv, nullptr, constraint.location));
         }
     }
     return expr_exp;
@@ -223,11 +223,11 @@ error_storage parameter_matcher::handle_positioned_ellipsis(fn_compiler_context&
         basic_fn_pattern::parameter_descriptor const& pd = *next_param_it;
         bool ellipsis = (pd.modifier & parameter_constraint_modifier_t::ellipsis) == parameter_constraint_modifier_t::ellipsis;
         
-        syntax_expression_t const* pconstraint = get<syntax_expression_t>(&pd.constraint);
+        syntax_expression const* const* pconstraint = get_if<syntax_expression const*>(&pd.constraint);
         if (pconstraint) {
             entity_identifier pconstraint_value_eid;
             annotated_identifier const& param_name = pd.ename.self_or(pd.inames.front());
-            auto argexp_res = resolve_expression_expected_result(callee_ctx, param_name, pd.modifier, *pconstraint, pconstraint_value_eid);
+            auto argexp_res = resolve_expression_expected_result(callee_ctx, param_name, pd.modifier, **pconstraint, pconstraint_value_eid);
             if (!argexp_res) { // error resolving constraint, rollback
                 --next_param_it;
                 break;
@@ -274,7 +274,7 @@ error_storage parameter_matcher::handle_positioned_ellipsis(fn_compiler_context&
             finalize_ellipsis(e, accumulated_results);
             break;
         }
-        if (pattern_t const* ppattern = get<pattern_t>(&param_descriptors[ellipsis_group_index]->constraint)) {
+        if (syntax_pattern const* const* ppattern = get_if<syntax_pattern const*>(&param_descriptors[ellipsis_group_index]->constraint)) {
             entity_identifier type_to_match;
             syntax_expression_result& arg_er = res->first;
             if (arg_er.is_const_result) {
@@ -285,7 +285,7 @@ error_storage parameter_matcher::handle_positioned_ellipsis(fn_compiler_context&
             }
             // if pattern, match it (including concepts)
             auto err = pattern_matcher{ callee_ctx, md.bindings, call.expressions }
-                .match(*ppattern, annotated_entity_identifier{ type_to_match, get_start_location(*get<1>(arg_expr)) });
+                .match(**ppattern, annotated_entity_identifier{ type_to_match, get<1>(arg_expr)->location });
             // if error and ellipsis_group_index != 0, reuse argument for previous parameter
             if (err) {
                 if (ellipsis_group_index) {
@@ -344,6 +344,7 @@ void parameter_matcher::finalize_ellipsis(environment& e, span<std::pair<annotat
             md.bindings.emplace_back( annotated_identifier{ unnamedid, name.location }, var );
             md.emplace_back(param_it - param_bit, er);
         }
+        //md.append_arg(er, name.location);
     }
     basic_signatured_entity const& ellipsis_type = e.make_basic_signatured_entity(std::move(ellipsis_type_sig));
     entity_identifier ellipsis_type_unit_eid = e.make_empty_entity(ellipsis_type).id;
@@ -355,9 +356,7 @@ void parameter_matcher::finalize_ellipsis(environment& e, span<std::pair<annotat
         }
     }
     for (auto const& iname : epd.inames) {
-        md.bindings.emplace_back(
-            annotated_identifier{ iname.value, iname.location }, ellipsis_type_unit_eid
-        );
+        md.bindings.emplace_back(iname, ellipsis_type_unit_eid);
     }
 }
 

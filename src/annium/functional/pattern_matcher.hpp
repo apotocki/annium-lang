@@ -17,7 +17,7 @@ class pattern_matcher
     functional_binding_set& bindings_;
     semantic::expression_list_t& expressions_;
 
-    using fields_t = pattern_t::pattern_list_t;
+    using fields_t = span<const syntax_pattern::field>;
 
     mutable fields_t::const_iterator fld_bit, fld_it, fld_end;
 
@@ -26,19 +26,19 @@ public:
         : ctx_{ ctx }, bindings_{ bindings }, expressions_{ expressions }
     {}
 
-    error_storage match(pattern_t const&, annotated_entity_identifier const& type) const;
+    error_storage match(syntax_pattern const&, annotated_entity_identifier const& type) const;
 
 private:
-    error_storage do_match(pattern_t::signature_descriptor const&, pattern_t const& pattern, annotated_entity_identifier const&) const;
+    error_storage do_match(syntax_pattern::signature_descriptor const&, syntax_pattern const&, annotated_entity_identifier const&) const;
 
-    error_storage do_match_context_identifier(context_identifier, pattern_t const& pattern, annotated_entity_identifier const&) const;
-    error_storage do_match_concepts(span<const syntax_expression_t>, annotated_entity_identifier const&) const;
+    error_storage do_match_context_identifier(context_identifier, syntax_pattern const&, annotated_entity_identifier const&) const;
+    error_storage do_match_concepts(span<const syntax_expression>, annotated_entity_identifier const&) const;
 
     error_storage do_match_positioned_ellipsis_field(annotated_identifier boundid, span<const field_descriptor>& smplfields) const;
     //void finalize_ellipsis(identifier boundid, span<field_descriptor>) const;
 
     //error_storage match_signature_name(
-    //    variant<placeholder, annotated_qname, context_identifier, syntax_expression_t> const& name,
+    //    variant<placeholder, annotated_qname, context_identifier, syntax_expression> const& name,
     //    entity_signature const& sig, 
     //    annotated_entity_identifier const& type) const;
 };
