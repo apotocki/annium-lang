@@ -12,11 +12,23 @@
 #include <type_traits>
 #include <utility>
 
+#define ANNIUM_ARENA_TRACE
 namespace annium {
 
 class arena {
+#ifdef ANNIUM_ARENA_TRACE
+    mutable size_t allocated_size_ = 0;
+    template<typename T> inline void trace_allocation(size_t cnt) const noexcept {
+        allocated_size_ += sizeof(T) * cnt;
+        //GLOBAL_LOG_INFO() << "allocated: " << sizeof(T) * cnt;
+    }
 public:
-    explicit arena(std::size_t initialBlock = 64 * 1024,
+    inline size_t get_allocated_size() const noexcept { return allocated_size_; }
+#else
+    template<typename T> inline void trace_allocation(size_t cnt) const noexcept { }
+#endif
+public:
+    explicit arena(std::size_t initialBlock = 128 * 1024,
         std::pmr::memory_resource* upstream = std::pmr::new_delete_resource())
         : mono_(initialBlock, upstream)
         , mr_(&mono_)
@@ -32,6 +44,7 @@ public:
         static_assert(!std::is_array_v<T>);
         std::pmr::polymorphic_allocator<T> pa(mr_);
         T* p = pa.allocate(1);
+        trace_allocation<T>(1);
         std::allocator_traits<decltype(pa)>::construct(pa, p, std::forward<Args>(args)...);
         return p;
     }
@@ -41,6 +54,7 @@ public:
     {
         std::pmr::polymorphic_allocator<T> pa(mr_);
         T* p = pa.allocate(sz);
+        trace_allocation<T>(sz);
         return {p, sz};
     }
 

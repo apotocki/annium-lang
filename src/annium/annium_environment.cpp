@@ -2,83 +2,85 @@
 //  Annium is licensed under the terms of the MIT License.
 
 #include "sonia/config.hpp"
-#include "environment.hpp"
-#include "library/library.hpp"
+#include "annium/environment.hpp"
+#include "annium/library/library.hpp"
 
-#include "parser.hpp"
-#include "ast/fn_compiler_context.hpp"
-#include "ast/declaration_visitor.hpp"
-#include "ast/base_expression_visitor.hpp"
+#include "annium/parser.hpp"
+#include "annium/ast/fn_compiler_context.hpp"
+#include "annium/ast/declaration_visitor.hpp"
+#include "annium/ast/base_expression_visitor.hpp"
 
-#include "vm/annium_vm.hpp"
-#include "entities/ellipsis/ellipsis_pattern.hpp"
-#include "entities/functions/external_function_entity.hpp"
-#include "entities/functions/internal_function_entity.hpp"
+#include "annium/vm/annium_vm.hpp"
+#include "annium/entities/ellipsis/ellipsis_pattern.hpp"
+#include "annium/entities/functions/external_function_entity.hpp"
+#include "annium/entities/functions/internal_function_entity.hpp"
 
-#include "functional/external_fn_pattern.hpp"
-#include "functional/general/error_pattern.hpp"
-#include "functional/general/assert_pattern.hpp"
-#include "functional/general/runtime_cast_pattern.hpp"
-#include "functional/general/deref_pattern.hpp"
-#include "functional/general/equal_pattern.hpp"
-#include "functional/general/typeof_pattern.hpp"
-#include "functional/general/to_string_pattern.hpp"
-#include "functional/general/logical_not_pattern.hpp"
-#include "functional/general/is_const_pattern.hpp"
-#include "functional/general/create_identifier_pattern.hpp"
+#include "annium/functional/external_fn_pattern.hpp"
+#include "annium/functional/general/error_pattern.hpp"
+#include "annium/functional/general/assert_pattern.hpp"
+#include "annium/functional/general/runtime_cast_pattern.hpp"
+#include "annium/functional/general/deref_pattern.hpp"
+#include "annium/functional/general/equal_pattern.hpp"
+#include "annium/functional/general/typeof_pattern.hpp"
+#include "annium/functional/general/to_string_pattern.hpp"
+#include "annium/functional/general/logical_not_pattern.hpp"
+#include "annium/functional/general/is_const_pattern.hpp"
+#include "annium/functional/general/create_identifier_pattern.hpp"
 
-#include "entities/literals/literal_entity.hpp"
-#include "entities/literals/numeric_implicit_cast_pattern.hpp"
-#include "entities/literals/numeric_literal_implicit_cast_pattern.hpp"
-#include "entities/literals/numeric_literal_equal_pattern.hpp"
-#include "entities/literals/numeric_literal_unary_minus_pattern.hpp"
+#include "annium/entities/literals/literal_entity.hpp"
+#include "annium/entities/literals/numeric_implicit_cast_pattern.hpp"
+#include "annium/entities/literals/numeric_literal_implicit_cast_pattern.hpp"
+#include "annium/entities/literals/numeric_literal_equal_pattern.hpp"
+#include "annium/entities/literals/numeric_literal_unary_minus_pattern.hpp"
 
-#include "entities/literals/string_implicit_cast_pattern.hpp"
-#include "entities/literals/string_concat_pattern.hpp"
+#include "annium/entities/literals/string_implicit_cast_pattern.hpp"
+#include "annium/entities/literals/string_concat_pattern.hpp"
 
-#include "entities/union/union_bit_or_pattern.hpp"
-#include "entities/union/union_apply_pattern.hpp"
-#include "entities/union/to_union_implicit_cast_pattern.hpp"
+#include "annium/entities/union/union_bit_or_pattern.hpp"
+#include "annium/entities/union/union_apply_pattern.hpp"
+#include "annium/entities/union/to_union_implicit_cast_pattern.hpp"
 
-#include "entities/tuple/tuple_pattern.hpp"
-#include "entities/tuple/tuple_make_pattern.hpp"
-#include "entities/tuple/tuple_size_pattern.hpp"
-#include "entities/tuple/tuple_get_pattern.hpp"
-#include "entities/tuple/tuple_typename_get_pattern.hpp"
-#include "entities/tuple/tuple_set_pattern.hpp"
-#include "entities/tuple/tuple_empty_pattern.hpp"
-#include "entities/tuple/tuple_head_pattern.hpp"
-#include "entities/tuple/tuple_tail_pattern.hpp"
-#include "entities/tuple/tuple_implicit_cast_pattern.hpp"
-#include "entities/tuple/tuple_equal_pattern.hpp"
-#include "entities/tuple/tuple_project_get_pattern.hpp"
-#include "entities/tuple/tuple_project_size_pattern.hpp"
+#include "annium/entities/tuple/tuple_pattern.hpp"
+#include "annium/entities/tuple/tuple_make_pattern.hpp"
+#include "annium/entities/tuple/tuple_size_pattern.hpp"
+#include "annium/entities/tuple/tuple_get_pattern.hpp"
+#include "annium/entities/tuple/tuple_typename_get_pattern.hpp"
+#include "annium/entities/tuple/tuple_set_pattern.hpp"
+#include "annium/entities/tuple/tuple_empty_pattern.hpp"
+#include "annium/entities/tuple/tuple_head_pattern.hpp"
+#include "annium/entities/tuple/tuple_tail_pattern.hpp"
+#include "annium/entities/tuple/tuple_implicit_cast_pattern.hpp"
+#include "annium/entities/tuple/tuple_equal_pattern.hpp"
+#include "annium/entities/tuple/tuple_project_get_pattern.hpp"
+#include "annium/entities/tuple/tuple_project_size_pattern.hpp"
 
-#include "entities/struct/struct_new_pattern.hpp"
-#include "entities/struct/struct_get_pattern.hpp"
+#include "annium/entities/struct/struct_new_pattern.hpp"
+#include "annium/entities/struct/struct_get_pattern.hpp"
 //#include "entities/struct/struct_implicit_cast_pattern.hpp"
-#include "entities/struct/struct_init_pattern.hpp"
-#include "entities/struct/struct_set_pattern.hpp"
-#include "entities/struct/is_struct_pattern.hpp"
-#include "entities/struct/tuple_of_pattern.hpp"
+#include "annium/entities/struct/struct_init_pattern.hpp"
+#include "annium/entities/struct/struct_set_pattern.hpp"
+#include "annium/entities/struct/is_struct_pattern.hpp"
+#include "annium/entities/struct/tuple_of_pattern.hpp"
 
-#include "entities/enum/enum_implicit_cast_pattern.hpp"
-#include "entities/enum/enum_get_pattern.hpp"
-#include "entities/enum/enum_equal_pattern.hpp"
-#include "entities/enum/enum_to_string_pattern.hpp"
-#include "entities/enum/enum_to_integer_pattern.hpp"
+#include "annium/entities/enum/enum_implicit_cast_pattern.hpp"
+#include "annium/entities/enum/enum_get_pattern.hpp"
+#include "annium/entities/enum/enum_equal_pattern.hpp"
+#include "annium/entities/enum/enum_to_string_pattern.hpp"
+#include "annium/entities/enum/enum_to_integer_pattern.hpp"
 
-#include "entities/array/array_implicit_cast_pattern.hpp"
-#include "entities/array/array_from_iterator_make_pattern.hpp"
+#include "annium/entities/array/array_implicit_cast_pattern.hpp"
+#include "annium/entities/array/array_from_iterator_make_pattern.hpp"
 
-#include "entities/fixed_array/fixed_array_make_pattern.hpp"
-#include "entities/fixed_array/fixed_array_head_pattern.hpp"
-#include "entities/fixed_array/fixed_array_tail_pattern.hpp"
-#include "entities/fixed_array/fixed_array_get_pattern.hpp"
-#include "entities/fixed_array/fixed_array_elements_implicit_cast_pattern.hpp"
+#include "annium/entities/fixed_array/fixed_array_make_pattern.hpp"
+#include "annium/entities/fixed_array/fixed_array_head_pattern.hpp"
+#include "annium/entities/fixed_array/fixed_array_tail_pattern.hpp"
+#include "annium/entities/fixed_array/fixed_array_get_pattern.hpp"
+#include "annium/entities/fixed_array/fixed_array_elements_implicit_cast_pattern.hpp"
 
-#include "semantic/expression_printer.hpp"
-#include "auxiliary.hpp"
+#include "annium/semantic/expression_printer.hpp"
+#include "annium/auxiliary.hpp"
+
+#include "annium/ast/arena.hpp"
 
 namespace annium {
 
@@ -87,8 +89,8 @@ class file_resource : public ast_resource
     fs::path path_;
 
 public:
-    inline file_resource(fs::path p, shared_ptr<arena> aval = {}) noexcept
-        : ast_resource{ std::string{}, std::move(aval) }
+    inline file_resource(fs::path p) noexcept
+        : ast_resource{ std::string{} }
         , path_{ std::move(p) }
     {
         std::vector<char> src;
@@ -360,6 +362,11 @@ entity_identifier environment::set_builtin_extern(string_view name, void(*pfn)(v
 
 environment::~environment()
 {
+#ifdef ANNIUM_ARENA_TRACE
+    for (auto& a : arenas_) {
+        GLOBAL_LOG_INFO() << "Arena with %1% bytes in use"_fmt % a->get_allocated_size();
+    }
+#endif
     eregistry_.clear();
 }
 
@@ -379,6 +386,23 @@ void environment::set_efn(size_t idx, qname_identifier fnq)
         vm_builtins_.resize(idx + 1);
     }
     vm_builtins_[idx] = std::move(fnq);
+}
+
+std::unique_ptr<arena> environment::acquire_arena() 
+{
+    lock_guard lg{ arenas_mutex_ };
+    if (!arenas_.empty()) {
+        auto a = std::move(arenas_.back());
+        arenas_.pop_back();
+        return a;
+    }
+    return std::make_unique<arena>();
+}
+
+void environment::release_arena(std::unique_ptr<arena> a)
+{
+    lock_guard lg{ arenas_mutex_ };
+    arenas_.emplace_back(std::move(a));
 }
 
 ast_resource const& environment::get_resource(resource_identifier const& rid) const

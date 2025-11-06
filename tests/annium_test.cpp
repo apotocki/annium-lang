@@ -142,7 +142,7 @@ void annium_suite_test()
         BOOST_CHECK_EQUAL(expected_output, output.str());
     }
 
-    } catch (std::exception const& ex) {
+    } catch (std::exception const&) {
         std::cout << "Exception: \n" << boost::current_exception_diagnostic_information() << "\n";
         BOOST_CHECK(false);
     }

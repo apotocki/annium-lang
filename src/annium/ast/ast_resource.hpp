@@ -13,7 +13,6 @@
 namespace annium {
 
 class environment;
-class arena;
 
 class ast_resource : public code_resource
 {
@@ -22,17 +21,12 @@ protected:
     mutable std::vector<string_view> lines;
     size_t hash_;
 
-    shared_ptr<arena> arena_;
-
     virtual void prepare_lines() const;
     void rebuild_hash() noexcept;
 
 public:
-    
-    //managed_syntax_expression_list expressions;
-
-    explicit ast_resource(std::vector<char> src, shared_ptr<arena> = {}) noexcept;
-    explicit ast_resource(std::string src = {}, shared_ptr<arena> = {}) noexcept;
+    explicit ast_resource(std::vector<char> src) noexcept;
+    explicit ast_resource(std::string src = {}) noexcept;
 
     std::ostream& print_to(std::ostream& s, string_view indent, int line, int column, resource_print_mode_t mode) const override;
     
@@ -41,8 +35,6 @@ public:
     bool equal(code_resource const& rhs) const noexcept override;
 
     string_view get_source() const noexcept;
-
-    inline shared_ptr<arena> get_arena() const noexcept { return arena_; }
 };
 
 }

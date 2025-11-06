@@ -39,6 +39,8 @@ namespace vm { class context; }
 
 class external_fn_pattern;
 
+class arena;
+
 #define ANNIUM_BUILTIN_ID_SEQ              \
     ((location, "location"sv))             \
     ((call_location, "__call_location"sv)) \
@@ -425,6 +427,10 @@ public:
         return variable_identifier{ variable_identifier_gencount_.fetch_add(1) };
     }
 
+    // utility
+    std::unique_ptr<arena> acquire_arena();
+    void release_arena(std::unique_ptr<arena>);
+
 protected:
     void setup_type(builtin_qnid, builtin_eid);
 
@@ -433,7 +439,6 @@ protected:
 
     template <typename OutputIteratorT, typename UndefinedFT>
     OutputIteratorT name_printer(qname_view const&, OutputIteratorT, UndefinedFT const&) const;
-
 
     std::pair<functional*, fn_pure> parse_extern_fn(string_view signature, arena &);
 
@@ -468,9 +473,10 @@ private:
     };
 
     mutable fibers::mutex resources_mutex_;
+    mutable fibers::mutex arenas_mutex_;
     std::unordered_set<shared_ptr<ast_resource>, resource_hash, resource_equal> resources_;
     small_vector<shared_ptr<ast_resource>, 4> flat_resources_;
-    
+    small_vector<std::unique_ptr<arena>, 1> arenas_;
     std::atomic<size_t> variable_identifier_gencount_ = 1;
 
     std::array<identifier, (size_t)builtin_id::eof_builtin_id_value> builtin_ids_;
@@ -482,7 +488,6 @@ private:
 
     function<void(string_view)> cout_writer_;
 
-    //arena arena_;
 };
 
 }

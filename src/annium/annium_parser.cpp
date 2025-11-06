@@ -136,7 +136,7 @@ numetron::integer_view parser_context::make_integer_view(string_view str) const
 {
     using limb_t = numetron::integer_view::limb_type;
     limb_t inplace_limbs[1];
-    auto limbs = numetron::to_limbs<uint64_t>(str, inplace_allocator_type<limb_t>{ *resource_->get_arena(), inplace_limbs });
+    auto limbs = numetron::to_limbs<uint64_t>(str, inplace_allocator_type<limb_t>{ *arena_, inplace_limbs });
     if (!limbs) {
         std::rethrow_exception(limbs.error());
     }
@@ -156,14 +156,14 @@ numetron::decimal_view parser_context::make_decimal_view(string_view str) const
 
     if (!sign_part.is_inplace()) {
         auto [sign_limbs, mask, sgn] = sign_part.decompose();
-        auto arena_sign_limbs = resource_->get_arena()->make_array<limb_t>(sign_limbs);
+        auto arena_sign_limbs = arena_->make_array<limb_t>(sign_limbs);
         arena_sign_limbs.back() &= mask;
         sign_part = numetron::integer_view::make_inplace(arena_sign_limbs, sgn);
     }
 
     if (!exp_part.is_inplace()) {
         auto [exp_limbs, mask, sgn] = exp_part.decompose();
-        auto arena_exp_limbs = resource_->get_arena()->make_array<limb_t>(exp_limbs);
+        auto arena_exp_limbs = arena_->make_array<limb_t>(exp_limbs);
         arena_exp_limbs.back() &= mask;
         exp_part = numetron::integer_view::make_inplace(arena_exp_limbs, sgn);
     }
@@ -226,6 +226,9 @@ std::expected<span<const statement>, std::string> parser_context::parse_string(s
 
 std::expected<span<const statement>, std::string> parser_context::parse(string_view code)
 {
+    arena_ = environment_.acquire_arena();
+    SCOPE_EXIT([this]() { environment_.release_arena(std::move(arena_)); });
+
     auto sc_data = std::make_unique<sonia::lang::lex::scanner_data>();
 
     void* scanner;

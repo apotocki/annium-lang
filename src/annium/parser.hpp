@@ -66,19 +66,19 @@ public:
     template <typename TermT, typename... Args>
     inline TermT const* make(Args&&... args) const
     {
-        return resource_->get_arena()->template make<TermT>(std::forward<Args>(args)...);
+        return arena_->template make<TermT>(std::forward<Args>(args)...);
     }
 
     template <typename TermT>
     inline span<TermT const*> make_array(span<TermT const*> sv) const
     {
-        return resource_->get_arena()->template make_array<TermT>(sv);
+        return sv.empty() ? sv : arena_->template make_array<TermT>(sv);
     }
 
     template <typename TermT>
     inline span<TermT const> make_array(span<TermT const> sv) const
     {
-        return resource_->get_arena()->template make_array<TermT>(sv);
+        return sv.empty() ? sv : arena_->template make_array<TermT>(sv);
     }
 
     template <typename TermT, typename... Args>
@@ -105,6 +105,8 @@ private:
     
     span<const statement> root_statements_;
     span<const statement> statements_;
+
+    std::unique_ptr<arena> arena_;
 };
 
 }

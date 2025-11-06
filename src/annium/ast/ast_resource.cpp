@@ -3,27 +3,18 @@
 
 #include "sonia/config.hpp"
 #include "annium/ast/ast_resource.hpp"
-#include "annium/ast/arena.hpp"
 
 namespace annium {
 
-ast_resource::ast_resource(std::vector<char> src, shared_ptr<arena> aval) noexcept
+ast_resource::ast_resource(std::vector<char> src) noexcept
     : src_{ std::move(src) }
-    , arena_{ std::move(aval) }
 {
-    if (!arena_) {
-        arena_ = make_shared<arena>();
-    }
     rebuild_hash();
 }
 
-ast_resource::ast_resource(std::string src, shared_ptr<arena> aval) noexcept
+ast_resource::ast_resource(std::string src) noexcept
     : src_{ std::move(src) }
-    , arena_{ std::move(aval) }
 {
-    if (!arena_) {
-        arena_ = make_shared<arena>();
-    }
     rebuild_hash();
 }
 
