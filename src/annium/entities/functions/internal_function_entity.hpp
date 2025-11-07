@@ -13,8 +13,6 @@
 #include "annium/entities/signatured_entity.hpp"
 #include "annium/entities/functional.hpp"
 
-#define ANNIUM_NO_INLINE_FUNCTIONS 1
-
 namespace annium {
 
 class indirect_internal_function_entity : public tagged_signatured_entity<resource_location>
@@ -82,11 +80,7 @@ public:
     inline void set_captured_var_count(uint64_t count) noexcept { captured_var_count_ = count; }
     [[nodiscard]] inline uint64_t captured_var_count() const noexcept { return captured_var_count_; }
 
-#ifdef ANNIUM_NO_INLINE_FUNCTIONS
-    [[nodiscard]] inline bool is_inline() const noexcept { return false; }
-#else
-    [[nodiscard]] inline bool is_inline() const noexcept { return !!is_inline_; }
-#endif // ANNIUM_NO_INLINE_FUNCTIONS
+    [[nodiscard]] bool is_inline() const noexcept;
 
     inline void set_inline(bool val = true) noexcept { is_inline_ = val ? 1 : 0; }
     inline void set_provision(bool val = true) noexcept { is_provision_ = val ? 1 : 0; }

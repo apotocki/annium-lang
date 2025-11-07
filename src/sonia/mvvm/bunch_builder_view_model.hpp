@@ -7,7 +7,7 @@
 
 #include "annium_view_model.hpp"
 //#include "builder_view_model.hpp"
-#include "sonia/utility/invocation/invocable.hpp"
+#include "sonia/utility/invocation/invocation.hpp"
 
 namespace sonia {
 

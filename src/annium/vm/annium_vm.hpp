@@ -8,7 +8,6 @@
 #include "sonia/variant.hpp"
 #include "sonia/shared_ptr.hpp"
 #include "sonia/utility/invocation/invocation.hpp"
-#include "sonia/utility/invocation/invocable.hpp"
 #include "sonia/utility/lang/vm.hpp"
 
 #include "annium/terms.hpp"

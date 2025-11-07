@@ -7,7 +7,15 @@
 #include "annium/ast/fn_compiler_context.hpp"
 #include "annium/ast/declaration_visitor.hpp"
 
+//#define ANNIUM_NO_INLINE_FUNCTIONS 1
+
 namespace annium {
+
+#ifdef ANNIUM_NO_INLINE_FUNCTIONS
+    [[nodiscard]] bool internal_function_entity::is_inline() const noexcept { return false; }
+#else
+    [[nodiscard]] bool internal_function_entity::is_inline() const noexcept { return !!is_inline_; }
+#endif // ANNIUM_NO_INLINE_FUNCTIONS
 
 internal_function_entity::internal_function_entity(qname&& name, entity_signature&& sig, resource_location loc)
     : name_{ std::move(name) }

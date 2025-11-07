@@ -8,7 +8,7 @@
 #include "sonia/shared_ptr.hpp"
 #include "sonia/span.hpp"
 #include "sonia/function.hpp"
-#include "sonia/utility/invocation/invocable.hpp"
+#include "sonia/utility/invocation/invocation.hpp"
 
 namespace annium {
 

@@ -3,11 +3,12 @@
 
 #pragma once
 
-#include <boost/intrusive/list.hpp>
-#include <boost/unordered_set.hpp>
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
+#include <unordered_set>
+#include <variant>
 
-#include "sonia/variant.hpp"
+#include <boost/intrusive/list.hpp>
+
 #include "sonia/small_vector.hpp"
 #include "sonia/utility/automatic_polymorphic.hpp"
 #include "sonia/utility/object_pool.hpp"
@@ -70,7 +71,7 @@ public:
     using function_identity_store_t = automatic_polymorphic<function_identity, SONIA_VM_FN_IDENTITY_STORE_SIZE>;
 
     struct instruction_entry;
-    using operand_t = variant<null_t, size_t, instruction_entry const*, function_identity_store_t>;
+    using operand_t = std::variant<null_t, size_t, instruction_entry const*, function_identity_store_t>;
     struct instruction_entry
     {
         boost::intrusive::list_member_hook<> hook;
@@ -106,8 +107,10 @@ public:
 
     struct fd_equal
     {
+        using is_transparent = void;
         inline bool operator()(function_descriptor const& l, function_identity const& r) const noexcept { return *l.id == r; }
         inline bool operator()(function_identity const& l, function_descriptor const& r) const noexcept { return l == *r.id; }
+        inline bool operator()(function_descriptor const& l, function_descriptor const& r) const noexcept { return *l.id == *r.id; }
     };
 
     class function_builder
@@ -115,33 +118,27 @@ public:
         builder& builder_;
         function_descriptor& dr_;
 
-        boost::unordered_map<instruction_entry const*, std::pair<int, int>> labels_; // ie -> {refs; blocknum, negative means undefined}
+        std::unordered_map<instruction_entry const*, std::pair<int, int>> labels_; // ie -> {refs; blocknum, negative means undefined}
 
         struct block
         {
             op_t operation;
-            uint8_t op_supposed_size : 7;
-            uint8_t op_applied : 1;
+            uint8_t op_supposed_size : 3;
+            uint8_t op_applied_size : 3;
+            uint8_t deps_calculated : 1;
+            uint8_t need_recalculation : 1;
             instruction_entry const* operand;
-            
+
             small_vector<uint8_t, 16> code;
-            
+            small_vector<uint_least32_t, 4> dependent_block_indices;
+
             inline explicit block() noexcept
-                : operation{ op_t::noop }, op_supposed_size{ 0 }, op_applied{ 0 }, operand{ nullptr }
+                : operation{ op_t::noop }, op_supposed_size{ 0 }, op_applied_size{ 0 }, deps_calculated{ 0 }, need_recalculation{ 1 }, operand{ nullptr }
             { }
 
             inline void append(op_t op) { code.push_back(static_cast<uint8_t>(op)); }
             inline void append(op_t op, size_t param) { append(op); append_uint(param); }
             void append_uint(size_t);
-
-            inline void append_relative_jump(op_t posop, int_least32_t offset)
-            {
-                if (offset > 0) {
-                    append(posop, static_cast<size_t>(offset));
-                } else {
-                    append((op_t)(((uint8_t)posop) + 1), static_cast<size_t>(-offset));
-                }
-            }
         };
         
     public:
@@ -258,11 +255,11 @@ public:
 private:
     vm_t & vm_;
 
-    boost::unordered_set<function_descriptor, hasher> fns_;
+    std::unordered_set<function_descriptor, hasher, fd_equal> fns_;
 
     object_pool<instruction_entry, spin_mutex> entries_;
 
-    boost::unordered_map<blob_result, size_t> literals_;
+    std::unordered_map<blob_result, size_t, hasher> literals_;
 };
 
 template <typename ContextT>
@@ -277,7 +274,7 @@ builder<ContextT>::~builder()
 template <typename ContextT>
 typename builder<ContextT>::function_descriptor& builder<ContextT>::resolve_function(function_identity const& id)
 {
-    auto it = fns_.find(id, hasher{}, fd_equal{});
+    auto it = fns_.find(id);
     if (it == fns_.end()) it = fns_.emplace_hint(it, id);
     return const_cast<function_descriptor&>(*it);
 }
@@ -285,7 +282,7 @@ typename builder<ContextT>::function_descriptor& builder<ContextT>::resolve_func
 template <typename ContextT>
 typename builder<ContextT>::function_builder builder<ContextT>::create_function(function_identity const& id)
 {
-    auto it = fns_.find(id, hasher{}, fd_equal{});
+    auto it = fns_.find(id);
     if (it != fns_.end()) {
         throw exception("function with the specified identity already exists");
     }
@@ -464,31 +461,72 @@ void builder<ContextT>::function_builder::materialize()
         accum_offset += static_cast<int_least32_t>(b.code.size()) + b.op_supposed_size;
     }
 
-    block_index = 0;
-    for (block & b : blocks) {
-        if (b.operand) {
+    for (block_index = 0; block_index < blocks.size();) {
+        block& b = blocks[block_index];
+        if (b.operand && b.need_recalculation) {
+            b.need_recalculation = 0;
             auto it = labels_.find(b.operand);
             BOOST_ASSERT(it != labels_.end());
-            if (b.op_applied) {
-                b.code.resize(b.code.size() - b.op_supposed_size);
-            }
+            b.code.resize(b.code.size() - b.op_applied_size);
+            b.op_applied_size = 0;
             size_t csz = b.code.size();
-            int_least32_t jmp_offset = static_cast<int_least32_t>(block_offsets[it->second.second]) - static_cast<int_least32_t>(block_offsets[block_index] + csz + b.op_supposed_size);
+            int jmp_block_index = it->second.second;
+            if (!b.deps_calculated) {
+
+                for (block & db : (jmp_block_index > block_index ? span{ blocks }.subspan(block_index + 1, jmp_block_index - block_index - 1) : span{ blocks }.subspan(jmp_block_index, block_index - jmp_block_index))) {
+                    db.dependent_block_indices.push_back(static_cast<uint_least32_t>(block_index));
+                }
+                b.deps_calculated = 1;
+            }
+            
             switch (b.operation) {
             case op_t::noop:
                 break;
-            case op_t::jne:
-                b.append_relative_jump(op_t::jnep, jmp_offset); break;
-            case op_t::je:
-                b.append_relative_jump(op_t::jep, jmp_offset); break;
             case op_t::jmp:
-                b.append_relative_jump(op_t::jmpp, jmp_offset); break;
+            case op_t::jg:
+            case op_t::jge:
+            case op_t::jl:
+            case op_t::jle:
+            case op_t::je:
+            case op_t::jne:
+                {
+                    int_least32_t jmp_offset = static_cast<int_least32_t>(block_offsets[jmp_block_index]) - static_cast<int_least32_t>(block_offsets[block_index] + csz);
+                    if (jmp_offset > 0) {
+                        // positive offset command modification
+                        b.append((op_t)(((uint8_t)b.operation) + 1), static_cast<size_t>(jmp_offset));
+                    } else {
+                        // negative offset command modification
+                        b.append((op_t)(((uint8_t)b.operation) + 2), static_cast<size_t>(-jmp_offset));
+                    }
+                    b.op_applied_size = static_cast<uint8_t>(b.code.size() - csz);
+                    break;
+                }
             default:
                 THROW_INTERNAL_ERROR("unexpected final block operation");
             }
-            uint8_t real_op_sz = static_cast<uint8_t>(b.code.size() - csz);
-            if (real_op_sz != b.op_supposed_size) {
-                THROW_NOT_IMPLEMENTED_ERROR("function_builder::materialize");
+            if (b.op_applied_size != b.op_supposed_size) {
+                // update offsets
+                int_least32_t delta = static_cast<int_least32_t>(b.op_applied_size) - static_cast<int_least32_t>(b.op_supposed_size);
+                for (size_t i = block_index + 1; i < blocks.size(); ++i) {
+                    block_offsets[i] += delta;
+                }
+                // invalidate dependent blocks
+                if (!b.dependent_block_indices.empty()) {
+                    for (int dbidx : b.dependent_block_indices) {
+                        blocks[dbidx].need_recalculation = 1;
+                    }
+                    b.op_supposed_size = b.op_applied_size;
+                    
+                    // if jmp_block_index > block_index, we need also to invalidate current block too
+                    if (jmp_block_index > block_index) {
+                        b.need_recalculation = 1;
+                        block_index = (std::min)(block_index, (size_t)b.dependent_block_indices.front());
+                    } else {
+                        block_index = b.dependent_block_indices.front();
+                    }
+                    
+                    continue;
+                }
             }
         }
         ++block_index;
