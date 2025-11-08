@@ -423,7 +423,18 @@ struct function_signature
 namespace semantic {
 
 struct push_by_offset { size_t offset; }; // offset from the stack top
-struct push_value { value_t value; };
+struct push_value
+{
+    value_t value;
+    explicit push_value(value_t v) : value { std::move(v) }
+    {
+        if (auto* bv = get_if<smart_blob>(&value); bv) {
+            std::ostringstream ss;
+            print_type(ss, bv->get());
+            //BOOST_ASSERT((uint8_t)(*bv)->type != 0xcd);
+        }
+    }
+};
 struct push_local_variable
 {
 #ifdef SONIA_LANG_DEBUG
@@ -466,7 +477,8 @@ struct set_local_variable
     }
 };
 
-struct set_variable { extern_variable_entity const* entity; };
+struct push_variable { functional_variable var; };
+struct set_variable { functional_variable var; };
 struct set_by_offset { size_t offset; }; // offset from the stack top
 struct truncate_values
 {
@@ -545,9 +557,9 @@ struct loop_scope_t
 struct loop_continuer {};
 struct loop_breaker {};
 
-using expression = variant<
+using expression = std::variant<
     empty_t, // no op
-    push_value, push_local_variable, push_by_offset, push_special_value, truncate_values,
+    push_value, push_local_variable, push_by_offset, push_special_value, push_variable, truncate_values,
     set_local_variable, set_variable, set_by_offset, invoke_function, return_statement, yield_statement, loop_breaker, loop_continuer,
     expression_span,
     conditional_t, switch_t,

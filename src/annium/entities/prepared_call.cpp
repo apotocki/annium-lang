@@ -72,9 +72,12 @@ std::expected<syntax_expression, error_storage> deref(fn_compiler_context& ctx, 
         if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, entity_identifier>) {
             if (!eid_or_var) return std::unexpected(make_error<undeclared_identifier_error>(std::move(aqn)));
             return syntax_expression{ aqn.location, eid_or_var };
-        } else {
+        } else if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, local_variable>) {
             static_assert(std::is_same_v<std::decay_t<decltype(eid_or_var)>, local_variable>);
             return syntax_expression{ aqn.location, qname_reference_expression{ aqn.value } };
+        } else {
+            static_assert(std::is_same_v<std::decay_t<decltype(eid_or_var)>, functional_variable>);
+            return std::unexpected(make_error<basic_general_error>(aqn.location, "cannot dereference functional variable"sv, aqn.value));
         }
     }, optent);
 }

@@ -366,7 +366,7 @@ void annium_impl::compile(span<const statement> decls, span<string_view> args)
 
 void annium_impl::do_compile(internal_function_entity const& fe)
 {
-    //GLOBAL_LOG_DEBUG() << "compiling function: " << environment_.print(fe.name());
+    //GLOBAL_LOG_INFO() << "compiling function: " << environment_.print(fe.name());
 
     if (!fe.is_built()) {
         auto err = const_cast<internal_function_entity&>(fe).build(environment_);
@@ -401,7 +401,7 @@ void annium_impl::do_compile(internal_function_entity const& fe)
     vm::compiler_visitor vmcvis{ environment_, fb, fe };
     fe.body.for_each([&vmcvis](semantic::expression const& e) {
         //GLOBAL_LOG_INFO() << environment_.print(e); // << "\n"sv
-        apply_visitor(vmcvis, e);
+        visit(vmcvis, e);
     });
     fb.materialize();
     if (fd.index) {

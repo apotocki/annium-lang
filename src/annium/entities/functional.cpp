@@ -253,61 +253,80 @@ function_descriptor::named_field const* function_descriptor::find_named_field(id
     return nullptr;
 }
 
-entity_identifier functional::default_entity(fn_compiler_context& ctx) const
+std::variant<entity_identifier, functional_variable> functional::default_entity(fn_compiler_context& ctx) const
 {
-    shared_ptr<entity_resolver> resolver;
-    {
-        lock_guard lock{ default_entity_mtx_ };
-        if (auto* p = get<annotated_entity_identifier>(&default_entity_); p) {
-            if (!p->value) {
+    unique_lock lock{ default_entity_mtx_ };
+    return visit([this, &ctx, &lock](auto&& v) -> std::variant<entity_identifier, functional_variable> {
+        if constexpr (std::is_same_v<std::decay_t<decltype(v)>, annotated_entity_identifier>) {
+            if (!v.value) {
                 // if default entity is not defined, return qname entity of this functional
                 return ctx.env().make_qname_entity(name()).id;
             }
-            return p->value;
+            return v.value;
+        } else if constexpr (std::is_same_v<std::decay_t<decltype(v)>, shared_ptr<entity_resolver>>) {
+            shared_ptr<entity_resolver> rslv = v;
+            lock.unlock();
+            return do_resolver(ctx, *rslv);
+        } else {
+            static_assert(std::is_same_v<std::decay_t<decltype(v)>, functional_variable>);
+            return v;
         }
-        resolver = get<shared_ptr<entity_resolver>>(default_entity_);
-    }
+    }, default_result_);
+}
     
+entity_identifier functional::do_resolver(fn_compiler_context & ctx, entity_resolver& resolver) const
+{
     sonia::lang::compiler_task_tracer::task_guard tg = ctx.try_lock_task(qname_task_id{ id_ });
     if (!tg) {
-        throw circular_dependency_error(make_error<basic_general_error>(resolver->location(), "resolving name"sv, id_));
+        throw circular_dependency_error(make_error<basic_general_error>(resolver.location(), "resolving name"sv, id_));
     }
 
     {
         lock_guard lock{ default_entity_mtx_ };
-        if (auto * p = get<annotated_entity_identifier>(&default_entity_); p) return p->value;
+        if (auto * p = get_if<annotated_entity_identifier>(&default_result_); p) return p->value;
     }
         
-    auto deid = resolver->const_resolve(ctx);
+    auto deid = resolver.const_resolve(ctx);
     if (!deid) deid.error()->rethrow(ctx.env());
     {
         lock_guard lock{ default_entity_mtx_ };
-        default_entity_ = annotated_entity_identifier{ *deid, resolver->location() };
+        default_result_ = annotated_entity_identifier{ *deid, resolver.location() };
     }
 
     return *deid;
 }
 
-void functional::set_default_entity(annotated_entity_identifier e)
+template <typename RT>
+inline void functional::set_default_result(RT e, resource_location(*location_retriever)(RT const&))
 {
     lock_guard lock{ default_entity_mtx_ };
-    if (auto* p = get<annotated_entity_identifier>(&default_entity_); !p || *p) {
-        throw identifier_redefinition_error(
-            annotated_qname_identifier{ id(), e.location },
-            p ? p->location : get<shared_ptr<entity_resolver>>(default_entity_)->location());
-    }
-    default_entity_ = std::move(e);
+    visit([this, e_location = location_retriever(e)](auto&& v) {
+        if constexpr (std::is_same_v<std::decay_t<decltype(v)>, annotated_entity_identifier>) {
+            if (!v) return;
+            throw identifier_redefinition_error(annotated_qname_identifier{ id(), e_location }, v.location);
+        } else if constexpr (std::is_same_v<std::decay_t<decltype(v)>, shared_ptr<entity_resolver>>) {
+            throw identifier_redefinition_error(annotated_qname_identifier{ id(), e_location }, v->location());
+        } else {
+            static_assert(std::is_same_v<std::decay_t<decltype(v)>, functional_variable>);
+            throw identifier_redefinition_error(annotated_qname_identifier{ id(), e_location }, v.name.location);
+        }
+    }, default_result_);
+    default_result_ = std::move(e);
+}
+
+void functional::set_default_entity(annotated_entity_identifier e)
+{
+    set_default_result<annotated_entity_identifier>(std::move(e), [](auto const& e) { return e.location; });
 }
 
 void functional::set_default_entity(shared_ptr<entity_resolver> e)
 {
-    lock_guard lock{ default_entity_mtx_ };
-    if (auto* p = get<annotated_entity_identifier>(&default_entity_); !p || *p) {
-        throw identifier_redefinition_error(
-            annotated_qname_identifier{ id(), e->location() },
-            p ? p->location : get<shared_ptr<entity_resolver>>(default_entity_)->location());
-    }
-    default_entity_ = std::move(e);
+    set_default_result<shared_ptr<entity_resolver>>(std::move(e), [](auto const& e) { return e->location(); });
+}
+
+void functional::set_default_result(functional_variable fv)
+{
+    set_default_result<functional_variable>(std::move(fv), [](auto const& fv) { return fv.name.location; });
 }
 
 struct expression_stack_checker

@@ -40,6 +40,9 @@ jobs:
       - name: Build solution
         run: msbuild annium.sln /p:Configuration=Release
 
+      - name: Copy log configuration
+        run: Copy-Item "projects\vs\tests\log.conf" "x64\Release\log.conf"
+
       - name: Run tests
         run: |
           cd x64/Release

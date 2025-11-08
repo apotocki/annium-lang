@@ -595,39 +595,54 @@ base_expression_visitor::result_type base_expression_visitor::operator()(array_e
 
 base_expression_visitor::result_type base_expression_visitor::operator()(name_reference_expression const& var) const
 {
-    auto optent = ctx.lookup_entity(var.name);
-    if (entity_identifier const* entid = get_if<entity_identifier>(&optent); entid) {
-        if (*entid) {
-            return apply_cast(*entid);
-        }
-        return std::unexpected(make_error<undeclared_identifier_error>(context_expression_.location, var.name));
-    } else {
-        local_variable const& lvar = get<local_variable>(optent);
-        semantic::expression_span exprs_span;
-        env().push_back_expression(expressions, exprs_span, semantic::push_local_variable{ lvar });
-        return apply_cast(syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = lvar.type, .is_const_result = false });
-    }
+    return this->operator()(ctx.lookup_entity(var.name), qname{ std::move(var.name), false });
 }
 
 base_expression_visitor::result_type base_expression_visitor::operator()(qname_reference_expression const& var) const
 {
-    BOOST_ASSERT(var.name);
-    //if (!var.name) { // hardcoded tuple constructor
-    //    return apply_cast(env().make_functional_identifier_entity(env().get(builtin_qnid::make_tuple)));
-    //}
-    auto optent = ctx.lookup_entity(var.name);
-    if (entity_identifier const* entid = get_if<entity_identifier>(&optent); entid) {
-        if (*entid) {
-            return apply_cast(*entid);
-        }
-        return std::unexpected(make_error<undeclared_identifier_error>(context_expression_.location, var.name));
-    } else {
-        local_variable const& lvar = get<local_variable>(optent);
-        semantic::expression_span exprs_span;
-        env().push_back_expression(expressions, exprs_span, semantic::push_local_variable{ lvar });
-        return apply_cast(syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = lvar.type, .is_const_result = false });
-    }
+    return this->operator()(ctx.lookup_entity(var.name), qname{ var.name });
 }
+
+base_expression_visitor::result_type base_expression_visitor::operator()(fn_compiler_context::lookup_entity_result_t const& ler, qname const& qn) const
+{
+    return std::visit([this, &qn](auto && entid_or_var)->result_type {
+        if constexpr (std::is_same_v<std::decay_t<decltype(entid_or_var)>, entity_identifier>) {
+            if (entid_or_var) {
+                return apply_cast(entid_or_var);
+            }
+            return std::unexpected(make_error<undeclared_identifier_error>(context_expression_.location, qn));
+        } else if constexpr (std::is_same_v<std::decay_t<decltype(entid_or_var)>, local_variable>) {
+            semantic::expression_span exprs_span;
+            env().push_back_expression(expressions, exprs_span, semantic::push_local_variable{ entid_or_var });
+            return apply_cast(syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = entid_or_var.type, .is_const_result = false });
+        } else {
+            static_assert(std::is_same_v<std::decay_t<decltype(entid_or_var)>, functional_variable>);
+            semantic::expression_span exprs_span;
+            env().push_back_expression(expressions, exprs_span, semantic::push_variable{ entid_or_var });
+            return apply_cast(syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = entid_or_var.type, .is_const_result = false });
+        }
+    }, ler);
+}
+
+//base_expression_visitor::result_type base_expression_visitor::operator()(qname_reference_expression const& var) const
+//{
+//    BOOST_ASSERT(var.name);
+//    //if (!var.name) { // hardcoded tuple constructor
+//    //    return apply_cast(env().make_functional_identifier_entity(env().get(builtin_qnid::make_tuple)));
+//    //}
+//    auto optent = ctx.lookup_entity(var.name);
+//    if (entity_identifier const* entid = get_if<entity_identifier>(&optent); entid) {
+//        if (*entid) {
+//            return apply_cast(*entid);
+//        }
+//        return std::unexpected(make_error<undeclared_identifier_error>(context_expression_.location, context_expression_));
+//    } else {
+//        local_variable const& lvar = get<local_variable>(optent);
+//        semantic::expression_span exprs_span;
+//        env().push_back_expression(expressions, exprs_span, semantic::push_local_variable{ lvar });
+//        return apply_cast(syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = lvar.type, .is_const_result = false });
+//    }
+//}
 
 base_expression_visitor::result_type base_expression_visitor::operator()(probe_expression const& pe) const
 {

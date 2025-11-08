@@ -79,6 +79,9 @@ protected:
 #if 0
     result_type operator()(variant<entity_identifier, local_variable const&> const&);
 #endif
+
+    result_type operator()(std::variant<entity_identifier, local_variable, functional_variable> const&, qname const&) const;
+
     result_type do_logic_and(binary_expression const&) const;
     result_type do_logic_or(binary_expression const&) const;
     result_type do_assign(binary_expression const&) const;

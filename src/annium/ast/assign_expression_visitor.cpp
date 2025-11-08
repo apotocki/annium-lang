@@ -16,16 +16,22 @@ assign_expression_visitor::result_type assign_expression_visitor::operator()(qna
     return visit([this, &v](auto & eid_or_var) -> result_type
     {
         entity_identifier assign_type;
-        extern_variable_entity const* peve = nullptr;
         if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, local_variable>) {
             assign_type = eid_or_var.type;
+        } else if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, functional_variable>) {
+            assign_type = eid_or_var.type;
         } else {
+            static_assert(std::is_same_v<std::decay_t<decltype(eid_or_var)>, entity_identifier>);
+            if (!eid_or_var) return std::unexpected(make_error<undeclared_identifier_error>(lhs_.location, v.name));
+            return std::unexpected(make_error<assign_error>(assign_location_, lhs_));
+            /*
             if (!eid_or_var) return std::unexpected(make_error<undeclared_identifier_error>(lhs_.location, v.name));
             if (peve = dynamic_cast<extern_variable_entity const*>(&env().eregistry_get(eid_or_var)); peve) {
                 assign_type = peve->get_type();
             } else {
                 return std::unexpected(make_error<assign_error>(assign_location_, lhs_));
             }
+            */
         }
         auto res = base_expression_visitor::visit(ctx_, expressions, expected_result_t{ assign_type, assign_location_ }, rhs_);
         if (!res) return std::unexpected(std::move(res.error()));
@@ -43,8 +49,10 @@ assign_expression_visitor::result_type assign_expression_visitor::operator()(qna
             if (eid_or_var.is_weak) {
                 ctx_.append_expression(semantic::truncate_values(1, 0));
             }
+        } else if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, functional_variable>) {
+            env().push_back_expression(expressions, ser.expressions, semantic::set_variable{ eid_or_var });
         } else {
-            env().push_back_expression(expressions, ser.expressions, semantic::set_variable{ peve });
+            THROW_INTERNAL_ERROR("unhandled assign_expression_visitor qname_reference_expression case");
         }
         ser.value_or_type = env().get(builtin_eid::void_);
         return std::move(ser);

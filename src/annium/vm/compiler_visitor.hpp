@@ -6,6 +6,7 @@
 #include "annium_vm.hpp"
 #include "push_value_visitor.hpp"
 
+#include "sonia/small_vector.hpp"
 #include "sonia/utility/scope_exit.hpp"
 
 #include "annium/semantic.hpp"
@@ -20,8 +21,8 @@ protected:
     internal_function_entity const* fn_context_;
     asm_builder_t::function_builder& fnbuilder_;
 
-    using breaks_t = boost::container::small_vector<asm_builder_t::instruction_entry*, 4>;
-    mutable boost::container::small_vector<std::pair<asm_builder_t::instruction_entry*, breaks_t*>, 4> loop_stack_; // [{loop start, [loop brakes]}]
+    using breaks_t = small_vector<asm_builder_t::instruction_entry*, 4>;
+    mutable small_vector<std::pair<asm_builder_t::instruction_entry*, breaks_t*>, 4> loop_stack_; // [{loop start, [loop brakes]}]
 
 public:
     compiler_visitor_base(environment& e, asm_builder_t::function_builder & b, internal_function_entity const& ife)
@@ -41,8 +42,7 @@ public:
 
     void operator()(semantic::push_value const& pv) const
     {
-        push_value_visitor vis{ environment_, fnbuilder_ };
-        apply_visitor(vis, pv.value);
+        visit(push_value_visitor{ environment_, fnbuilder_ }, pv.value);
     }
 
     inline void operator()(semantic::push_special_value const& c) const
@@ -90,13 +90,22 @@ public:
         fnbuilder_.append_fset(index);
     }
 
-    void operator()(semantic::set_variable const& pv) const
+    void operator()(semantic::set_variable const& sv) const
     {
-        string_view varname = environment_.as_string(environment_.fregistry_resolve(pv.entity->name).name().back());
+        string_view varname = *environment_.slregistry().resolve(sv.var.name);
         smart_blob strbr{ string_blob_result(varname) };
         strbr.allocate();
         fnbuilder_.append_push_pooled_const(std::move(strbr));
         fnbuilder_.append_ecall((size_t)virtual_stack_machine::builtin_fn::extern_variable_set);
+    }
+
+    void operator()(semantic::push_variable const& pv) const
+    {
+        string_view varname = *environment_.slregistry().resolve(pv.var.name);
+        smart_blob strbr{ string_blob_result(varname) };
+        strbr.allocate();
+        fnbuilder_.append_push_pooled_const(std::move(strbr));
+        fnbuilder_.append_ecall((size_t)virtual_stack_machine::builtin_fn::extern_variable_get);
     }
 
     void operator()(semantic::invoke_function const& invf) const;
@@ -306,7 +315,7 @@ public:
     void apply(semantic::expression const& e) const override
     {
         //GLOBAL_LOG_INFO() << "--- " << environment_.print(e);
-        apply_visitor(derived(), e);
+        visit(derived(), e);
     }
 
 protected:
@@ -315,7 +324,7 @@ protected:
 
 class inline_compiler_visitor : public compiler_visitor_generic<inline_compiler_visitor>
 {
-    mutable boost::container::small_vector<asm_builder_t::instruction_entry*, 4> rpositions_;
+    mutable small_vector<asm_builder_t::instruction_entry*, 4> rpositions_;
 
 public:
     using generic_base_t::generic_base_t;
@@ -326,7 +335,7 @@ public:
     {
         rst.result.for_each([this](semantic::expression const& e) {
             //GLOBAL_LOG_INFO() << environment_.print(e);
-            apply_visitor(*this, e);
+            visit(*this, e);
         });
         // todo: trancate temporaries
         fnbuilder_.append_noop();
@@ -380,7 +389,7 @@ public:
     {
         rst.result.for_each([this](semantic::expression const& e) {
             //GLOBAL_LOG_INFO() << environment_.print(e);
-            apply_visitor(*this, e);
+            visit(*this, e);
         });
         if (local_return_position) {
             fnbuilder_.append_jmp(*local_return_position);
@@ -495,7 +504,7 @@ void compiler_visitor_base::operator()(semantic::invoke_function const& invf) co
                 fnbuilder_.append_pushfp();
                 fe->body.for_each([this, &ivis](semantic::expression const& e) {
                     //GLOBAL_LOG_INFO() << environment_.print(e);
-                    apply_visitor(ivis, e);
+                    visit(ivis, e);
                 });
                 ivis.finalize();
                 fnbuilder_.append_popfp();

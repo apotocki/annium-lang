@@ -1121,7 +1121,7 @@ std::ostream& environment::print_to(std::ostream& os, syntax_expression const* e
 std::ostream& environment::print_to(std::ostream& os, semantic::expression const& e) const
 {
     semantic::expression_printer_visitor vis{ *this, os };
-    apply_visitor(vis, e);
+    visit(vis, e);
     return os;
 }
 

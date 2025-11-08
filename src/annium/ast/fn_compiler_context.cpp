@@ -512,17 +512,18 @@ std::expected<qname_identifier, error_storage> fn_compiler_context::lookup_qname
     return std::unexpected(make_error<undeclared_identifier_error>(name));
 }
 
-std::variant<entity_identifier, local_variable> fn_compiler_context::lookup_entity(identifier name) const
+fn_compiler_context::lookup_entity_result_t fn_compiler_context::lookup_entity(identifier name) const
 {
     auto optbv = get_bound(name);
-    if (optbv) return std::move(*optbv);
+    if (optbv) return visit([](auto&& bv) -> lookup_entity_result_t { return std::move(bv); }, *optbv);
 
     qname checkns = ns_;
     size_t sz = checkns.parts().size();
     for (;;) {
         checkns.append(name);
         functional* f = environment_.fregistry_find(checkns);
-        if (f) return f->default_entity(const_cast<fn_compiler_context&>(*this));
+        if (f) return visit([](auto&& bv) -> lookup_entity_result_t { return std::move(bv); },
+                            f->default_entity(const_cast<fn_compiler_context&>(*this)));
         if (!sz) break;
         --sz;
         checkns.truncate(sz);
@@ -530,18 +531,18 @@ std::variant<entity_identifier, local_variable> fn_compiler_context::lookup_enti
     return entity_identifier{}; // undeclared
 }
 
-std::variant<entity_identifier, local_variable> fn_compiler_context::lookup_entity(qname_view name) const
+fn_compiler_context::lookup_entity_result_t fn_compiler_context::lookup_entity(qname_view name) const
 {
-    //using result_t = variant<entity_identifier, local_variable>;
     if (name.is_relative() && name.size() == 1) {
         identifier varid = *name.begin();
         auto optbv = get_bound(varid);
-        if (optbv) return std::move(*optbv);
+        if (optbv) return visit([](auto&& bv) -> lookup_entity_result_t { return std::move(bv); }, *optbv);
     }
 
     functional const* pfn = lookup_functional(name);
     if (pfn) 
-        return pfn->default_entity(const_cast<fn_compiler_context&>(*this));
+        return visit([](auto&& bv) -> lookup_entity_result_t { return std::move(bv); },
+                     pfn->default_entity(const_cast<fn_compiler_context&>(*this)));
     return entity_identifier{}; // undeclared
 }
 

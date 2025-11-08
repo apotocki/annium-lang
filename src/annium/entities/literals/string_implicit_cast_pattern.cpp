@@ -80,7 +80,9 @@ std::expected<syntax_expression_result, error_storage> string_implicit_cast_patt
     if (!sig_res.is_const() && src.is_const_result) {
         // arg is constexpr and result is runtime
         environment& env = ctx.env();
-        generic_literal_entity const& str_ent = static_cast<generic_literal_entity const&>(get_entity(env, src.value()));
+        entity const& lit_ent = get_entity(env, src.value());
+        BOOST_ASSERT(dynamic_cast<generic_literal_entity const*>(&lit_ent));
+        generic_literal_entity const& str_ent = static_cast<generic_literal_entity const&>(lit_ent);
         ctx.env().push_back_expression(el, src.expressions, semantic::push_value{ smart_blob{ str_ent.value() } });
         src.is_const_result = false;
         src.value_or_type = env.get(builtin_eid::string);

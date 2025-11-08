@@ -3,11 +3,11 @@
 
 #pragma once
 
+#include <variant>
 #include <expected>
 #include <unordered_set>
 #include <boost/container/flat_set.hpp>
 
-#include "sonia/variant.hpp"
 #include "sonia/shared_ptr.hpp"
 #include "sonia/small_vector.hpp"
 #include "sonia/concurrency.hpp"
@@ -357,10 +357,13 @@ public:
 
     // returns empty entity_identifier if not resolved
     // throws on resolving error (e.g. circular_dependency_error)
-    entity_identifier default_entity(fn_compiler_context&) const;
+    std::variant<entity_identifier, functional_variable> default_entity(fn_compiler_context&) const;
+    entity_identifier do_resolver(fn_compiler_context&, entity_resolver&) const;
 
+    template <typename RT> void set_default_result(RT, resource_location(*location_retriever)(RT const&));
     void set_default_entity(annotated_entity_identifier); // can throw redefinition_error
     void set_default_entity(shared_ptr<entity_resolver>); // can throw redefinition_error
+    void set_default_result(functional_variable); // can throw redefinition_error
 
     void push(shared_ptr<pattern> p)
     {
@@ -378,7 +381,7 @@ public:
 private:
     qname_identifier id_;
     small_vector<identifier, 4> qnameids_;
-    mutable variant<annotated_entity_identifier, shared_ptr<entity_resolver>> default_entity_; // corresponds to name without call
+    mutable std::variant<annotated_entity_identifier, functional_variable, shared_ptr<entity_resolver>> default_result_; // corresponds to name without call
     small_vector<shared_ptr<pattern>, 1> patterns_;
 
     mutable fibers::mutex default_entity_mtx_;

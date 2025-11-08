@@ -72,11 +72,11 @@ error_storage declaration_visitor::operator()(extern_var const& d) const
 
     qname var_qname = ctx.ns() / d.name.value;
     functional& fnl = env().fregistry_resolve(var_qname);
-    auto ve = sonia::make_shared<extern_variable_entity>(vartype->first.value(), fnl.id());
-    ve->location = d.name.location;
-    env().eregistry_insert(ve);
-    
-    fnl.set_default_entity(annotated_entity_identifier{ ve->id, d.name.location });
+    fnl.set_default_result(functional_variable{ .name = d.name, .type = vartype->first.value() });
+    //auto ve = sonia::make_shared<extern_variable_entity>(vartype->first.value(), fnl.id());
+    //ve->location = d.name.location;
+    //env().eregistry_insert(ve);
+    //fnl.set_default_entity(annotated_entity_identifier{ ve->id, d.name.location });
 
     return {};
 }

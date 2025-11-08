@@ -163,8 +163,10 @@ public:
 
     functional const* lookup_functional(qname_view) const;
     std::expected<qname_identifier, error_storage> lookup_qname(annotated_qname_view) const;
-    std::variant<entity_identifier, local_variable> lookup_entity(identifier) const;
-    std::variant<entity_identifier, local_variable> lookup_entity(qname_view) const;
+
+    using lookup_entity_result_t = std::variant<entity_identifier, local_variable, functional_variable>;
+    lookup_entity_result_t lookup_entity(identifier) const;
+    lookup_entity_result_t lookup_entity(qname_view) const;
     std::expected<functional::match, error_storage> find(builtin_qnid, resource_location const& call_location, span<const opt_named_expression_t> const& call_args, semantic::expression_list_t&, expected_result_t const& = expected_result_t{});
     std::expected<functional::match, error_storage> find(qname_identifier, resource_location const& call_location, span<const opt_named_expression_t> const& call_args, semantic::expression_list_t&, expected_result_t const& = expected_result_t{});
     

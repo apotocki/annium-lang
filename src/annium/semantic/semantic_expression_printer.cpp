@@ -24,7 +24,7 @@ void expression_printer_visitor::operator()(expression_span esp) const
 {
     ++indent_cnt;
     while (esp) {
-        apply_visitor(*this, esp.front());
+        visit(*this, esp.front());
         esp.pop_front();
     }
     --indent_cnt;
@@ -34,7 +34,7 @@ void expression_printer_visitor::operator()(expression_list_t const& evec) const
 {
     ++indent_cnt;
     for (expression const& e : evec) {
-        apply_visitor(*this, e);
+        visit(*this, e);
     }
     --indent_cnt;
 }
@@ -109,8 +109,7 @@ void expression_printer_visitor::operator()(push_value const& v) const
 {
     do_indent();
     ss << "push "sv;
-    value_printer_visitor vis{ e_, ss };
-    apply_visitor(vis, v.value);
+    visit(value_printer_visitor { e_, ss }, v.value);
     ss << '\n';
 }
 
@@ -125,16 +124,22 @@ void expression_printer_visitor::operator()(push_local_variable const& lv) const
     do_indent();
     ss << "push VAR("sv << lv.varid.value;
 #ifdef SONIA_LANG_DEBUG
-    ss << ") "sv << e_.print(lv.debug_name) << '\n';
+    e_.print_to(ss << ") "sv, lv.debug_name) << '\n';
 #else
     ss << ")\n"sv;
 #endif
 }
 
+void expression_printer_visitor::operator()(push_variable const& v) const
+{
+    do_indent();
+    e_.print_to(ss << "get EXT_VAR("sv, v.var.name) << ")\n"sv;
+}
+
 void expression_printer_visitor::operator()(set_variable const& v) const
 {
     do_indent();
-    ss << "set EXT_VAR("sv << e_.print(v.entity->id) << ")\n"sv;
+    e_.print_to(ss << "set EXT_VAR("sv, v.var.name) << ")\n"sv;
 }
 
 void expression_printer_visitor::operator()(set_local_variable const& lv) const
@@ -142,7 +147,7 @@ void expression_printer_visitor::operator()(set_local_variable const& lv) const
     do_indent();
     ss << "set VAR("sv << lv.varid.value;
 #ifdef SONIA_LANG_DEBUG
-    ss << ") "sv << e_.print(lv.debug_name) << '\n';
+    e_.print_to(ss << ") "sv, lv.debug_name) << '\n';
 #else
     ss << ")\n"sv;
 #endif
@@ -178,12 +183,12 @@ void value_printer_visitor::operator()(bool v) const
 
 void value_printer_visitor::operator()(entity_identifier eid) const
 {
-    ss << e_.print(eid);
+    e_.print_to(ss, eid);
 }
 
 void value_printer_visitor::operator()(function_value const& fval) const
 {
-    ss << "fn"sv << e_.print(fval.mangled_name);
+    e_.print_to(ss << "fn "sv, fval.mangled_name);
 }
 
 }

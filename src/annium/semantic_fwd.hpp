@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "sonia/variant.hpp"
+#include <variant>
 
 #include "annium/terms.hpp"
 #include "sonia/utility/lang/entity.hpp"
@@ -166,6 +166,14 @@ public:
     }
 };
 
+
+class functional_variable
+{
+public:
+    annotated_identifier name;
+    entity_identifier type;
+};
+
 //struct local_variable_compare
 //{
 //    using is_transparent = void;
@@ -187,9 +195,9 @@ public:
 
 // ======================================================================== values
 struct function_value { qname_identifier mangled_name; };
-using value_t = make_recursive_variant<
+using value_t = std::variant<
     smart_blob, identifier, entity_identifier//, shared_ptr<beng_object>,
     //, std::vector<recursive_variant_>
->::type; // to do: tuples
+>; // to do: tuples
 
 }
