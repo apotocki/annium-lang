@@ -179,7 +179,8 @@ entity_identifier parser_context::make_void() const
 void parser_context::append_error(int line_begin, int col_begin, int line_end, int col_end, string_view tok)
 {
     std::ostringstream ress;
-    resource_->print_description(ress) << ':' << line_begin << '.' << col_begin << '-' << line_end << '.' << col_end;
+    resource_->print_to(ress, ""sv, line_begin, col_begin, resource_print_mode_t::default_mode);
+    //resource_->print_description(ress) << ':' << line_begin << '.' << col_begin << '-' << line_end << '.' << col_end;
     ress << ": error: " << tok;
     append_error(ress.str());
     //"%1%(%2%,%3%-%4%,%5%): error: %6%"

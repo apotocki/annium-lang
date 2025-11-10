@@ -1,5 +1,5 @@
 [
-    /*
+/*
     {
         "src": "draft.ann",
         "output": ""
@@ -9,12 +9,12 @@
         "output": "Hello from Annium!(0)Hello from Annium!(1)Hello from Annium!(2)Hello from Annium!(3)Hello from Annium!(4)"
     },
     {
-        "src": "file1.ann",
+        "src": "basic_tuple.ann",
         "arguments": [ "Hello", "from", "Annium!" ],
         "output": ""
     },
     {
-        "src": "tuples_test2.ann",
+        "src": "tuple_operations.ann",
         "output": ""
     },
     {
@@ -22,7 +22,7 @@
         "output": ""
     },
     {
-        "src": "file6.ann",
+        "src": "function_calls.ann",
         "output": "test function called"
     },
     {
@@ -30,7 +30,7 @@
         "output": "CB"
     },
     {
-        "src": "arrays.ann",
+        "src": "array_operations.ann",
         "output": ""
     }
 

@@ -130,11 +130,11 @@ inline fn assert_not_equal(_, _, location: string = __call_location) -> () {
 }
 
 // UNIONS
-inline fn equal($l: ~union(...), $r) => apply(to: $l, visitor: fn[$r]($value) => $value == $r`);
-inline fn equal($l, $r: ~union(...)) => apply(to: $r, visitor: fn[$l]($value) => $value == $l`);
-inline fn to_string(~union(...)) => apply(to: $0, visitor: fn($x) => to_string($x)`);
+inline fn equal($l: ~union(...), $r) => apply(to: $l, visitor: fn[$r]($value) => $value == $r);
+inline fn equal($l, $r: ~union(...)) => apply(to: $r, visitor: fn[$l]($value) => $value == $l);
+inline fn to_string(~union(...)) => apply(to: $0, visitor: fn($x) => to_string($x));
 
-inline viable fn implicit_cast(~ union(...)) ~> $T => apply(to: $0, visitor: fn($x)->$T => implicit_cast($x)`);
+inline viable fn implicit_cast(~ union(...)) ~> $T => apply(to: $0, visitor: (fn($x)->$T => implicit_cast($x)));
 
 // STRUCTS
 inline fn::get(self @is_struct, property: constexpr __identifier) => get(self: tuple_of(self), property: property);

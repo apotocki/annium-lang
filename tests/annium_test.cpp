@@ -124,7 +124,7 @@ void annium_suite_test()
         json_object test_obj = test_descr.get_object();
         auto filename = test_obj["src"]->get_u8string();
         fs::path srcpath = suitedir / filename;
-        std::cout << srcpath.string() << "\n";
+        GLOBAL_LOG_INFO() << srcpath.string() << "\n";
 
         boost::container::small_vector<string_view, 16> args;
         if (json_value* argsobj = test_obj["arguments"]; argsobj) {

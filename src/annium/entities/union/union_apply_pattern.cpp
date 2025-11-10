@@ -129,7 +129,7 @@ union_apply_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
 
             if (!res) {
                 return std::unexpected(append_cause(
-                    make_error<basic_general_error>(visitor_arg_loc, ("error calling visitor for union type index %1% (%2%)"_fmt % i % env.print(union_field.entity_id())).str()),
+                    make_error<basic_general_error>(visitor_arg_loc, ("error calling visitor for %2% of %1%"_fmt % env.print(union_entity_type.id) % env.print(union_field.entity_id())).str()),
                     std::move(res.error())));
             }
         }

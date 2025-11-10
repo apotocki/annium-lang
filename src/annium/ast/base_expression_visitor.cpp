@@ -1073,7 +1073,7 @@ base_expression_visitor::result_type base_expression_visitor::operator()(lambda 
 
     // deal with lambda captures
     while (!l.captures.empty()) { // not a loop, just to break
-        prepared_call pcall{ ctx, nullptr, l.captures, l.captures_location, expressions };
+        prepared_call pcall{ ctx, nullptr, l.captures, context_expression_.location, expressions };
         pcall.prepare();
 
         syntax_expression_result capture_res{ .is_const_result = false };

@@ -35,14 +35,14 @@ assert(!has_next(it));
 let v4 = make_array(from_iterator: iterator(v3));
 assert_equal(size(v4), 3);
 
-let strings = make_array(from_iterator: make_transform_iterator(from_iterator: iterator(v3), functor: fn($x)->string => to_string($x)`));
+let strings = make_array(from_iterator: make_transform_iterator(from_iterator: iterator(v3), functor: fn($x)->string => to_string($x)));
 assert_equal(size(strings), 3);
 assert_equal(strings[0], "1");
 assert_equal(strings[1], "2");
 assert_equal(strings[2], "3.1");
 
 fn num_arr_to_string(:[integer|decimal])->[string] {
-    return make_array(from_iterator: make_transform_iterator(from_iterator: iterator($0), functor: fn($x)->string => to_string($x)`));
+    return make_array(from_iterator: make_transform_iterator(from_iterator: iterator($0), functor: fn($x)->string => to_string($x)));
 }
 
 let strings2 = num_arr_to_string(v3);

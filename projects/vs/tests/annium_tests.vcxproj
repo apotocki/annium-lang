@@ -159,16 +159,16 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\tests\test-suite\annium_suite.json" />
-    <None Include="..\..\..\tests\test-suite\arrays.ann" />
+    <None Include="..\..\..\tests\test-suite\array_operations.ann" />
     <None Include="..\..\..\tests\test-suite\basic_print.ann" />
     <None Include="..\..\..\tests\test-suite\draft.ann" />
     <None Include="..\..\..\tests\test-suite\enums.ann" />
-    <None Include="..\..\..\tests\test-suite\file1.ann" />
+    <None Include="..\..\..\tests\test-suite\basic_tuple.ann" />
     <None Include="..\..\..\tests\test-suite\file3.ann" />
     <None Include="..\..\..\tests\test-suite\file4.ann" />
     <None Include="..\..\..\tests\test-suite\file5.ann" />
-    <None Include="..\..\..\tests\test-suite\file6.ann" />
-    <None Include="..\..\..\tests\test-suite\tuples_test2.ann" />
+    <None Include="..\..\..\tests\test-suite\function_calls.ann" />
+    <None Include="..\..\..\tests\test-suite\tuple_operations.ann" />
     <None Include="..\..\..\tests\test-suite\unions.ann" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

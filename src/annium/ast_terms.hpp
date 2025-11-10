@@ -371,7 +371,7 @@ inline bool has(fn_kind value, fn_kind flag) noexcept
 struct fn_pure
 {
     qname_view name;
-    resource_location location;
+    resource_location location; // used when as a statement
     span<const parameter> parameters;
     syntax_expression const* requirement; // optional
     std::variant<nullptr_t, syntax_expression const*, syntax_pattern const*> result; // undefined or type expression or pattern
@@ -386,7 +386,6 @@ struct fn_decl : fn_pure
 {
     span<const statement> body;
     span<const opt_named_expression_t> captures;
-    resource_location captures_location;
 };
 
 using lambda = fn_decl;
