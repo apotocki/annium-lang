@@ -17,22 +17,23 @@ namespace annium {
 // __id(const string)
 std::expected<functional_match_descriptor_ptr, error_storage> create_identifier_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const&) const
 {
-    environment& e = ctx.env();
     auto call_session = call.new_session(ctx);
-    std::pair<syntax_expression const*, size_t> arg_expr;
-    auto arg = call_session.use_next_positioned_argument(expected_result_t{ .type = ctx.env().get(builtin_eid::string), .modifier = value_modifier_t::constexpr_value }, &arg_expr);
+    prepared_call::argument_descriptor_t arg_descr;
+    auto arg = call_session.use_next_positioned_argument(expected_result_t{ .type = ctx.env().get(builtin_eid::string), .modifier = value_modifier_t::constexpr_value }, &arg_descr);
     if (!arg) {
-        if (!arg.error()) {
-            return std::unexpected(make_error<basic_general_error>(call.location, "missing argument"sv));
+        if (arg.error()) {
+            return std::unexpected(append_cause(
+                make_error<basic_general_error>(get<0>(arg_descr)->location, "invalid argument"sv),
+                std::move(arg.error())));
         }
-        return std::unexpected(arg.error());
+        return std::unexpected(make_error<basic_general_error>(call.location, "missing argument"sv));
     }
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
     auto pmd = make_shared<functional_match_descriptor>(call);
-    pmd->emplace_back(0, arg->first);
+    pmd->append_arg(arg->first, get<0>(arg_descr)->location);
     return pmd;
 }
 
@@ -40,7 +41,7 @@ std::expected<syntax_expression_result, error_storage> create_identifier_pattern
 {
     environment& e = ctx.env();
     auto& [_, ser, loc] = md.matches.front();
-    entity_identifier strid = ser.value();
+    //entity_identifier strid = ser.value();
     generic_literal_entity const& str_ent = static_cast<generic_literal_entity const&>(get_entity(e, ser.value()));
     identifier id = e.slregistry().resolve(str_ent.value().as<string_view>());
     semantic::managed_expression_list rel{ e };

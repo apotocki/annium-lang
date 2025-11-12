@@ -3,11 +3,11 @@
 
 #pragma once
 
-#include "annium/functional/internal_fn_pattern.hpp"
+#include "annium/functional/basic_fn_pattern.hpp"
 
 namespace annium {
 
-class struct_fn_pattern : public internal_fn_pattern
+class struct_fn_pattern : public basic_fn_pattern
 {
     //using struct_body_t = variant<span<const field>, span<const statement>>;
     using struct_body_t = span<const field>;

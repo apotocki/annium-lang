@@ -20,7 +20,7 @@ error_storage typefn_pattern::init(fn_compiler_context& ctx, fn_decl const& fnd)
     // if (auto err = init(ctx, static_cast<fn_pure const&>(fnd))) return err;
 }
 
-std::expected<syntax_expression_result, error_storage> typefn_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> typefn_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t&, functional_match_descriptor& md) const
 {
     environment& env = ctx.env();
     md.signature.result.emplace(env.get(builtin_eid::typename_));

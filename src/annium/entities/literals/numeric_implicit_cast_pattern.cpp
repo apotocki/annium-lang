@@ -44,6 +44,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> numeric_implicit_c
     else {
         return std::unexpected(make_error<basic_general_error>(call.location, "expected a numeric result"sv, exp.type));
     }
+    (void)ntype; // suppress unused variable warning
 
     auto call_session = call.new_session(ctx);
     std::pair<syntax_expression const*, size_t> self_expr;
@@ -102,13 +103,16 @@ std::expected<functional_match_descriptor_ptr, error_storage> numeric_implicit_c
     }
     pmd->emplace_back(0, src_arg_er);
     pmd->signature.result.emplace(exp.type, can_be_only_constexpr(exp.modifier));
-    return std::move(pmd);
+    return pmd;
 }
 
 std::expected<syntax_expression_result, error_storage> numeric_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
-    auto& nmd = static_cast<numeric_implicit_cast_match_descriptor&>(md);
-    auto& [_, src, loc] = md.matches.front();
+    (void)ctx;
+    (void)el;
+    (void)md;
+    //auto& nmd = static_cast<numeric_implicit_cast_match_descriptor&>(md);
+    //auto& [_, src, loc] = md.matches.front();
     
     THROW_NOT_IMPLEMENTED_ERROR("numeric_implicit_cast_pattern::apply, not implemented for non-constexpr result"sv);
     /*

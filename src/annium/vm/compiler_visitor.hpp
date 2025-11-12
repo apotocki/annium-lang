@@ -484,6 +484,7 @@ public:
     template <typename T>
     void operator()(T const& e) const
     {
+        (void)e; // suppress unused warning
         THROW_NOT_IMPLEMENTED_ERROR();
     }
 };

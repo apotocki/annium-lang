@@ -158,7 +158,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_implicit_cas
                     .value_or_type = rval,
                     .is_const_result = true
                 });
-                return std::move(pmd);
+                return pmd;
             }
         }
 

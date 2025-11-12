@@ -70,7 +70,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> string_implicit_ca
     } else {
         pmd->signature.result.emplace(src_arg_er.value_or_type, src_arg_er.is_const_result);
     }
-    return std::move(pmd);
+    return pmd;
 }
 
 std::expected<syntax_expression_result, error_storage> string_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const

@@ -14,7 +14,7 @@ void expression_printer_visitor::do_indent() const
     for (size_t i = 0; i < indent_cnt; ++i) ss << indent;
 }
 
-void expression_printer_visitor::operator()(empty_t const& i) const
+void expression_printer_visitor::operator()(empty_t const&) const
 {
     do_indent();
     ss << "noop\n"sv;

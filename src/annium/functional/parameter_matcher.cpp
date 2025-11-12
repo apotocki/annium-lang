@@ -248,8 +248,8 @@ error_storage parameter_matcher::handle_positioned_ellipsis(fn_compiler_context&
         //}), pd.constraint);
     }
 
-    basic_fn_pattern::parameter_descriptor const& pd = *next_param_it;
-    annotated_identifier const& param_name = pd.ename.self_or(pd.inames.front());
+    //basic_fn_pattern::parameter_descriptor const& pd = *next_param_it;
+    //annotated_identifier const& param_name = pd.ename.self_or(pd.inames.front());
 
     size_t ellipsis_group_index = param_exps.size() - 1;
 

@@ -18,12 +18,12 @@ namespace annium {
 std::expected<functional_match_descriptor_ptr, error_storage> deref_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
 {
     auto call_session = call.new_session(ctx);
-    std::pair<syntax_expression const*, size_t> arg_expr;
-    auto arg = call_session.use_next_positioned_argument(exp, &arg_expr);
+    prepared_call::argument_descriptor_t argdescr;
+    auto arg = call_session.use_next_positioned_argument(exp, &argdescr);
     if (!arg) return std::unexpected(arg.error());
 
-    auto argerror = [&arg_expr] {
-        return std::unexpected(make_error<basic_general_error>(get<0>(arg_expr)->location, "argument mismatch"sv, *get<0>(arg_expr)));
+    auto argerror = [&argdescr] {
+        return std::unexpected(make_error<basic_general_error>(get<0>(argdescr)->location, "argument mismatch"sv, *get<0>(argdescr)));
     };
     syntax_expression_result& arg_er = arg->first;
     if (!arg_er.is_const_result) return argerror();
@@ -34,13 +34,12 @@ std::expected<functional_match_descriptor_ptr, error_storage> deref_pattern::try
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
     auto pmd = make_shared<functional_match_descriptor>(call);
-    pmd->emplace_back(0, arg_er);
-    return std::move(pmd);
+    pmd->append_arg(arg_er, get<0>(argdescr)->location);
+    return pmd;
 }
 
 std::expected<syntax_expression_result, error_storage> deref_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
-    environment& e = ctx.env();
     auto & [_, ser, loc] = md.matches.front();
 
     BOOST_ASSERT(ser.is_const_result);

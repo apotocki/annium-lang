@@ -124,7 +124,7 @@ struct inplace_allocator_type
         }
     }
 
-    void deallocate(LimbT* ptr, size_t sz)
+    void deallocate(LimbT* ptr, size_t /* sz */)
     {
         if (std::equal_to<LimbT*>{}(ptr, inplace_limbs_.data())) {
             inplace_allocation_ = false;
@@ -178,6 +178,8 @@ entity_identifier parser_context::make_void() const
 
 void parser_context::append_error(int line_begin, int col_begin, int line_end, int col_end, string_view tok)
 {
+    (void)line_end;
+    (void)col_end;
     std::ostringstream ress;
     resource_->print_to(ress, ""sv, line_begin, col_begin, resource_print_mode_t::default_mode);
     //resource_->print_description(ress) << ':' << line_begin << '.' << col_begin << '-' << line_end << '.' << col_end;
@@ -185,8 +187,8 @@ void parser_context::append_error(int line_begin, int col_begin, int line_end, i
     append_error(ress.str());
     //"%1%(%2%,%3%-%4%,%5%): error: %6%"
     //"%1%:%2%.%3%-%4%.%5%: error: %6%"_fmt % resource_->print_description() % line_begin % col_begin % line_end % col_end % tok;
-    //ctx.append_error(("%1%:%2%.%3%-%4%.%5%: error: %6%"_fmt \
-    //    % ctx.get_resource() \
+    //ctx.append_error(("%1%:%2%.%3%-%4%.%5%: error: %6%"_fmt
+    //    % ctx.get_resource()
     //    % yylloc->begin.line % yylloc->begin.column % yylloc->end.line % yylloc->end.column % string_view{ yytext, (size_t)yyleng }).str());
 }
 

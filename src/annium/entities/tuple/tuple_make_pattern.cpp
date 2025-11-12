@@ -17,7 +17,6 @@ namespace annium {
 
 std::expected<functional_match_descriptor_ptr, error_storage> tuple_make_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const&) const
 {
-    environment& e = ctx.env();
     auto call_session = call.new_session(ctx);
 
     auto pmd = make_shared<functional_match_descriptor>(call);
@@ -44,28 +43,28 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_make_pattern
 
 std::expected<syntax_expression_result, error_storage> tuple_make_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
-    environment& e = ctx.env();
+    environment& env = ctx.env();
     
     entity_signature signature = md.signature;
-    signature.name = e.get(builtin_qnid::tuple);
-    signature.result.emplace(e.get(builtin_eid::typename_));
+    signature.name = env.get(builtin_qnid::tuple);
+    signature.result.emplace(env.get(builtin_eid::typename_));
     
     syntax_expression_result result{ };
     for (auto& [_, mr, loc] : md.matches) {
         append_semantic_result(el, mr, result);
     }
 
-    entity const& tuple_type_ent = e.make_basic_signatured_entity(std::move(signature));
-    BOOST_ASSERT(tuple_type_ent.signature() && tuple_type_ent.signature()->name == e.get(builtin_qnid::tuple));
+    entity const& tuple_type_ent = env.make_basic_signatured_entity(std::move(signature));
+    BOOST_ASSERT(tuple_type_ent.signature() && tuple_type_ent.signature()->name == env.get(builtin_qnid::tuple));
     if (md.matches.size() > 1) {
-        e.push_back_expression(el, result.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(md.matches.size()) } });
-        e.push_back_expression(el, result.expressions, semantic::invoke_function(e.get(builtin_eid::arrayify)));
+        env.push_back_expression(el, result.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(md.matches.size()) } });
+        env.push_back_expression(el, result.expressions, semantic::invoke_function(env.get(builtin_eid::arrayify)));
     }
     if (md.matches.size()) {
         result.value_or_type = tuple_type_ent.id;
         result.is_const_result = false;
     } else {
-        result.value_or_type = e.make_empty_entity(tuple_type_ent).id;
+        result.value_or_type = env.make_empty_entity(tuple_type_ent).id;
         result.is_const_result = true;
     }
 

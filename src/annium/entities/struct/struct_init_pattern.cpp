@@ -96,7 +96,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_init_patter
     }
 
     pmd->signature.result.emplace(exp.type, false);
-    return std::move(pmd);
+    return pmd;
 }
 
 #if 0
@@ -182,7 +182,7 @@ std::expected<syntax_expression_result, error_storage> struct_init_pattern::appl
 
     BOOST_ASSERT(md.signature.result && md.signature.result->entity_id());
     result.value_or_type = result.is_const_result ? e.make_empty_entity(md.signature.result->entity_id()).id : md.signature.result->entity_id();
-    return std::move(result);
+    return result;
 }
 
 }

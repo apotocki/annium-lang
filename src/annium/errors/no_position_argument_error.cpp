@@ -7,12 +7,12 @@
 
 namespace annium {
 
-general_error::string_t no_position_argument_error::object(environment const& e) const noexcept
+general_error::string_t no_position_argument_error::object(environment const&) const noexcept
 {
     return ""sv;
 }
 
-general_error::string_t no_position_argument_error::description(environment const& e) const noexcept
+general_error::string_t no_position_argument_error::description(environment const&) const noexcept
 {
     return ("no argument at position: %1%"_fmt % arg_index_).str() ;
 }

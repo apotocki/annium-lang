@@ -32,13 +32,12 @@ std::expected<functional_match_descriptor_ptr, error_storage> typeof_pattern::tr
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
     auto pmd = make_shared<functional_match_descriptor>(call);
-    pmd->emplace_back(0, arg->first, get<0>(arg_descr)->location);
-    pmd->signature.emplace_back(arg->first.value_or_type, arg->first.is_const_result);
+    pmd->append_arg(arg->first, get<0>(arg_descr)->location);
     pmd->signature.result.emplace(get_result_type(ctx.env(), arg->first), true);
-    return std::move(pmd);
+    return pmd;
 }
 
-std::expected<syntax_expression_result, error_storage> typeof_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> typeof_pattern::apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor& md) const
 {
     return syntax_expression_result {
         .value_or_type = md.signature.result->entity_id(),

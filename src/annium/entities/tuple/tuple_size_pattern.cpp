@@ -14,7 +14,7 @@
 
 namespace annium {
 
-std::expected<functional_match_descriptor_ptr, error_storage> tuple_size_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
+std::expected<functional_match_descriptor_ptr, error_storage> tuple_size_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const&) const
 {
     environment& e = ctx.env();
     auto call_session = call.new_session(ctx);
@@ -59,7 +59,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_size_pattern
     return pmd;
 }
 
-std::expected<syntax_expression_result, error_storage> tuple_size_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> tuple_size_pattern::apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor& md) const
 {
     syntax_expression_result result {
         .value_or_type = md.signature.result->entity_id(),

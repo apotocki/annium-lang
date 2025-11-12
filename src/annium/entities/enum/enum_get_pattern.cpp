@@ -108,7 +108,7 @@ std::expected<syntax_expression_result, error_storage> enum_get_pattern::apply(f
         auto& emd = static_cast<enum_get_match_descriptor&>(md);
         env.push_back_expression(el, result.expressions, semantic::push_value{ ui64_blob_result(emd.which) });
     }
-    return std::move(result);
+    return result;
 }
 
 }

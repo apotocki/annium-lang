@@ -245,7 +245,7 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
     }
     result.value_or_type = stable_result_types_set.front();
     result.is_const_result = all_result_const;
-    return std::move(result);
+    return result;
 }
 
 } // namespace annium

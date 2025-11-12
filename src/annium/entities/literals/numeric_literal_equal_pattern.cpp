@@ -197,7 +197,7 @@ bool compare_constexpr_literal_values(generic_literal_entity const* lhs_entity, 
 } // anonymous namespace
 
 std::expected<functional_match_descriptor_ptr, error_storage>
-numeric_literal_equal_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
+numeric_literal_equal_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const&) const
 {
     environment& e = ctx.env();
 
@@ -288,7 +288,7 @@ numeric_literal_equal_pattern::try_match(fn_compiler_context& ctx, prepared_call
     pmd->emplace_back(0, lhs_arg_er, lhs_arg_loc);
     pmd->emplace_back(1, rhs_arg_er, rhs_arg_loc);
     
-    return std::move(pmd);
+    return pmd;
 }
 
 std::expected<syntax_expression_result, error_storage>
@@ -340,7 +340,7 @@ numeric_literal_equal_pattern::apply(fn_compiler_context& ctx, semantic::express
         // Generate runtime equality check
         e.push_back_expression(el, result.expressions, semantic::invoke_function(e.get(builtin_eid::equal)));
 
-        return std::move(result);
+        return result;
     }
 }
 

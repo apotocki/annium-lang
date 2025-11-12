@@ -22,7 +22,7 @@ public:
     small_vector<error_storage, 4> reserved_errors;
 };
 
-std::expected<functional_match_descriptor_ptr, error_storage> assert_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
+std::expected<functional_match_descriptor_ptr, error_storage> assert_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const&) const
 {
     auto call_session = call.new_session(ctx);
     expected_result_t bool_exp{ ctx.env().get(builtin_eid::boolean), call.location };
@@ -55,7 +55,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> assert_pattern::tr
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "Argument mismatch!"sv, std::move(argterm.value())));
     }
     
-    return std::move(pmd);
+    return pmd;
 }
 
 std::expected<syntax_expression_result, error_storage> assert_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
@@ -90,7 +90,7 @@ std::expected<syntax_expression_result, error_storage> assert_pattern::apply(fn_
     if (!errs.alternatives.empty()) {
         return std::unexpected(make_error<alt_error>(std::move(errs)));
     }
-    return std::move(res);
+    return res;
 }
 
 }

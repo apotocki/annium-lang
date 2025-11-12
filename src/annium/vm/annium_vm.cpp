@@ -30,8 +30,9 @@ public:
             : address_{ address }
             , param_cnt_{ paramcnt }, is_void_ { is_void }
             , is_static_variable_index_{ is_vidx ? 1u : 0 }
+            , environment_{ e }, penv_{ pev }
             , capture_{ std::move(capture) }
-            , environment_{e}, penv_{ pev }, name_ { std::move(name) }
+            , name_ { std::move(name) }
     {}
 
     string_view name() const { return name_; }
@@ -178,11 +179,11 @@ std::string vm::context::callp_describe() const
         return ("0x%1$x %2%"_fmt % address % address_descr).str();
     }
     decltype(auto) ftor = p.as<invocation::functor_object>();
-    int64_t sigdescr = stack_back(1).as<int64_t>();
+    //int64_t sigdescr = stack_back(1).as<int64_t>();
     if (auto* pfinv = dynamic_cast<function_invoker*>(&ftor); pfinv) {
         return ("`%1%` at 0x%2$x"_fmt % pfinv->name() % pfinv->address(*this)).str();
     }
-    return "external functor";
+    return std::string{ "external functor"sv };
 }
 
 void vm::context::efn(size_t fn_index)

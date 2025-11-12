@@ -36,7 +36,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_implicit_cast
     }
     environment& env = ctx.env();
     entity const& enum_ent = get_entity(env, exp.type);
-    entity_signature const* psig = enum_ent.signature();
+    //entity_signature const* psig = enum_ent.signature();
     enum_entity const* penum = dynamic_cast<enum_entity const*>(&enum_ent);
     if (!penum) {
         return std::unexpected(make_error<type_mismatch_error>(exp.location, exp.type, "an enumeration"sv));
@@ -80,7 +80,7 @@ std::expected<syntax_expression_result, error_storage> enum_implicit_cast_patter
 {
     environment& e = ctx.env();
     enum_implicit_cast_match_descriptor& emd = static_cast<enum_implicit_cast_match_descriptor&>(md);
-    auto &[_, ser, argloc] = emd.matches.front();
+    //auto &[_, ser, argloc] = emd.matches.front();
 
     auto const& rfd = *emd.signature.result;
     syntax_expression_result result{

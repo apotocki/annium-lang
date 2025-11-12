@@ -463,13 +463,6 @@ struct syntax_expression
         //, ctprocedure
         
     > value;
-
-    syntax_expression& operator=(syntax_expression const& r)
-    {
-        location = r.location;
-        value = r.value;
-        return *this;
-    }
 };
 
 template <typename TermT>

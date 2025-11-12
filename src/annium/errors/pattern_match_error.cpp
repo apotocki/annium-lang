@@ -14,7 +14,7 @@ general_error::string_t pattern_match_error::object(environment const& e) const 
     return ss.str();
 }
 
-general_error::string_t pattern_match_error::description(environment const& e) const noexcept
+general_error::string_t pattern_match_error::description(environment const&) const noexcept
 {
     return "can't match the call"sv;
 }

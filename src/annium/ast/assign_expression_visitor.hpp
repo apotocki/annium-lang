@@ -34,6 +34,7 @@ struct assign_expression_visitor : static_visitor<std::expected<syntax_expressio
     template <typename T>
     result_type operator()(T const& v) const
     {
+        (void)v;
         return std::unexpected(make_error<assign_error>(assign_location_, lhs_));
         //THROW_NOT_IMPLEMENTED_ERROR("assign_expression_visitor not implemented expression");
     }

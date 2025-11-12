@@ -34,8 +34,6 @@ error_storage struct_entity::build(fn_compiler_context& extctx, semantic::expres
     }
     if (built_.load() == build_state::underlying_tuple_built) return {}; // double check
 
-    environment& e = extctx.env();
-
     // prepare context
     fn_compiler_context ctx{ extctx, name_ };
     if (!context_bindings_.empty()) {
@@ -77,7 +75,7 @@ error_storage struct_entity::build(fn_compiler_context& ctx, span<const annium::
     return {};
 }
 
-error_storage struct_entity::build(fn_compiler_context& ctx, span<const statement> sts, semantic::expression_list_t&) const
+error_storage struct_entity::build(fn_compiler_context&, span<const statement>, semantic::expression_list_t&) const
 {
     THROW_NOT_IMPLEMENTED_ERROR("struct_entity::build(statement_set_t)");
     //declaration_visitor dvis{ ctx };

@@ -60,6 +60,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> ellipsis_pattern::
     }
     else if (basic_signatured_entity const* bse = dynamic_cast<basic_signatured_entity const*>(&metaobject_ent); bse) {
         entity_signature const& signature = *bse->signature();
+        (void)signature;
         //if (signature.name == e.get(builtin_qnid::metaobject)) {
         //    // to do: check if the signature is a comopatible to the call metaobject
         //    return make_shared<ellipsis_match_descriptor>(call.functional_id(), bse, get_start_location(*object_arg));

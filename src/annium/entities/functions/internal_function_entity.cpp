@@ -21,11 +21,12 @@ internal_function_entity::internal_function_entity(qname&& name, entity_signatur
     : name_{ std::move(name) }
     , sig_{ std::move(sig) }
     , location_{ std::move(loc) }
+    , arg_count_{ 0 }
     , captured_var_count_{ 0 }
     , is_provision_{ 1 } // by default all internal functions are provisions
-    , is_inline_{ 0 }
     , is_built_{ 0 }
-    , arg_count_{ 0 }
+    , is_inline_{ 0 }
+    , is_empty_{ 1 }
 {
     // if the signature has a result, it's the function result.
     // If the signature has no result, the function result should be set later by analizing the body of the function.

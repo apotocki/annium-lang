@@ -14,15 +14,19 @@
 
 namespace annium {
 
-std::expected<functional_match_descriptor_ptr, error_storage> is_const_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
+std::expected<functional_match_descriptor_ptr, error_storage> is_const_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const&) const
 {
     auto call_session = call.new_session(ctx);
     // Accept a single unnamed argument
-    auto arg = call_session.use_next_positioned_argument();
+    prepared_call::argument_descriptor_t arg_descr;
+    auto arg = call_session.use_next_positioned_argument(&arg_descr);
     if (!arg) {
-        if (!arg.error())
-            return std::unexpected(make_error<basic_general_error>(call.location, "missing argument"sv));
-        return std::unexpected(arg.error());
+        if (arg.error()) {
+            return std::unexpected(append_cause(
+                make_error<basic_general_error>(get<0>(arg_descr)->location, "invalid argument"sv),
+                move(arg.error())));
+        }
+        return std::unexpected(make_error<basic_general_error>(call.location, "missing argument"sv));
     }
 
     // Verify no more arguments
@@ -31,11 +35,11 @@ std::expected<functional_match_descriptor_ptr, error_storage> is_const_pattern::
     }
     
     auto pmd = make_shared<functional_match_descriptor>(call);
-    pmd->emplace_back(0, arg->first);
-    return std::move(pmd);
+    pmd->append_arg(arg->first, get<0>(arg_descr)->location);
+    return pmd;
 }
 
-std::expected<syntax_expression_result, error_storage> is_const_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> is_const_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t&, functional_match_descriptor& md) const
 {
     environment& e = ctx.env();
     auto& [_, arg_result, loc] = md.matches.front();

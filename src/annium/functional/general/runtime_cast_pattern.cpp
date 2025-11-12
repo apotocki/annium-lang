@@ -23,10 +23,10 @@ std::expected<functional_match_descriptor_ptr, error_storage> runtime_cast_patte
     }
     auto pmd = make_shared<functional_match_descriptor>(call);
     pmd->emplace_back(0, arg->first);
-    return std::move(pmd);
+    return pmd;
 }
 
-std::expected<syntax_expression_result, error_storage> runtime_cast_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> runtime_cast_pattern::apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor& md) const
 {
     auto & [_, ser, loc] = md.matches.front();
 

@@ -152,7 +152,7 @@ std::expected<syntax_expression_result, error_storage> struct_set_pattern::apply
     environment& env = ctx.env();
     auto& smd = static_cast<struct_set_match_descriptor&>(md);
     auto& slfer = get<1>(md.matches[0]);
-    auto& proper = get<1>(md.matches[1]);
+    //auto& proper = get<1>(md.matches[1]);
     auto& valueer = get<1>(md.matches[2]);
     auto& sigres = *md.signature.result;
 
@@ -184,7 +184,7 @@ std::expected<syntax_expression_result, error_storage> struct_set_pattern::apply
             // for one element 'array' just set the value instead of calling array_set_at
             append_semantic_result(el, valueer, result);
         }
-        return std::move(result);
+        return result;
     }
     THROW_NOT_IMPLEMENTED_ERROR("struct_set_pattern::apply");
 #if 0

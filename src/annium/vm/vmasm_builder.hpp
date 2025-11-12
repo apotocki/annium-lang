@@ -470,9 +470,8 @@ void builder<ContextT>::function_builder::materialize()
             b.code.resize(b.code.size() - b.op_applied_size);
             b.op_applied_size = 0;
             size_t csz = b.code.size();
-            int jmp_block_index = it->second.second;
+            size_t jmp_block_index = (size_t)it->second.second;
             if (!b.deps_calculated) {
-
                 for (block & db : (jmp_block_index > block_index ? span{ blocks }.subspan(block_index + 1, jmp_block_index - block_index - 1) : span{ blocks }.subspan(jmp_block_index, block_index - jmp_block_index))) {
                     db.dependent_block_indices.push_back(static_cast<uint_least32_t>(block_index));
                 }

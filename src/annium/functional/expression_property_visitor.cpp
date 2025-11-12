@@ -7,7 +7,7 @@
 
 namespace annium {
 
-expression_property_visitor::result_type expression_property_visitor::operator()(qname_reference_expression const& v) const
+expression_property_visitor::result_type expression_property_visitor::operator()(qname_reference_expression const&) const
 {
     return expression_analysis_result::this_is_not_pattern();
 }

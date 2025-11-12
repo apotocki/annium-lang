@@ -287,7 +287,7 @@ numeric_literal_implicit_cast_pattern::try_match(fn_compiler_context& ctx, prepa
                 }
                 default: {
                     // Integer types
-                    numetron::integer_view source_val = src_arg_literal.value().as<numetron::integer_view>();
+                    //numetron::integer_view source_val = src_arg_literal.value().as<numetron::integer_view>();
                     can_convert = is_always_safe_runtime_conversion(source_type, target_type);
                     break;
                 }
@@ -302,7 +302,7 @@ numeric_literal_implicit_cast_pattern::try_match(fn_compiler_context& ctx, prepa
         pmd->signature.emplace_back(src_arg_er.value(), true);
         pmd->signature.result.emplace(exp.type, can_be_constexpr(exp.modifier));
         pmd->emplace_back(0, src_arg_er);
-        return std::move(pmd);
+        return pmd;
     } else {
         // Runtime argument - only allow conversions that are always safe
         if (!is_always_safe_runtime_conversion(source_type, target_type)) {
@@ -313,7 +313,7 @@ numeric_literal_implicit_cast_pattern::try_match(fn_compiler_context& ctx, prepa
         pmd->signature.emplace_back(src_arg_er.type(), false);
         pmd->signature.result.emplace(exp.type, can_be_constexpr(exp.modifier));
         pmd->emplace_back(0, src_arg_er);
-        return std::move(pmd);
+        return pmd;
     }
 }
 

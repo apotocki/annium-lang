@@ -285,7 +285,7 @@ prepared_call::session::do_resolve(argument_cache& arg_cache, expected_result_t 
             arg_cache.cache.emplace(cache_key_t{ exp.type, value_modifier_t::constexpr_or_runtime_value }, res);
         }
         // cit may be invalidated, so we return res directly
-        return std::move(res);
+        return res;
     }
     return cit->second;
 }

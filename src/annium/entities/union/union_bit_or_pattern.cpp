@@ -46,7 +46,7 @@ union_bit_or_pattern::try_match(fn_compiler_context& ctx, prepared_call const& c
     return pmd;
 }
 
-std::expected<syntax_expression_result, error_storage> union_bit_or_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> union_bit_or_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t&, functional_match_descriptor& md) const
 {
     environment& env = ctx.env();
 

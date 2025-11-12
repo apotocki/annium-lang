@@ -33,7 +33,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> to_string_pattern:
     }
     auto pmd = make_shared<functional_match_descriptor>(call);
     pmd->emplace_back(0, arg->first);
-    return std::move(pmd);
+    return pmd;
 }
 
 class to_string_visitor : public entity_visitor

@@ -7,12 +7,12 @@
 
 namespace annium {
 
-general_error::string_t assign_error::object(environment const& e) const noexcept
+general_error::string_t assign_error::object(environment const& env) const noexcept
 {
-    return e.print(lhs_);
+    return env.print(lhs_);
 }
 
-general_error::string_t assign_error::description(environment const& e) const noexcept
+general_error::string_t assign_error::description(environment const&) const noexcept
 {
     return "not a lvalue expression"sv;
 }

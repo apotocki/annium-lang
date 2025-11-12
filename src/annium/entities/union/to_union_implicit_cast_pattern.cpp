@@ -176,7 +176,7 @@ std::expected<syntax_expression_result, error_storage> to_union_implicit_cast_pa
     }
 
     // do not build union value if constexpr result
-    if (result.is_const_result) return std::move(result);
+    if (result.is_const_result) return result;
 
     size_t which = static_cast<to_union_cast_match_descriptor&>(md).which;
     env.push_back_expression(el, result.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(which) } });

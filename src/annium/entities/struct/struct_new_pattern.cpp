@@ -112,7 +112,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_new_pattern
 std::expected<syntax_expression_result, error_storage> struct_new_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t&, functional_match_descriptor& md) const
 {
     // create tuple instance
-    environment& e = ctx.env();
+    //environment& e = ctx.env();
 
     BOOST_ASSERT(dynamic_cast<new_struct_match_descriptor*>(&md));
     new_struct_match_descriptor& nsmd = static_cast<new_struct_match_descriptor&>(md);

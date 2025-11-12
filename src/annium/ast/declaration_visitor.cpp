@@ -133,7 +133,7 @@ error_storage declaration_visitor::do_rt_if_decl(if_decl const& stm) const
         ctx.push_chain();
         ctx.append_expression(semantic::truncate_values{ 1, false });
         
-        if (auto err = apply(stm.true_body); err) return std::move(err);
+        if (auto err = apply(stm.true_body); err) return err;
         cond.true_branch = ctx.expressions();
         ctx.pop_chain();
     }
@@ -145,7 +145,7 @@ error_storage declaration_visitor::do_rt_if_decl(if_decl const& stm) const
         ctx.push_chain();
         ctx.append_expression(semantic::truncate_values{ 1, false });
 
-        if (auto err = apply(stm.false_body); err) return std::move(err);
+        if (auto err = apply(stm.false_body); err) return err;
         cond.false_branch = ctx.expressions();
         ctx.pop_chain();
     }
@@ -291,7 +291,7 @@ error_storage declaration_visitor::operator()(for_statement const& fd) const
             });
     }
     ctx.push_scope();
-    if (auto err = apply(fd.body); err) return std::move(err);
+    if (auto err = apply(fd.body); err) return err;
     size_t cnt = ctx.pop_scope();
     ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)(next_sz + cnt), .keep_back = 0 }); // remove next result
     ctx.append_expression(semantic::loop_continuer{});
@@ -325,7 +325,8 @@ error_storage declaration_visitor::operator()(while_decl const& wd) const
 
         ctx.push_chain();
         size_t scope_sz = ctx.append_result(el, er);
-        
+        (void)scope_sz;
+
         if (!er.is_const_result && er.value_or_type != env().get(builtin_eid::void_)) {
             ctx.append_expression(semantic::truncate_values(1, false));
         }
@@ -340,7 +341,7 @@ error_storage declaration_visitor::operator()(while_decl const& wd) const
     syntax_expression_result& er = res->first;
     
     size_t scope_sz = ctx.append_result(el, er);
-
+    (void)scope_sz;
     THROW_NOT_IMPLEMENTED_ERROR("declaration_visitor while_decl condition");
 #if 0
     if (auto const* ppv = get<semantic::push_value>(&ctx.expressions().back())) {
@@ -437,59 +438,8 @@ error_storage declaration_visitor::operator()(yield_statement const& yst) const
     return {};
 }
 
-void declaration_visitor::append_fnsig(fn_pure& fndecl, functional ** ppf) const
-{
-#if 0
-    qname fn_qname = ctx.ns() / fndecl.name();
-    if (!fn_qname.has_prefix(ctx.ns())) {
-        throw exception("%1%(%2%,%3%): %4% : not a nested scope identifier"_fmt %
-            fndecl.location().resource % fndecl.location().line % fndecl.location().column %
-            env().print(fndecl.name())
-        );
-    }
-    
-    auto fnres = ctx.build_function_descriptor(fndecl);
-    if (!fnres.has_value()) {
-        throw exception(ctx.env().print(*fnres.error()));
-    }
-    function_descriptor& fd = fnres.value();
-
-    qname_identifier fn_qnameid = env().qnregistry().resolve(fn_qname);
-    functional& f = ctx.env().fregistry().resolve(fn_qnameid);
-    if (ppf) *ppf = std::addressof(f);
-
-    f.push(make_shared<fn_pattern>(std::move(fd)));
-#endif
-    THROW_NOT_IMPLEMENTED_ERROR("declaration_visitor append_fnsig");
-
-#if 0
-    
-    function_signature sig;
-    sig.setup(ctx, fd.parameters);
-    sig.normilize(ctx);
-    sig.build_mangled_id(ctx.env());
-    if (fd.result) {
-        preliminary_type_visitor tqvis{ ctx };
-        sig.fn_type.result = apply_visitor(tqvis, *fd.result);
-    }
-    ;
-    f.push(std::move(make_shared<fn_signature_pattern>(std::move(sig))));
-    
-    auto e = ctx.env().eregistry().find(fn_qnameid);
-    if (!e) {
-        fe = make_shared<functional_entity>(fn_qnameid);
-        fe->set_location(fd.location());
-        ctx.env().eregistry_insert(fe);
-    } else if (fe = dynamic_pointer_cast<functional_entity>(e); !fe) {
-        throw exception(ctx.env().print(identifier_redefinition_error{annotated_qname_identifier{fn_qnameid, fd.location()}, e->location()}));
-    }
-
-    return fe->put_signature(std::move(sig));
-#endif
-}
-
 // extern function declaration
-error_storage declaration_visitor::operator()(fn_pure const& fd) const
+error_storage declaration_visitor::operator()(fn_pure const& /*fd*/) const
 {
     THROW_NOT_IMPLEMENTED_ERROR("declaration_visitor fn_pure");
 #if 0
@@ -700,7 +650,7 @@ error_storage declaration_visitor::operator()(let_statement const& ld) const
     for (auto const& e : ld.expressions) {
         pcall.args.emplace_back(e);
     }
-    if (auto err = pcall.prepare(); err) return std::move(err);
+    if (auto err = pcall.prepare(); err) return err;
 
     for (auto const& e : pcall.args) {
         auto [pname, expr] = *e;

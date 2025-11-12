@@ -47,7 +47,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> error_pattern::try
     if (locarg) {
         pmd->emplace_back(1, locarg->first);
     }
-    return std::move(pmd);
+    return pmd;
 }
 
 std::expected<syntax_expression_result, error_storage> error_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
@@ -103,8 +103,8 @@ std::expected<syntax_expression_result, error_storage> error_pattern::apply(fn_c
         result.value_or_type = e.get(builtin_eid::void_);
         result.is_const_result = false;
     }
-    
-    return std::move(result);
+
+    return result;
 }
 
 }

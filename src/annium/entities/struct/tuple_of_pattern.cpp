@@ -24,7 +24,7 @@ public:
     struct_entity const& sent;
 };
 
-std::expected<functional_match_descriptor_ptr, error_storage> tuple_of_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
+std::expected<functional_match_descriptor_ptr, error_storage> tuple_of_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const&) const
 {
     environment& env = ctx.env();
     auto call_session = call.new_session(ctx);
@@ -56,16 +56,13 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_of_pattern::
         return std::unexpected(make_error<type_mismatch_error>(arg_loc, arg_type, "a struct type"sv));
     }
     
-
     // Create match descriptor
     auto pmd = make_shared<tuple_of_match_descriptor>(call, *arg_as_struct);
     pmd->append_arg(std::move(arg_er), std::move(arg_loc));
     return pmd;
-
-    auto res = arg_as_struct->underlying_tuple_eid(ctx);
 }
 
-std::expected<syntax_expression_result, error_storage> tuple_of_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> tuple_of_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t&, functional_match_descriptor& md) const
 {
     auto& tmd = static_cast<tuple_of_match_descriptor&>(md);
     auto res = tmd.sent.underlying_tuple_eid(ctx);

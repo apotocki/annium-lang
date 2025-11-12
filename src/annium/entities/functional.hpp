@@ -466,9 +466,4 @@ private:
     qname_identifier id_;
 };
 
-// utility
-
-std::expected<syntax_expression const*, error_storage> try_match_single_unnamed(fn_compiler_context&, prepared_call const&);
-
-
 }

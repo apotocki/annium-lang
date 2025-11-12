@@ -239,10 +239,10 @@ std::expected<syntax_expression_result, error_storage> tuple_get_pattern::apply(
         // The tuple structure is known, but the property is dynamic.
         // We need to produce a union of all possible result types.
         std::vector<entity_identifier> possible_types;
-        bool any_named = false;
+        //bool any_named = false;
         for (const auto& field : tmd.arg_sig.fields()) {
             if (field.name()) {
-                any_named = true;
+                //any_named = true;
                 // (identifier, value) tuple type
                 entity_signature rsig{ e.get(builtin_qnid::tuple), e.get(builtin_eid::typename_) };
                 rsig.emplace_back(e.make_identifier_entity(field.name()).id, true);

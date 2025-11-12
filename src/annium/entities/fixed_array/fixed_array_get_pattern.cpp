@@ -149,7 +149,7 @@ std::expected<syntax_expression_result, error_storage> fixed_array_get_pattern::
             env.push_back_expression(el, result.expressions, semantic::invoke_function(env.get(builtin_eid::array_at)));
         }
         result.value_or_type = of_fd->entity_id();
-        return std::move(result);
+        return result;
     }
 
     THROW_NOT_IMPLEMENTED_ERROR("fixed_array_get_pattern::apply");

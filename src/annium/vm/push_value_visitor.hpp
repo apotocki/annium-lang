@@ -161,9 +161,9 @@ public:
         eptr->visit(*this);
     }
 
-    void operator()(entity const& ent) const override
+    void operator()(entity const& /* ent */) const override
     {
-        entity_signature const* psig = ent.signature();
+        //entity_signature const* psig = ent.signature();
         //if (psig && psig->name == environment_.get(builtin_qnid::metaobject) && psig->result) {
         //    entity const& tpent = environment_.eregistry_get(psig->result->entity_id());
         //    entity_signature const* ptpsig = tpent.signature();

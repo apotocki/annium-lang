@@ -81,7 +81,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_project_size
     return pmd;
 }
 
-std::expected<syntax_expression_result, error_storage> tuple_project_size_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> tuple_project_size_pattern::apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor& md) const
 {
     syntax_expression_result & arg = get<1>(md.matches.front());
 

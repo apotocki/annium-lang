@@ -25,7 +25,7 @@ public:
     entity_signature const* arg_sig;
 };
 
-std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_tail_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
+std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_tail_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const&) const
 {
     environment& e = ctx.env();
     auto call_session = call.new_session(ctx);

@@ -644,7 +644,7 @@ base_expression_visitor::result_type base_expression_visitor::operator()(fn_comp
 //    }
 //}
 
-base_expression_visitor::result_type base_expression_visitor::operator()(probe_expression const& pe) const
+base_expression_visitor::result_type base_expression_visitor::operator()(probe_expression const& /* pe */) const
 {
     THROW_NOT_IMPLEMENTED_ERROR("base_expression_visitor probe_expression");
 }

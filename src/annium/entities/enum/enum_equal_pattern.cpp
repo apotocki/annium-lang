@@ -106,7 +106,7 @@ std::expected<syntax_expression_result, error_storage> enum_equal_pattern::apply
 
     if (result.is_const_result) {
         // Both arguments are constexpr - result is already computed and stored in result.value_or_type
-        return std::move(result);
+        return result;
     }
 
     // Runtime comparison
@@ -129,7 +129,7 @@ std::expected<syntax_expression_result, error_storage> enum_equal_pattern::apply
     // Use built-in equal function for runtime comparison
     env.push_back_expression(el, result.expressions, semantic::invoke_function(env.get(builtin_eid::equal)));
 
-    return std::move(result);
+    return result;
 }
 
 }

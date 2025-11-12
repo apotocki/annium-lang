@@ -168,7 +168,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> basic_fn_pattern::
     return pmd;
 }
 
-std::pair<syntax_expression_result, size_t> basic_fn_pattern::apply_arguments(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
+std::pair<syntax_expression_result, size_t> basic_fn_pattern::apply_arguments(fn_compiler_context&, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     size_t count = 0;
     syntax_expression_result result{ };
@@ -218,7 +218,8 @@ void basic_fn_pattern::build_scope(environment& e, functional_binding_set&& mdbi
         }
 
         entity const& ellipsis_unit = get_entity(e, *peid);
-        entity const& ellipsis_unit_type = get_entity(e, ellipsis_unit.get_type());
+        entity_identifier ellipsis_unit_type_id = ellipsis_unit.get_type();
+        entity const& ellipsis_unit_type = get_entity(e, ellipsis_unit_type_id);
         entity_signature const* pellipsis_sig = ellipsis_unit_type.signature();
         BOOST_ASSERT(pellipsis_sig && pellipsis_sig->name == e.get(builtin_qnid::tuple));
         for (field_descriptor const& fd : pellipsis_sig->fields()) {
@@ -288,7 +289,6 @@ void basic_fn_pattern::build_scope(environment& e, functional_binding_set&& mdbi
 
 std::ostream& basic_fn_pattern::print(environment const& e, std::ostream& ss) const
 {
-    size_t posargnum = 0;
     bool first = true;
     ss << '(';
     for (parameter_descriptor const& pd : parameters_) {

@@ -27,7 +27,7 @@ namespace annium {
 // head( typename tuple(const value0, ...) ) => const value0
 // head( typename tuple(type, ...) ) => type
 
-std::expected<functional_match_descriptor_ptr, error_storage> tuple_head_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
+std::expected<functional_match_descriptor_ptr, error_storage> tuple_head_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const&) const
 {
     // Use shared base logic
     return try_match_tuple(ctx, call, {});

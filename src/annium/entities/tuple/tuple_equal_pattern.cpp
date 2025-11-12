@@ -285,7 +285,7 @@ tuple_equal_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
             // Early exit: a field is not equal
             result.value_or_type = e.get(builtin_eid::false_);
             result.is_const_result = true;
-            return std::move(result);
+            return result;
         }
     }
 
@@ -293,7 +293,7 @@ tuple_equal_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
         // If we have no branches, all fields are consts and equal, so we can return true
         result.value_or_type = e.get(builtin_eid::true_);
         result.is_const_result = true;
-        return std::move(result);
+        return result;
     }
 
     // Store any remaining branch expressions
@@ -327,7 +327,7 @@ tuple_equal_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
 
     result.value_or_type = e.get(builtin_eid::boolean);
     result.is_const_result = false;
-    return std::move(result);
+    return result;
 }
 
 } // namespace annium

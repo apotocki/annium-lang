@@ -462,30 +462,6 @@ std::expected<functional::match, error_storage> functional::find(
 //    }), *res);
 //}
 
-std::expected<syntax_expression const*, error_storage> try_match_single_unnamed(fn_compiler_context& ctx, prepared_call const& call)
-{
-    environment& e = ctx.env();
-    syntax_expression const* matched_arg = nullptr;
-
-    for (auto const& arg : call.args) {
-        annotated_identifier const* pargname = arg.name();
-        if (pargname) {
-            return std::unexpected(make_error<basic_general_error>(pargname->location, "argument mismatch, unexpected argument"sv, pargname->value));
-        }
-        syntax_expression const& e = arg.value();
-        if (matched_arg) {
-            return std::unexpected(make_error<basic_general_error>(e.location, "argument mismatch, unexpected argument"sv, e));
-        }
-        matched_arg = &e;
-    }
-
-    if (!matched_arg) {
-        return std::unexpected(make_error<basic_general_error>(call.location, "unmatched parameter"sv));
-    }
-
-    return matched_arg;
-}
-
 std::expected<syntax_expression_result, error_storage>
 functional::match::apply(fn_compiler_context& ctx)
 {

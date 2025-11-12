@@ -63,7 +63,7 @@ error_storage pattern_matcher::do_match_context_identifier(context_identifier ci
     return do_match_concepts(pattern.concepts, type); // Context identifier matches the type
 }
 
-error_storage pattern_matcher::do_match_concepts(span<const syntax_expression> concepts, annotated_entity_identifier const& type) const
+error_storage pattern_matcher::do_match_concepts(span<const syntax_expression> concepts, annotated_entity_identifier const&) const
 {
     // Check if the type matches any of the concepts
     for (const auto& concept_expr : concepts) {

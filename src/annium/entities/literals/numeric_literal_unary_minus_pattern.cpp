@@ -162,7 +162,7 @@ numeric_literal_unary_minus_pattern::try_match(fn_compiler_context& ctx, prepare
     } else {
         pmd->signature.result.emplace(arg_type_id, false);
     }
-    return std::move(pmd);
+    return pmd;
 }
 
 std::expected<syntax_expression_result, error_storage>

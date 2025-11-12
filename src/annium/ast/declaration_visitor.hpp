@@ -59,11 +59,10 @@ public:
 
     template <typename T>
     result_type operator()(T const& d) const {
+        (void)d;
         THROW_NOT_IMPLEMENTED_ERROR("declaration_visitor");
     }
 
-    void append_fnsig(fn_pure& /*in*/, functional** ppf = nullptr) const;
-    
     //function_entity& append_fnent(fn_pure&, function_signature& sig, span<infunction_declaration_t>) const;
 
     //void operator()(type_decl const&) const { THROW_INTERNAL_ERROR(); }
