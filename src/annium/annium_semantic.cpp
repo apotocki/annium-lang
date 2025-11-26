@@ -129,12 +129,23 @@ syntax_expression make_indirect_value(environment& e, semantic::expression_list_
         .location = std::move(loc),
         .value = indirect_value{
             .type = res.type(),
-            .store = indirect_value_store_t{ in_place_type<semantic::indirect_expression_result>, e, el, std::move(res) }
+            .store = indirect_expression_store_t{ in_place_type<semantic::indirect_expression_result>, e, el, std::move(res) }
         }
     };
 }
 
-syntax_expression_result retrieve_indirect_value(environment&e, semantic::expression_list_t& el, indirect_value const& iv)
+syntax_expression make_indirect_expression(environment& e, semantic::expression_list_t& el, syntax_expression_result&& res, resource_location loc)
+{
+    return syntax_expression{
+        .location = std::move(loc),
+        .value = indirect_expression{
+            .value = res.value(),
+            .store = indirect_expression_store_t{ in_place_type<semantic::indirect_expression_result>, e, el, std::move(res) }
+        }
+    };
+}
+
+syntax_expression_result retrieve_indirect(environment&e, semantic::expression_list_t& el, indirect_value const& iv)
 {
     auto const* pel = dynamic_cast<semantic::indirect_expression_result const*>(iv.store.get_pointer());
     if (!pel) {
@@ -144,6 +155,32 @@ syntax_expression_result retrieve_indirect_value(environment&e, semantic::expres
     syntax_expression_result result{
         .value_or_type = iv.type,
         .is_const_result = false
+    };
+    semantic::managed_expression_list tmp_el{ e };
+    semantic::managed_expression_result const& mer = **pel;
+    result.branches_expressions = tmp_el.deep_copy(mer.branches_expressions);
+    el.splice_back(tmp_el, result.branches_expressions);
+    result.temporaries.reserve(mer.temporaries.size());
+    for (auto const& tmp : mer.temporaries) {
+        result.temporaries.emplace_back(std::tuple{ get<0>(tmp), get<1>(tmp), tmp_el.deep_copy(get<2>(tmp)) });
+        el.splice_back(tmp_el, get<2>(result.temporaries.back()));
+    }
+    result.expressions = tmp_el.deep_copy(mer.expressions);
+    el.splice_back(tmp_el, result.expressions);
+    BOOST_ASSERT(tmp_el.empty());
+    return result;
+}
+
+syntax_expression_result retrieve_indirect(environment&e, semantic::expression_list_t& el, indirect_expression const& iv)
+{
+    auto const* pel = dynamic_cast<semantic::indirect_expression_result const*>(iv.store.get_pointer());
+    if (!pel) {
+        THROW_INTERNAL_ERROR("retrieve_indirect_value : indirect_value unexpected store type");
+    }
+
+    syntax_expression_result result{
+        .value_or_type = iv.value,
+        .is_const_result = true
     };
     semantic::managed_expression_list tmp_el{ e };
     semantic::managed_expression_result const& mer = **pel;

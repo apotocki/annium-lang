@@ -55,6 +55,8 @@ public:
             os << (value_ ? "true"sv : "false"sv);
         } else if constexpr (std::is_same_v<ValueT, small_string>) {
             os << '"' << value_ << "\""sv;
+        /*} else if constexpr (std::is_same_v<ValueT, entity const&>) {
+            e.print_to(os, value_);*/
         } else {
             os << value_;
         }
@@ -63,7 +65,6 @@ public:
     }
 };
 
-// typed empty_entity: entities with different types are not equal
 template <>
 class literal_entity<void> : public entity
 {
@@ -94,5 +95,39 @@ public:
         return get_entity(e, type_).print_to(os << "unit^^"sv, e);
     }
 };
+
+/*
+template <>
+class literal_entity<entity const&> : public entity
+{
+    entity const& value_;
+
+public:
+    inline explicit literal_entity(entity const& v) noexcept
+        : value_{ v }
+    {}
+
+    void visit(entity_visitor const& v) const override { v(*this); }
+
+    entity const& value() const { return value_; }
+
+    entity_identifier get_type() const noexcept override { return value_.get_type(); }
+
+    size_t hash() const noexcept override { return hasher{}(value_); }
+
+    bool equal(entity const& rhs) const noexcept override
+    {
+        if (literal_entity const* pr = dynamic_cast<literal_entity const*>(&rhs); pr) {
+            return pr->value_ == value_;
+        }
+        return false;
+    }
+
+    std::ostream& print_to(std::ostream& os, environment const& e) const override
+    {
+        return value_.print_to(os, e);
+    }
+};
+*/
 
 }

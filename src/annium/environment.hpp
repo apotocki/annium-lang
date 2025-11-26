@@ -31,6 +31,8 @@
 
 #include "annium/ast/ast_resource.hpp"
 
+#include "annium/vm/asm_builder.hpp"
+
 namespace annium {
 
 class virtual_stack_machine;
@@ -69,7 +71,8 @@ class arena;
     ((tuple, "tuple"sv))                   \
     ((tuple_project, "tuple_project"sv))   \
     ((array, "array"sv))                   \
-    ((functor, "functor"))                 \
+    ((function, "function"sv))             \
+    ((functor, "functor"sv))               \
     ((data, "data"sv))                     \
     ((identifier, "__identifier"sv))       \
     ((qname, "__qname"sv))                 \
@@ -427,7 +430,12 @@ public:
         return variable_identifier{ variable_identifier_gencount_.fetch_add(1) };
     }
 
-    // utility
+    //// compiler
+    intptr_t retrieve_function_rt_identifier(internal_function_entity const&);
+    
+    size_t compile(internal_function_entity const&);
+
+    //// utility
     std::unique_ptr<arena> acquire_arena();
     void release_arena(std::unique_ptr<arena>);
 
@@ -484,10 +492,10 @@ private:
     std::array<entity_identifier, (size_t)builtin_eid::eof_builtin_eid_value> builtin_eids_;
 
     std::unique_ptr<virtual_stack_machine> bvm_;
+    std::unique_ptr<vmasm::generic_asm_builder> asm_builder_;
     std::vector<fs::path> additional_paths_;
 
     function<void(string_view)> cout_writer_;
-
 };
 
 }

@@ -336,90 +336,6 @@ annium_type operator- (annium_union_t const& l, annium_type const& r);
 //    // entities_.size() >= names_.size();
 //};
 
-template <typename ConstraintT>
-class fieldset
-{
-public:
-    // to do: optimize
-    struct named_field
-    {
-        annotated_identifier ename;
-        optional<annotated_identifier> iname;
-        ConstraintT constraint;
-        parameter_constraint_modifier_t constraint_type;
-    };
-
-    struct positioned_field
-    {
-        optional<annotated_identifier> iname;
-        ConstraintT constraint;
-        parameter_constraint_modifier_t constraint_type;
-    };
-
-    fieldset() = default;
-
-    template <typename ArgT>
-    void set_nfields(ArgT&& arg) { nfields_ = std::forward<ArgT>(arg); }
-
-    template <typename ArgT>
-    void set_pfields(ArgT&& arg) { pfields_ = std::forward<ArgT>(arg); }
-
-    span<const named_field> named_fields() const { return nfields_; }
-    span<const positioned_field> positioned_fields() const { return pfields_; }
-
-    named_field const* find_named_field(identifier name) const
-    {
-        auto it = std::lower_bound(nfields_.begin(), nfields_.end(), name,
-            [](named_field const& l, identifier r) { return l.ename.value < r; });
-        if (it != nfields_.end() && it->ename.value == name) return &*it;
-        return nullptr;
-    }
-
-protected:
-    std::vector<named_field> nfields_;
-    std::vector<positioned_field> pfields_;
-};
-
-
-
-
-
-#if 0
-struct function_signature
-{
-    annium_fn_t fn_type;
-    //annium_type result_type;
-    //annium_tuple_t parameters;
-    //std::vector<std::tuple<annotated_identifier, annium_type>> named_parameters;
-    //std::vector<annium_type> position_parameters;
-    identifier mangled_id;
-
-    size_t parameters_count() const { return fn_type.arg.fields.size() + fn_type.arg.named_fields.size(); }
-
-    inline auto& position_parameters() noexcept { return fn_type.arg.fields; }
-    inline auto const& position_parameters() const noexcept { return fn_type.arg.fields; }
-    inline auto& named_parameters() noexcept { return fn_type.arg.named_fields; }
-    inline auto const& named_parameters() const noexcept { return fn_type.arg.named_fields; }
-
-    void setup(fn_compiler_context&, parameter_woa_list_t&);
-    void normilize(fn_compiler_context&);
-    //void build_symbol(environment&, symbol&);
-    void build_mangled_id(environment&);
-
-    //annium_type to_function_type() const { return annium_fn_t{}}
-    //{
-    //    annium_tuple_t argtpl;
-    //    argtpl.fields = position_parameters;
-    //    argtpl.named_fields = named_parameters;
-    //    return annium_fn_t{ std::move(argtpl), }
-    //    argtpl.named_fields.reserve(named_parameters.size());
-    //    std::ranges::for_each(named_parameters, std::back_inserter(argtpl.named_fields),
-    //        [](auto const& tpl) { return std::tuple{ std::get<0>(tpl).id, std::get<1>(tpl) }; });
-    //}
-};
-#endif
-
-
 namespace semantic {
 
 struct push_by_offset { size_t offset; }; // offset from the stack top
@@ -477,6 +393,8 @@ struct set_local_variable
     }
 };
 
+struct stack_frame_begin {};
+struct stack_frame_end {};
 struct push_variable { functional_variable var; };
 struct set_variable { functional_variable var; };
 struct set_by_offset { size_t offset; }; // offset from the stack top
@@ -486,12 +404,24 @@ struct truncate_values
     uint16_t keep_back = 0;
 };
 
+// takes the value on top of the stack as an integer, applies shift to it,
+// and replaces the value on top of the stack with the stacked value at that offset
+// stack.back() = stack[stack.back() + shift]
+struct indexs
+{
+    int64_t shift;
+};
+
 struct invoke_function
 {
     //qname_identifier varname;
     entity_identifier fn;
 };
 
+struct invoke_context_function
+{
+
+};
 //enum class condition_type : uint8_t
 //{
 //    logic,
@@ -560,7 +490,10 @@ struct loop_breaker {};
 using expression = std::variant<
     empty_t, // no op
     push_value, push_local_variable, push_by_offset, push_special_value, push_variable, truncate_values,
-    set_local_variable, set_variable, set_by_offset, invoke_function, return_statement, yield_statement, loop_breaker, loop_continuer,
+    set_local_variable, set_variable, set_by_offset,
+    stack_frame_begin, stack_frame_end, invoke_context_function,
+    invoke_function, return_statement, yield_statement, loop_breaker, loop_continuer,
+    indexs,
     expression_span,
     conditional_t, switch_t,
     not_empty_condition_t,
@@ -624,23 +557,9 @@ void append_semantic_result(semantic::expression_list_t & el, syntax_expression_
 void append_semantic_result_to_branch(semantic::expression_list_t& el, syntax_expression_result& src, syntax_expression_result& dest, semantic::expression_span &dest_branch);
 
 syntax_expression make_indirect_value(environment&, semantic::expression_list_t&, syntax_expression_result && res, resource_location loc);
-syntax_expression_result retrieve_indirect_value(environment&, semantic::expression_list_t&, indirect_value const&);
+syntax_expression_result retrieve_indirect(environment&, semantic::expression_list_t&, indirect_value const&);
+
+syntax_expression make_indirect_expression(environment&, semantic::expression_list_t&, syntax_expression_result&& res, resource_location loc);
+syntax_expression_result retrieve_indirect(environment&, semantic::expression_list_t&, indirect_expression const&);
 
 }
-
-
-///#include "entities/type_entity.hpp"
-
-//namespace annium {
-//
-//inline entity_identifier annium_object_t::id() const
-//{
-//    return value->id();
-//}
-//
-//inline auto annium_object_t::operator<=>(annium_object_t const& rhs) const
-//{
-//    return value->id() <=> rhs.value->id();
-//};
-//
-//}

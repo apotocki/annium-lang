@@ -17,10 +17,10 @@ namespace annium {
     [[nodiscard]] bool internal_function_entity::is_inline() const noexcept { return !!is_inline_; }
 #endif // ANNIUM_NO_INLINE_FUNCTIONS
 
-internal_function_entity::internal_function_entity(qname&& name, entity_signature&& sig, resource_location loc)
+internal_function_entity::internal_function_entity(qname&& name, entity_signature&& sig, resource_location loc, field_descriptor r)
     : name_{ std::move(name) }
     , sig_{ std::move(sig) }
-    , location_{ std::move(loc) }
+    , result{ std::move(r) }
     , arg_count_{ 0 }
     , captured_var_count_{ 0 }
     , is_provision_{ 1 } // by default all internal functions are provisions
@@ -28,11 +28,12 @@ internal_function_entity::internal_function_entity(qname&& name, entity_signatur
     , is_inline_{ 0 }
     , is_empty_{ 1 }
 {
+    location = std::move(loc);
     // if the signature has a result, it's the function result.
     // If the signature has no result, the function result should be set later by analizing the body of the function.
-    if (sig_.result) {
-        result = *sig_.result;
-    }
+    //if (sig_.result) {
+    //    result = *sig_.result;
+    //}
 }
 
 //size_t internal_function_entity::hash() const noexcept
@@ -146,6 +147,7 @@ error_storage internal_function_entity::build(fn_compiler_context& fnctx)
     //sts_.reset();
     is_built_ = 1;
     is_empty_ = result.is_const() && is_empty;
+    sts_ = {};
     //is_empty_ = 0;
     return {};
 }

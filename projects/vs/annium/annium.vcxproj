@@ -22,6 +22,13 @@
     <ClCompile Include="..\..\..\src\annium\ast\ast_resource.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\array\array_from_iterator_make_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\array\array_implicit_cast_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\entities\callables\callable_entity.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\callables\to_callable_implicit_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\enum\enum_equal_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\enum\enum_get_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\enum\enum_to_integer_pattern.cpp" />
@@ -150,6 +157,8 @@
     <ClInclude Include="..\..\..\src\annium\ast\base_expression_visitor.ipp" />
     <ClInclude Include="..\..\..\src\annium\entities\array\array_from_iterator_make_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\array\array_implicit_cast_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\callables\callable_entity.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\callables\to_callable_implicit_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\enum\enum_equal_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\enum\enum_get_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\enum\enum_to_integer_pattern.hpp" />
@@ -261,6 +270,7 @@
     <ClInclude Include="..\..\..\src\annium\utility\linked_list.hpp" />
     <ClInclude Include="..\..\..\src\annium\utility\linked_list.ipp" />
     <ClInclude Include="..\..\..\src\annium\vm\annium_vm.hpp" />
+    <ClInclude Include="..\..\..\src\annium\vm\asm_builder.hpp" />
     <ClInclude Include="..\..\..\src\annium\vm\compiler_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\vm\push_value_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\vm\vmasm_builder.hpp" />

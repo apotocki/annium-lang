@@ -42,6 +42,8 @@ public:
     result_type operator()(qname_reference_expression const&) const;
     result_type operator()(stack_value_reference_expression const&) const;
 
+    result_type operator()(indirect_expression const&) const;
+
     result_type operator()(array_expression const&) const;
     result_type operator()(array_with_body_expression const&) const;
 
@@ -74,6 +76,10 @@ public:
     {
         THROW_NOT_IMPLEMENTED_ERROR("base_expression_visitor not implemented expression");
     }
+
+    error_storage make_function_call_arguments(pure_call const&, span<const field_descriptor> args, syntax_expression_result& result) const;
+    result_type make_function_call(syntax_expression_result ftor, resource_location ftor_loc, pure_call const& proc, qname_identifier* pout_qnameid = nullptr) const;
+
 protected:
     environment& env() const noexcept;
 #if 0

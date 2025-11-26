@@ -1,4 +1,4 @@
-//  Sonia.one framework(c) by Alexander Pototskiy
+//  Annium programming language (c) 2025 by Alexander Pototskiy
 //  Annium is licensed under the terms of the MIT License.
 
 #pragma once
@@ -10,62 +10,24 @@
 #include <boost/intrusive/list.hpp>
 
 #include "sonia/small_vector.hpp"
-#include "sonia/utility/automatic_polymorphic.hpp"
 #include "sonia/utility/object_pool.hpp"
 
 #include "sonia/utility/lang/vm.hpp"
 
+#include "asm_builder.hpp"
+#include "annium/vm/annium_vm.hpp"
+
 #define VM_INSTRUCTION_ENTRIED_POOL_SIZE 128
 
-#ifdef SONIA_LANG_DEBUG
-#   define SONIA_VM_FN_IDENTITY_STORE_SIZE (2 * sizeof(void*) + sizeof(std::string_view))
-#else
-#   define SONIA_VM_FN_IDENTITY_STORE_SIZE (2 * sizeof(void*))
-#endif
-
-namespace sonia::vmasm {
-
-using namespace sonia::vm;
-
-class function_identity : public polymorphic_clonable_and_movable
-{
-public:
-    virtual bool equal(function_identity const& rhs) const noexcept = 0;
-    virtual size_t hash() const noexcept = 0;
-
-    inline friend bool operator==(function_identity const& l, function_identity const& r) noexcept { return l.equal(r); }
-    inline friend size_t hash_value(function_identity const& v) noexcept { return v.hash(); }
-};
-
-template <typename IDT>
-class fn_identity : public function_identity
-{
-    IDT id_;
-
-public:
-    inline explicit fn_identity(IDT id) noexcept : id_{ std::move(id) } {}
-
-    SONIA_POLYMORPHIC_CLONABLE_MOVABLE_IMPL(fn_identity)
-
-    bool equal(function_identity const& rhs) const noexcept override
-    {
-        if (auto *pfnid = dynamic_cast<fn_identity const*>(&rhs); pfnid) {
-            return id_ == pfnid->id_;
-        }
-        return false;
-    }
-
-    size_t hash() const noexcept override { return hash_value(id_); }
-    //inline IDT id() const noexcept { return id_; }
-};
+namespace annium::vmasm {
 
 template <typename ContextT>
-class builder
+class builder : public generic_asm_builder
 {
     using variable_type = typename ContextT::variable_type;
 
 public:
-    using vm_t = virtual_stack_machine<ContextT>;
+    using vm_t = sonia::vm::virtual_stack_machine<ContextT>;
     using op_t = typename vm_t::op;
 
     using function_identity_store_t = automatic_polymorphic<function_identity, SONIA_VM_FN_IDENTITY_STORE_SIZE>;
@@ -191,8 +153,9 @@ public:
 
         inline void append_push(size_t num) { append_op(op_t::push, num); }
         inline void append_pushc(size_t num) { append_op(op_t::pushc, num); }
+        
         inline void append_push_stsz() { append_op(op_t::push_stsz); }
-        inline void append_push_stsz(size_t num) { append_op(op_t::push_stsz, num); }
+        //inline void append_push_stsz(size_t num) { append_op(op_t::push_stsz, num); }
         inline void append_pushr(size_t offset) { append_op(op_t::pushr, offset); }
         inline void append_pushi(size_t num) { append_op(op_t::pushi, num); }
         inline void append_pushfp() { append_op(op_t::pushfp); }
@@ -207,6 +170,9 @@ public:
         inline void append_setr(size_t offset) { append_op(op_t::setr, offset); }
         inline void append_fset(intptr_t fpos) { fpos >= 0 ? append_op(op_t::fpset, static_cast<size_t>(fpos)) : append_op(op_t::fnset, static_cast<size_t>(-fpos)); }
         
+        inline void append_indexc() { append_op(op_t::indexc); }
+        inline void append_indexs(intptr_t shift) { shift >= 0 ? append_op(op_t::pindexs, static_cast<size_t>(shift)) : append_op(op_t::nindexs, static_cast<size_t>(-shift)); }
+
         inline void append_call(function_identity const& fnident) { append_op(op_t::call, fnident); }
         //inline void append_call(size_t address) { append_op(op_t::call, address); }
         inline void append_ecall(size_t fnindex) { append_op(op_t::ecall, fnindex); }
@@ -355,9 +321,11 @@ void builder<ContextT>::function_builder::materialize()
         case op_t::cmp:
         case op_t::push_stsz:
         case op_t::pushfp:
+        case op_t::indexc:
         case op_t::popfp:
         case op_t::pop:
         case op_t::ret:
+        case op_t::callp:
             blocks.back().append(e.operation);
             break;
         case op_t::push:
@@ -372,6 +340,8 @@ void builder<ContextT>::function_builder::materialize()
         case op_t::setr:
         case op_t::fpset:
         case op_t::fnset:
+        case op_t::pindexs:
+        case op_t::nindexs:
         case op_t::truncatefpp:
         case op_t::truncatefpn:
             blocks.back().append(e.operation, get<size_t>(e.operand));

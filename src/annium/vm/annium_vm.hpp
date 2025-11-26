@@ -12,12 +12,18 @@
 
 #include "annium/terms.hpp"
 #include "annium/environment.hpp"
-#include "annium/vm/vmasm_builder.hpp"
+#include "annium/vm/asm_builder.hpp"
+
+#ifdef SONIA_LANG_DEBUG
+#   define SONIA_VM_FN_IDENTITY_STORE_SIZE (2 * sizeof(void*) + sizeof(std::string_view))
+#else
+#   define SONIA_VM_FN_IDENTITY_STORE_SIZE (2 * sizeof(void*))
+#endif
 
 namespace annium::vm {
 
-static_assert(sizeof(vmasm::fn_identity<identifier>) <= SONIA_VM_FN_IDENTITY_STORE_SIZE);
-static_assert(sizeof(vmasm::fn_identity<qname_identifier>) <= SONIA_VM_FN_IDENTITY_STORE_SIZE);
+static_assert(sizeof(annium::vmasm::fn_identity<identifier>) <= SONIA_VM_FN_IDENTITY_STORE_SIZE);
+static_assert(sizeof(annium::vmasm::fn_identity<qname_identifier>) <= SONIA_VM_FN_IDENTITY_STORE_SIZE);
 
 /*
 class variable
@@ -281,11 +287,9 @@ private:
     invocation::invocable* penv_;
 };
 
-}
+} // namespace annium::vm
 
 namespace annium {
-
-using asm_builder_t = sonia::vmasm::builder<vm::context>;
 
 class virtual_stack_machine : public sonia::vm::virtual_stack_machine<vm::context>
 {

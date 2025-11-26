@@ -80,6 +80,7 @@ FunctionalT& functional_registry<FunctionalT, MutexT>::resolve(qname_view_t qnv,
 template <typename FunctionalT, typename MutexT>
 FunctionalT& functional_registry<FunctionalT, MutexT>::resolve(identifier_type qid) const
 {
+    BOOST_ASSERT(qid);
     lock_guard guard(set_mtx_);
     return *set_.template get<0>().at(qid.raw());
 }

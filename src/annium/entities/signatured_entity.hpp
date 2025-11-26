@@ -66,8 +66,8 @@ class entity_signature
 public:
     entity_signature() noexcept = default;
 
-    explicit entity_signature(qname_identifier qid) noexcept : name{ qid } {}
-    explicit entity_signature(qname_identifier qid, entity_identifier t) noexcept : name{ qid }, result{ t } {}
+    inline explicit entity_signature(qname_identifier qid) noexcept : name{ qid } {}
+    inline explicit entity_signature(qname_identifier qid, entity_identifier t) noexcept : name{ qid }, result{ t } {}
 
     // a functional name that produces the signatured entity
     qname_identifier name;
@@ -199,11 +199,6 @@ public:
         entity_signature const* prhssig = rhs.signature();
         if (!prhssig) return false;
         return *signature() == *prhssig;
-
-        //if (signatured_entity const* pr = dynamic_cast<signatured_entity const*>(&rhs); pr) {
-        //    return equal(*pr);
-        //}
-        //return false;
     }
 
     std::ostream& print_to(std::ostream&, environment const&) const override;
@@ -230,7 +225,7 @@ struct basic_signatured_entity : signatured_entity
         : sig_{ std::move(sgn) }
     {}
 
-    inline void set_signature(entity_signature&& sgn) { sig_ = std::move(sgn); }
+    inline void set_signature(entity_signature&& sgn) noexcept { sig_ = std::move(sgn); }
 
     entity_signature const* signature() const noexcept override final { return &sig_; }
     entity_signature * signature() noexcept { return &sig_; }
@@ -246,18 +241,17 @@ class tagged_signatured_entity : public entity
 {
 protected:
     virtual TagT const& get_tag() const noexcept = 0;
-    virtual entity_signature const& get_signature() const noexcept = 0;
 
 public:
     size_t hash() const noexcept override final
     {
-        return hasher{}(get_tag(), get_signature());
+        return hasher{}(get_tag(), *signature());
     }
 
     bool equal(entity const& rhs) const noexcept override final
     {
         if (auto pr = dynamic_cast<tagged_signatured_entity const*>(&rhs); pr) {
-            return get_tag() == pr->get_tag() && get_signature() == pr->get_signature();
+            return get_tag() == pr->get_tag() && *signature() == *pr->signature();
         }
         return false;
     }

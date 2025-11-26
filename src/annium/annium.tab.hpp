@@ -1826,691 +1826,691 @@ namespace annium_lang {
         switch (yykind)
         {
       case symbol_kind::S_STRING: // STRING
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1832 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_IDENTIFIER: // IDENTIFIER
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1838 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_CONTEXT_IDENTIFIER: // CONTEXT_IDENTIFIER
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1844 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_RESERVED_IDENTIFIER: // RESERVED_IDENTIFIER
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1850 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_INTEGER_INDEX: // INTEGER_INDEX
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1856 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_INTEGER: // INTEGER
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1862 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_DECIMAL: // DECIMAL
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1868 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_DECIMAL_S: // DECIMAL_S
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1874 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_OPERATOR_TERM: // OPERATOR_TERM
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1880 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_CT_IDENTIFIER: // CT_IDENTIFIER
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1886 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_ASSIGN: // "`=`"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1892 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_UNDERSCORE: // "`_`"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1898 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_EQ: // "`==`"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1904 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_NE: // "`!=`"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1910 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_LOGIC_AND: // "`&&`"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1916 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_LOGIC_OR: // "`||`"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1922 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_CONCAT: // "`..`"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1928 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_ELLIPSIS: // "`...`"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1934 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_OPEN_PARENTHESIS: // "`(`"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1940 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_OPEN_BRACE: // "`{`"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1946 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_OPEN_SQUARE_BRACKET: // "`[`"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1952 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_OPEN_SQUARE_DBL_BRACKET: // "`[[`"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1958 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_POINT: // "`.`"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1964 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_PLUS: // "`+`"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1970 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_MINUS: // "`-`"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1976 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_ASTERISK: // "`*`"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1982 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_AMPERSAND: // "`&`"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1988 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_BITOR: // "`|`"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 1994 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_EXCLPT: // "`!`"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2000 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_QMARK: // "`?`"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2006 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_NEW: // "`new`"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2012 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_CONTINUE: // "`continue`"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2018 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_BREAK: // "`break`"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2024 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_RETURN: // "`return`"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2030 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_YIELD: // "`yield`"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2036 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_FN: // "`fn`"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2042 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_TYPEFN: // "`typefn`"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2048 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_TYPENAME: // "typename modifier"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2054 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_CONSTEXPR: // "constexpr modifier"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2060 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_RUNTIME: // "runctime modifier"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2066 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_NIL_WORD: // "nil"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2072 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_TRUE_WORD: // "true"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2078 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_FALSE_WORD: // "false"
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2084 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_PROBE: // PROBE
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2090 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_statement_any: // statement_any
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2096 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_114_finished_statement_any: // finished-statement-any
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2102 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_statement: // statement
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2108 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_116_let_decl: // let-decl
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2114 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_117_let_decl_start: // let-decl-start
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2120 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_118_let_decl_start_with_opt_type: // let-decl-start-with-opt-type
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2126 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_119_infunction_statement_any: // infunction-statement-any
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2132 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_120_finished_infunction_statement_any: // finished-infunction-statement-any
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2138 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_121_function_body: // function-body
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2144 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_122_braced_statements: // braced-statements
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2150 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_123_finished_statement: // finished-statement
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2156 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_124_infunction_statement_set: // infunction-statement-set
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2162 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_125_generic_statement: // generic-statement
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2168 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_126_infunction_statement: // infunction-statement
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2174 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_identifier: // identifier
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2180 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_128_internal_identifier: // internal-identifier
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2186 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_qname: // qname
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2192 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_130_fn_kind: // fn-kind
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2198 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_131_fn_kind_set: // fn-kind-set
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2204 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_132_fn_prefix_decl: // fn-prefix-decl
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2210 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_133_fn_name: // fn-name
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2216 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_134_fn_start_decl: // fn-start-decl
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2222 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_135_fn_requirement_opt: // fn-requirement-opt
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2228 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_136_fn_decl: // fn-decl
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2234 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_137_enum_decl: // enum-decl
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2240 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_138_case_list_opt: // case-list-opt
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2246 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_139_case_list: // case-list
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2252 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_140_case_decl: // case-decl
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2258 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_141_struct_decl: // struct-decl
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2264 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_142_using_decl: // using-decl
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2270 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_143_expression_list: // expression-list
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2276 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_144_argument_list_opt: // argument-list-opt
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2282 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_145_argument_list: // argument-list
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2288 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_argument: // argument
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2294 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_147_argument_name: // argument-name
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2300 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_148_field_list_opt: // field-list-opt
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2306 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_149_field_list: // field-list
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2312 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_150_field_default_value_opt: // field-default-value-opt
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2318 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_field: // field
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2324 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_152_parameter_list_opt: // parameter-list-opt
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2330 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_153_parameter_list: // parameter-list
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2336 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_154_internal_identifier_opt: // internal-identifier-opt
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2342 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_155_parameter_default_value_opt: // parameter-default-value-opt
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2348 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_156_parameter_decl: // parameter-decl
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2354 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_157_constraint_expression_specified_mod: // constraint-expression-specified-mod
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2360 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_158_constraint_expression_specified: // constraint-expression-specified
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2366 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_159_constraint_expression_mod: // constraint-expression-mod
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2372 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_160_constraint_expression: // constraint-expression
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2378 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_subpatterns: // subpatterns
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2384 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_162_pattern_list: // pattern-list
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2390 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_163_pattern_field_sfx: // pattern-field-sfx
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2396 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_164_pattern_field: // pattern-field
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2402 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_165_pattern_mod: // pattern-mod
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2408 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_166_pattern_sfx: // pattern-sfx
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2414 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_pattern: // pattern
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2420 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_168_concept_expression: // concept-expression
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2426 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_169_concept_expression_list_opt: // concept-expression-list-opt
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2432 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_170_concept_expression_list: // concept-expression-list
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2438 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_171_reference_expression: // reference-expression
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2444 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_172_any_reference_expression: // any-reference-expression
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2450 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_173_syntax_expression_base: // syntax-expression-base
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2456 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_174_grouped_expression: // grouped-expression
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2462 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_175_new_expression: // new-expression
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2468 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_176_call_expression: // call-expression
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2474 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_177_syntax_expression: // syntax-expression
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2480 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_178_lambda_start_decl: // lambda-start-decl
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2486 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_179_lambda_expression: // lambda-expression
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2492 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_180_pack_expression_opt: // pack-expression-opt
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2498 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_181_pack_expression: // pack-expression
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2504 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_182_compound_expression: // compound-expression
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2510 "annium.tab.hpp"
         break;
 
       case symbol_kind::S_183_type_expr: // type-expr
-#line 329 "annium.y"
+#line 333 "annium.y"
                     { }
 #line 2516 "annium.tab.hpp"
         break;
@@ -4963,7 +4963,7 @@ switch (yykind)
     /// Constants.
     enum
     {
-      yylast_ = 1107,     ///< Last index in yytable_.
+      yylast_ = 1149,     ///< Last index in yytable_.
       yynnts_ = 73,  ///< Number of nonterminal symbols.
       yyfinal_ = 98 ///< Termination state number.
     };

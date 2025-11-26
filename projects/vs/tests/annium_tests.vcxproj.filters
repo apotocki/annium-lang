@@ -443,5 +443,13 @@
     <None Include="..\..\..\tests\test-suite\array_operations.ann">
       <Filter>test-suite</Filter>
     </None>
+    <None Include="..\..\..\tests\test-suite\functors.ann">
+      <Filter>test-suite</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="..\..\..\tpls\sonia-prime\projects\vs\sonia.natvis">
+      <Filter>sonia</Filter>
+    </Natvis>
   </ItemGroup>
 </Project>

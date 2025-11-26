@@ -245,14 +245,6 @@ void functional_match_descriptor::reset() noexcept
 //    return unnamed_arguments[pos];
 //}
 
-function_descriptor::named_field const* function_descriptor::find_named_field(identifier name) const
-{
-    auto it = std::lower_bound(nfields_.begin(), nfields_.end(), name,
-        [](named_field const& l, identifier r) { return l.ename.value < r; });
-    if (it != nfields_.end() && it->ename.value == name) return &*it;
-    return nullptr;
-}
-
 std::variant<entity_identifier, functional_variable> functional::default_entity(fn_compiler_context& ctx) const
 {
     unique_lock lock{ default_entity_mtx_ };
@@ -273,7 +265,7 @@ std::variant<entity_identifier, functional_variable> functional::default_entity(
         }
     }, default_result_);
 }
-    
+
 entity_identifier functional::do_resolver(fn_compiler_context & ctx, entity_resolver& resolver) const
 {
     sonia::lang::compiler_task_tracer::task_guard tg = ctx.try_lock_task(qname_task_id{ id_ });

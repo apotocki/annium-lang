@@ -104,7 +104,9 @@ void annium_unfold(vm::context& ctx)
 {
     auto& arg = ctx.stack_back();
     if (!is_array(arg.as<blob_result>())) {
-        throw exception("expected array, got %1%"_fmt % arg.as<blob_result>());
+        // considering not an array as the array with one element => do nothing and return
+        return;
+        //throw exception("expected array, got %1%"_fmt % arg.as<blob_result>());
     }
     smart_blob arr = std::move(arg);
     // Pop the array from stack

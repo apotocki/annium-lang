@@ -18,16 +18,17 @@ namespace annium {
 class indirect_internal_function_entity : public tagged_signatured_entity<resource_location>
 {
     entity_signature const& sig_;
-    resource_location const& location_;
 
 protected:
-    resource_location const& get_tag() const noexcept override final { return location_; }
-    entity_signature const& get_signature() const noexcept override final { return sig_; }
+    resource_location const& get_tag() const noexcept override final { return location; }
+    entity_signature const* signature() const noexcept override final { return &sig_; }
 
 public:
     inline indirect_internal_function_entity(entity_signature const& sig, resource_location const& loc) noexcept
-        : sig_{ sig }, location_{ loc }
-    {}
+        : sig_{ sig }
+    {
+        location = loc;
+    }
 };
 
 class internal_function_entity : public tagged_signatured_entity<resource_location>
@@ -49,7 +50,6 @@ class internal_function_entity : public tagged_signatured_entity<resource_locati
 protected:
     qname name_;
     entity_signature sig_;
-    resource_location location_;
 
 public:
     semantic::expression_span body;
@@ -58,7 +58,7 @@ public:
     error_storage build_errors;
     field_descriptor result;
 
-    internal_function_entity(qname&& name, entity_signature&& sig, resource_location loc);
+    internal_function_entity(qname&& name, entity_signature&& sig, resource_location loc, field_descriptor r);
 
     void set_body(span<const statement> bd) noexcept { sts_ = std::move(bd); }
 
@@ -104,9 +104,10 @@ public:
 
     [[nodiscard]] inline size_t scope_offset() const noexcept { return variables_count() - captured_var_count_; }
 
+    entity_signature const* signature() const noexcept override { return &sig_; }
+        
 protected:
-    resource_location const& get_tag() const noexcept override final { return location_; }
-    entity_signature const& get_signature() const noexcept override final { return sig_; }
+    resource_location const& get_tag() const noexcept override final { return location; }
 
 private:
     var_set_t variables_;

@@ -218,11 +218,14 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 // 5 priority
 %left ASTERISK SLASH PERCENT
 
+// 4 priority
+%right ARROW
+
 // 3 priority
 %right DEREF EXCLPT PREFIXMINUS
 
 // 2 priority
-%left OPEN_BRACE OPEN_PARENTHESIS OPEN_SQUARE_BRACKET ARROW POINT INTEGER_INDEX
+%left OPEN_BRACE OPEN_PARENTHESIS OPEN_SQUARE_BRACKET POINT INTEGER_INDEX
 %right QMARK
 
 %left DBLCOLON
@@ -307,6 +310,7 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 
 %type <reference_expression> reference-expression
 %type <syntax_expression> type-expr
+//%type <syntax_expression> parenthesized-expression
 %type <syntax_expression> syntax-expression-base grouped-expression any-reference-expression concept-expression syntax-expression
 %type <syntax_expression> new-expression call-expression lambda-expression compound-expression
 //%type <syntax_expression> apostrophe-expression 
@@ -1067,6 +1071,21 @@ syntax-expression-base:
         { $$ = syntax_expression{ std::move($LOGIC_OR), binary_expression{ binary_operator_type::LOGIC_OR, ctx.make_span_for_args<opt_named_expression_t>(std::move($larg), std::move($rarg)) } }; }
     ;
 
+/*
+parenthesized-expression:
+    OPEN_PARENTHESIS syntax-expression[expr] COMMA pack-expression[list] CLOSE_PARENTHESIS
+        { 
+            $list.emplace_front(opt_named_expression_t{ std::move($expr) });
+            $$ = syntax_expression{ std::move($OPEN_PARENTHESIS), function_call{ nullptr, ctx.make_array<opt_named_expression_t>($list) } };
+        }
+        ;
+
+grouped-expression:
+    OPEN_PARENTHESIS syntax-expression[expr] CLOSE_PARENTHESIS
+        { $$ = std::move($expr); }
+    ;
+*/
+
 grouped-expression:
     OPEN_PARENTHESIS pack-expression[list] CLOSE_PARENTHESIS
         {
@@ -1078,6 +1097,7 @@ grouped-expression:
             }
         }
     ;
+
 
 new-expression:
       NEW qname[type]
@@ -1105,6 +1125,7 @@ syntax-expression:
     | compound-expression
     | lambda-expression
     | grouped-expression
+    //| parenthesized-expression
     ;
 
 lambda-start-decl:
@@ -1218,22 +1239,32 @@ type-expr:
     | CONTEXT_IDENTIFIER[id]
         { $$ = syntax_expression{ std::move($id.location), name_reference_expression{ ctx.make_identifier(std::move($id.value)) } }; }
     | call-expression
-    //| internal-identifier[id] OPEN_PARENTHESIS opt-named-expr-list-any CLOSE_PARENTHESIS
-    //    { $$ = std::move($id); IGNORE_TERM($2); IGNORE_TERM($3); }
     | OPEN_SQUARE_BRACKET type-expr[type] CLOSE_SQUARE_BRACKET
         { $$ = syntax_expression{ std::move($OPEN_SQUARE_BRACKET), bracket_expression{ ctx.make<syntax_expression>(std::move($type)) } }; }
     | OPEN_PARENTHESIS CLOSE_PARENTHESIS
         { $$ = syntax_expression{ std::move($OPEN_PARENTHESIS), ctx.make_void() }; }
-    | OPEN_PARENTHESIS pack-expression[elements] CLOSE_PARENTHESIS
-        { $$ = syntax_expression{ std::move($OPEN_PARENTHESIS), function_call{ nullptr, ctx.make_array<opt_named_expression_t>($elements) } }; }
+    | grouped-expression
     | type-expr[type] OPEN_SQUARE_BRACKET syntax-expression[index] CLOSE_SQUARE_BRACKET
         { $$ = syntax_expression{ std::move($OPEN_SQUARE_BRACKET), index_expression{ ctx.make<syntax_expression>(std::move($type)), ctx.make<syntax_expression>(std::move($index)) } }; }
     | type-expr[ltype] BITOR type-expr[rtype]
         { $$ = syntax_expression{ std::move($BITOR), binary_expression{ binary_operator_type::BIT_OR, ctx.make_span_for_args<opt_named_expression_t>(std::move($ltype), std::move($rtype)) } }; }
-    | type-expr[argexpr] ARROW type-expr[rexpr]
-        { 
-            $$ = syntax_expression{ $argexpr.location, annium_fn_type{ .arg = ctx.make<syntax_expression>(std::move($argexpr)), .result = ctx.make<syntax_expression>(std::move($rexpr)) } };
+    //| OPEN_PARENTHESIS CLOSE_PARENTHESIS ARROW type-expr[rexpr]
+    //    { $$ = syntax_expression{ std::move($OPEN_PARENTHESIS), annium_fn_type{ .result = ctx.make<syntax_expression>(std::move($rexpr)) } }; }
+    | type-expr[lexpr] ARROW type-expr[rexpr]
+        {
+            annium_fn_type fnt{ .result = ctx.make<syntax_expression>(std::move($rexpr)) };
+            if (function_call const* fn_type = get_if<function_call>(&$lexpr.value)) {
+                fnt.args = fn_type->args;
+            } else if (entity_identifier const* peid = get_if<entity_identifier>(&$lexpr.value); !peid || *peid != ctx.make_void()) {
+                opt_named_expression_list_t args{ opt_named_expression_t{ std::move($lexpr) } };
+                fnt.args = ctx.make_array<opt_named_expression_t>(args);
+            } // else void args
+            $$ = syntax_expression{ $lexpr.location, std::move(fnt) }; 
         }
+    //| grouped-expression[lexpr] ARROW type-expr[rexpr]
+    //    { $$ = syntax_expression{ $lexpr.location, annium_fn_type{ .args = $lexpr, .result = ctx.make<syntax_expression>(std::move($rexpr)) } }; }
+    //| OPEN_PARENTHESIS pack-expression[elements] CLOSE_PARENTHESIS ARROW type-expr[rexpr]
+    //    { $$ = syntax_expression{ std::move($OPEN_PARENTHESIS), annium_fn_type{ .args = ctx.make_array<opt_named_expression_t>($elements), .result = ctx.make<syntax_expression>(std::move($rexpr)) } }; }
     ;
 
     /*

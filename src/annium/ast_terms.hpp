@@ -86,36 +86,8 @@ struct param_name_retriever : static_visitor<std::tuple<annotated_identifier con
 
 struct annium_fn_type
 {
-    syntax_expression const* arg;
-    syntax_expression const* result = nullptr; // optional
-
-    //inline annium_fn_type() = default;
-
-    //inline annium_fn_type(span<const opt_named_expression_t> && a, syntax_expression const* r) noexcept
-    //    : arg{ std::move(a) }
-    //    , result{ r }
-    //{}
-
-    //template <typename ArgT>
-    //annium_fn_type(ArgT a, syntax_expression const* r, resource_location loc) noexcept
-    //    : result{ r }
-    //    , location{ std::move(loc) }
-    //{
-    //    if (auto * ptuple = sonia::get<opt_named_term_list<T>>(&a); ptuple) {
-    //        arg = std::move(*ptuple);
-    //    } else {
-    //        //arg.location = get_start_location(a);
-    //        arg.emplace_back(std::move(a));
-    //    }
-    //}
-
-    //inline bool operator==(ANNIUM_fn_type const&) const = default;
-    //inline auto operator<=>(annium_fn_type const& r) const
-    //{
-    //    //if (auto res = variant_compare_three_way{}(arg, r.arg); res != std::strong_ordering::equivalent) return res;
-    //    if (auto res = arg <=> r.arg; res != std::strong_ordering::equivalent) return res;
-    //    return variant_compare_three_way{}(result, r.result);
-    //}
+    span<const opt_named_expression_t> args;
+    syntax_expression const* result;
 };
 
 // ========================================================================
@@ -278,12 +250,18 @@ struct placeholder
     resource_location location;
 };
 
-using indirect_value_store_t = automatic_polymorphic<indirect, ANNIUM_AST_INDIRECT_STORE_SIZE>;
+using indirect_expression_store_t = automatic_polymorphic<indirect, ANNIUM_AST_INDIRECT_STORE_SIZE>;
 
 struct indirect_value
 {
     entity_identifier type;
-    indirect_value_store_t store;
+    indirect_expression_store_t store;
+};
+
+struct indirect_expression
+{
+    entity_identifier value;
+    indirect_expression_store_t store;
 };
 
 struct not_empty_expression
@@ -451,7 +429,7 @@ struct syntax_expression
         */probe_expression,
 
         // auxiliary
-        indirect_value,
+        indirect_value, indirect_expression,
 
         //assign_expression<>, logic_and_expression<>, logic_or_expression<>, concat_expression<>,
         //expression_vector<recursive_variant_>,
@@ -615,11 +593,6 @@ using pure_call = pure_call<syntax_expression>;
 using new_expression_t = new_expression<syntax_expression>;
 using function_call_t = function_call<syntax_expression>;
 //using expression_vector_t = expression_vector<syntax_expression>;
-
-using annium_fn_type_t = annium_fn_type<syntax_expression>;
-//using annium_tuple_t = annium_tuple<syntax_expression>;
-//using bracket_expression_t = bracket_expression<syntax_expression>;
-//using annium_union_t = annium_union<syntax_expression>;
 //template <unary_operator_type Op> using unary_expression_t = unary_expression<Op, syntax_expression>;
 #endif
 

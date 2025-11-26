@@ -10,7 +10,6 @@
 #include "annium/ast/declaration_visitor.hpp"
 #include "annium/ast/base_expression_visitor.hpp"
 
-#include "annium/vm/annium_vm.hpp"
 #include "annium/entities/ellipsis/ellipsis_pattern.hpp"
 #include "annium/entities/functions/external_function_entity.hpp"
 #include "annium/entities/functions/internal_function_entity.hpp"
@@ -35,6 +34,8 @@
 
 #include "annium/entities/literals/string_implicit_cast_pattern.hpp"
 #include "annium/entities/literals/string_concat_pattern.hpp"
+
+#include "annium/entities/callables/to_callable_implicit_cast_pattern.hpp"
 
 #include "annium/entities/union/union_bit_or_pattern.hpp"
 #include "annium/entities/union/union_apply_pattern.hpp"
@@ -81,6 +82,10 @@
 #include "annium/auxiliary.hpp"
 
 #include "annium/ast/arena.hpp"
+
+#include "annium/vm/vmasm_builder.hpp"
+namespace annium { using asm_builder_t = vmasm::builder<vm::context>; }
+#include "annium/vm/compiler_visitor.hpp"
 
 namespace annium {
 
@@ -270,7 +275,7 @@ entity_identifier environment::set_builtin_extern(string_view signature, void(*p
     arena a;
     auto [pf, fndecl] = parse_extern_fn(signature, a);
     auto ptrn = make_shared<PT>(fn_identifier_counter_);
-    internal_function_entity default_fentity{ qname{}, entity_signature{}, {} };
+    internal_function_entity default_fentity{ qname{}, entity_signature{}, resource_location{}, field_descriptor{} };
     fn_compiler_context ctx{ *this, default_fentity };
     if (auto err = ptrn->init(ctx, fndecl); err) {
         throw exception(print(*err));
@@ -689,8 +694,9 @@ struct type_printer_visitor : static_visitor<void>
         
     inline void operator()(annium_fn_type const& fn) const
     {
-        (*this)(fn.arg);
-        ss << "->"sv;
+        ss << '(';
+        (*this)(fn.args);
+        ss << ")->"sv;
         if (fn.result) {
             std::visit(*this, fn.result->value);
         } else {
@@ -1275,7 +1281,7 @@ generic_literal_entity const& environment::make_bool_entity(bool value, entity_i
 
 generic_literal_entity const& environment::make_generic_entity(smart_blob value, entity_identifier type)
 {
-    generic_literal_entity smpl{ std::move(value), type };
+    generic_literal_entity smpl{ std::move(value), std::move(type) };
     return static_cast<generic_literal_entity&>(eregistry_find_or_create(smpl, [&smpl]() {
         return make_shared<generic_literal_entity>(generic_literal_entity{ smart_blob{ smpl.value() }.allocate(), smpl.get_type() });
     }));
@@ -1350,6 +1356,7 @@ environment::environment()
     , expressions_{ *this }
     , fn_identifier_counter_ { (size_t)virtual_stack_machine::builtin_fn::eof_type }
     , bvm_{ std::make_unique<virtual_stack_machine>() }
+    , asm_builder_{ std::make_unique<asm_builder_t>(*bvm_) }
 {
     //// ids
 #define ANNIUM_PRINT_ENUM_ASSIGN(r, data, i, elem) \
@@ -1476,6 +1483,7 @@ environment::environment()
     implicit_cast_fnl.push(make_shared<tuple_implicit_cast_pattern>());
     implicit_cast_fnl.push(make_shared<numeric_literal_implicit_cast_pattern>());
     implicit_cast_fnl.push(make_shared<string_implicit_cast_pattern>());
+    implicit_cast_fnl.push(make_shared<to_callable_implicit_cast_pattern>());
 
     auto union_pattern = make_shared<union_bit_or_pattern>();
     functional& bit_or_fnl = fregistry_resolve(get(builtin_qnid::bit_or));
@@ -1603,4 +1611,41 @@ environment::environment()
     builtin_eids_[(size_t)builtin_eid::isubtract] = set_builtin_extern("__minus(runtime integer, runtime integer)~>integer"sv, &annium_operator_minus_integer);
 
 }
+
+intptr_t environment::retrieve_function_rt_identifier(internal_function_entity const& fn_ent)
+{
+    asm_builder_t& asm_builder = static_cast<asm_builder_t&>(*asm_builder_);
+    asm_builder_t::function_descriptor& fd = asm_builder.resolve_function(vmasm::fn_identity<entity_identifier>{ fn_ent.id });
+    //if (fd.address) return *fd.address;
+    if (!fd.index) {
+        fd.index = asm_builder.allocate_constant_index();
+    }
+    return static_cast<intptr_t>(*fd.index);
+}
+
+size_t environment::compile(internal_function_entity const& fn_ent)
+{
+    asm_builder_t& asm_builder = static_cast<asm_builder_t&>(*asm_builder_);
+    asm_builder_t::function_descriptor& fd = asm_builder.resolve_function(vmasm::fn_identity<entity_identifier>{ fn_ent.id });
+    if (!fd.address) {
+        asm_builder_t::function_builder fb{ asm_builder, fd };
+
+        // for accessing function arguments and local variables by zero-based index
+        fb.append_pushfp();
+
+        vm::compiler_visitor vmcvis{ *this, fb, fn_ent };
+        vmcvis(fn_ent.body);
+        if (!vmcvis.local_return_position) { // no explicit return
+            fb.append_ret();
+        }
+        fb.materialize();
+        if (fd.index) {
+            bvm().set_const(*fd.index, smart_blob{ ui64_blob_result(*fd.address) });
+        }
+        bvm().set_address_description(*fd.address, print(fn_ent));
+    }
+    
+    return *fd.address;
+}
+
 }

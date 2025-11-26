@@ -1,8 +1,8 @@
 [
-    /*
+/*
     {
         "src": "draft.ann",
-        "output": ""
+        "output": "0Hello!Hello, World!120033a4d056e0789"
     },*/
     {
         "src": "basic_print.ann",
@@ -32,6 +32,10 @@
     {
         "src": "array_operations.ann",
         "output": ""
+    },
+    {
+        "src": "functors.ann",
+        "output": "0Hello!Hello, World!120033a4d056e0789"
     }
 
     /*

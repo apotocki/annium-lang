@@ -168,8 +168,12 @@
     <None Include="..\..\..\tests\test-suite\file4.ann" />
     <None Include="..\..\..\tests\test-suite\file5.ann" />
     <None Include="..\..\..\tests\test-suite\function_calls.ann" />
+    <None Include="..\..\..\tests\test-suite\functors.ann" />
     <None Include="..\..\..\tests\test-suite\tuple_operations.ann" />
     <None Include="..\..\..\tests\test-suite\unions.ann" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="..\..\..\tpls\sonia-prime\projects\vs\sonia.natvis" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

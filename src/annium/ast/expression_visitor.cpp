@@ -62,33 +62,7 @@ inline expression_visitor::result_type expression_visitor::apply_cast(entity_ide
     return true;
 }
 
-expression_visitor::result_type expression_visitor::operator()(context_value const& v) const
-{
-    return apply_cast(v.type, v);
-}
 
-expression_visitor::result_type expression_visitor::operator()(annotated_bool const& b) const
-{
-    ctx.append_expression(semantic::push_value{ b.value });
-    return apply_cast(env().get(builtin_eid::boolean), b);
-}
-
-expression_visitor::result_type expression_visitor::operator()(annotated_integer const& d) const
-{
-    // optimisation. We don't need entities on the semantic expressions layer. Just values are enough.
-#if 0
-    integer_literal_entity val{ d.value };
-    val.set_type(env().get_integer_entity_identifier());
-    entity const& valent = env().eregistry_find_or_create(val, [&val]() {
-        return make_shared<integer_literal_entity>(std::move(val));
-    });
-    ctx.append_expression(semantic::push_value{ valent.id() });
-    return apply_cast(env().get_integer_entity_identifier(), d);
-#else
-    ctx.append_expression(semantic::push_value{ d.value });
-    return apply_cast(env().get(builtin_eid::integer), d);
-#endif
-}
 
 expression_visitor::result_type expression_visitor::operator()(annotated_decimal const& d) const
 {

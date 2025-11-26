@@ -176,7 +176,7 @@ std::string vm::context::callp_describe() const
     if (is_basic_integral(p->type)) {
         size_t address = p.as<size_t>();
         string_view address_descr = describe_address(address);
-        return ("0x%1$x %2%"_fmt % address % address_descr).str();
+        return ("0x%1$x ; %2%"_fmt % address % address_descr).str();
     }
     decltype(auto) ftor = p.as<invocation::functor_object>();
     //int64_t sigdescr = stack_back(1).as<int64_t>();
@@ -475,6 +475,9 @@ void vm::context::call_function_object()
 
 virtual_stack_machine::virtual_stack_machine()
 {
+    size_t idx0 = add_pooled_const(smart_blob{}); // use 0 index for nil
+    BOOST_ASSERT(!idx0);
+
     set_efn((size_t)builtin_fn::is_nil, [](vm::context& ctx) { ctx.is_nil(); });
     //set_efn((size_t)builtin_fn::arrayify, [](vm::context& ctx) { ctx.arrayify(); });
     set_efn((size_t)builtin_fn::unpack, [](vm::context& ctx) { ctx.unpack(); });

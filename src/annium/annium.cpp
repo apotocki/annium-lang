@@ -16,13 +16,13 @@
 #include "entities/functions/internal_function_entity.hpp"
 #include "entities/literals/literal_entity.hpp"
 
-#include "vm/compiler_visitor.hpp"
+//#include "vm/compiler_visitor.hpp"
 
 #include "sonia/utility/scope_exit.hpp"
 
 namespace annium::detail {
 
-using annium::vm::compiler_visitor;
+//using annium::vm::compiler_visitor;
 
 class annium_impl 
 {
@@ -54,7 +54,7 @@ private:
     //optional<fn_compiler_context> default_ctx_;
     optional<internal_function_entity> main_function_;
     invocation::invocable* penv_ = nullptr;
-    asm_builder_t vmasm_;
+    //asm_builder_t vmasm_;
     bool bootstrapped_ = false;
 };
 
@@ -183,7 +183,6 @@ inline fn ::set(self: runtime object, property: constexpr __identifier, $value: 
 )#";
 
 annium_impl::annium_impl()
-    : vmasm_{ environment_.bvm() }
 {}
 
 annium_impl::~annium_impl()
@@ -198,7 +197,7 @@ void annium_impl::bootstrap()
     auto decls = parser.parse_string(string_view{ annium_bootstrap_code });
     if (!decls.has_value()) throw exception(decls.error());
     
-    internal_function_entity dummy{ qname{}, entity_signature{}, {} };
+    internal_function_entity dummy{ qname{}, entity_signature{}, resource_location{}, field_descriptor{} };
     dummy.set_body(*decls);
     fn_compiler_context ctx{ environment_, dummy };
 
@@ -243,10 +242,10 @@ void annium_impl::compile(span<const statement> decls, span<string_view> args)
 {
     identifier main_id = environment_.new_identifier();
     entity_signature main_sig{};
-    internal_function_entity main_fn_ent{ qname{}, std::move(main_sig), {} };
-    main_fn_ent.set_body(decls);
+    auto main_fn_ent = make_shared<internal_function_entity>(qname{}, std::move(main_sig), resource_location{}, field_descriptor{});
+    main_fn_ent->set_body(decls);
     //fn_compiler_context ctx{ environment_, qname{ main_id } };
-    fn_compiler_context ctx{ environment_, main_fn_ent };
+    fn_compiler_context ctx{ environment_, *main_fn_ent };
     size_t argindex = 0;
     std::array<char, 16> argname = { '$' };
     for (string_view arg : args) {
@@ -309,7 +308,7 @@ void annium_impl::compile(span<const statement> decls, span<string_view> args)
     
     // main
     
-    auto err = main_fn_ent.build(ctx);
+    auto err = main_fn_ent->build(ctx);
     if (err) {
         throw exception(environment_.print(*err));
     }
@@ -334,6 +333,8 @@ void annium_impl::compile(span<const statement> decls, span<string_view> args)
     }
 
     // all arguments referenced as constants => no fp prolog/epilog code
+    size_t address = environment_.compile(*main_fn_ent);
+#if 0
     asm_builder_t::function_descriptor& fd = vmasm_.resolve_function(vmasm::fn_identity<identifier>{ main_id });
     asm_builder_t::function_builder fb{ vmasm_, fd }; // = vmasm_.create_function(sonia::vmasm::fn_identity<identifier>{ main_id });
     vm::compiler_visitor vmcvis{ environment_, fb, main_fn_ent };
@@ -352,10 +353,10 @@ void annium_impl::compile(span<const statement> decls, span<string_view> args)
         fb.append_ret();
     }
     fb.materialize();
-
+#endif
     // run
     vm::context vmctx{ environment_, penv_ };
-    environment_.bvm().run(vmctx, *fd.address);
+    environment_.bvm().run(vmctx, address);
 
     //function_signature main_sig{ };
     //main_sig.position_parameters().emplace_back(annium_vector_t{ annium_string_t{} });
@@ -378,12 +379,14 @@ void annium_impl::do_compile(internal_function_entity const& fe)
     if (fe.is_inline())
         return;
 
-    asm_builder_t::function_descriptor & fd = vmasm_.resolve_function(vmasm::fn_identity<entity_identifier>{ fe.id });
-    std::string description = environment_.print(fe);
-    if (fd.address) {
-        environment_.bvm().set_address_description(*fd.address, std::move(description));
-        return; // already compiled
-    }
+    environment_.compile(fe);
+#if 0
+    //asm_builder_t::function_descriptor & fd = vmasm_.resolve_function(vmasm::fn_identity<entity_identifier>{ fe.id });
+    //std::string description = environment_.print(fe);
+    //if (fd.address) {
+    //    environment_.bvm().set_address_description(*fd.address, std::move(description));
+    //    return; // already compiled
+    //}
 
     //std::ostringstream fn_code_str;
     //fe.body.for_each([this, &fn_code_str](semantic::expression const& e) {
@@ -392,22 +395,23 @@ void annium_impl::do_compile(internal_function_entity const& fe)
     //GLOBAL_LOG_INFO() << "function expressions:\n"sv << fn_code_str.str();
 
     //size_t param_count = fe.parameter_count();
-    asm_builder_t::function_builder fb{ vmasm_, fd };
+    //asm_builder_t::function_builder fb{ vmasm_, fd };
 
     // for accessing function arguments and local variables by zero-based index
-    fb.append_pushfp(); // for accessing function arguments and local variables
+    //fb.append_pushfp(); // for accessing function arguments and local variables
     // append_popfp will be inserted in return statement handler
 
-    vm::compiler_visitor vmcvis{ environment_, fb, fe };
-    fe.body.for_each([&vmcvis](semantic::expression const& e) {
-        //GLOBAL_LOG_INFO() << environment_.print(e); // << "\n"sv
-        visit(vmcvis, e);
-    });
+    //vm::compiler_visitor vmcvis{ environment_, fb, fe };
+    //fe.body.for_each([&vmcvis](semantic::expression const& e) {
+    //    //GLOBAL_LOG_INFO() << environment_.print(e); // << "\n"sv
+    //    visit(vmcvis, e);
+    //});
     fb.materialize();
     if (fd.index) {
         environment_.bvm().set_const(*fd.index, smart_blob{ ui64_blob_result(*fd.address) });
     }
     environment_.bvm().set_address_description(*fd.address, std::move(description));
+#endif
 #if 0
     //size_t param_count = fe.parameter_count(); // including captured_variables
 

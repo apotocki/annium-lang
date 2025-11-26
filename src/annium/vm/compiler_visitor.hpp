@@ -108,7 +108,23 @@ public:
         fnbuilder_.append_ecall((size_t)virtual_stack_machine::builtin_fn::extern_variable_get);
     }
 
-    void operator()(semantic::invoke_function const& invf) const;
+    inline void operator()(semantic::stack_frame_begin const&) const
+    {
+        fnbuilder_.append_pushfp();
+    }
+
+    inline void operator()(semantic::stack_frame_end const&) const
+    {
+        fnbuilder_.append_popfp();
+    }
+
+    inline void operator()(semantic::indexs const& idxs) const
+    {
+        fnbuilder_.append_indexs(idxs.shift);
+    }
+
+    void operator()(semantic::invoke_context_function const&) const;
+    void operator()(semantic::invoke_function const&) const;
 
     void operator()(semantic::expression_span esp) const
     {
@@ -489,6 +505,11 @@ public:
     }
 };
 
+void compiler_visitor_base::operator()(semantic::invoke_context_function const&) const
+{
+    fnbuilder_.append_indexc();
+    fnbuilder_.append_callp();
+}
 
 void compiler_visitor_base::operator()(semantic::invoke_function const& invf) const
 {

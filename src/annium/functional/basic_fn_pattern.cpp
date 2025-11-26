@@ -182,18 +182,24 @@ std::pair<syntax_expression_result, size_t> basic_fn_pattern::apply_arguments(fn
 
 shared_ptr<internal_function_entity> basic_fn_pattern::build(fn_compiler_context& ctx, entity_signature&& signature, functional_binding_set&& mdbindings) const
 {
-    environment& e = ctx.env();
+    environment& env = ctx.env();
 
-    qname_view fnqn = e.fregistry_resolve(signature.name).name();
-    qname fn_ns = fnqn / e.new_identifier();
+    qname_view fnqn = env.fregistry_resolve(signature.name).name();
+    qname fn_ns = fnqn / env.new_identifier();
 
+    // if the signature has a result, it's the function result.
+    // If the signature has no result, the function result should be set later by analizing the body of the function.
+    field_descriptor result_field;
+    if (signature.result) {
+        result_field = *signature.result;
+    }
     auto pife = make_shared<internal_function_entity>(
         std::move(fn_ns),
         std::move(signature),
-        location());
+        location(),
+        std::move(result_field));
 
-    pife->location = location();
-    build_scope(e, std::move(mdbindings), *pife);
+    build_scope(env, std::move(mdbindings), *pife);
 
     return pife;
 }

@@ -14,6 +14,7 @@
 
 #include "annium/entities/prepared_call.hpp"
 #include "annium/entities/literals/literal_entity.hpp"
+#include "annium/entities/functions/internal_function_entity.hpp"
 
 #include "annium/functional/internal_fn_pattern.hpp"
 
@@ -146,9 +147,14 @@ base_expression_visitor::result_type base_expression_visitor::apply_cast(syntax_
     return std::pair{ std::move(*res), true };
 }
 
+base_expression_visitor::result_type base_expression_visitor::operator()(indirect_expression const& v) const
+{
+    return apply_cast(retrieve_indirect(env(), expressions, v));
+}
+
 base_expression_visitor::result_type base_expression_visitor::operator()(indirect_value const& v) const
 {
-    return apply_cast(retrieve_indirect_value(env(), expressions, v));
+    return apply_cast(retrieve_indirect(env(), expressions, v));
 }
 
 base_expression_visitor::result_type base_expression_visitor::operator()(stack_value_reference_expression const& svr) const
@@ -711,34 +717,107 @@ base_expression_visitor::result_type base_expression_visitor::operator()(functio
     auto fn_ent_id = base_expression_visitor::visit(ctx, expressions, *proc.fn_object);
     if (!fn_ent_id) return std::unexpected(std::move(fn_ent_id.error()));
 
-    syntax_expression_result& ftor_expr_res = fn_ent_id->first;
-    if (ftor_expr_res.is_const_result) {
-        entity const& ent = get_entity(env(), ftor_expr_res.value());
+    return make_function_call(fn_ent_id->first, proc.fn_object->location, proc);
+}
+
+error_storage base_expression_visitor::make_function_call_arguments(pure_call const& proc, span<const field_descriptor> args, syntax_expression_result& result) const
+{
+    prepared_call pcall{ ctx, nullptr, proc.args, context_expression_.location, expressions };
+    pcall.prepare();
+    auto call_session = pcall.new_session(ctx);
+    for (field_descriptor const& fd : args) {
+        BOOST_ASSERT(!fd.is_const());
+        expected_result_t arg_exp{ .type = fd.entity_id(), .modifier = value_modifier_t::runtime_value };
+        prepared_call::argument_descriptor_t arg_descr;
+        auto arg = fd.name() ?
+            call_session.use_named_argument(fd.name(), arg_exp, &arg_descr) :
+            call_session.use_next_positioned_argument(arg_exp, &arg_descr);
+        if (!arg) {
+            if (arg.error()) {
+                return append_cause(
+                    make_error<basic_general_error>(get<0>(arg_descr)->location, "invalid argument"sv),
+                    std::move(arg.error()));
+            }
+            return make_error<basic_general_error>(pcall.location, "missing required argument"sv);
+        }
+        append_semantic_result(expressions, arg->first, result);
+    }
+    if (auto argterm = call_session.unused_argument(); argterm) {
+        return make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value()));
+    }
+    return {};
+}
+
+base_expression_visitor::result_type base_expression_visitor::make_function_call(syntax_expression_result ftor, resource_location ftor_loc, pure_call const& proc, qname_identifier * pout_qnameid) const
+{
+    if (ftor.is_const_result) {
+        entity const& ent = get_entity(env(), ftor.value());
         if (ent.get_type() == env().get(builtin_eid::qname)) {
             if (functional_identifier_entity const* pqnent = dynamic_cast<functional_identifier_entity const*>(&ent); pqnent) {
+                if (pout_qnameid) *pout_qnameid = pqnent->value();
                 return (*this)(pqnent->value(), proc);
             } else if (qname_entity const* pqnent = dynamic_cast<qname_entity const*>(&ent); pqnent) {
                 //if (!pqnent->value()) {
                 //    // no name => make tuple
                 //    return (*this)(env().get(builtin_qnid::make_tuple), proc);
                 //}
-                auto optqnid = ctx.lookup_qname(annotated_qname_view{ pqnent->value(), proc.fn_object->location });
+                auto optqnid = ctx.lookup_qname(annotated_qname_view{ pqnent->value(), ftor_loc });
                 if (!optqnid) {
                     return std::unexpected(append_cause(
-                        make_error<basic_general_error>(proc.fn_object->location, "can't resolve functional object"sv, pqnent->value()),
+                        make_error<basic_general_error>(ftor_loc, "can't resolve functional object"sv, pqnent->value()),
                         std::move(optqnid.error())
                     ));
                 }
+                if (pout_qnameid) *pout_qnameid = *optqnid;
                 return (*this)(*optqnid, proc);
             }
         }
-        return std::unexpected(make_error<basic_general_error>(proc.fn_object->location, "functional object is expected"sv, ftor_expr_res.value()));
+        
+        // is the entity type a function?
+        entity const& type_ent = get_entity(env(), ent.get_type());
+        entity_signature const* pfunction_type_sig = type_ent.signature();
+        if (!pfunction_type_sig || pfunction_type_sig->name != env().get(builtin_qnid::function)) {
+            return std::unexpected(make_error<basic_general_error>(ftor_loc, "a functional object or callable is expected"sv, ftor.value()));
+        }
+        internal_function_entity const* fn_ent = dynamic_cast<internal_function_entity const*>(&ent);
+        BOOST_ASSERT(fn_ent);
+
+        auto args_span = pfunction_type_sig->fields().first(pfunction_type_sig->fields().size() - 1);
+        field_descriptor const& function_result_fd = pfunction_type_sig->fields().back();
+        syntax_expression_result result{ .value_or_type = function_result_fd.entity_id(), .is_const_result = function_result_fd.is_const() };
+
+        auto err = make_function_call_arguments(proc, args_span, result);
+        if (err) return std::unexpected(std::move(err));
+
+        env().push_back_expression(expressions, result.expressions, semantic::invoke_function(fn_ent->id));
+        return apply_cast(std::move(result));
     }
 
-    entity const& ftor_type_ent = get_entity(env(), ftor_expr_res.type());
+    entity const& ftor_type_ent = get_entity(env(), ftor.type());
     entity_signature const* fn_ent_sig = ftor_type_ent.signature();
+    if (fn_ent_sig && fn_ent_sig->name == env().get(builtin_qnid::function)) {
+        ftor.is_const_result = fn_ent_sig->fields().back().is_const();
+        ftor.value_or_type = fn_ent_sig->fields().back().entity_id();
+        env().push_back_expression(expressions, ftor.expressions, semantic::invoke_function{ env().get(builtin_eid::unfold) });
+        auto args_span = fn_ent_sig->fields().first(fn_ent_sig->fields().size() - 1);
+        if (!args_span.empty()) {
+            fn_compiler_context_scope fn_scope{ ctx };
+            identifier fn_address_var_name = env().new_identifier();
+            local_variable fn_address_var = fn_scope.new_temporary(fn_address_var_name, env().get(builtin_eid::integer));
+        
+            env().push_back_expression(expressions, ftor.expressions, semantic::set_local_variable(fn_address_var));
+            env().push_back_expression(expressions, ftor.expressions, semantic::truncate_values{ .count = 1, .keep_back = 0 });
+        
+            auto err = make_function_call_arguments(proc, args_span, ftor);
+            if (err) return std::unexpected(std::move(err));
+            env().push_back_expression(expressions, ftor.expressions, semantic::push_local_variable{ fn_address_var });
+            ftor.temporaries.emplace_back(fn_address_var_name, std::move(fn_address_var), semantic::expression_span{});
+        }
+        env().push_back_expression(expressions, ftor.expressions, semantic::invoke_context_function{ });
+        return apply_cast(std::move(ftor));
+    }
     if (!fn_ent_sig || fn_ent_sig->name != env().get(builtin_qnid::functor)) {
-        return std::unexpected(make_error<basic_general_error>(proc.fn_object->location, "functional object is expected"sv, ftor_expr_res.type()));
+        return std::unexpected(make_error<basic_general_error>(ftor_loc, "functional object is expected"sv, ftor.type()));
     }
     BOOST_ASSERT(fn_ent_sig->field_count() >= 1);
     field_descriptor const& qname_fd = fn_ent_sig->field(0);
@@ -751,12 +830,12 @@ base_expression_visitor::result_type base_expression_visitor::operator()(functio
     
     // unfold capture list
     if (fn_ent_sig->field_count() > 2) { // has at least two captured values
-        env().push_back_expression(expressions, ftor_expr_res.expressions, semantic::invoke_function{ env().get(builtin_eid::unfold) });
+        env().push_back_expression(expressions, ftor.expressions, semantic::invoke_function{ env().get(builtin_eid::unfold) });
         //env().push_back_expression(expressions, ftor_expr_res.expressions, semantic::truncate_values{ .count = 1, .keep_back = 0 }); // keep only the unfolded captured values on stack
     }
 
     functional const& fn = env().fregistry_resolve(pqnent->value());
-    auto match = fn.find(ctx, &ftor_expr_res, context_expression_.location, proc.args, expressions, expected_result);
+    auto match = fn.find(ctx, &ftor, context_expression_.location, proc.args, expressions, expected_result);
     if (!match) return std::unexpected(match.error());
     return apply_cast(match->apply(ctx));
 
@@ -1106,13 +1185,12 @@ base_expression_visitor::result_type base_expression_visitor::operator()(lambda 
             auto res = base_expression_visitor::visit(ctx, expressions, expr);
             if (!res) { return std::unexpected(res.error()); }
             syntax_expression_result& ser = res->first;
-            if (ser.is_const_result) {
-                //sig.emplace_back(name, ser.value(), true);
-                continue;
+            if (!ser.is_const_result) {
+                append_semantic_result(expressions, ser, capture_res);
+                ++rt_capture_size;
             }
-            append_semantic_result(expressions, ser, capture_res);
-            sig.emplace_back(name, ser.type(), false);
-            ++rt_capture_size;
+            
+            sig.emplace_back(name, ser.value_or_type, ser.is_const_result);
         }
         if (!rt_capture_size) break; // nothing to capture
         if (rt_capture_size > 2) {
@@ -1130,8 +1208,29 @@ base_expression_visitor::result_type base_expression_visitor::operator()(lambda 
 
 base_expression_visitor::result_type base_expression_visitor::operator()(annium_fn_type const& v) const
 {
-    (void)v;
-    THROW_NOT_IMPLEMENTED_ERROR("base_expression_visitor annium_fn_type_t");
+    entity_signature fn_sig{ env().get(builtin_qnid::function), env().get(builtin_eid::typename_) };
+    
+    for (auto const& arg : v.args) {
+        auto [name, expr] = *arg;
+        auto arg_res = base_expression_visitor::visit(ctx, expressions, expected_result_t{ .modifier = value_modifier_t::constexpr_value }, expr);
+        if (!arg_res) return std::unexpected(std::move(arg_res.error()));
+        syntax_expression_result& arg_er = arg_res->first;
+        entity const& arg_ent = get_entity(env(), arg_er.value());
+        bool is_const = arg_ent.get_type() != env().get(builtin_eid::typename_); // only consts are const
+        if (name) {
+            fn_sig.emplace_back(name->value, arg_er.value(), is_const);
+        } else {
+            fn_sig.emplace_back(arg_er.value(), is_const);
+        }
+    }
+    
+    auto result_res = base_expression_visitor::visit(ctx, expressions, expected_result_t{ .modifier = value_modifier_t::constexpr_value }, *v.result);
+    if (!result_res) return std::unexpected(std::move(result_res.error()));
+    auto res_se = result_res->first;
+    entity const& res_ent = get_entity(env(), res_se.value());
+    bool res_is_const = res_ent.get_type() != env().get(builtin_eid::typename_);
+    fn_sig.emplace_back(res_se.value(), res_is_const);
+    return apply_cast(env().make_basic_signatured_entity(std::move(fn_sig)));
 }
 
 base_expression_visitor::result_type base_expression_visitor::operator()(not_empty_expression const& v) const
