@@ -100,8 +100,6 @@ public:
 
     [[nodiscard]] inline size_t variables_count() const noexcept { return variables_.size(); }
 
-    [[nodiscard]] size_t parameter_count() const noexcept;
-
     [[nodiscard]] inline size_t scope_offset() const noexcept { return variables_count() - captured_var_count_; }
 
     entity_signature const* signature() const noexcept override { return &sig_; }

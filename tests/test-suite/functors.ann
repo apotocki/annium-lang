@@ -3,15 +3,15 @@ fn my_print0()->() {
     print("0");
 }
 
-fn my_print0(:string)->() {
+fn my_print0(string)->() {
     print($0);
 }
 
-fn my_print0(:string, :string)->() {
+fn my_print0(string, string)->() {
     print($0 .. $1);
 }
 
-fn my_concat(:string, :string)->string {
+fn my_concat(string, string)->string {
     return $0 .. $1;
 }
 
@@ -70,3 +70,17 @@ ftor2_rt("8", "9");
 
 let concat_rt: (string, string)->string = runtime_cast(my_concat);
 assert_equal(concat_rt("Hello, ", "Runtime!"), "Hello, Runtime!");
+
+// runtime functors with captured values
+fn builder(value: runtime string)->(string)->string {
+    return fn[value](string) => $0 .. value;
+}
+
+let l1 = builder(value: " World!");
+assert_equal(l1("Hello,"), "Hello, World!");
+
+fn builder(value: runtime string, $second: runtime integer)->(string)->string {
+    return fn[value: value, $second](string) => $0 .. value .. to_string($second);
+}
+let l2 = builder(value: " World!", 22);
+assert_equal(l2("Hello,"), "Hello, World!22");

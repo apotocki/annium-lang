@@ -107,7 +107,7 @@ using namespace annium;
 
 const char annium_bootstrap_code[] = R"#(
 
-inline fn print(:string ...) => __print($0 ..., size($0));
+fn print(:string ...) => __print($0 ..., size($0));
 
 inline fn not_equal(_, _) => !($0 == $1);
 
@@ -137,7 +137,7 @@ inline fn to_string(~union(...)) => apply(to: $0, visitor: fn($x) => to_string($
 inline viable fn implicit_cast(~ union(...)) ~> $T => apply(to: $0, visitor: (fn($x)->$T => implicit_cast($x)));
 
 // STRUCTS
-inline fn::get(self @is_struct, property: constexpr __identifier) => get(self: tuple_of(self), property: property);
+inline fn::get(self: @is_struct, property: constexpr __identifier) => get(self: tuple_of(self), property: property);
 
 // ARRAYS
 typefn array(of: typename, size?: constexpr integer);

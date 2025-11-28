@@ -338,7 +338,13 @@ annium_type operator- (annium_union_t const& l, annium_type const& r);
 
 namespace semantic {
 
-struct push_by_offset { size_t offset; }; // offset from the stack top
+enum class push_by_base : uint8_t
+{
+    stack_bottom,
+    frame_bottom
+};
+
+struct push_by_offset { intptr_t offset; push_by_base base = push_by_base::stack_bottom; }; // offset from the stack top
 struct push_value
 {
     value_t value;

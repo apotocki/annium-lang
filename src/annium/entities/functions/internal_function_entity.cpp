@@ -159,14 +159,4 @@ bool internal_function_entity::is_const_eval(environment& e) const noexcept
     return result.entity_id() != e.get(builtin_eid::void_);
 }
 
-size_t internal_function_entity::parameter_count() const noexcept
-{
-    // to do: include captured parameters 
-    size_t cnt = 0;
-    for (auto const& f : sig_.fields()) {
-        if (!f.is_const()) ++cnt;
-    }
-    return cnt;
-}
-
 }

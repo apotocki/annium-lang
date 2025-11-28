@@ -380,8 +380,15 @@ struct stack_value_reference_expression
 {
     identifier name;
     entity_identifier type;
-    size_t offset; // offset from the stack top
+    intptr_t offset; // offset from the stack top
 };
+struct stack_frame_value_reference_expression
+{
+    identifier name;
+    entity_identifier type;
+    intptr_t offset; // offset from the stack frame base
+};
+
 struct array_expression
 {
     span<const syntax_expression> elements;
@@ -407,6 +414,7 @@ struct syntax_expression
         
         // on stack reference
         stack_value_reference_expression,
+        stack_frame_value_reference_expression,
 
         // constructors
         array_expression, // like [value1, value2, ...]

@@ -764,18 +764,26 @@ parameter-default-value-opt:
 parameter-decl:
       identifier[id] internal-identifier-opt[intid] COLON pattern-mod[pm] parameter-default-value-opt[default]
         { $$ = parameter{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>(std::move(get<0>($pm))), .default_value = std::move($default), .modifier = get<1>($pm) }; }
+    | identifier[id] internal-identifier-opt[intid] COLON concept-expression-list[cpts] parameter-default-value-opt[default]
+        { $$ = parameter{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint =  ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($id.location) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default), .modifier =  parameter_constraint_modifier_t::const_or_runtime_type };  }
+    | identifier[id] internal-identifier-opt[intid] COLON constraint-expression-specified-mod[mod] concept-expression-list[cpts] parameter-default-value-opt[default]
+        { $$ = parameter{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint =  ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($id.location) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default), .modifier = get<1>($mod) };  }
     | identifier[id] internal-identifier-opt[intid] QMARK COLON pattern-mod[pm] 
         { $$ = parameter{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>(std::move(get<0>($pm))), .default_value = optional_t{}, .modifier = get<1>($pm) }; IGNORE_TERM($QMARK); }
     | internal-identifier[intid] COLON pattern-mod[pm] parameter-default-value-opt[default]
         { $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>(std::move(get<0>($pm))), .default_value = std::move($default), .modifier = get<1>($pm) }; }
+    | internal-identifier[intid] COLON concept-expression-list[cpts] parameter-default-value-opt[default]
+        { $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint =  ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($intid.name.location) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default), .modifier =  parameter_constraint_modifier_t::const_or_runtime_type };   }        
+    | internal-identifier[intid] COLON constraint-expression-specified-mod[mod] concept-expression-list[cpts] parameter-default-value-opt[default]
+        { $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint =  ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($intid.name.location) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default), .modifier = get<1>($mod) }; }
     | COLON pattern-mod[pm] parameter-default-value-opt[default]
         { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>(std::move(get<0>($pm))), .default_value = std::move($default), .modifier = get<1>($pm) }; }
     | pattern-mod[pm] parameter-default-value-opt[default]
         { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>(std::move(get<0>($pm))), .default_value = std::move($default), .modifier = get<1>($pm) }; }
 
     // sugar for simple placeholder types
-    | identifier[id] internal-identifier-opt[intid] concept-expression-list-opt[cpts] parameter-default-value-opt[default] 
-        { $$ = parameter{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($intid.name.location) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default), .modifier = parameter_constraint_modifier_t::const_or_runtime_type }; }
+    //| identifier[id] internal-identifier-opt[intid] concept-expression-list-opt[cpts] parameter-default-value-opt[default] 
+    //    { $$ = parameter{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($intid.name.location) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default), .modifier = parameter_constraint_modifier_t::const_or_runtime_type }; }
     //| identifier[id] internal-identifier[intid] QMARK
     //    { $$ = parameter{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($intid.name.location) } } ), .default_value = optional_t{}, .modifier =  parameter_constraint_modifier_t::const_or_runtime_type }; }
     | internal-identifier[intid] concept-expression-list-opt[cpts] parameter-default-value-opt[default]
@@ -797,6 +805,11 @@ parameter-decl:
         { $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint = std::move(get<0>($ce)), .default_value = std::move($default), .modifier = get<1>($ce) }; }
     | COLON constraint-expression[ce] parameter-default-value-opt[default]
         { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = std::move(get<0>($ce)), .default_value = std::move($default), .modifier = get<1>($ce) }; }
+    | qname parameter-default-value-opt[default]
+        {
+            auto constraint = ctx.make<syntax_expression>(std::move($qname.location), qname_reference_expression{ ctx.make_qname_view(std::move($qname)) });
+            $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = constraint, .default_value = std::move($default), .modifier = parameter_constraint_modifier_t::const_or_runtime_type };
+        }
     | constraint-expression-specified[ce] parameter-default-value-opt[default]
         { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = std::move(get<0>($ce)), .default_value = std::move($default), .modifier = get<1>($ce) }; }
     ;

@@ -89,21 +89,28 @@ std::expected<functional_match_descriptor_ptr, error_storage> to_callable_implic
         .location = call.location,
         .modifier = result_fd.is_const() ? value_modifier_t::constexpr_value : value_modifier_t::runtime_value
     };
+    
     for (field_descriptor const& fd : args_span) {
         if (fd.is_const()) continue; // skip const fields for now
+        intptr_t offset = (intptr_t)ftor_args.size() - callable_arg_count;
         if (auto field_name = fd.name(); field_name) {
-            ftor_args.emplace_back(fd.name(), syntax_expression{ arg_loc, stack_value_reference_expression{ .type = fd.entity_id(), .offset = callable_arg_count - 1 } });
+            ftor_args.emplace_back(fd.name(), syntax_expression{ arg_loc, stack_frame_value_reference_expression{ .type = fd.entity_id(), .offset = offset } });
         } else {
-            ftor_args.emplace_back(syntax_expression{ arg_loc, stack_value_reference_expression{ .type = fd.entity_id(), .offset = callable_arg_count - 1 } });
+            ftor_args.emplace_back(syntax_expression{ arg_loc, stack_frame_value_reference_expression{ .type = fd.entity_id(), .offset = offset } });
         }
     }
 
-    entity const* arg_entity;
-    entity_identifier arg_type = get_result_type(env, arg_er, &arg_entity);
-
     base_expression_visitor vis{ ctx, call.expressions, callable_expected_result, *get<0>(arg_descr) };
     
-    auto res = vis.make_function_call(arg_er, arg_loc, pure_call{ ftor_args });
+    syntax_expression_result arg_er_ref{
+        .value_or_type = arg_er.value_or_type,
+        .is_const_result = arg_er.is_const_result
+    };
+    if (!arg_er.is_const_result) {
+        env.push_back_expression(call.expressions, arg_er_ref.expressions, semantic::push_by_offset{ -(intptr_t)callable_arg_count - 1, semantic::push_by_base::frame_bottom });
+    }
+
+    auto res = vis.make_function_call(arg_er_ref, arg_loc, pure_call{ ftor_args });
     if (!res) {
         return std::unexpected(append_cause(
             make_error<basic_general_error>(arg_loc, "can't convert argument to callable"sv),
@@ -136,6 +143,8 @@ shared_ptr<internal_function_entity> to_callable_implicit_cast_pattern::build(fn
     }
     pife->set_body(span<const statement>{ &*rst, 1 });
     pife->set_provision(false);
+    if (!get<1>(md.matches.front()).is_const_result) pife->set_captured_var_count(1);
+    // the function implementation is just proxying to another function call, so no circular dependencies or other errors should occur here
     auto err = pife->build(env);
     BOOST_ASSERT(!err);
 
@@ -157,54 +166,26 @@ std::expected<syntax_expression_result, error_storage> to_callable_implicit_cast
     if (ser.is_const_result && can_be_constexpr(tmd.result_modifier)) {
         return syntax_expression_result{
             .value_or_type = fne.id,
-            //.value_or_type = env.make_reference_entity(fne).id,
-            //.value_or_type = env.make_nil_entity(fne.id).id,
             .is_const_result = true
         };
     }
     
     intptr_t rt_id = env.retrieve_function_rt_identifier(fne);
 
+    syntax_expression_result result{
+        .value_or_type = fne.get_type(),
+        .is_const_result = false
+    };
+
     if (ser.is_const_result) {
-        syntax_expression_result result{
-            .value_or_type = fne.get_type(),
-            .is_const_result = false
-        };
         env.push_back_expression(el, result.expressions, semantic::push_value{ i64_blob_result(rt_id) });
-        return std::move(result);
     } else {
-        THROW_NOT_IMPLEMENTED_ERROR("to_callable_implicit_cast_pattern::apply non-const result");
+        append_semantic_result(el, ser, result);
+        env.push_back_expression(el, result.expressions, semantic::push_value{ i64_blob_result(rt_id) });
+        env.push_back_expression(el, result.expressions, semantic::push_value{ ui64_blob_result(2) });
+        env.push_back_expression(el, result.expressions, semantic::invoke_function(env.get(builtin_eid::arrayify)));
     }
-#if 0
-    if (!fne.is_built()) {
-        sonia::lang::compiler_task_tracer::task_guard tg = ctx.try_lock_task(entity_task_id{ fne });
-        if (!tg) return std::unexpected(
-            make_error<circular_dependency_error>(make_error<basic_general_error>(location_, "resolving function result type"sv, fne.id))
-        );
-        if (!fne.is_built()) {
-            if (auto err = fne.build(env)) {
-                return std::unexpected(std::move(err));
-            }
-        }
-    }
-#endif
-#if 0
-    if (tmd.signature.result->is_const()) {
-        entity_signature result_sig{ env.get(builtin_qnid::callable), tmd.signature.result->entity_id() };
-        result_sig.emplace_back(fne.id, true);
-        return syntax_expression_result{
-            .value_or_type = env.make_basic_signatured_entity(std::move(result_sig)).id,
-            .is_const_result = true
-        };
-    } else {
-        syntax_expression_result result{
-            .value_or_type = tmd.signature.result->entity_id(),
-            .is_const_result = false
-        };
-        env.push_back_expression(el, result.expressions, semantic::push_value{ ui64_blob_result(fne.id.value) });
-        return result;
-    }
-#endif
+    return std::move(result);
 }
 
 }

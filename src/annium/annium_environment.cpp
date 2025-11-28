@@ -1110,6 +1110,32 @@ struct expr_printer_visitor : static_visitor<void>
         (*this)(ne.arguments);
     }
 
+    inline void operator()(syntax_expression const& se) const
+    {
+        visit(*this, se.value);
+    }
+
+    void operator()(annium_fn_type const& fnt) const
+    {
+        if (fnt.args.empty()) {
+            ss << "()"sv;
+        } else if (fnt.args.size() == 1) {
+            opt_named_expression_t const& ne = fnt.args.front();
+            auto [pname, value] = *ne;
+            if (pname) {
+                e_.print_to(ss << '(', pname->value) << ": "sv;
+                (*this)(value);
+                ss << ')';
+            } else {
+                (*this)(value);
+            }
+        } else {
+            (*this)(fnt.args);
+        }
+        ss << "->"sv;
+        (*this)(*fnt.result);
+    }
+
     template <typename T>
     void operator()(T const& te) const
     {

@@ -226,7 +226,7 @@ std::expected<syntax_expression_result, error_storage> array_implicit_cast_patte
     for (size_t i = 0; i < array_size; ++i) {
         //identifier element_var_name = fn_scope.push_scope_variable(arr_element_type_eid).first;
         call_builder cast_call{ md.call_location };
-        cast_call.emplace_back(md.call_location, stack_value_reference_expression{ .type = vmd.arg_element_type, .offset = array_size - 1 }); // we put on stack also the result of the cast => offset is const
+        cast_call.emplace_back(md.call_location, stack_value_reference_expression{ .type = vmd.arg_element_type, .offset = (intptr_t)array_size - 1 }); // we put on stack also the result of the cast => offset is const
         auto res = ctx.find_and_apply(builtin_qnid::implicit_cast, cast_call, el, expected_result_t {
             .type = vmd.result_element_type,
             .location = md.call_location,

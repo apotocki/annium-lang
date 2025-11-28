@@ -167,6 +167,16 @@ base_expression_visitor::result_type base_expression_visitor::operator()(stack_v
     return apply_cast(std::move(result));
 }
 
+base_expression_visitor::result_type base_expression_visitor::operator()(stack_frame_value_reference_expression const& sfvr) const
+{
+    syntax_expression_result result{
+        .value_or_type = sfvr.type,
+        .is_const_result = false
+    };
+    env().push_back_expression(expressions, result.expressions, semantic::push_by_offset{ sfvr.offset, semantic::push_by_base::frame_bottom });
+    return apply_cast(std::move(result));
+}
+
 base_expression_visitor::result_type base_expression_visitor::operator()(nil_expression const&) const
 {
     return std::pair{
@@ -1172,6 +1182,10 @@ base_expression_visitor::result_type base_expression_visitor::operator()(lambda 
                     name = vid->name;
                     break;
                 }
+                if (qname_reference_expression const* qvid = get_if<qname_reference_expression>(&expr.value); qvid) {
+                    name = qvid->name.back();
+                    break;
+                }
                 //if (qname_reference const* vid = get<qname_reference>(&expr); vid) {
                 //    qname const& qn = vid->name.value;
                 //    if (qn.size() == 1 && qn.is_relative()) {
@@ -1193,7 +1207,7 @@ base_expression_visitor::result_type base_expression_visitor::operator()(lambda 
             sig.emplace_back(name, ser.value_or_type, ser.is_const_result);
         }
         if (!rt_capture_size) break; // nothing to capture
-        if (rt_capture_size > 2) {
+        if (rt_capture_size > 1) {
             env().push_back_expression(expressions, capture_res.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(rt_capture_size) } });
             env().push_back_expression(expressions, capture_res.expressions, semantic::invoke_function(env().get(builtin_eid::arrayify)));
         }

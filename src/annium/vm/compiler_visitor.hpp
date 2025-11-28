@@ -65,7 +65,16 @@ public:
 
     void operator()(semantic::push_by_offset const& pv) const
     {
-        fnbuilder_.append_pushr(pv.offset);
+        switch (pv.base) {
+        case semantic::push_by_base::frame_bottom:
+            fnbuilder_.append_fpush(pv.offset);
+            break;
+        case semantic::push_by_base::stack_bottom:
+            fnbuilder_.append_pushr(pv.offset);
+            break;
+        default:
+            BOOST_ASSERT(!"unknown push_by_offset base type");
+        }
     }
 
     void operator()(semantic::set_by_offset const& sv) const
@@ -374,7 +383,7 @@ public:
                 rpos->operand = fin_pos;
             }
         }
-        size_t param_count = fn_context_->parameter_count(); // including captured_variables
+        size_t param_count = fn_context_->arg_count() + fn_context_->captured_var_count(); // including captured_variables
         BOOST_ASSERT(fn_context_->result.entity_id());
         if (fn_context_->result.entity_id() != environment_.get(builtin_eid::void_)) {
             fnbuilder_.append_fset(-static_cast<intptr_t>(param_count));
@@ -403,6 +412,7 @@ public:
 
     inline void operator()(semantic::return_statement const& rst) const
     {
+        //GLOBAL_LOG_INFO() << environment_.print(rst.result);
         rst.result.for_each([this](semantic::expression const& e) {
             //GLOBAL_LOG_INFO() << environment_.print(e);
             visit(*this, e);
