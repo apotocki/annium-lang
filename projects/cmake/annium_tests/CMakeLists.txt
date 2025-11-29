@@ -34,6 +34,7 @@ set (ANNIUM_TESTS_SOURCES
     ${PROJECT_HOME}/tpls/sonia-prime/sonia/utility/invocation/invocation.cpp
     ${PROJECT_HOME}/tpls/sonia-prime/sonia/utility/json/json_value.cpp
     ${PROJECT_HOME}/tpls/sonia-prime/sonia/utility/parsers/json/json_model.cpp
+    ${PROJECT_HOME}/tpls/sonia-prime/sonia/utility/mvvm/view_model.cpp
     ${PROJECT_HOME}/tpls/sonia-prime/sonia/utility/file_persister.cpp
     ${PROJECT_HOME}/tpls/sonia-prime/sonia/utility/iterators/file_region_iterator.cpp
     ${PROJECT_HOME}/tpls/sonia-prime/sonia/utility/assert_handler.cpp

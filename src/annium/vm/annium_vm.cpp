@@ -67,7 +67,7 @@ public:
     sonia::smart_blob operator()(std::span<const blob_result> args) override
     {
         if (args.size() != param_cnt_) {
-            throw exception("fn invocation error: wrong number of arguments: %1%, expected: %2%"_fmt % args.size() % (uint64_t)param_cnt_);
+            throw exception("function invocation error: wrong number of arguments: %1%, expected: %2%"_fmt % args.size() % (uint64_t)param_cnt_);
         }
         vm::context ctx(environment_, penv_);
         for (blob_result const& arg: args) {
@@ -261,19 +261,19 @@ void vm::context::extern_variable_get()
     if (penv_) {
         stack_back().replace(penv_->get_property(propname));
     } else {
-        throw exception("can't get property '%1%', no external environment was provided"_fmt % propname);
+        throw exception("cannot get property '%1%': no external environment was provided"_fmt % propname);
     }
 }
 
 void vm::context::extern_variable_set()
 {
-    SCOPE_EXIT([this] { stack_pop(); }); // assign value on stack after that
+    SCOPE_EXIT([this] { stack_pop(2); }); // no arguments on stack after that
     string_view propname = stack_back().as<string_view>();
     blob_result const& propvalue = *stack_back(1);
     if (penv_) {
         penv_->set_property(propname, propvalue);
     } else {
-        throw exception("can't set property '%1%' to '%2', no external environment was provided"_fmt % propname % propvalue);
+        throw exception("cannot set property '%1%' to '%2%': no external environment was provided"_fmt % propname % propvalue);
     }
 }
 
@@ -293,7 +293,7 @@ void vm::context::extern_function_call()
         }
         stack_pop(argscnt + (sigdescr > 0 ? 1 : 2));
     } else {
-        throw exception("can't call extern function '%1%', no external environment was provided"_fmt % funcname);
+        throw exception("cannot call external function '%1%': no external environment was provided"_fmt % funcname);
     }
 }
 
@@ -308,7 +308,7 @@ void vm::context::construct_extern_object()
     
     if (!penv_) {
         SCOPE_EXIT([this, argcount] { stack_pop(argcount * 2 + 2); });
-        throw exception("can't construct the object '%1%', no external environment was provided"_fmt % name);
+        throw exception("cannot construct object '%1%': no external environment was provided"_fmt % name);
     }
 
     smart_blob resobj;

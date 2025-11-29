@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 
 #include "annium_view_model.hpp"
 //#include "builder_view_model.hpp"
@@ -17,7 +17,7 @@ class bunch_builder_view_model
 {
     using base_t = invocation::registrar<bunch_builder_view_model, annium_view_model>;
     using registrar_type = base_t::registrar_type;
-    friend class base_t;
+    friend base_t;
 
 public:
     class factory
@@ -41,7 +41,7 @@ protected:
     // methods routine
     static void do_registration(registrar_type& mr);
 
-    boost::unordered_map<std::string, shared_ptr<invocation::invocable>, hasher> elements_;
+    std::unordered_map<std::string, shared_ptr<invocation::invocable>, hasher, string_equal_to> elements_;
     factory& factory_;
 };
 

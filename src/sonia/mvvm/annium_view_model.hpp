@@ -1,4 +1,4 @@
-//  Annium programming language (c) 2025 by Alexander Pototskiy
+ //  Annium programming language (c) 2025 by Alexander Pototskiy
 //  Annium is licensed under the terms of the MIT License.
 
 #pragma once

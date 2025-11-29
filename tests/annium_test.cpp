@@ -13,6 +13,7 @@
 #include "applied/sonia_test.hpp"
 
 #include "sonia/filesystem.hpp"
+#include "sonia/shared_ptr.hpp"
 
 #include "sonia/utility/parsers/json/lexertl_lexer.hpp"
 #include "sonia/utility/parsers/json/model.hpp"
@@ -22,6 +23,8 @@
 #include "applied/scoped_services.hpp"
 
 #include "annium/annium.hpp"
+
+#include "sonia/mvvm/annium_view_model.hpp"
 
 using namespace sonia;
 
@@ -87,6 +90,59 @@ int AllocHook(int allocType, void* userData, size_t size, int
 
 #endif
 
+class annium_test_model 
+    : public annium_view_model
+    , public invocation::registrar<annium_test_model, annium_view_model>
+{
+    using base_t = invocation::registrar<annium_test_model, annium_view_model>;
+    using registrar_type = base_t::registrar_type;
+    friend base_t;
+
+public:
+    std::ostringstream output;
+    smart_blob eftor_;
+
+    annium_test_model()
+    {
+        set_cout_writer([this](string_view str) { output << str; });
+    }
+
+    blob_result eftor_call(string_view arg)
+    {
+        if (eftor_.is_nil()) {
+            throw exception("Eftor function is not set");
+        }
+        blob_result argblob = string_blob_result(arg);
+        smart_blob res = this->annium::language::invoke(smart_blob{ eftor_ }.detach(), span{ &argblob, 1 });
+        //smart_blob res { string_blob_result(arg) };
+        //res.allocate();
+        return res.detach();
+    }
+    
+    //std::string eftor_call(string_view arg)
+    //{
+    //    if (eftor_.is_nil()) {
+    //        throw exception("Eftor function is not set");
+    //    }
+    //    return to_string(arg);
+    //}
+
+    static void do_registration(registrar_type& mr)
+    {
+        mr.register_property("eftor",
+            [](annium_test_model const& self) -> blob_result {
+                return smart_blob{ self.eftor_ }.detach();
+            },
+            [](annium_test_model& self, blob_result const& val) {
+                self.eftor_ = val;
+            }
+        );
+
+        mr.register_method<&annium_test_model::eftor_call>("eftor_call");
+    }
+    
+};
+
 void annium_suite_test()
 {
     try {
@@ -126,7 +182,7 @@ void annium_suite_test()
         fs::path srcpath = suitedir / filename;
         GLOBAL_LOG_INFO() << srcpath.string() << "\n";
 
-        boost::container::small_vector<string_view, 16> args;
+        small_vector<string_view, 16> args;
         if (json_value* argsobj = test_obj["arguments"]; argsobj) {
             for (json_value const& arg : argsobj->get_array()) {
                 args.emplace_back(arg.get_string());
@@ -134,12 +190,10 @@ void annium_suite_test()
         }
         auto expected_output = test_obj["output"]->get_string();
 
-        annium::language lang;
-        std::ostringstream output;
-        lang.set_cout_writer([&output](string_view str) { output << str; });
-        lang.load(srcpath, args);
+        auto ml = std::make_shared<final_view_model<annium_test_model>>();
+        ml->load(srcpath, args);
 
-        BOOST_CHECK_EQUAL(expected_output, output.str());
+        BOOST_CHECK_EQUAL(expected_output, ml->output.str());
     }
 
     } catch (std::exception const&) {

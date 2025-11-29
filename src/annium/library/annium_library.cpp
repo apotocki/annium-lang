@@ -56,11 +56,10 @@ void annium_tostring(vm::context & ctx)
 void annium_print_string(vm::context& ctx)
 {
     size_t argcount = ctx.stack_back().as<size_t>();
-    environment & e = ctx.get_unit();
+    environment & e = ctx.get_environment();
     std::ostringstream res;
     for (size_t i = argcount; i > 0; --i) {
         print_to_stream(res, *ctx.stack_back(i), false);
-        //e.write_cout(ctx.stack_back(i).as<string_view>());
     }
     e.write_cout(res.str());
     ctx.stack_pop(argcount + 1);
@@ -308,18 +307,18 @@ void annium_unary_minus(vm::context& ctx)
     ctx.stack_push(val);
 }
 
-void annium_concat_string(vm::context& ctx)
-{
-    auto l = ctx.stack_back(1).as<string_view>();
-    auto r = ctx.stack_back().as<string_view>();
-    auto res = make_blob_result(blob_type::string, nullptr, static_cast<uint32_t>(l.size() + r.size()));
-    blob_result_allocate(&res);
-    char * buff = mutable_data_of<char>(res);
-    std::memcpy(buff, l.data(), l.size());
-    std::memcpy(buff + l.size(), r.data(), r.size());
-    ctx.stack_pop();
-    ctx.stack_back().replace( smart_blob{ std::move(res) } );
-}
+//void annium_concat_string(vm::context& ctx)
+//{
+//    auto l = ctx.stack_back(1).as<string_view>();
+//    auto r = ctx.stack_back().as<string_view>();
+//    auto res = make_blob_result(blob_type::string, nullptr, static_cast<uint32_t>(l.size() + r.size()));
+//    blob_result_allocate(&res);
+//    char * buff = mutable_data_of<char>(res);
+//    std::memcpy(buff, l.data(), l.size());
+//    std::memcpy(buff + l.size(), r.data(), r.size());
+//    ctx.stack_pop();
+//    ctx.stack_back().replace( smart_blob{ std::move(res) } );
+//}
 
 void annium_operator_plus_integer(vm::context& ctx)
 {
@@ -411,6 +410,22 @@ void annium_set_object_property(vm::context& ctx)
     string_view prop_name = ctx.stack_back(1).as<string_view>();
     obj->set_property(ctx.camel2kebab(prop_name), *ctx.stack_back());
     ctx.stack_pop(2);
+}
+
+void annium_invoke(vm::context& ctx)
+{
+    size_t argcount = ctx.stack_back().as<size_t>();
+    small_vector<blob_result, 16> args;
+    args.reserve(argcount);
+    for (size_t i = argcount; i > 0; --i) {
+        args.emplace_back(*ctx.stack_back(i));
+    }
+    
+    string_view name = ctx.stack_back(argcount + 1).as<string_view>();
+    smart_blob resobj = ctx.env().invoke(name, span{ args });
+    auto tstr = (std::ostringstream{} << resobj).str();
+    ctx.stack_pop(argcount + 1);
+    ctx.stack_back().replace(std::move(resobj));
 }
 
 }

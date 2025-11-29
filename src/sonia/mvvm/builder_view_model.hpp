@@ -3,8 +3,6 @@
 
 #pragma once
 
-//#include "sonia/utility/invocation/invocation.hpp"
-
 #include "annium_view_model.hpp"
 
 namespace sonia {
@@ -15,7 +13,7 @@ class builder_view_model
 {
     using registrar_base_t = invocation::registrar<builder_view_model, annium_view_model>;
     using registrar_type = registrar_base_t::registrar_type;
-    friend class registrar_base_t;
+    friend registrar_base_t;
 
 public:
     class factory

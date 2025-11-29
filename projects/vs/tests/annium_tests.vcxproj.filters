@@ -122,6 +122,9 @@
     <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\fibers\context_shared.cpp">
       <Filter>sonia\fibers</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\utility\mvvm\view_model.cpp">
+      <Filter>sonia\utility\mvvm</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="sonia">
@@ -184,6 +187,9 @@
     <Filter Include="sonia\utility\lang">
       <UniqueIdentifier>{394d2ce6-0a75-4c5f-9332-c8ab3bc74782}</UniqueIdentifier>
     </Filter>
+    <Filter Include="sonia\utility\mvvm">
+      <UniqueIdentifier>{e019e707-ffb7-4c39-8812-b71d4ff05a62}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(SolutionDir)tpls\sonia-prime\applied\tests_external.hpp">
@@ -214,9 +220,6 @@
       <Filter>sonia\utility\parsers\json</Filter>
     </ClInclude>
     <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\invocation\functor_object.hpp">
-      <Filter>sonia\utility\invocation</Filter>
-    </ClInclude>
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\invocation\invocable.hpp">
       <Filter>sonia\utility\invocation</Filter>
     </ClInclude>
     <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\invocation\invocation.hpp">
@@ -404,6 +407,12 @@
     </ClInclude>
     <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\lang\vm.hpp">
       <Filter>sonia\utility\lang</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\mvvm\view_model.hpp">
+      <Filter>sonia\utility\mvvm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\mvvm\view_model.ipp">
+      <Filter>sonia\utility\mvvm</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

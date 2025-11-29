@@ -9,17 +9,17 @@ namespace sonia {
 
 void annium_view_model::do_registration(registrar_type& mr)
 {
-    using load_bang_t = void(annium::language::*)(string_view, span<string_view>);
-    ////mr.register_method<(load_bang_t)&annium_view_model::build>("load_bang"sv);
-    //mr.register_method<(load_bang_t)&annium_view_model::build>("load_code"sv);
-    //mr.register_method<(load_bang_t)&lang::bang::language::load>("load_code"sv);
+    //using load_annium_t = void(annium::language::*)(string_view, span<string_view>);
+    ////mr.register_method<(load_annium_t)&annium_view_model::build>("load_annium"sv);
+    //mr.register_method<(load_annium_t)&annium_view_model::build>("load_code"sv);
+    //mr.register_method<(load_annium_t)&lang::annium::language::load>("load_code"sv);
     
     mr.register_method<&annium_view_model::load_code>("load_code"sv);
     mr.register_method<&annium_view_model::load_file>("load_file"sv);
     mr.register_method<&annium_view_model::eval>("eval"sv);
-    //using load_bang_t = void(annium_view_model::*)(string_view);
-    //using eval_bang_t = smart_blob(annium_view_model::*)(string_view);
-    //mr.register_method<(eval_lua_t)&annium_view_model::eval_bang>("eval_bang"sv);
+    //using load_annium_t = void(annium_view_model::*)(string_view);
+    //using eval_annium_t = smart_blob(annium_view_model::*)(string_view);
+    //mr.register_method<(eval_annium_t)&annium_view_model::eval_annium>("eval_annium"sv);
     //mr.register_method<&annium_view_model::append_inplace>("append_inplace"sv);
 }
 

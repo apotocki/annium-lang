@@ -185,7 +185,7 @@ std::expected<syntax_expression_result, error_storage> to_callable_implicit_cast
         env.push_back_expression(el, result.expressions, semantic::push_value{ ui64_blob_result(2) });
         env.push_back_expression(el, result.expressions, semantic::invoke_function(env.get(builtin_eid::arrayify)));
     }
-    return std::move(result);
+    return result;
 }
 
 }

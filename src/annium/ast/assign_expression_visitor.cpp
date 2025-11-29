@@ -51,6 +51,7 @@ assign_expression_visitor::result_type assign_expression_visitor::operator()(qna
             }
         } else if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, functional_variable>) {
             env().push_back_expression(expressions, ser.expressions, semantic::set_variable{ eid_or_var });
+            //ctx_.append_expression(semantic::truncate_values(1, 0));
         } else {
             THROW_INTERNAL_ERROR("unhandled assign_expression_visitor qname_reference_expression case");
         }

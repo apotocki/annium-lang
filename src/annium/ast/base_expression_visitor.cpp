@@ -784,7 +784,8 @@ base_expression_visitor::result_type base_expression_visitor::make_function_call
         }
         
         // is the entity type a function?
-        entity const& type_ent = get_entity(env(), ent.get_type());
+        entity_identifier type_ent_eid = ent.get_type();
+        entity const& type_ent = get_entity(env(), type_ent_eid);
         entity_signature const* pfunction_type_sig = type_ent.signature();
         if (!pfunction_type_sig || pfunction_type_sig->name != env().get(builtin_qnid::function)) {
             return std::unexpected(make_error<basic_general_error>(ftor_loc, "a functional object or callable is expected"sv, ftor.value()));

@@ -130,7 +130,7 @@ public:
     context(context const&) = delete;
     context& operator=(context const&) = delete;
 
-    environment& get_unit() const { return environment_; }
+    inline environment& get_environment() const noexcept { return environment_; }
 
     // builtins
     void is_nil();

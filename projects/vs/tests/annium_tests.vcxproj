@@ -73,6 +73,7 @@
     <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\json\json_value.cpp" />
     <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\parsers\json\json_model.cpp" />
     <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\fibers\context_shared.cpp" />
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\utility\mvvm\view_model.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(SolutionDir)tpls\sonia-prime\applied\tests_external.hpp" />
@@ -119,7 +120,6 @@
     <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\segmented_stack.hpp" />
     <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\type.hpp" />
     <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\invocation\functor_object.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\invocation\invocable.hpp" />
     <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\invocation\invocable_registry.hpp" />
     <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\invocation\invocation.hpp" />
     <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\invocation\serialization.hpp" />
@@ -148,6 +148,8 @@
     <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\parsers\json\parser.hpp" />
     <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\parsers\lexer.hpp" />
     <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\parsers\utility.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\mvvm\view_model.hpp" />
+    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\mvvm\view_model.ipp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="$(SolutionDir)tpls\numetron\msvc\numetron.vcxproj">
