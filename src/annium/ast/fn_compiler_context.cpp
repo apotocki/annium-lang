@@ -296,7 +296,7 @@ size_t fn_compiler_context::append_result(semantic::expression_list_t& el, synta
 void fn_compiler_context::push_scope()
 {
     ns_ = ns_ / environment_.new_identifier();
-    scope_offset_ += scoped_locals_.back().size();
+    scope_offset_ += scoped_locals_.back().variables_count();
     scoped_locals_.emplace_back();
 }
 
@@ -304,17 +304,17 @@ size_t fn_compiler_context::pop_scope()
 {
     assert(ns_.parts().size() > base_ns_size_);
     ns_.truncate(ns_.parts().size() - 1);
-    size_t cleared_vars_count = scoped_locals_.back().size();
+    size_t cleared_vars_count = scoped_locals_.back().variables_count();
     scoped_locals_.pop_back(); // to do: call destructor for local variables
     if (!scoped_locals_.empty()) {
-        scope_offset_ -= scoped_locals_.back().size();
+        scope_offset_ -= scoped_locals_.back().variables_count();
     }
     return cleared_vars_count;
 }
 
 void fn_compiler_context::push_scope_variable(annotated_identifier name, local_variable lv)
 {
-    int64_t index = scope_offset_ + scoped_locals_.back().size();
+    int64_t index = scope_offset_ + scoped_locals_.back().variables_count();
     fent_.push_variable(lv.varid, index);
     scoped_locals_.back().emplace_back(std::move(name), std::move(lv));
     //return *get<local_variable>(&);

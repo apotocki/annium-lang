@@ -17,6 +17,7 @@
 #include "annium/functional/external_fn_pattern.hpp"
 #include "annium/functional/general/error_pattern.hpp"
 #include "annium/functional/general/assert_pattern.hpp"
+#include "annium/functional/general/void_implicit_cast_pattern.hpp"
 #include "annium/functional/general/runtime_cast_pattern.hpp"
 #include "annium/functional/general/deref_pattern.hpp"
 #include "annium/functional/general/equal_pattern.hpp"
@@ -1436,6 +1437,7 @@ environment::environment()
     // void
     entity_signature empty_tuple_sig{ get(builtin_qnid::tuple), get(builtin_eid::typename_) };
     basic_signatured_entity const& empty_tuple_ent = make_basic_signatured_entity(std::move(empty_tuple_sig));
+    builtin_eids_[(size_t)builtin_eid::void_type] = empty_tuple_ent.id;
     empty_entity const& void_entity = make_empty_entity(empty_tuple_ent);
     builtin_eids_[(size_t)builtin_eid::void_] = void_entity.id;
 
@@ -1510,6 +1512,7 @@ environment::environment()
     implicit_cast_fnl.push(make_shared<numeric_literal_implicit_cast_pattern>());
     implicit_cast_fnl.push(make_shared<string_implicit_cast_pattern>());
     implicit_cast_fnl.push(make_shared<to_callable_implicit_cast_pattern>());
+    implicit_cast_fnl.push(make_shared<void_implicit_cast_pattern>());
 
     auto union_pattern = make_shared<union_bit_or_pattern>();
     functional& bit_or_fnl = fregistry_resolve(get(builtin_qnid::bit_or));
@@ -1617,10 +1620,12 @@ environment::environment()
     //set_extern("implicit_cast(to: typename string, _)->string"sv, &annium_tostring);
     //set_const_extern<to_string_pattern>("to_string(const __identifier)->string"sv);
     //set_extern<external_fn_pattern>("to_string(_)->string"sv, &annium_tostring);
+    builtin_eids_[(size_t)builtin_eid::to_integer] = set_builtin_extern("__to_integer(runtime)->integer"sv, &annium_to_integer);
     builtin_eids_[(size_t)builtin_eid::int2dec] = set_builtin_extern("__int2dec(runtime)->decimal"sv, &annium_int2dec);
     //set_extern<external_fn_pattern>("implicit_cast(mut integer)->float"sv, &annium_int2flt);
     set_builtin_extern("create_extern_object(:runtime string)->object"sv, &annium_create_extern_object);
     set_builtin_extern("__extern_invoke(runtime string, runtime ..., runtime integer)~>$R"sv, &annium_invoke);
+    set_builtin_extern("__extern_invoke(runtime string, runtime ..., runtime integer)~>()"sv, &annium_invoke_void);
     //set_extern<external_fn_pattern>("set(self: object, property: const __identifier, any)"sv, &annium_set_object_property);
 
     set_builtin_extern("set(self: object, property: runtime string, runtime)->object"sv, &annium_set_object_property);

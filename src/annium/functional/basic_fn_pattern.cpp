@@ -143,7 +143,13 @@ std::expected<functional_match_descriptor_ptr, error_storage> basic_fn_pattern::
                 std::move(err)
             ));
         }
-        call_sig.result.emplace( exp.type, false );
+        pmd->weight -= pmd->bindings.size();
+        // to do: not only void_type can produce only constexpr result
+        if (exp.type == e.get(builtin_eid::void_type)) {
+            call_sig.result.emplace(e.get(builtin_eid::void_), true);
+        } else {
+            call_sig.result.emplace(exp.type, false);
+        }
     }
 
     parameter_matcher pmatcher{ caller_ctx, call, parameters_, *pmd };

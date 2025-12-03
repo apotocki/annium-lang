@@ -104,7 +104,11 @@ error_storage declaration_visitor::operator()(expression_statement const& ed) co
 {
     //auto bst = ctx.expressions_branch(); // store branch
     semantic::managed_expression_list el{ env() };
-    auto res = base_expression_visitor::visit(ctx, el, ed.expression);
+    expected_result_t exp{
+        .type = env().get(builtin_eid::void_type),
+        .location = ed.expression.location,
+        .modifier = value_modifier_t::constexpr_value };
+    auto res = base_expression_visitor::visit(ctx, el, exp, ed.expression);
     if (!res) return std::move(res.error());
 
     //semantic::expression_span ess = res->first.expressions;
@@ -692,7 +696,7 @@ error_storage declaration_visitor::operator()(let_statement const& ld) const
             push_temporaries(er.temporaries);
             ctx.append_expressions(el, er.expressions);
             ctx.append_stored_expressions(el, er.branches_expressions);
-            size_t scope_sz = ctx.current_scope_binding().size();
+            size_t scope_sz = ctx.current_scope_binding().variables_count();
             ctx.pop_scope();
             ctx.push_scope_variable(
                 ld.aname,
@@ -714,7 +718,7 @@ error_storage declaration_visitor::operator()(let_statement const& ld) const
             push_temporaries(er.temporaries);
             ctx.append_expressions(el, er.expressions);
             ctx.append_stored_expressions(el, er.branches_expressions);
-            size_t scope_sz = ctx.current_scope_binding().size();
+            size_t scope_sz = ctx.current_scope_binding().variables_count();
             ctx.pop_scope();
             identifier unnamedid = env().new_identifier();
             ctx.push_scope_variable(

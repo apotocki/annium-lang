@@ -381,6 +381,9 @@
     <ClCompile Include="..\..\..\src\annium\entities\callables\to_callable_implicit_cast_pattern.cpp">
       <Filter>annium\entities\callables</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\general\void_implicit_cast_pattern.cpp">
+      <Filter>annium\functional\general</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\annium\location.hh">
@@ -757,6 +760,9 @@
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\vm\asm_builder.hpp">
       <Filter>annium\vm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\general\void_implicit_cast_pattern.hpp">
+      <Filter>annium\functional\general</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

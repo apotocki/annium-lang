@@ -586,8 +586,9 @@ fn-requirements:
 */
 fn-requirement-opt:
       %empty { $$ = nullptr; }
-    | REQUIRES syntax-expression[expr]
-        { $$ = ctx.make<syntax_expression>(std::move($expr)); }
+    // we need parentheses to avoid ambiguity with a function type declaration (near ARROW token)
+    | REQUIRES OPEN_PARENTHESIS syntax-expression[expr] CLOSE_PARENTHESIS
+        { $$ = ctx.make<syntax_expression>(std::move($expr)); IGNORE_TERM($OPEN_PARENTHESIS); }
     ;
     /*
     | VIABLE
@@ -943,6 +944,8 @@ pattern:
         { $$ = syntax_pattern{ .descriptor = placeholder{ std::move($UNDERSCORE) }, .concepts = std::move($cpts) }; }
     | UNDERSCORE subpatterns concept-expression-list-opt[cpts]
         { $$ = syntax_pattern{ .descriptor = syntax_pattern::signature_descriptor{ .name = placeholder{ std::move($UNDERSCORE) }, .fields = ctx.make_array<syntax_pattern::field>($subpatterns) }, .concepts = ctx.make_array<syntax_expression>($cpts) }; }
+    | OPEN_PARENTHESIS CLOSE_PARENTHESIS
+        { $$ = syntax_pattern{ .descriptor = ctx.make<syntax_expression>(std::move($OPEN_PARENTHESIS), ctx.make_void()) }; }
     | OPEN_BRACE[start] syntax-expression[expr] CLOSE_BRACE concept-expression-list-opt[cpts]
         { $$ = syntax_pattern{ .descriptor = ctx.make<syntax_expression>(std::move($expr)), .concepts = ctx.make_array<syntax_expression>($cpts) }; IGNORE_TERM($start); }
     | OPEN_BRACE[start] syntax-expression[expr] CLOSE_BRACE subpatterns concept-expression-list-opt[cpts]
@@ -1082,6 +1085,18 @@ syntax-expression-base:
 //////////////////////////// 14 priority
     | syntax-expression[larg] LOGIC_OR syntax-expression[rarg]
         { $$ = syntax_expression{ std::move($LOGIC_OR), binary_expression{ binary_operator_type::LOGIC_OR, ctx.make_span_for_args<opt_named_expression_t>(std::move($larg), std::move($rarg)) } }; }
+    | syntax-expression[lexpr] ARROW type-expr[rexpr]
+        {
+            annium_fn_type fnt{ .result = ctx.make<syntax_expression>(std::move($rexpr)) };
+            if (function_call const* fn_type = get_if<function_call>(&$lexpr.value)) {
+                fnt.args = fn_type->args;
+            } else if (entity_identifier const* peid = get_if<entity_identifier>(&$lexpr.value); !peid || *peid != ctx.make_void()) {
+                opt_named_expression_list_t args{ opt_named_expression_t{ std::move($lexpr) } };
+                fnt.args = ctx.make_array<opt_named_expression_t>(args);
+            } // else void args
+            $$ = syntax_expression{ $lexpr.location, std::move(fnt) }; 
+        }
+    
     ;
 
 /*
@@ -1261,8 +1276,6 @@ type-expr:
         { $$ = syntax_expression{ std::move($OPEN_SQUARE_BRACKET), index_expression{ ctx.make<syntax_expression>(std::move($type)), ctx.make<syntax_expression>(std::move($index)) } }; }
     | type-expr[ltype] BITOR type-expr[rtype]
         { $$ = syntax_expression{ std::move($BITOR), binary_expression{ binary_operator_type::BIT_OR, ctx.make_span_for_args<opt_named_expression_t>(std::move($ltype), std::move($rtype)) } }; }
-    //| OPEN_PARENTHESIS CLOSE_PARENTHESIS ARROW type-expr[rexpr]
-    //    { $$ = syntax_expression{ std::move($OPEN_PARENTHESIS), annium_fn_type{ .result = ctx.make<syntax_expression>(std::move($rexpr)) } }; }
     | type-expr[lexpr] ARROW type-expr[rexpr]
         {
             annium_fn_type fnt{ .result = ctx.make<syntax_expression>(std::move($rexpr)) };

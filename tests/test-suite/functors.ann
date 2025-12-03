@@ -90,3 +90,4 @@ extern var eftor: (string)->string;
 eftor = builder(value: " external functor!", 22);
 let result: string = __extern_invoke("eftor_call", "Hello,", 1);
 assert_equal(result, "Hello, external functor!22");
+/**/

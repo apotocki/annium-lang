@@ -113,7 +113,7 @@ public:
             throw exception("Eftor function is not set");
         }
         blob_result argblob = string_blob_result(arg);
-        smart_blob res = this->annium::language::invoke(smart_blob{ eftor_ }.detach(), span{ &argblob, 1 });
+        smart_blob res = this->annium::language::invoke(*eftor_, span{ &argblob, 1 });
         //smart_blob res { string_blob_result(arg) };
         //res.allocate();
         return res.detach();

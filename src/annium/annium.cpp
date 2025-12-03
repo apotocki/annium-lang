@@ -24,7 +24,7 @@ namespace annium::detail {
 
 //using annium::vm::compiler_visitor;
 
-class annium_impl 
+class annium_impl : public invocation::callback_invoker
 {
 public:
     //void build(fs::path const&);
@@ -41,7 +41,7 @@ public:
     void load(fs::path const& srcfile, span<string_view> args = {});
     void load(string_view code, span<string_view> args = {});
 
-    smart_blob invoke(blob_result ftor, span<const blob_result> args);
+    smart_blob invoke(blob_result& ftor, span<const blob_result> args) noexcept override;
     smart_blob call(string_view name, span<const std::pair<string_view, const blob_result>> namedargs, span<const blob_result> args);
 
 protected:
@@ -94,7 +94,7 @@ void language::load(string_view code, span<string_view> args)
     impl_->load(code, args);
 }
 
-smart_blob language::invoke(blob_result ftor, span<const blob_result> args)
+smart_blob language::invoke(blob_result& ftor, span<const blob_result> args) noexcept
 {
     return impl_->invoke(ftor, args);
 }
@@ -512,21 +512,25 @@ smart_blob annium_impl::call(string_view /*fnsig*/, span<const std::pair<string_
 #endif
 }
 
-smart_blob annium_impl::invoke(blob_result ftor, span<const blob_result> args)
+smart_blob annium_impl::invoke(blob_result & ftor, span<const blob_result> args) noexcept
 {
-    vm::context ctx{ environment_, penv_ };
-    ctx.stack_push(std::move(ftor));
-    annium_unfold(ctx);
-    size_t cindex = ctx.stack_back().as<size_t>();
-    size_t address = ctx.const_at(cindex).as<size_t>();
-    ctx.stack_pop();
-    for (auto const& arg : args) {
-        ctx.stack_push(smart_blob(arg));
+    try {
+        vm::context ctx{ environment_, penv_ };
+        ctx.stack_push(smart_blob{ftor});
+        annium_unfold(ctx);
+        size_t cindex = ctx.stack_back().as<size_t>();
+        size_t address = ctx.const_at(cindex).as<size_t>();
+        ctx.stack_pop();
+        for (auto const& arg : args) {
+            ctx.stack_push(smart_blob(arg));
+        }
+        environment_.bvm().run(ctx, address);
+        smart_blob result = std::move(ctx.stack_back());
+        ctx.stack_pop();
+        return result;
+    } catch (...) {
+        return smart_blob{ error_blob_result(boost::current_exception_diagnostic_information()) };
     }
-    environment_.bvm().run(ctx, address);
-    smart_blob result = std::move(ctx.stack_back());
-    ctx.stack_pop();
-    return result;
 }
 
 //void annium_impl::set_cout_writer(function<void(string_view)> writer)

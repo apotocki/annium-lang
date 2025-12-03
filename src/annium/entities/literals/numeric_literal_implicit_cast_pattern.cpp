@@ -478,6 +478,9 @@ numeric_literal_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic:
     }
     src.value_or_type = target_type_eid;
     switch(target_type) {
+    case builtin_eid::integer:
+        env.push_back_expression(el, src.expressions, semantic::invoke_function(env.get(builtin_eid::to_integer)));
+        break;
     case builtin_eid::decimal:
         switch (source_type) {
         case builtin_eid::boolean:

@@ -122,6 +122,7 @@
     <ClCompile Include="..\..\..\src\annium\functional\general\runtime_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\to_string_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\typeof_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\functional\general\void_implicit_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\internal_fn_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\parameter_matcher.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\pattern_matcher.cpp" />
@@ -251,6 +252,7 @@
     <ClInclude Include="..\..\..\src\annium\functional\general\runtime_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\to_string_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\typeof_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\functional\general\void_implicit_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\internal_fn_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\match_utility.ipp" />
     <ClInclude Include="..\..\..\src\annium\functional\parameter_matcher.hpp" />

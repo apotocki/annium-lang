@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(annium-lang VERSION 1.0.0 LANGUAGES CXX ASM)
+project(annium-lang VERSION 0.1.0 LANGUAGES CXX ASM)
 
 set (PROJECT_HOME ${CMAKE_CURRENT_SOURCE_DIR})
 set (TPLS ${CMAKE_CURRENT_SOURCE_DIR}/tpls)

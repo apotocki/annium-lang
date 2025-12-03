@@ -170,7 +170,9 @@ enum class builtin_eid : entity_identifier::value_type
 {
     typename_ = 1,
     BOOST_PP_SEQ_FOR_EACH(ANNIUM_PRINT_BUILTINTYPE_ENUM, _, ANNIUM_BUILTIN_TYPES_SEQ)
-    void_, object,
+    void_type, // empty tuple type: tuple()
+    void_, // constexpr literal of empty tuple type
+    object,
     true_, false_, identifier, qname,
     arrayify, // builtin ::arrayify(...)->array
     unfold, // builtin ::unfold(:array(...))
@@ -181,6 +183,7 @@ enum class builtin_eid : entity_identifier::value_type
     assert, // builtin ::assert(condition, message)-> void 
     error, // builtin ::__error(message)-> void
     to_string, // builtin ::to_string(value)-> string
+    to_integer, // builtin ::to_integer(value)-> integer
     int2dec, // builtin ::int2dec(value: integer)-> decimal
     logical_not, // builtin ::logical_not(value)-> valueT
     unary_minus, // builtin ::unary_minus(value) -> valueT

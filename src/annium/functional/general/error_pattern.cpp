@@ -57,7 +57,9 @@ std::expected<syntax_expression_result, error_storage> error_pattern::apply(fn_c
     
     syntax_expression_result result{
         .temporaries = std::move(msg_er.temporaries),
-        .branches_expressions = std::move(msg_er.branches_expressions)
+        .branches_expressions = std::move(msg_er.branches_expressions),
+        .value_or_type = e.get(builtin_eid::void_),
+        .is_const_result = true
     };
     
     generic_literal_entity const* pmsg_ent = nullptr;
@@ -100,8 +102,6 @@ std::expected<syntax_expression_result, error_storage> error_pattern::apply(fn_c
             e.push_back_expression(el, result.expressions, semantic::push_value{ pmsg_ent->id });
         } // else the message argument is already on stack
         e.push_back_expression(el, result.expressions, semantic::invoke_function(e.get(builtin_eid::error)));
-        result.value_or_type = e.get(builtin_eid::void_);
-        result.is_const_result = false;
     }
 
     return result;

@@ -16,13 +16,14 @@ namespace annium {
 std::expected<functional_match_descriptor_ptr, error_storage> runtime_cast_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
 {
     auto call_session = call.new_session(ctx);
-    auto arg = call_session.use_next_positioned_argument(expected_result_t{ .type = exp.type, .location = call.location, .modifier = value_modifier_t::runtime_value });
+    prepared_call::argument_descriptor_t arg_desc;
+    auto arg = call_session.use_next_positioned_argument(expected_result_t{ .type = exp.type, .location = call.location, .modifier = value_modifier_t::runtime_value }, &arg_desc);
     if (!arg) return std::unexpected(arg.error());
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
     auto pmd = make_shared<functional_match_descriptor>(call);
-    pmd->emplace_back(0, arg->first);
+    pmd->append_arg(arg->first, get<0>(arg_desc)->location);
     return pmd;
 }
 

@@ -61,7 +61,8 @@ public:
         }
     }
 
-    inline size_t size() const noexcept { return bound_variables_count_; }
+    inline size_t variables_count() const noexcept { return bound_variables_count_; }
+    inline bool size() const noexcept { return binding_.size(); }
     inline bool empty() const noexcept { return binding_.empty(); }
 };
 

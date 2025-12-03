@@ -118,10 +118,12 @@ base_expression_visitor::result_type base_expression_visitor::apply_cast(syntax_
         return std::pair{ std::move(er), false };
     }
     
-    if (can_be_only_constexpr(expected_result.modifier) && !er.is_const_result) {
+    
+    if (can_be_only_constexpr(expected_result.modifier) && !er.is_const_result && expected_result.type != ctx.env().get(builtin_eid::void_type)) {
         // cannot cast runtime value to constexpr
         return std::unexpected(make_error<basic_general_error>(expected_result.location, "cannot cast runtime value to constexpr"sv, er.type()));
     }
+
     // temp
     //entity const& er_ent = get_entity(env(), er.type());
     //entity const& exp_ent = get_entity(env(), expected_result.type);

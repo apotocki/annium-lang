@@ -24,6 +24,7 @@ void annium_array_set_at(vm::context&);
 void annium_create_extern_object(vm::context&);
 void annium_set_object_property(vm::context&);
 void annium_invoke(vm::context&);
+void annium_invoke_void(vm::context&);
 
 void annium_logical_not(vm::context&);
 void annium_unary_minus(vm::context&);
@@ -34,6 +35,7 @@ void annium_operator_plus_decimal(vm::context&);
 
 void annium_operator_minus_integer(vm::context&);
 
+void annium_to_integer(vm::context&);
 void annium_str2dec(vm::context&);
 void annium_int2dec(vm::context&);
 void annium_int2flt(vm::context&);

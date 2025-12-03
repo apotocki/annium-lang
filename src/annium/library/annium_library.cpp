@@ -356,6 +356,23 @@ void annium_operator_minus_integer(vm::context& ctx)
     ctx.stack_back().replace(std::move(res));
 }
 
+void annium_to_integer(vm::context& ctx)
+{
+    auto& arg = ctx.stack_back();
+    if (arg->type == blob_type::bigint) return;
+    smart_blob result;
+    if (arg->type == blob_type::boolean || is_basic_integral(arg->type)) {
+        result = smart_blob{ bigint_blob_result(arg.as<numetron::integer>()) };
+    }
+    if (::is_floating_point(arg->type)) {
+        numetron::decimal_view dv = arg.as<numetron::decimal_view>();
+        result = smart_blob{ bigint_blob_result((numetron::integer)dv) };
+    } else {
+        THROW_INTERNAL_ERROR("cannot convert to integer: %1%"_fmt % arg);
+    }
+    arg.replace(std::move(result));
+}
+
 void annium_str2dec(vm::context& ctx)
 {
     auto str = ctx.stack_back().as<string_view>();
@@ -426,6 +443,12 @@ void annium_invoke(vm::context& ctx)
     auto tstr = (std::ostringstream{} << resobj).str();
     ctx.stack_pop(argcount + 1);
     ctx.stack_back().replace(std::move(resobj));
+}
+
+void annium_invoke_void(vm::context& ctx)
+{
+    annium_invoke(ctx);
+    ctx.stack_pop();
 }
 
 }

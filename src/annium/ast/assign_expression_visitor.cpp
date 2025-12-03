@@ -56,6 +56,7 @@ assign_expression_visitor::result_type assign_expression_visitor::operator()(qna
             THROW_INTERNAL_ERROR("unhandled assign_expression_visitor qname_reference_expression case");
         }
         ser.value_or_type = env().get(builtin_eid::void_);
+        ser.is_const_result = true;
         return std::move(ser);
     }, e);
     //    if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, local_variable>) {
