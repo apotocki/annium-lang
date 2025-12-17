@@ -275,7 +275,7 @@ prepared_call::session::do_resolve(argument_cache& arg_cache, expected_result_t 
         cit = arg_cache.cache.emplace_hint(cit, cache_key_t{ exp.type, exp.modifier }, res);
         if (res && can_be_constexpr_and_runtime(exp.modifier)) {
             if (res->first.is_const_result) {
-                // if the expression is const result, we can cache it with const_or_runtime_type modifier
+                // if the expression is const result, we can cache it with constexpr_or_runtime_type modifier
                 arg_cache.cache.emplace(cache_key_t{ exp.type, value_modifier_t::constexpr_value }, res);
             } else {
                 // if the expression is runtime type, we can cache it with runtime_type modifier
@@ -328,7 +328,9 @@ prepared_call::session::use_next_positioned_argument(expected_result_t const& ex
         auto res = do_resolve(arg_cache, exp);
 
         if (pe) {
-            *pe = { &arg_cache.expression, argindex };
+            pe->name = {};
+            pe->expression = &arg_cache.expression;
+            pe->arg_index = argindex;
         }
         return res;
     }
@@ -338,7 +340,7 @@ prepared_call::session::use_next_positioned_argument(expected_result_t const& ex
 }
 
 std::expected<std::pair<syntax_expression_result, bool>, error_storage>
-prepared_call::session::use_named_argument(identifier name, expected_result_t const& exp, std::pair<syntax_expression const*, size_t>* pe)
+prepared_call::session::use_named_argument(identifier name, expected_result_t const& exp, argument_descriptor_t* pe)
 {
     for (auto tmp_map = named_usage_map_; tmp_map;) {
         // get next unused argument index
@@ -354,7 +356,9 @@ prepared_call::session::use_named_argument(identifier name, expected_result_t co
         
         auto res = do_resolve(arg_cache, exp);
         if (pe) {
-            *pe = { &arg_cache.expression, argindex };
+            pe->name = { argname, loc };
+            pe->expression = &arg_cache.expression;
+            pe->arg_index = argindex;
         }
         named_usage_map_ -= pow2_argindex;
         return res;
@@ -364,7 +368,7 @@ prepared_call::session::use_named_argument(identifier name, expected_result_t co
 }
 
 std::expected<std::pair<syntax_expression_result, bool>, error_storage>
-prepared_call::session::use_next_argument(expected_result_t const& exp, next_argument_descriptor_t* pe)
+prepared_call::session::use_next_argument(expected_result_t const& exp, argument_descriptor_t* pe)
 {
     for (auto tmp_map = named_usage_map_ | positioned_usage_map_; tmp_map;) {
         uint64_t pow2_argindex = tmp_map - ((tmp_map - 1) & tmp_map);
@@ -378,7 +382,9 @@ prepared_call::session::use_next_argument(expected_result_t const& exp, next_arg
 
         auto res = do_resolve(arg_cache, exp);
         if (pe) {
-            *pe = { annotated_identifier{ .value = argname, .location = loc }, &arg_cache.expression, argindex };
+            pe->name = { argname, loc };
+            pe->expression = &arg_cache.expression;
+            pe->arg_index = argindex;
         }
         return res;
     }

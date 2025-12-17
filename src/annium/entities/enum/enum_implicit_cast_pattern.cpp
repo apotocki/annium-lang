@@ -43,8 +43,8 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_implicit_cast
     }
 
     auto call_session = call.new_session(ctx);
-    prepared_call::argument_descriptor_t arg_expr;
-    auto arg = call_session.use_next_positioned_argument(expected_result_t{ .type = env.get(builtin_eid::identifier), .modifier = value_modifier_t::constexpr_value }, &arg_expr);
+    prepared_call::argument_descriptor_t arg_descr;
+    auto arg = call_session.use_next_positioned_argument(expected_result_t{ .type = env.get(builtin_eid::identifier), .modifier = value_modifier_t::constexpr_value }, &arg_descr);
     if (!arg) {
         if (!arg.error()) {
             return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument"sv));
@@ -55,7 +55,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_implicit_cast
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    resource_location const& argloc = get<0>(arg_expr)->location;
+    resource_location const& argloc = arg_descr.expression->location;
     syntax_expression_result& arg_er = arg->first;
     entity const& ent = get_entity(env, arg_er.value());
     identifier_entity const* pident = dynamic_cast<identifier_entity const*>(&ent);

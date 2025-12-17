@@ -46,7 +46,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_empty_patter
         entity const& tpl_entity = get_entity(e, argtype);
         entity_signature const* psig = tpl_entity.signature();
         if (!psig || psig->name != e.get(builtin_qnid::tuple)) {
-            return std::unexpected(make_error<type_mismatch_error>(get<0>(arg_descr)->location, er.value_or_type, "a tuple"sv));
+            return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, er.value_or_type, "a tuple"sv));
         }
         pmd = make_shared<functional_match_descriptor>(call);
         pmd->signature.result.emplace(e.make_bool_entity(psig->fields().empty()).id, true);

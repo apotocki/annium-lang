@@ -16,22 +16,14 @@
 #include "annium/semantic.hpp"
 #include "annium/errors.hpp"
 
+#include "annium/entities/layered_binding_set.hpp"
+
 namespace annium {
 
 class fn_compiler_context;
 class prepared_call;
 
-class functional_binding
-{
-public:
-    virtual ~functional_binding() = default;
-
-    using value_type = std::variant<entity_identifier, local_variable>;
-
-    virtual value_type const* lookup(identifier) const noexcept = 0;
-    virtual void emplace_back(annotated_identifier, value_type) = 0;
-};
-
+#if 0
 class functional_binding_set : public functional_binding
 {
     //small_vector<value_type, 16> binding_;
@@ -45,9 +37,9 @@ class functional_binding_set : public functional_binding
 public:
     inline void reset() noexcept;
     
-    value_type const* lookup(identifier) const noexcept override;
+    //value_type const* lookup(identifier) const noexcept override;
 
-    value_type const* lookup(identifier, resource_location const**) const noexcept;
+    value_type const* lookup(identifier, resource_location const** = nullptr) const noexcept override;
 
     void emplace_back(annotated_identifier, value_type) override;
 
@@ -62,9 +54,10 @@ public:
     }
 
     inline size_t variables_count() const noexcept { return bound_variables_count_; }
-    inline bool size() const noexcept { return binding_.size(); }
+    inline size_t size() const noexcept { return binding_.size(); }
     inline bool empty() const noexcept { return binding_.empty(); }
 };
+#endif
 
 class functional_match_descriptor
 {
@@ -78,7 +71,7 @@ public:
     small_vector<semantic::expression_span, 4> arguments_auxiliary_expressions_spans;
 
     entity_signature signature;
-    functional_binding_set bindings;
+    layered_binding_set bindings;
     resource_location call_location;
 
     int weight{ 0 };
@@ -92,6 +85,12 @@ public:
     explicit functional_match_descriptor(prepared_call const& pcall) noexcept;
 
     virtual ~functional_match_descriptor() = default;
+
+    inline void emplace_back(syntax_expression_result result, resource_location loc = {})
+    {
+        intptr_t argindex = matches.size();
+        matches.emplace_back(argindex, std::move(result), std::move(loc));
+    }
 
     inline void emplace_back(intptr_t idx, syntax_expression_result result, resource_location loc = {})
     {
@@ -112,6 +111,14 @@ public:
         intptr_t argindex = matches.size();
         signature.emplace_back(arg_er.value_or_type, arg_er.is_const_result);
         emplace_back(argindex, std::move(arg_er), std::move(loc));
+    }
+
+    inline void remove_last_arg()
+    {
+        BOOST_ASSERT(!matches.empty());
+        matches.pop_back();
+        BOOST_ASSERT(!signature.empty());
+        signature.pop_back();
     }
     //semantic::expression_span merge_void_spans(semantic::expression_list_t&) noexcept;
 };

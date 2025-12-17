@@ -16,15 +16,11 @@
 
 namespace annium {
 
+#if 0
 void functional_binding_set::reset() noexcept
 {
     binding_.clear();
     binding_names_.clear();
-}
-
-functional_binding::value_type const* functional_binding_set::lookup(identifier id) const noexcept
-{
-    return lookup(id, nullptr);
 }
 
 functional_binding::value_type const* functional_binding_set::lookup(identifier id, resource_location const** ppl) const noexcept
@@ -56,6 +52,8 @@ void functional_binding_set::emplace_back(annotated_identifier id, value_type va
         //binding_.emplace(binding_.begin() + (it - binding_names_.begin()), std::move(value));
     }
 }
+
+#endif
 
 //void parameter_match_result::append_result(entity_identifier r, se_iterator before_start_it, semantic::expression_list_t& exprs)
 //{

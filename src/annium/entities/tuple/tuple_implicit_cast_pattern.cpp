@@ -52,8 +52,8 @@ tuple_implicit_cast_pattern::try_match(fn_compiler_context& ctx, prepared_call c
 
     auto call_session = call.new_session(ctx);
     // Get (source tuple)
-    std::pair<syntax_expression const*, size_t> self_expr;
-    auto src_arg = call_session.use_next_positioned_argument(&self_expr);
+    prepared_call::argument_descriptor_t slf_arg_descr;
+    auto src_arg = call_session.use_next_positioned_argument(&slf_arg_descr);
     if (!src_arg) {
         return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument"sv));
     }
@@ -99,7 +99,7 @@ tuple_implicit_cast_pattern::try_match(fn_compiler_context& ctx, prepared_call c
     }
 
     auto pmd = make_shared<tuple_implicit_cast_match_descriptor>(call, src_entity_type, *dst_sig); // ?location = get_start_location(*pself_expr))
-    pmd->emplace_back(0, src_arg_er);
+    pmd->append_arg(src_arg_er, slf_arg_descr.expression->location);
     pmd->signature.result.emplace(exp.type, can_be_only_constexpr(exp.modifier));
     return pmd;
 }

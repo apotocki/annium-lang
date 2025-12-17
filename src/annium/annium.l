@@ -147,6 +147,7 @@ WEAK					 "weak"
 
 TYPENAME				 "typename"
 CONSTEXPR				 "constexpr"
+CONSTEVAL				 "consteval"
 RUNTIME					 "runtime"
 
 APOSTROPHE				 "`"
@@ -335,6 +336,7 @@ HASHTAG					"#"
 
 	{TYPENAME} { variant_emplace(location); return (annium_lang::parser::token::TYPENAME); }
 	{CONSTEXPR} { variant_emplace(location); return (annium_lang::parser::token::CONSTEXPR); }
+	{CONSTEVAL} { variant_emplace(location); return (annium_lang::parser::token::CONSTEVAL); }
 	{RUNTIME} { variant_emplace(location); return (annium_lang::parser::token::RUNTIME); }
 
 	{NIL_WORD} {

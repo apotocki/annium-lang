@@ -28,12 +28,12 @@ std::expected<functional_match_descriptor_ptr, error_storage> string_implicit_ca
     }
 
     auto call_session = call.new_session(ctx);
-    std::pair<syntax_expression const*, size_t> arg_expr;
-    auto src_arg = call_session.use_next_positioned_argument(&arg_expr);
+    prepared_call::argument_descriptor_t arg_descr;
+    auto src_arg = call_session.use_next_positioned_argument(&arg_descr);
     if (!src_arg) {
         if (src_arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get<0>(arg_expr)->location, "invalid argument"sv),
+                make_error<basic_general_error>(arg_descr.expression->location, "invalid argument"sv),
                 std::move(src_arg.error())));
         } else {
             return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument"sv));
@@ -44,6 +44,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> string_implicit_ca
     }
 
     syntax_expression_result& src_arg_er = src_arg->first;
+    resource_location const& src_arg_loc = arg_descr.expression->location;
     entity_identifier source_type_id;
     entity const* source_type_entity = nullptr;
     if (src_arg_er.is_const_result) {
@@ -53,18 +54,17 @@ std::expected<functional_match_descriptor_ptr, error_storage> string_implicit_ca
         source_type_id = src_arg_er.type();
     }
     if (source_type_id != env.get(builtin_eid::string)) {
-        return std::unexpected(make_error<type_mismatch_error>(get<0>(arg_expr)->location, source_type_id, "a string type"sv));
+        return std::unexpected(make_error<type_mismatch_error>(src_arg_loc, source_type_id, "a string type"sv));
     }
     
 
     functional_match_descriptor_ptr pmd = sonia::make_shared<functional_match_descriptor>(call);
-    pmd->emplace_back(0, src_arg_er);
-    pmd->signature.emplace_back(src_arg_er.value_or_type, src_arg_er.is_const_result);
+    pmd->append_arg(src_arg_er, src_arg_loc);
     if (can_be_only_runtime(exp.modifier)) {
         pmd->signature.result.emplace(source_type_id, false);
     } else if (can_be_only_constexpr(exp.modifier)) {
         if (!src_arg_er.is_const_result) {
-            return std::unexpected(make_error<basic_general_error>(get<0>(arg_expr)->location, "a constexpr argument is required"sv));
+            return std::unexpected(make_error<basic_general_error>(src_arg_loc, "a constexpr argument is required"sv));
         }
         pmd->signature.result.emplace(src_arg_er.value(), true);
     } else {

@@ -41,7 +41,7 @@ struct stucture_get_pattern_matcher : public generic_get_pattern_matcher<stuctur
         entity const& some_entity = get_entity(ctx.env(), slftype);
         pse = dynamic_cast<struct_entity const*>(&some_entity);
         if (!pse) {
-            return make_error<basic_general_error>(get<0>(slf_arg_descr)->location, "argument type mismatch: a structure was expected."sv, slftype);
+            return make_error<basic_general_error>(slf_arg_descr.expression->location, "argument type mismatch: a structure was expected."sv, slftype);
         }
         return {};
     }

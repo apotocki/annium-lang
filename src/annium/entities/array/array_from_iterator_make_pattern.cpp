@@ -29,7 +29,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_from_iterato
     if (!from_iterator_res) {
         if (from_iterator_res.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get<0>(from_iterator_arg_descr)->location, "invalid 'from_iterator' argument"sv),
+                make_error<basic_general_error>(from_iterator_arg_descr.expression->location, "invalid 'from_iterator' argument"sv),
                 std::move(from_iterator_res.error())));
         }
         return std::unexpected(make_error<basic_general_error>(call.location, "missing required 'from_iterator' argument"sv));
@@ -40,7 +40,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_from_iterato
     }
 
     auto pmd = make_shared<functional_match_descriptor>(call);
-    pmd->append_arg(from_iterator_res->first, get<0>(from_iterator_arg_descr)->location);
+    pmd->append_arg(from_iterator_res->first, from_iterator_arg_descr.expression->location);
     return pmd;
 }
 

@@ -32,7 +32,7 @@ private:
 
     qname name_;
     span<const annium::field> body_;
-    functional_binding_set context_bindings_;
+    layered_binding_set context_bindings_;
 
     mutable std::vector<field> fields_;
 
@@ -54,8 +54,8 @@ public:
     struct_entity(qname, entity_signature&&, span<const annium::field>);
 
     inline qname_view name() const noexcept { return name_; }
-    inline functional_binding_set const& context_bindings() const noexcept { return context_bindings_; }
-    inline functional_binding_set& context_bindings() noexcept { return context_bindings_; }
+    inline layered_binding_set const& context_bindings() const noexcept { return context_bindings_; }
+    inline layered_binding_set& context_bindings() noexcept { return context_bindings_; }
 
     std::expected<span<field const>, error_storage> fields(fn_compiler_context&) const;
 

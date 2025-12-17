@@ -120,7 +120,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> basic_fn_pattern::
     environment& e = caller_ctx.env();
 
     // prepare binding
-    functional_binding_set ct_call_binding; // binding for builtin call constants, e.g. #call_location
+    layered_binding_set ct_call_binding; // binding for builtin call constants, e.g. #call_location
     ct_call_binding.emplace_back(
         annotated_identifier{ e.get(builtin_id::call_location) },
         e.make_string_entity(e.print(call.location)).id
@@ -143,7 +143,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> basic_fn_pattern::
                 std::move(err)
             ));
         }
-        pmd->weight -= pmd->bindings.size();
+        pmd->weight -= static_cast<int>(pmd->bindings.size());
         // to do: not only void_type can produce only constexpr result
         if (exp.type == e.get(builtin_eid::void_type)) {
             call_sig.result.emplace(e.get(builtin_eid::void_), true);
@@ -186,7 +186,7 @@ std::pair<syntax_expression_result, size_t> basic_fn_pattern::apply_arguments(fn
     return { result, count };
 }
 
-shared_ptr<internal_function_entity> basic_fn_pattern::build(fn_compiler_context& ctx, entity_signature&& signature, functional_binding_set&& mdbindings) const
+shared_ptr<internal_function_entity> basic_fn_pattern::build(fn_compiler_context& ctx, entity_signature&& signature, basic_functional_binding&& mdbindings) const
 {
     environment& env = ctx.env();
 
@@ -210,7 +210,7 @@ shared_ptr<internal_function_entity> basic_fn_pattern::build(fn_compiler_context
     return pife;
 }
 
-void basic_fn_pattern::build_scope(environment& e, functional_binding_set&& mdbindings, internal_function_entity& fent) const
+void basic_fn_pattern::build_scope(environment& e, basic_functional_binding&& mdbindings, internal_function_entity& fent) const
 {
     // bind variables (rt arguments)
     for (parameter_descriptor const& pd : parameters_) {

@@ -53,8 +53,8 @@ protected:
 
 public:
     semantic::expression_span body;
-    functional_binding_set bindings;
-    functional_binding_set captured_bindings;
+    basic_functional_binding bindings;
+    layered_binding_set captured_bindings;
     error_storage build_errors;
     field_descriptor result;
 

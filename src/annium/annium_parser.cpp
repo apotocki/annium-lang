@@ -23,7 +23,6 @@ using YYLTYPE = annium_lang::parser::location_type;
 
 #include "annium.yy.hpp"
 
-#include "environment.hpp"
 #include "annium/utility/linked_list.ipp"
 
 #include "annium/ast/ast_resource.hpp"
@@ -170,10 +169,9 @@ numetron::decimal_view parser_context::make_decimal_view(string_view str) const
     return numetron::decimal_view{ sign_part, exp_part };
 }
 
-entity_identifier parser_context::make_void() const
+entity_identifier parser_context::make_entity_identifier(builtin_eid beid) const
 {
-    return environment_.get(builtin_eid::void_);
-    //return annotated_entity_identifier{ environment_.get(builtin_eid::void_), std::move(loc) };
+    return environment_.get(beid);
 }
 
 void parser_context::append_error(int line_begin, int col_begin, int line_end, int col_end, string_view tok)

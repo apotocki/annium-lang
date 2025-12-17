@@ -25,8 +25,8 @@ public:
     std::expected<syntax_expression_result, error_storage> apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const override;
 
 protected:
-    shared_ptr<internal_function_entity> build(fn_compiler_context&, entity_signature&&, functional_binding_set&&) const override;
-    void build_scope(environment&, functional_binding_set&&, internal_function_entity& /* out */) const override;
+    shared_ptr<internal_function_entity> build(fn_compiler_context&, entity_signature&&, basic_functional_binding&&) const override;
+    void build_scope(environment&, basic_functional_binding&&, internal_function_entity& /* out */) const override;
 };
 
 }

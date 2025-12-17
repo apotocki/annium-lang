@@ -32,18 +32,18 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_get_pa
 {
     environment& env = ctx.env();
     auto call_session = call.new_session(ctx);
-    prepared_call::argument_descriptor_t slf_arg_expr;
-    auto slf_arg = call_session.use_named_argument(env.get(builtin_id::self), expected_result_t{}, &slf_arg_expr);
+    prepared_call::argument_descriptor_t slf_arg_descr;
+    auto slf_arg = call_session.use_named_argument(env.get(builtin_id::self), expected_result_t{}, &slf_arg_descr);
     if (!slf_arg) {
         if (slf_arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get<0>(slf_arg_expr)->location, "invalid `self` argument"sv),
+                make_error<basic_general_error>(slf_arg_descr.expression->location, "invalid `self` argument"sv),
                 std::move(slf_arg.error())));
         }
         return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `self`"sv));
     }
 
-    resource_location const& slfargloc = get<0>(slf_arg_expr)->location;
+    resource_location const& slfargloc = slf_arg_descr.expression->location;
     syntax_expression_result& slf_arg_er = slf_arg->first;
     entity_identifier slftype = get_result_type(env, slf_arg_er);
     
@@ -53,12 +53,12 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_get_pa
         return std::unexpected(make_error<type_mismatch_error>(slfargloc, slftype, "an array"sv));
     }
 
-    prepared_call::argument_descriptor_t prop_arg;
-    auto property_arg = call_session.use_named_argument(env.get(builtin_id::property), expected_result_t{ env.get(builtin_eid::integer) }, &prop_arg);
+    prepared_call::argument_descriptor_t prop_arg_descr;
+    auto property_arg = call_session.use_named_argument(env.get(builtin_id::property), expected_result_t{ env.get(builtin_eid::integer) }, &prop_arg_descr);
     if (!property_arg) {
         if (property_arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get<0>(prop_arg)->location, "invalid `property` argument"sv),
+                make_error<basic_general_error>(prop_arg_descr.expression->location, "invalid `property` argument"sv),
                 std::move(property_arg.error())));
         }
         return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `property`"sv));
@@ -68,16 +68,12 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_get_pa
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    resource_location const& propargloc = get<0>(prop_arg)->location;
+    resource_location const& propargloc = prop_arg_descr.expression->location;
 
     shared_ptr<fixed_array_get_match_descriptor> pmd = make_shared<fixed_array_get_match_descriptor>(call, *psig);
     
-    pmd->emplace_back(0, slf_arg_er, slfargloc);
-    pmd->emplace_back(1, property_arg->first, propargloc);
-    
-    entity_signature& call_sig = pmd->signature;
-    call_sig.emplace_back(env.get(builtin_id::self), slf_arg_er.value_or_type, slf_arg_er.is_const_result);
-    call_sig.emplace_back(env.get(builtin_id::property), property_arg->first.value_or_type, property_arg->first.is_const_result);
+    pmd->append_arg(env.get(builtin_id::self), slf_arg_er, slfargloc);
+    pmd->append_arg(env.get(builtin_id::property), property_arg->first, propargloc);
     return pmd;
 }
 

@@ -18,8 +18,8 @@ tuple_pattern_base::try_match_tuple(fn_compiler_context& ctx, prepared_call cons
 {
     environment& e = ctx.env();
     auto call_session = call.new_session(ctx);
-    std::pair<syntax_expression const*, size_t> arg_expr;
-    auto arg = call_session.use_next_positioned_argument(exp, &arg_expr);
+    prepared_call::argument_descriptor_t arg_descr;
+    auto arg = call_session.use_next_positioned_argument(exp, &arg_descr);
     if (!arg) {
         if (!arg.error()) {
             return std::unexpected(make_error<basic_general_error>(call.location, "missing argument"sv));
@@ -37,7 +37,7 @@ tuple_pattern_base::try_match_tuple(fn_compiler_context& ctx, prepared_call cons
         if (auto psig = arg_entity.signature(); psig && psig->name == e.get(builtin_qnid::tuple)) {
             // argument is typename tuple
             if (psig->empty()) {
-                return std::unexpected(make_error<type_mismatch_error>(get<0>(arg_expr)->location, er.value(), "a not empty tuple type"sv));
+                return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, er.value(), "a not empty tuple type"sv));
             }
             pmd = make_shared<tuple_pattern_match_descriptor>(call, *psig, true);
         } else {
@@ -51,14 +51,14 @@ tuple_pattern_base::try_match_tuple(fn_compiler_context& ctx, prepared_call cons
         entity const& tpl_entity = get_entity(e, argtype);
         entity_signature const* psig = tpl_entity.signature();
         if (!psig || psig->name != e.get(builtin_qnid::tuple)) {
-            return std::unexpected(make_error<type_mismatch_error>(get<0>(arg_expr)->location, argtype, "a tuple"sv));
+            return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, argtype, "a tuple"sv));
         }
         if (psig->empty()) {
-            return std::unexpected(make_error<type_mismatch_error>(get<0>(arg_expr)->location, argtype, "a not empty tuple"sv));
+            return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, argtype, "a not empty tuple"sv));
         }
         pmd = make_shared<tuple_pattern_match_descriptor>(call , *tpl_entity.signature(), false);
     }
-    pmd->emplace_back(0, er);
+    pmd->append_arg(er, arg_descr.expression->location);
     return pmd;
 }
 

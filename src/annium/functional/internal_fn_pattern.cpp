@@ -35,7 +35,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> internal_fn_patter
     environment& env = caller_ctx.env();
 
     internal_function_entity& fne = static_cast<internal_function_entity&>(env.eregistry_find_or_create(smpl, [this, &caller_ctx, &md]() {
-        return build(caller_ctx, entity_signature{ md.signature }, std::move(md.bindings));
+        return build(caller_ctx, entity_signature{ md.signature }, md.bindings.to_basic_functional_binding());
     }));
 
     sonia::lang::compiler_task_tracer::task_guard tg = caller_ctx.try_lock_task(entity_task_id{ fne });
@@ -54,7 +54,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> internal_fn_patter
     return res;
 }
 
-shared_ptr<internal_function_entity> internal_fn_pattern::build(fn_compiler_context& ctx, entity_signature&& signature, functional_binding_set&& bindings) const
+shared_ptr<internal_function_entity> internal_fn_pattern::build(fn_compiler_context& ctx, entity_signature&& signature, basic_functional_binding&& bindings) const
 {
     auto res = basic_fn_pattern::build(ctx, std::move(signature), std::move(bindings));
     res->set_body(body_);
@@ -63,7 +63,7 @@ shared_ptr<internal_function_entity> internal_fn_pattern::build(fn_compiler_cont
     return res;
 }
 
-void internal_fn_pattern::build_scope(environment& e, functional_binding_set&& bindings, internal_function_entity& fent) const
+void internal_fn_pattern::build_scope(environment& e, basic_functional_binding&& bindings, internal_function_entity& fent) const
 {
     // setup captures
     if (captures_) {
@@ -92,7 +92,7 @@ std::expected<syntax_expression_result, error_storage> internal_fn_pattern::appl
     indirect_internal_function_entity smpl{ md.signature, location() };
 
     internal_function_entity& fne = static_cast<internal_function_entity&>(env.eregistry_find_or_create(smpl, [this, &ctx, &md]() {
-        return build(ctx, std::move(md.signature), std::move(md.bindings));
+        return build(ctx, std::move(md.signature), md.bindings.to_basic_functional_binding());
     }));
 
     if (!fne.result) { // we need building to resolve result type

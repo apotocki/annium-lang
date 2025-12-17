@@ -113,12 +113,13 @@ enum class parameter_constraint_modifier_t : uint8_t
 {
     none = 0,
     runtime_type = 1,
-    constexpr_value_type = 2,
-    const_or_runtime_type = 3,
-    typename_type = 4,
-    any_constexpr_type = 6,
-    ellipsis = 8
-    //, value_type = 16
+    constexpr_type = 2,
+    constexpr_or_runtime_type = 3,
+    typename_value = 4,
+    constexpr_not_a_typename_value = 8,
+    constexpr_value = 12,
+    any_constexpr = 14,
+    ellipsis = 16
 };
 
 inline parameter_constraint_modifier_t operator|(parameter_constraint_modifier_t lhs, parameter_constraint_modifier_t rhs) noexcept
@@ -138,7 +139,7 @@ inline bool has(parameter_constraint_modifier_t tested, parameter_constraint_mod
 
 inline bool can_be_constexpr(parameter_constraint_modifier_t m) noexcept
 {
-    return (m & parameter_constraint_modifier_t::any_constexpr_type) != parameter_constraint_modifier_t::none;
+    return (m & parameter_constraint_modifier_t::any_constexpr) != parameter_constraint_modifier_t::none;
 }
 
 inline bool can_be_runtime(parameter_constraint_modifier_t m) noexcept

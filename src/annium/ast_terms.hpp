@@ -318,7 +318,7 @@ struct parameter
 
     default_spec default_value = required_t{};
 
-    parameter_constraint_modifier_t modifier = parameter_constraint_modifier_t::const_or_runtime_type;
+    parameter_constraint_modifier_t modifier = parameter_constraint_modifier_t::constexpr_or_runtime_type;
 };
 
 using parameter_list_t = small_vector<parameter, 4>;

@@ -22,7 +22,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> typeof_pattern::tr
     if (!arg) {
         if (arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get<0>(arg_descr)->location, "invalid argument"sv),
+                make_error<basic_general_error>(arg_descr.expression->location, "invalid argument"sv),
                 std::move(arg.error())));
         }
         return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument"sv));
@@ -32,7 +32,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> typeof_pattern::tr
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
     auto pmd = make_shared<functional_match_descriptor>(call);
-    pmd->append_arg(arg->first, get<0>(arg_descr)->location);
+    pmd->append_arg(arg->first, arg_descr.expression->location);
     pmd->signature.result.emplace(get_result_type(ctx.env(), arg->first), true);
     return pmd;
 }

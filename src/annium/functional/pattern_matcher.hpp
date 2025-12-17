@@ -9,12 +9,12 @@
 namespace annium {
 
 class fn_compiler_context;
-class functional_binding_set;
+class layered_binding_set;
 
 class pattern_matcher
 {
     fn_compiler_context& ctx_;
-    functional_binding_set& bindings_;
+    layered_binding_set& bindings_;
     semantic::expression_list_t& expressions_;
 
     using fields_t = span<const syntax_pattern::field>;
@@ -22,7 +22,7 @@ class pattern_matcher
     mutable fields_t::const_iterator fld_bit, fld_it, fld_end;
 
 public:
-    inline pattern_matcher(fn_compiler_context& ctx, functional_binding_set& bindings, semantic::expression_list_t& expressions)
+    inline pattern_matcher(fn_compiler_context& ctx, layered_binding_set& bindings, semantic::expression_list_t& expressions)
         : ctx_{ ctx }, bindings_{ bindings }, expressions_{ expressions }
     {}
 

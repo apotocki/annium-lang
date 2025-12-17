@@ -42,25 +42,25 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_init_patter
         ));
     }
 
-    functional_binding_set const& scope_bindings = pstruct->context_bindings();
+    auto const& scope_bindings = pstruct->context_bindings();
 
     auto call_session = call.new_session(ctx);
     functional_match_descriptor_ptr pmd = make_shared<functional_match_descriptor>(call);
 
     auto const& fields_span = *struct_fields;
     for (auto const& field : fields_span) {
-        prepared_call::argument_descriptor_t arg_expr;
+        prepared_call::argument_descriptor_t arg_descr;
         expected_result_t argexp{ .type = field.type, .location = field.name.location, .modifier = value_modifier_t::runtime_value };
         auto res = field.name ?
-            call_session.use_named_argument(field.name.value, argexp, &arg_expr) :
-            call_session.use_next_positioned_argument(argexp, &arg_expr);
+            call_session.use_named_argument(field.name.value, argexp, &arg_descr) :
+            call_session.use_next_positioned_argument(argexp, &arg_descr);
         resource_location const* pargloc;
         if (res) {
-            pargloc = &get<0>(arg_expr)->location;
+            pargloc = &arg_descr.expression->location;
         } else {
             if (res.error()) {
                 return std::unexpected(append_cause(
-                    make_error<basic_general_error>(get<0>(arg_expr)->location, "invalid argument"sv),
+                    make_error<basic_general_error>(arg_descr.expression->location, "invalid argument"sv),
                     std::move(res.error())
                 ));
             }

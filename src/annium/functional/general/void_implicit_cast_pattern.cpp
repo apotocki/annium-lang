@@ -26,7 +26,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> void_implicit_cast
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
     auto pmd = make_shared<functional_match_descriptor>(call);
-    pmd->append_arg(arg->first, get<0>(arg_desc)->location);
+    pmd->append_arg(arg->first, arg_desc.expression->location);
     pmd->signature.result.emplace(ctx.env().get(builtin_eid::void_), true);
     return pmd;
 }

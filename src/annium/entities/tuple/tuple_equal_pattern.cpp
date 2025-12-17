@@ -36,12 +36,12 @@ tuple_equal_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
     auto call_session = call.new_session(ctx);
 
     // Get lhs tuple
-    prepared_call::argument_descriptor_t lhs_expr;
-    auto lhs_arg = call_session.use_next_positioned_argument(&lhs_expr);
+    prepared_call::argument_descriptor_t lhs_descr;
+    auto lhs_arg = call_session.use_next_positioned_argument(&lhs_descr);
     if (!lhs_arg) {
         if (lhs_arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get<0>(lhs_expr)->location, "invalid first argument for tuple equality comparison"sv),
+                make_error<basic_general_error>(lhs_descr.expression->location, "invalid first argument for tuple equality comparison"sv),
                 std::move(lhs_arg.error())));
         } else {
             return std::unexpected(make_error<basic_general_error>(call.location, "tuple equality comparison requires two arguments: missing first tuple argument"sv));
@@ -49,12 +49,12 @@ tuple_equal_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
     }
 
     // Get rhs tuple
-    prepared_call::argument_descriptor_t rhs_expr;
-    auto rhs_arg = call_session.use_next_positioned_argument(&rhs_expr);
+    prepared_call::argument_descriptor_t rhs_descr;
+    auto rhs_arg = call_session.use_next_positioned_argument(&rhs_descr);
     if (!rhs_arg) {
         if (rhs_arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get<0>(rhs_expr)->location, "invalid second argument for tuple equality comparison"sv),
+                make_error<basic_general_error>(rhs_descr.expression->location, "invalid second argument for tuple equality comparison"sv),
                 std::move(rhs_arg.error())));
         } else {
             return std::unexpected(make_error<basic_general_error>(call.location, "tuple equality comparison requires two arguments: missing second tuple argument"sv));
@@ -83,15 +83,15 @@ tuple_equal_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
     auto* rhs_sig = rhs_entity_type.signature();
 
     if (!lhs_sig || lhs_sig->name != e.get(builtin_qnid::tuple)) {
-        return std::unexpected(make_error<type_mismatch_error>(get<0>(lhs_expr)->location, lhs_entity_type.id, "a tuple type for equality comparison"sv));
+        return std::unexpected(make_error<type_mismatch_error>(lhs_descr.expression->location, lhs_entity_type.id, "a tuple type for equality comparison"sv));
     }
     if (!rhs_sig || rhs_sig->name != e.get(builtin_qnid::tuple)) {
-        return std::unexpected(make_error<type_mismatch_error>(get<0>(rhs_expr)->location, rhs_entity_type.id, "a tuple type for equality comparison"sv));
+        return std::unexpected(make_error<type_mismatch_error>(rhs_descr.expression->location, rhs_entity_type.id, "a tuple type for equality comparison"sv));
     }
 
     auto pmd = make_shared<tuple_equal_match_descriptor>(call, lhs_entity_type, rhs_entity_type);
-    pmd->append_arg(lhs_arg_er, get<0>(lhs_expr)->location);
-    pmd->append_arg(rhs_arg_er, get<0>(rhs_expr)->location);
+    pmd->append_arg(lhs_arg_er, lhs_descr.expression->location);
+    pmd->append_arg(rhs_arg_er, rhs_descr.expression->location);
     return pmd;
 }
 

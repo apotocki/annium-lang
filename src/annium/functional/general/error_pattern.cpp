@@ -21,8 +21,8 @@ std::expected<functional_match_descriptor_ptr, error_storage> error_pattern::try
     
     // Accept a single unnamed string argument
     expected_result_t string_exp{ e.get(builtin_eid::string), call.location };
-    std::pair<syntax_expression const*, size_t> argexpr;
-    auto arg = call_session.use_next_positioned_argument(string_exp, &argexpr);
+    prepared_call::argument_descriptor_t arg_descr;
+    auto arg = call_session.use_next_positioned_argument(string_exp, &arg_descr);
     
     if (!arg) {
         if (!arg.error()) {
@@ -31,7 +31,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> error_pattern::try
         return std::unexpected(arg.error());
     }
 
-    auto locarg = call_session.use_named_argument(e.get(builtin_id::location), string_exp, &argexpr);
+    auto locarg = call_session.use_named_argument(e.get(builtin_id::location), string_exp, &arg_descr);
     if (!locarg) {
         if (locarg.error()) {
             return std::unexpected(locarg.error());

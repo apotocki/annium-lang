@@ -58,6 +58,7 @@
     <ClCompile Include="..\..\..\src\annium\entities\enum\enum_entity.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\enum\enum_implicit_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\functional.cpp" />
+    <ClCompile Include="..\..\..\src\annium\entities\functional_binding.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\functions\expression_resolver.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\functions\internal_function_entity.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\functions\parameter_type_expression_visitor.cpp">
@@ -66,6 +67,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\layered_binding_set.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_equal_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_implicit_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_implicit_cast_pattern.cpp" />
@@ -186,11 +188,13 @@
     <ClInclude Include="..\..\..\src\annium\entities\enum\enum_entity.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\enum\enum_implicit_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\functional.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\functional_binding.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\functional_registry.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\functions\expression_resolver.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\functions\external_function_entity.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\functions\internal_function_entity.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\functions\parameter_type_expression_visitor.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\layered_binding_set.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_equal_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_implicit_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\literals\literal_entity.hpp" />

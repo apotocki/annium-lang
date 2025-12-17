@@ -25,6 +25,7 @@ error_storage pattern_matcher::match(syntax_pattern const& pattern, annotated_en
         } else if constexpr (std::is_same_v<syntax_expression const*, std::decay_t<decltype(d)>>) {
             auto expr_res = base_expression_visitor::visit(ctx_, expressions_, expected_result_t{ .modifier = value_modifier_t::constexpr_value }, *d);
             if (!expr_res) { return std::move(expr_res.error()); }
+            //entity const& res_value_ent = get_entity(ctx_.env(), expr_res->first.value());
             if (type.value == expr_res->first.value()) { return do_match_concepts(pattern.concepts, type); } // Expression matches the type
             return make_error<type_mismatch_error>(type.location, type.value, expr_res->first.value(), d->location);
         } else { //if constexpr (std::is_same_v<pattern::signature_descriptor, std::decay_t<decltype(d)>>) {

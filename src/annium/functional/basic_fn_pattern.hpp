@@ -13,8 +13,9 @@ class internal_function_entity;
 class basic_fn_pattern : public functional::pattern
 {
     friend class parameter_matcher;
+    friend class parameter_matcher2;
 
-protected:
+public:
     struct parameter_descriptor
     {
         annotated_identifier ename;
@@ -24,6 +25,7 @@ protected:
         parameter_constraint_modifier_t modifier;
     };
 
+protected:
     // in the order of declaration (fn_pure)
     using parameters_t = small_vector<parameter_descriptor, 8>;
     parameters_t parameters_;
@@ -43,8 +45,8 @@ protected:
     std::pair<syntax_expression_result, size_t> apply_arguments(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const;
     
     // builds entity that represents the function
-    virtual shared_ptr<internal_function_entity> build(fn_compiler_context&, entity_signature&&, functional_binding_set&&) const;
-    virtual void build_scope(environment&, functional_binding_set&&, internal_function_entity& /* out */) const;
+    virtual shared_ptr<internal_function_entity> build(fn_compiler_context&, entity_signature&&, basic_functional_binding&&) const;
+    virtual void build_scope(environment&, basic_functional_binding&&, internal_function_entity& /* out */) const;
 };
 
 }

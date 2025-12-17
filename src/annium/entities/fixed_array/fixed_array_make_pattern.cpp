@@ -47,14 +47,14 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_make_p
         // Check that it's a valid type
         entity const& etype = get_entity(e, of_arg.value());
         if (etype.get_type() != e.get(builtin_eid::typename_)) {
-            return std::unexpected(make_error<type_mismatch_error>(get<0>(of_arg_descr)->location, of_arg.value(), "a type"sv));
+            return std::unexpected(make_error<type_mismatch_error>(of_arg_descr.expression->location, of_arg.value(), "a type"sv));
         }
         pmd->element_type = of_arg.value();
         pmd->has_explicit_type = true;
-        pmd->emplace_back(0, of_arg, get<0>(of_arg_descr)->location);
+        pmd->emplace_back(0, of_arg, of_arg_descr.expression->location);
     } else if (of_res.error()) {
         return std::unexpected(append_cause(
-            make_error<basic_general_error>(get<0>(of_arg_descr)->location, "invalid 'of' argument"sv),
+            make_error<basic_general_error>(of_arg_descr.expression->location, "invalid 'of' argument"sv),
             std::move(of_res.error())));
     } else {
         // No explicit type, will be inferred from elements
@@ -74,7 +74,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_make_p
         if (!elem_res) {
             if (elem_res.error()) 
                 return std::unexpected(append_cause(
-                    make_error<basic_general_error>(get<0>(elem_descr)->location, "invalid argument"sv),
+                    make_error<basic_general_error>(elem_descr.expression->location, "invalid argument"sv),
                     std::move(elem_res.error())));
             break;
         }
@@ -99,8 +99,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_make_p
             pmd->all_const = false;
         }
 
-        pmd->signature.emplace_back(ser.value_or_type, ser.is_const_result);
-        pmd->emplace_back(arg_num, ser, get<0>(elem_descr)->location);
+        pmd->append_arg(ser, elem_descr.expression->location);
     }
 
     if (auto argterm = call_session.unused_argument(); argterm) {

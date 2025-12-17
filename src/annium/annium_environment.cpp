@@ -1623,7 +1623,7 @@ environment::environment()
     builtin_eids_[(size_t)builtin_eid::to_integer] = set_builtin_extern("__to_integer(runtime)->integer"sv, &annium_to_integer);
     builtin_eids_[(size_t)builtin_eid::int2dec] = set_builtin_extern("__int2dec(runtime)->decimal"sv, &annium_int2dec);
     //set_extern<external_fn_pattern>("implicit_cast(mut integer)->float"sv, &annium_int2flt);
-    set_builtin_extern("create_extern_object(:runtime string)->object"sv, &annium_create_extern_object);
+    set_builtin_extern("create_extern_object(runtime string)->object"sv, &annium_create_extern_object);
     set_builtin_extern("__extern_invoke(runtime string, runtime ..., runtime integer)~>$R"sv, &annium_invoke);
     set_builtin_extern("__extern_invoke(runtime string, runtime ..., runtime integer)~>()"sv, &annium_invoke_void);
     //set_extern<external_fn_pattern>("set(self: object, property: const __identifier, any)"sv, &annium_set_object_property);

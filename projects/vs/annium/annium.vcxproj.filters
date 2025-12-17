@@ -276,9 +276,6 @@
     <ClCompile Include="..\..\..\src\annium\functional\expression_property_visitor.cpp">
       <Filter>annium\functional\fn_pattern_matching</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\functional\parameter_matcher.cpp">
-      <Filter>annium\functional\fn_pattern_matching</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\functional\pattern_matcher.cpp">
       <Filter>annium\functional\fn_pattern_matching</Filter>
     </ClCompile>
@@ -383,6 +380,15 @@
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\functional\general\void_implicit_cast_pattern.cpp">
       <Filter>annium\functional\general</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\parameter_matcher.cpp">
+      <Filter>annium\functional\fn_pattern_matching</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\layered_binding_set.cpp">
+      <Filter>annium\entities</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\functional_binding.cpp">
+      <Filter>annium\entities</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -641,9 +647,6 @@
     <ClInclude Include="..\..\..\src\annium\functional\expression_property_visitor.hpp">
       <Filter>annium\functional\fn_pattern_matching</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\functional\parameter_matcher.hpp">
-      <Filter>annium\functional\fn_pattern_matching</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\src\annium\functional\pattern_matcher.hpp">
       <Filter>annium\functional\fn_pattern_matching</Filter>
     </ClInclude>
@@ -763,6 +766,15 @@
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\functional\general\void_implicit_cast_pattern.hpp">
       <Filter>annium\functional\general</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\parameter_matcher.hpp">
+      <Filter>annium\functional\fn_pattern_matching</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\layered_binding_set.hpp">
+      <Filter>annium\entities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\functional_binding.hpp">
+      <Filter>annium\entities</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

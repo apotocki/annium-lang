@@ -66,7 +66,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> generic_get_patter
     auto property_arg = call_session.use_named_argument(e.get(builtin_id::property), expected_result_t{ e.get(builtin_eid::integer) }, &property_arg_descr);
     if (!property_arg && property_arg.error()) {
         prop_errors.alternatives.emplace_back(std::move(property_arg.error()));
-        call_session.reuse_argument(get<1>(property_arg_descr));
+        call_session.reuse_argument(property_arg_descr.arg_index);
         property_arg = call_session.use_named_argument(e.get(builtin_id::property), expected_result_t{ e.get(builtin_eid::identifier) }, &property_arg_descr);
     }
     if (!property_arg) {

@@ -107,6 +107,12 @@ public:
         set_cout_writer([this](string_view str) { output << str; });
     }
 
+    blob_result iv_call(int arg)
+    {
+        output << "iv_call("sv << std::dec << arg << ")"sv;
+        return {};
+    }
+
     blob_result eftor_call(string_view arg)
     {
         if (eftor_.is_nil()) {
@@ -139,6 +145,7 @@ public:
         );
 
         mr.register_method<&annium_test_model::eftor_call>("eftor_call");
+        mr.register_method<&annium_test_model::iv_call>("iv_call");
     }
     
 };

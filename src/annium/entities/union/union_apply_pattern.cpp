@@ -35,19 +35,19 @@ union_apply_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
     auto call_session = call.new_session(ctx);
 
     // Get union argument
-    prepared_call::argument_descriptor_t union_expr;
-    auto union_arg = call_session.use_named_argument(env.get(builtin_id::to), expected_result_t{}, &union_expr);
+    prepared_call::argument_descriptor_t union_arg_descr;
+    auto union_arg = call_session.use_named_argument(env.get(builtin_id::to), expected_result_t{}, &union_arg_descr);
     if (!union_arg) {
         if (union_arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get<0>(union_expr)->location, "error resolving 'to' argument"sv),
+                make_error<basic_general_error>(union_arg_descr.expression->location, "error resolving 'to' argument"sv),
                 std::move(union_arg.error())));
         }
         return std::unexpected(make_error<basic_general_error>(call.location, "missing 'to' argument"sv));
     }
 
     // Union argument must be a union type
-    resource_location const& union_arg_loc = get<0>(union_expr)->location;
+    resource_location const& union_arg_loc = union_arg_descr.expression->location;
     syntax_expression_result& union_arg_er = union_arg->first;
     if (union_arg_er.is_const_result) {
         return std::unexpected(make_error<basic_general_error>(union_arg_loc, "'to' argument must be a runtime value"sv));
@@ -60,12 +60,12 @@ union_apply_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
     }
 
     // Get visitor argument
-    prepared_call::argument_descriptor_t visitor_expr;
-    auto visitor_arg = call_session.use_named_argument(env.get(builtin_id::visitor), expected_result_t{}, &visitor_expr);
+    prepared_call::argument_descriptor_t visitor_arg_descr;
+    auto visitor_arg = call_session.use_named_argument(env.get(builtin_id::visitor), expected_result_t{}, &visitor_arg_descr);
     if (!visitor_arg) {
         if (visitor_arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get<0>(visitor_expr)->location, "error resolving 'visitor' argument"sv),
+                make_error<basic_general_error>(visitor_arg_descr.expression->location, "error resolving 'visitor' argument"sv),
                 std::move(visitor_arg.error())));
         }
         return std::unexpected(make_error<basic_general_error>(call.location, "missing 'visitor' argument"sv));
@@ -75,18 +75,18 @@ union_apply_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    resource_location const& visitor_arg_loc = get<0>(visitor_expr)->location;
+    resource_location const& visitor_arg_loc = visitor_arg_descr.expression->location;
     syntax_expression_result & visitor_arg_er = visitor_arg->first;
 
     // Validate that visitor can be applied to ALL types of the union at match time
     {
         fn_compiler_context_scope fn_scope{ ctx };
-        optional<syntax_expression> visitor_expr;
+        optional<syntax_expression> visitor_arg_descr;
         if (visitor_arg_er.is_const_result) {
-            visitor_expr.emplace(visitor_arg_loc, visitor_arg_er.value());
+            visitor_arg_descr.emplace(visitor_arg_loc, visitor_arg_er.value());
         } else {
             identifier visitor_var_name = fn_scope.push_scope_variable(visitor_arg_er.type()).first;
-            visitor_expr.emplace(visitor_arg_loc, name_reference_expression{ visitor_var_name });
+            visitor_arg_descr.emplace(visitor_arg_loc, name_reference_expression{ visitor_var_name });
             //append_semantic_result(el, visitor_er, result);
         }
         // to do: store temporary expressions in the match descriptor and merge them in apply()
@@ -98,7 +98,7 @@ union_apply_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
         //    if (visitor_arg_er.is_const_result) {
         //        return syntax_expression{ annotated_entity_identifier{ visitor_arg_er.value(), visitor_arg_loc } };
         //    }
-        //    return syntax_expression{ *get<0>(visitor_expr) };
+        //    return syntax_expression{ *get<0>(visitor_arg_descr) };
         //};
 
         // Probe each union member
@@ -114,10 +114,10 @@ union_apply_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
                 visitor_call_builder.emplace_back(visitor_arg_loc, union_field.entity_id());
             }
             
-            syntax_expression visitor_call_expr{ visitor_arg_loc, function_call{ &*visitor_expr, visitor_call_builder.arguments } };
+            syntax_expression visitor_call_expr{ visitor_arg_loc, function_call{ &*visitor_arg_descr, visitor_call_builder.arguments } };
             auto res = base_expression_visitor::visit(ctx, temp_expressions, visitor_call_expr);
            
-            //function_call visitor_call{ visitor_arg_loc, syntax_expression{ *visitor_expr } };
+            //function_call visitor_call{ visitor_arg_loc, syntax_expression{ *visitor_arg_descr } };
             //if (!union_field.is_const()) {
             //    // Provide a placeholder runtime argument of the proper type
             //    visitor_call.emplace_back(stack_value_reference{ .name = annotated_identifier{}, .type = union_field.entity_id(), .offset = 0 });
@@ -155,12 +155,12 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
     fn_compiler_context_scope fn_scope{ ctx };
 
     // Prepare visitor object expression
-    optional<syntax_expression> visitor_expr;
+    optional<syntax_expression> visitor_arg_descr;
     if (visitor_er.is_const_result) {
-        visitor_expr.emplace(visitor_loc, visitor_er.value());
+        visitor_arg_descr.emplace(visitor_loc, visitor_er.value());
     } else {
         identifier visitor_var_name = fn_scope.push_scope_variable(visitor_er.type()).first;
-        visitor_expr.emplace(visitor_loc, name_reference_expression{ visitor_var_name });
+        visitor_arg_descr.emplace(visitor_loc, name_reference_expression{ visitor_var_name });
         append_semantic_result(el, visitor_er, result);
         //identifier visitor_var_name = env.new_identifier();
         //visitor_var = &fn_scope.new_temporary(visitor_var_name, visitor_er.type());
@@ -201,10 +201,10 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
         } else {
             visitor_call_builder.emplace_back(visitor_loc, union_field.entity_id());
         }
-        syntax_expression visitor_call_expr{ visitor_loc, function_call{ &*visitor_expr, visitor_call_builder.arguments } };
+        syntax_expression visitor_call_expr{ visitor_loc, function_call{ &*visitor_arg_descr, visitor_call_builder.arguments } };
         auto res = base_expression_visitor::visit(ctx, el, visitor_call_expr);
 
-        //function_call visitor_call{ get<2>(md.matches[1]), syntax_expression{ *visitor_expr } };
+        //function_call visitor_call{ get<2>(md.matches[1]), syntax_expression{ *visitor_arg_descr } };
         //if (!union_field.is_const()) {
         //    // set union_value_var_pair type for this branch
         //    auto union_value_var_pair = fn_scope_inner.push_scope_variable(union_field.entity_id());

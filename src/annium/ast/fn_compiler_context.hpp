@@ -116,7 +116,7 @@ class fn_compiler_context
     size_t base_ns_size_;
     sonia::lang::compiler_worker_id worker_id_;
     small_vector<functional_binding const*, 4> bindings_;
-    std::list<functional_binding_set> scoped_locals_;
+    std::list<layered_binding_set> scoped_locals_;
     int64_t scope_offset_;
 
 public:
@@ -154,7 +154,7 @@ public:
     void push_scope();
     void push_scope_variable(annotated_identifier name, local_variable);
     size_t pop_scope();
-    inline functional_binding_set const& current_scope_binding() const noexcept { return scoped_locals_.back(); }
+    inline layered_binding_set const& current_scope_binding() const noexcept { return scoped_locals_.back(); }
 
     inline environment& env() const noexcept { return environment_; }
 
@@ -386,7 +386,7 @@ private:
 class fn_compiler_context_scope
 {
     fn_compiler_context& ctx_;
-    functional_binding_set bound_temporaries_;
+    layered_binding_set bound_temporaries_;
 
 public:
     explicit fn_compiler_context_scope(fn_compiler_context& ctx);

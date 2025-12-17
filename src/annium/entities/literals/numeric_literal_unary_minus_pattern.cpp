@@ -116,14 +116,14 @@ numeric_literal_unary_minus_pattern::try_match(fn_compiler_context& ctx, prepare
     environment& env = ctx.env();
     
     auto call_session = call.new_session(ctx);
-    prepared_call::argument_descriptor_t arg_expr;
+    prepared_call::argument_descriptor_t arg_descr;
     
     // Get the single argument
-    auto arg = call_session.use_next_positioned_argument(exp, &arg_expr);
+    auto arg = call_session.use_next_positioned_argument(exp, &arg_descr);
     if (!arg) {
         if (arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get<0>(arg_expr)->location, "invalid argument"sv),
+                make_error<basic_general_error>(arg_descr.expression->location, "invalid argument"sv),
                 std::move(arg.error())));
         } else {
             return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument"sv));
@@ -143,7 +143,7 @@ numeric_literal_unary_minus_pattern::try_match(fn_compiler_context& ctx, prepare
     entity_identifier arg_type_id = get_result_type(env, arg_er, &arg_type_entity);
     
     builtin_eid arg_type = static_cast<builtin_eid>(arg_type_id.value);
-    resource_location const& arg_loc = get<0>(arg_expr)->location;
+    resource_location const& arg_loc = arg_descr.expression->location;
 
     // Check if argument is numeric
     if (!is_numeric_type(arg_type)) {

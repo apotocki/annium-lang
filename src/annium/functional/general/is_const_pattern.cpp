@@ -23,7 +23,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> is_const_pattern::
     if (!arg) {
         if (arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get<0>(arg_descr)->location, "invalid argument"sv),
+                make_error<basic_general_error>(arg_descr.expression->location, "invalid argument"sv),
                 move(arg.error())));
         }
         return std::unexpected(make_error<basic_general_error>(call.location, "missing argument"sv));
@@ -35,7 +35,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> is_const_pattern::
     }
     
     auto pmd = make_shared<functional_match_descriptor>(call);
-    pmd->append_arg(arg->first, get<0>(arg_descr)->location);
+    pmd->append_arg(arg->first, arg_descr.expression->location);
     return pmd;
 }
 

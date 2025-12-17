@@ -202,14 +202,14 @@ numeric_literal_equal_pattern::try_match(fn_compiler_context& ctx, prepared_call
     environment& e = ctx.env();
 
     auto call_session = call.new_session(ctx);
-    prepared_call::argument_descriptor_t lhs_expr, rhs_expr;
+    prepared_call::argument_descriptor_t lhs_descr, rhs_descr;
     
     // Get first argument
-    auto lhs_arg = call_session.use_next_positioned_argument(&lhs_expr);
+    auto lhs_arg = call_session.use_next_positioned_argument(&lhs_descr);
     if (!lhs_arg) {
         if (lhs_arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get<0>(lhs_expr)->location, "invalid first argument"sv),
+                make_error<basic_general_error>(lhs_descr.expression->location, "invalid first argument"sv),
                 std::move(lhs_arg.error())));
         } else {
             return std::unexpected(make_error<basic_general_error>(call.location, "missing required first argument"sv));
@@ -227,18 +227,18 @@ numeric_literal_equal_pattern::try_match(fn_compiler_context& ctx, prepared_call
         lhs_type_id = lhs_arg_er.type();
     }
     builtin_eid lhs_type = static_cast<builtin_eid>(lhs_type_id.value);
-    resource_location lhs_arg_loc = get<0>(lhs_expr)->location;
+    resource_location lhs_arg_loc = lhs_descr.expression->location;
     // Check if first argument is numeric
     if (!is_numeric_type(lhs_type)) {
         return std::unexpected(make_error<type_mismatch_error>(lhs_arg_loc, lhs_type_id, "a numeric literal type"sv));
     }
 
     // Get second argument
-    auto rhs_arg = call_session.use_next_positioned_argument(expected_result_t{}, &rhs_expr);
+    auto rhs_arg = call_session.use_next_positioned_argument(expected_result_t{}, &rhs_descr);
     if (!rhs_arg) {
         if (rhs_arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get<0>(rhs_expr)->location, "invalid second argument"sv),
+                make_error<basic_general_error>(rhs_descr.expression->location, "invalid second argument"sv),
                 std::move(rhs_arg.error())));
         } else {
             return std::unexpected(make_error<basic_general_error>(call.location, "missing required second argument"sv));
@@ -260,7 +260,7 @@ numeric_literal_equal_pattern::try_match(fn_compiler_context& ctx, prepared_call
         rhs_type_id = rhs_arg_er.type();
     }
     builtin_eid rhs_type = static_cast<builtin_eid>(rhs_type_id.value);
-    resource_location rhs_arg_loc = get<0>(rhs_expr)->location;
+    resource_location rhs_arg_loc = rhs_descr.expression->location;
 
     // Check if second argument is numeric
     if (!is_numeric_type(rhs_type)) {

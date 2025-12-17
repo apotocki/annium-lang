@@ -747,7 +747,7 @@ error_storage base_expression_visitor::make_function_call_arguments(pure_call co
         if (!arg) {
             if (arg.error()) {
                 return append_cause(
-                    make_error<basic_general_error>(get<0>(arg_descr)->location, "invalid argument"sv),
+                    make_error<basic_general_error>(arg_descr.expression->location, "invalid argument"sv),
                     std::move(arg.error()));
             }
             return make_error<basic_general_error>(pcall.location, "missing required argument"sv);

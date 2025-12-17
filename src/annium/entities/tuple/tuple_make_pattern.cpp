@@ -22,15 +22,15 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_make_pattern
     auto pmd = make_shared<functional_match_descriptor>(call);
 
     for (size_t arg_num = 0;; ++arg_num) {
-        prepared_call::next_argument_descriptor_t argdescr;
+        prepared_call::argument_descriptor_t argdescr;
         auto res = call_session.use_next_argument(expected_result_t{}, &argdescr);
         if (!res) {
             if (res.error()) return std::unexpected(std::move(res.error()));
             break;
         }
         auto& ser = res->first;
-        if (get<0>(argdescr)) {
-            pmd->signature.emplace_back(get<0>(argdescr).value, ser.value_or_type, ser.is_const_result);
+        if (argdescr.name) {
+            pmd->signature.emplace_back(argdescr.name.value, ser.value_or_type, ser.is_const_result);
         } else {
             pmd->signature.emplace_back(ser.value_or_type, ser.is_const_result);
         }

@@ -32,9 +32,9 @@ string_concat_pattern::try_match(fn_compiler_context& ctx, prepared_call const& 
     
     // Process all string arguments
     expected_result_t string_exp{ e.get(builtin_eid::string), call.location };
-    std::pair<syntax_expression const*, size_t> arg_expr;
+    prepared_call::argument_descriptor_t arg_descr;
     for (size_t arg_idx = 0;; ++arg_idx) {
-        auto arg = call_session.use_next_positioned_argument(string_exp, &arg_expr);
+        auto arg = call_session.use_next_positioned_argument(string_exp, &arg_descr);
         if (!arg) {
             if (auto err = arg.error()) return std::unexpected(std::move(err));
             break; // No more arguments

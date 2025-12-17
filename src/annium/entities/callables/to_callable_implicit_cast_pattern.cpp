@@ -56,7 +56,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> to_callable_implic
     if (!arg) {
         if (arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get<0>(arg_descr)->location, "invalid argument"sv),
+                make_error<basic_general_error>(arg_descr.expression->location, "invalid argument"sv),
                 std::move(arg.error())));
         }
         return std::unexpected(make_error<basic_general_error>(call.location, "implicit_cast requires one argument"sv));
@@ -69,7 +69,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> to_callable_implic
     }
 
     syntax_expression_result& arg_er = arg->first;
-    resource_location arg_loc = get<0>(arg_descr)->location;
+    resource_location arg_loc = arg_descr.expression->location;
 
     auto args_span = psig->fields().first(psig->fields().size() - 1);
     auto result_fd = psig->fields().back();
@@ -100,7 +100,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> to_callable_implic
         }
     }
 
-    base_expression_visitor vis{ ctx, call.expressions, callable_expected_result, *get<0>(arg_descr) };
+    base_expression_visitor vis{ ctx, call.expressions, callable_expected_result, *arg_descr.expression };
     
     syntax_expression_result arg_er_ref{
         .value_or_type = arg_er.value_or_type,

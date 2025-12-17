@@ -198,13 +198,13 @@ numeric_literal_implicit_cast_pattern::try_match(fn_compiler_context& ctx, prepa
     builtin_eid target_type = static_cast<builtin_eid>(exp.type.value);
 
     auto call_session = call.new_session(ctx);
-    prepared_call::argument_descriptor_t arg_expr;
+    prepared_call::argument_descriptor_t arg_descr;
     value_modifier_t arg_mod = can_be_only_constexpr(exp.modifier) ? value_modifier_t::constexpr_value : value_modifier_t::constexpr_or_runtime_value;
-    auto src_arg = call_session.use_next_positioned_argument(expected_result_t{ .modifier = arg_mod }, &arg_expr);
+    auto src_arg = call_session.use_next_positioned_argument(expected_result_t{ .modifier = arg_mod }, &arg_descr);
     if (!src_arg) {
         if (src_arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get<0>(arg_expr)->location, "invalid argument"sv),
+                make_error<basic_general_error>(arg_descr.expression->location, "invalid argument"sv),
                 std::move(src_arg.error())));
         } else {
             return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument"sv));
@@ -243,7 +243,7 @@ numeric_literal_implicit_cast_pattern::try_match(fn_compiler_context& ctx, prepa
     case builtin_eid::u64:
         break;
     default:
-        return std::unexpected(make_error<type_mismatch_error>(get<0>(arg_expr)->location, source_type_id, "a numeric literal type"sv));
+        return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, source_type_id, "a numeric literal type"sv));
     }
 
     // Handle both constexpr and runtime arguments
@@ -294,7 +294,7 @@ numeric_literal_implicit_cast_pattern::try_match(fn_compiler_context& ctx, prepa
             }
 
             if (!can_convert) {
-                return std::unexpected(make_error<basic_general_error>(get<0>(arg_expr)->location, "constexpr value cannot be converted without loss of precision"sv));
+                return std::unexpected(make_error<basic_general_error>(arg_descr.expression->location, "constexpr value cannot be converted without loss of precision"sv));
             }
         }
         
@@ -306,7 +306,7 @@ numeric_literal_implicit_cast_pattern::try_match(fn_compiler_context& ctx, prepa
     } else {
         // Runtime argument - only allow conversions that are always safe
         if (!is_always_safe_runtime_conversion(source_type, target_type)) {
-            return std::unexpected(make_error<basic_general_error>(get<0>(arg_expr)->location, "runtime conversion is not always safe"sv));
+            return std::unexpected(make_error<basic_general_error>(arg_descr.expression->location, "runtime conversion is not always safe"sv));
         }
         
         auto pmd = sonia::make_shared<numeric_literal_implicit_cast_match_descriptor>(call, nullptr);

@@ -15,6 +15,8 @@
 #include "annium/ast/ast_resource.hpp"
 #include "annium/ast/arena.hpp"
 
+#include "annium/environment.hpp"
+
 namespace annium {
 
 class environment;
@@ -32,7 +34,7 @@ public:
     string_view make_string_view(string_view) const;
     numetron::integer_view make_integer_view(string_view) const;
     numetron::decimal_view make_decimal_view(string_view) const;
-    entity_identifier make_void() const;
+    entity_identifier make_entity_identifier(builtin_eid) const;
 
     identifier new_identifier() const;
     identifier make_identifier(string_view &&) const;

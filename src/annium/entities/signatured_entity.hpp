@@ -117,6 +117,24 @@ public:
         return nullptr;
     }
 
+    void pop_back() noexcept
+    {
+        field_descriptor& fd = fields_.back();
+        if (!fd.name()) {
+            positioned_fields_indices_.pop_back();
+        } else {
+            uint32_t index2rm = static_cast<uint32_t>(fields_.size() - 1);
+            auto range = named_fields_indices_.equal_range(fd.name());
+            for (auto it = range.first; it != range.second; ++it) {
+                if (it->second == index2rm) {
+                    named_fields_indices_.erase(it);
+                    break;
+                }
+            }
+        }
+        fields_.pop_back();
+    }
+
     void push_back(field_descriptor fd)
     {
         if (!fd.name()) {

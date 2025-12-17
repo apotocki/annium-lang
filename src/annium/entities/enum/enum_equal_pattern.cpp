@@ -23,19 +23,19 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_equal_pattern
     auto call_session = call.new_session(ctx);
     
     // Get first argument
-    prepared_call::argument_descriptor_t lhs_expr;
-    auto lhs_arg = call_session.use_next_positioned_argument(expected_result_t{}, &lhs_expr);
+    prepared_call::argument_descriptor_t lhs_descr;
+    auto lhs_arg = call_session.use_next_positioned_argument(expected_result_t{}, &lhs_descr);
     if (!lhs_arg) {
         if (lhs_arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get<0>(lhs_expr)->location, "invalid first argument for enum equality comparison"sv),
+                make_error<basic_general_error>(lhs_descr.expression->location, "invalid first argument for enum equality comparison"sv),
                 std::move(lhs_arg.error())));
         } else {
             return std::unexpected(make_error<basic_general_error>(call.location, "enum equality comparison requires two arguments: missing first argument"sv));
         }
     }
 
-    resource_location const& lhs_loc = get<0>(lhs_expr)->location;
+    resource_location const& lhs_loc = lhs_descr.expression->location;
     syntax_expression_result& lhs_arg_er = lhs_arg->first;
     
     // Check if first argument is an enum
@@ -46,19 +46,19 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_equal_pattern
     }
 
     // Get second argument, expecting the same enum type
-    prepared_call::argument_descriptor_t rhs_expr;
-    auto rhs_arg = call_session.use_next_positioned_argument(expected_result_t{ .type = lhs_type }, &rhs_expr);
+    prepared_call::argument_descriptor_t rhs_descr;
+    auto rhs_arg = call_session.use_next_positioned_argument(expected_result_t{ .type = lhs_type }, &rhs_descr);
     if (!rhs_arg) {
         if (rhs_arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get<0>(rhs_expr)->location, "invalid second argument for enum equality comparison"sv),
+                make_error<basic_general_error>(rhs_descr.expression->location, "invalid second argument for enum equality comparison"sv),
                 std::move(rhs_arg.error())));
         } else {
             return std::unexpected(make_error<basic_general_error>(call.location, "enum equality comparison requires two arguments: missing second argument"sv));
         }
     }
 
-    resource_location const& rhs_loc = get<0>(rhs_expr)->location;
+    resource_location const& rhs_loc = rhs_descr.expression->location;
     syntax_expression_result& rhs_arg_er = rhs_arg->first;
 
     // Check if second argument is also an enum of the same type

@@ -26,7 +26,7 @@ public:
     //using args_type = span<const opt_named_expression_t>;
     args_type args;
 
-    functional_binding_set bound_temporaries;
+    layered_binding_set bound_temporaries;
     //small_vector<std::tuple<identifier, local_variable*, semantic::expression_span>, 4> temporaries;
     std::vector<std::tuple<identifier, local_variable, semantic::expression_span>> temporaries;
     semantic::expression_span arguments_auxiliary_expressions;
@@ -56,8 +56,15 @@ public:
 
     error_storage prepare();
 
-    using argument_descriptor_t = std::pair<syntax_expression const*, size_t>;
-    using next_argument_descriptor_t = std::tuple<annotated_identifier, syntax_expression const*, size_t>;
+    struct argument_descriptor_t
+    {
+        annotated_identifier name;
+        syntax_expression const* expression;
+        size_t arg_index;
+    };
+
+    //using argument_descriptor_t = std::pair<syntax_expression const*, size_t>;
+    //using next_argument_descriptor_t = std::tuple<annotated_identifier, syntax_expression const*, size_t>;
 
     struct session
     {
@@ -80,7 +87,7 @@ public:
 
         std::expected<std::pair<syntax_expression_result, bool>, error_storage> use_named_argument(identifier name, expected_result_t const& exp, argument_descriptor_t* = nullptr);
 
-        std::expected<std::pair<syntax_expression_result, bool>, error_storage> use_next_argument(expected_result_t const& exp, next_argument_descriptor_t* pe);
+        std::expected<std::pair<syntax_expression_result, bool>, error_storage> use_next_argument(expected_result_t const& exp, argument_descriptor_t* pe);
         opt_named_expression_t unused_argument();
 
         void reuse_argument(size_t argindex);

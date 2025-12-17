@@ -28,6 +28,8 @@ set (LIBRARY_SOURCES
     ${LIBRARY_HOME}/annium/ast/declaration_visitor.cpp
     ${LIBRARY_HOME}/annium/ast/fn_compiler_context.cpp
     ${LIBRARY_HOME}/annium/entities/functional.cpp
+    ${LIBRARY_HOME}/annium/entities/functional_binding.cpp
+    ${LIBRARY_HOME}/annium/entities/layered_binding_set.cpp
     ${LIBRARY_HOME}/annium/entities/prepared_call.cpp
     ${LIBRARY_HOME}/annium/entities/variable_entity.cpp
     
@@ -96,7 +98,7 @@ set (LIBRARY_SOURCES
     ${LIBRARY_HOME}/annium/functional/expression_property_visitor.cpp
     ${LIBRARY_HOME}/annium/functional/parameter_matcher.cpp
     ${LIBRARY_HOME}/annium/functional/pattern_matcher.cpp
-    
+        
     ${LIBRARY_HOME}/annium/functional/general/assert_pattern.cpp
     ${LIBRARY_HOME}/annium/functional/general/create_identifier_pattern.cpp
     ${LIBRARY_HOME}/annium/functional/general/deref_pattern.cpp

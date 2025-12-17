@@ -29,8 +29,8 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_tail_p
 {
     environment& e = ctx.env();
     auto call_session = call.new_session(ctx);
-    std::pair<syntax_expression const*, size_t> arg_expr;
-    auto arg = call_session.use_next_positioned_argument(&arg_expr);
+    prepared_call::argument_descriptor_t arg_descr;
+    auto arg = call_session.use_next_positioned_argument(&arg_descr);
     if (!arg) {
         if (!arg.error()) {
             return std::unexpected(make_error<basic_general_error>(call.location, "missing argument"sv));
@@ -43,6 +43,8 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_tail_p
     }
 
     syntax_expression_result& er = arg->first;
+    resource_location const& er_loc = arg_descr.expression->location;
+
     entity_identifier argtype;
     shared_ptr<functional_match_descriptor> pmd;
     
@@ -52,7 +54,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_tail_p
             argtype = arg_entity.get_type();
             pmd = make_shared<fixed_array_tail_pattern_match_descriptor>(call, psig);
         } else {
-            return std::unexpected(make_error<type_mismatch_error>(get<0>(arg_expr)->location, er.value(), "an array"sv));
+            return std::unexpected(make_error<type_mismatch_error>(er_loc, er.value(), "an array"sv));
         }
     } else {
         argtype = er.type();
@@ -61,10 +63,10 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_tail_p
 
     entity const& arg_type_entity = get_entity(e, argtype);
     if (auto psig = arg_type_entity.signature(); !psig || psig->name != e.get(builtin_qnid::array)) {
-        return std::unexpected(make_error<type_mismatch_error>(get<0>(arg_expr)->location, er.value_or_type, "an array"sv));
+        return std::unexpected(make_error<type_mismatch_error>(er_loc, er.value_or_type, "an array"sv));
     }
 
-    pmd->emplace_back(0, er, get<0>(arg_expr)->location);
+    pmd->append_arg(er, er_loc);
     return pmd;
 }
 

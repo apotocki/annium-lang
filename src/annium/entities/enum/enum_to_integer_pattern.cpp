@@ -43,7 +43,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_to_integer_pa
     if (!arg) {
         if (arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get<0>(arg_descr)->location, "invalid argument"sv),
+                make_error<basic_general_error>(arg_descr.expression->location, "invalid argument"sv),
                 std::move(arg.error())));
         }
         return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument"sv));
@@ -52,7 +52,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_to_integer_pa
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    resource_location const& argloc = get<0>(arg_descr)->location;
+    resource_location const& argloc = arg_descr.expression->location;
     syntax_expression_result& arg_er = arg->first;
     
     entity const* pcent;

@@ -26,27 +26,27 @@ std::expected<functional_match_descriptor_ptr, error_storage> assert_pattern::tr
 {
     auto call_session = call.new_session(ctx);
     expected_result_t bool_exp{ ctx.env().get(builtin_eid::boolean), call.location };
-    std::pair<syntax_expression const*, size_t> argexpr;
-    auto firstarg = call_session.use_next_positioned_argument(bool_exp, &argexpr);
+    prepared_call::argument_descriptor_t arg_descr;
+    auto firstarg = call_session.use_next_positioned_argument(bool_exp, &arg_descr);
     if (!firstarg) return std::unexpected(firstarg.error());
     auto pmd = make_shared<assert_match_descriptor>(call);
     size_t argnum = 0;
 
-    auto append_arg = [&pmd, &argnum, &argexpr](environment& e, syntax_expression_result& res) {
+    auto append_arg = [&pmd, &argnum, &arg_descr](environment& e, syntax_expression_result& res) {
         pmd->emplace_back(argnum++, res);
         if (res.is_const_result && res.value() == e.get(builtin_eid::true_)) {
             pmd->reserved_errors.emplace_back(); // just dummy, no error doesn't need details
         } else {
            // assert failed
             pmd->reserved_errors.emplace_back(
-                make_error<basic_general_error>(get<0>(argexpr)->location, "Assertion failed!"sv, *get<0>(argexpr))
+                make_error<basic_general_error>(arg_descr.expression->location, "Assertion failed!"sv, *arg_descr.expression)
             );
         }
     };
     append_arg(ctx.env(), firstarg->first);
     
     while (call_session.has_more_positioned_arguments()) {
-        auto nextarg = call_session.use_next_positioned_argument(bool_exp, &argexpr);
+        auto nextarg = call_session.use_next_positioned_argument(bool_exp, &arg_descr);
         if (!nextarg) return std::unexpected(nextarg.error());
         append_arg(ctx.env(), nextarg->first);
     }

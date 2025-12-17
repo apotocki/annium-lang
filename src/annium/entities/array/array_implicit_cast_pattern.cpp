@@ -47,13 +47,13 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_implicit_cas
     }
 
     auto call_session = call.new_session(ctx);
-    std::pair<syntax_expression const*, size_t> arg_expr;
+    prepared_call::argument_descriptor_t arg_descr;
     
-    auto arg = call_session.use_next_positioned_argument(&arg_expr);
+    auto arg = call_session.use_next_positioned_argument(&arg_descr);
     if (!arg) {
         if (arg.error()) {
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(get<0>(arg_expr)->location, "invalid argument"sv),
+                make_error<basic_general_error>(arg_descr.expression->location, "invalid argument"sv),
                 std::move(arg.error())));
         } else {
             return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument"sv));
@@ -64,7 +64,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_implicit_cas
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    resource_location const& argloc = get<0>(arg_expr)->location;
+    resource_location const& argloc = arg_descr.expression->location;
     syntax_expression_result& er = arg->first;
     entity_identifier argtype = get_result_type(env, er); // ensure type is resolved
     
