@@ -46,6 +46,12 @@ void layered_binding_set::remove_layer(uint32_t layer)
 {
     auto& index = set_.get<1>();
     auto range = index.equal_range(layer);
+    for (auto it = range.first; it != range.second; ++it) {
+        binding_item const& bi = *it;
+        if (local_variable const* pvar = get_if<local_variable>(&bi.value); pvar) {
+            --bound_variables_count_;
+        }
+    }
     index.erase(range.first, range.second);
 }
 

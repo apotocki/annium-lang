@@ -425,9 +425,7 @@ error_storage declaration_visitor::operator()(break_statement const&) const
 error_storage declaration_visitor::operator()(yield_statement const& yst) const
 {
     semantic::managed_expression_list el{ env() };
-    expected_result_t exp = ctx.result_value_or_type ?
-        expected_result_t{ .type = ctx.result_value_or_type, .location = yst.location, .modifier = ctx.is_const_value_result ? value_modifier_t::constexpr_value : value_modifier_t::runtime_value } :
-        expected_result_t{};
+    expected_result_t exp{ .type = ctx.result_type, .location = yst.location };
 
     auto res = base_expression_visitor::visit(ctx, el, exp, yst.expression);
     if (!res) return std::move(res.error());
@@ -895,25 +893,38 @@ error_storage declaration_visitor::operator()(let_statement const& ld) const
 error_storage declaration_visitor::operator()(return_statement const& rd) const
 {
     if (rd.expression) {
+        return ctx.append_return(*rd.expression);
+    } else {
+        syntax_expression void_expr{ .location = rd.location, .value = env().get(builtin_eid::void_) };
+        return ctx.append_return(void_expr);
+    }
+#if 0
         semantic::managed_expression_list el{ env() };
-        expected_result_t exp = ctx.result_value_or_type ?
-            expected_result_t{ .type = ctx.result_value_or_type, .location = rd.location, .modifier = ctx.is_const_value_result ? value_modifier_t::constexpr_value : value_modifier_t::runtime_value } :
-            expected_result_t{};
+        expected_result_t exp { };
+        if (ctx.result_value_or_type) {
+            exp.type = ctx.result_value_or_type;
+            exp.modifier = ctx.is_const_value_result ? value_modifier_t::constexpr_value : value_modifier_t::runtime_value;
+            exp.location = rd.expression->location;
+        }
         
         auto res = base_expression_visitor::visit(ctx, el, exp, *rd.expression);
         if (!res) return std::move(res.error());
         syntax_expression_result& er = res->first;
 
-        ctx.push_chain();
-        size_t scope_sz = ctx.append_result(el, er);
-        auto return_expressions = ctx.expressions();
-        ctx.pop_chain();
-        ctx.append_return(return_expressions, scope_sz, er.value_or_type, er.is_const_result);
+        ctx.append_return(rd.expression->location, std::move(er));
+
+        //ctx.push_chain();
+        //size_t scope_sz = ctx.append_result(el, er);
+        //auto return_expressions = ctx.expressions();
+        //ctx.pop_chain();
+        //ctx.append_return(rd.expression->location, return_expressions, scope_sz, er.value_or_type, er.is_const_result);
     } else {
-        ctx.append_return({}, 0, env().get(builtin_eid::void_), true);
+        ctx.append_return(rd.location, syntax_expression_result{ .value_or_type = env().get(builtin_eid::void_), .is_const_result = true });
+        //ctx.append_return(rd.location, {}, 0, env().get(builtin_eid::void_), true);
     }
     
     return {};
+#endif
 }
 
 }

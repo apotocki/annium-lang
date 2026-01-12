@@ -110,8 +110,8 @@ class arena;
     ((bit_or, "__bit_or"))                 \
     ((bit_and, "__bit_and"))               \
     ((logical_not, "logical_not"))         \
-    ((logical_and, "logical_and"))         \
-    ((logical_or, "logical_or"))           \
+    ((logical_and, "__and"))               \
+    ((logical_or, "__or"))                 \
     ((implicit_cast, "implicit_cast"sv))   \
     ((runtime_cast, "runtime_cast"sv))     \
     ((get, "get"sv))                       \
@@ -182,6 +182,8 @@ enum class builtin_eid : entity_identifier::value_type
     equal, // builtin ::equal(a, b)-> boolean
     assert, // builtin ::assert(condition, message)-> void 
     error, // builtin ::__error(message)-> void
+    string_empty, // builtin ::empty(runtime string)-> bool
+    string_size, // builtin ::size(runtime string)-> integer
     to_string, // builtin ::to_string(value)-> string
     to_integer, // builtin ::to_integer(value)-> integer
     int2dec, // builtin ::int2dec(value: integer)-> decimal

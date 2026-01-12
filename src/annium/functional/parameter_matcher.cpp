@@ -102,23 +102,22 @@ struct constraint_matcher
                     return make_error<type_mismatch_error>(arg_descr.expression->location, arg_er.value(), "a typename"sv);
                 }
                 type_to_match = arg_er.value();
-            }
-            else {
+            } else {
                 type_to_match = arg_res_entity.get_type();
             }
-        }
-        else {
+        } else {
             type_to_match = arg_er.type();
         }
-        auto err = pattern_matcher{ callee_ctx, pmatcher.md.bindings, pmatcher.call.expressions }
-        .match(*constraint, annotated_entity_identifier{ type_to_match, arg_descr.expression->location });
-        if (err) {
+        auto pattern_weight = pattern_matcher{ callee_ctx, pmatcher.md.bindings, pmatcher.call.expressions }
+            .match(*constraint, annotated_entity_identifier{ type_to_match, arg_descr.expression->location });
+        if (!pattern_weight) {
             return append_cause(
                 make_error<basic_general_error>(param_name.location, "cannot match argument pattern"sv, param_name.value),
-                std::move(err)
+                std::move(pattern_weight.error())
             );
         }
-        pmatcher.md.weight -= 1; // pattern match decreases weight
+        pmatcher.md.weight += *pattern_weight;
+        //pmatcher.md.weight -= 1; // pattern match decreases weight
         return {};
     }
 };
@@ -155,6 +154,7 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
         bool is_param_ellipsis = has(param_it->modifier, parameter_constraint_modifier_t::ellipsis);
         if (is_param_ellipsis && (star_stack.empty() || star_stack.back().param_it != param_it)) {
             star_stack.emplace_back(param_it, entity_signature{ env.get(builtin_qnid::tuple), env.get(builtin_eid::typename_) });
+            md.weight -= 1; // as ellipsis
         }
 
         uint32_t argindex;
@@ -198,6 +198,7 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
             } else {
                 if (res.error()) {
                     call_session.reuse_argument(cmatcher.arg_descr.arg_index);
+                    match_errors.alternatives.emplace_back(std::move(res.error()));
                 } // else no more arguments
                 finalize_ellipsis(callee_ctx);
                 ++param_it;
@@ -231,8 +232,8 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
             }
         }
 
-        if (param_it->ename) {
-            md.append_arg(param_it->ename.value, cmatcher.arg_er, cmatcher.arg_descr.expression->location);
+        if (cmatcher.arg_descr.name) {
+            md.append_arg(cmatcher.arg_descr.name.value, cmatcher.arg_er, cmatcher.arg_descr.expression->location);
         } else {
             md.append_arg(cmatcher.arg_er, cmatcher.arg_descr.expression->location);
         }
@@ -240,8 +241,8 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
         if (is_param_ellipsis) {
             entity_signature& ellipsis_type_sig = star_stack.back().signature;
             if (cmatcher.arg_er.is_const_result) {
-                if (param_it->ename) {
-                    ellipsis_type_sig.emplace_back(param_it->ename.value, cmatcher.arg_er.value(), true);
+                if (cmatcher.arg_descr.name) {
+                    ellipsis_type_sig.emplace_back(cmatcher.arg_descr.name.value, cmatcher.arg_er.value(), true);
                 } else {
                     ellipsis_type_sig.emplace_back(cmatcher.arg_er.value(), true);
                 }
@@ -256,8 +257,8 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
                 identifier unnamedid = env.new_identifier(); // it's not a part of signature
                 entity_identifier unnamedid_entid = env.make_qname_entity(qname{ unnamedid, false }).id;
 
-                if (param_it->ename) {
-                    ellipsis_type_sig.emplace_back(param_it->ename.value, unnamedid_entid, true);
+                if (cmatcher.arg_descr.name) {
+                    ellipsis_type_sig.emplace_back(cmatcher.arg_descr.name.value, unnamedid_entid, true);
                 } else {
                     ellipsis_type_sig.emplace_back(unnamedid_entid, true);
                 }
@@ -290,12 +291,13 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
     // Check if there are any unused arguments
     if (auto argterm = call_session.unused_argument(); argterm) {
         if (annotated_identifier const* name = argterm.name()) {
-            return make_error<basic_general_error>(argterm.location(),
-                "argument mismatch"sv, *name);
+            match_errors.alternatives.emplace_back(make_error<basic_general_error>(argterm.location(),
+                "argument mismatch"sv, *name));
         } else {
-            return make_error<basic_general_error>(argterm.location(),
-                "argument mismatch"sv, std::move(argterm.value()));
+            match_errors.alternatives.emplace_back(make_error<basic_general_error>(argterm.location(),
+                "argument mismatch"sv, std::move(argterm.value())));
         }
+        return result_error();
     }
 
     //THROW_NOT_IMPLEMENTED_ERROR("parameter_matcher::match is not implemented yet");

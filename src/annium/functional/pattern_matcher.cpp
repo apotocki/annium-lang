@@ -15,9 +15,9 @@
 
 namespace annium {
 
-error_storage pattern_matcher::match(syntax_pattern const& pattern, annotated_entity_identifier const& type) const
+std::expected<int, error_storage> pattern_matcher::match(syntax_pattern const& pattern, annotated_entity_identifier const& type) const
 {
-    return visit([this, &pattern, &type](auto const& d)->error_storage {
+    error_storage err = visit([this, &pattern, &type](auto const& d)->error_storage {
         if constexpr (std::is_same_v<placeholder, std::decay_t<decltype(d)>>) {
             return do_match_concepts(pattern.concepts, type); // Placeholder matches any entity, no binding needed
         } else if constexpr (std::is_same_v<context_identifier, std::decay_t<decltype(d)>>) {
@@ -36,6 +36,8 @@ error_storage pattern_matcher::match(syntax_pattern const& pattern, annotated_en
         //    return make_error<basic_general_error>(get_start_location(pattern), "Internal error: Unknown pattern descriptor type"sv, type.value, type.location);
         }
     }, pattern.descriptor);
+    if (err) return std::unexpected(std::move(err));
+    return weight;
 }
 
 error_storage pattern_matcher::do_match_context_identifier(context_identifier cid, syntax_pattern const& pattern, annotated_entity_identifier const& type) const
@@ -91,12 +93,14 @@ error_storage pattern_matcher::do_match(syntax_pattern::signature_descriptor con
         if constexpr (std::is_same_v<annotated_qname_view, std::decay_t<decltype(n)>>) {
             functional const* fn = ctx_.lookup_functional(n.value);
             if (fn && fn->id() == psig->name) return {}; // Function matches the signature
-            return make_error<signature_name_mismatch_error>(n.location, psig->name, fn->id(), type.location);
+            return make_error<signature_name_mismatch_error>(n.location, psig->name, n.value, type.location);
         } else {
             THROW_NOT_IMPLEMENTED_ERROR("do_match for signature_descriptor is not implemented yet");
         }
     }, sd.name);
     if (err) return err;
+
+    ++weight; // more specific match for signature name
 
     fld_bit = sd.fields.begin();
     fld_end = sd.fields.end();
@@ -124,30 +128,30 @@ error_storage pattern_matcher::do_match(syntax_pattern::signature_descriptor con
                     THROW_NOT_IMPLEMENTED_ERROR("do_match for signature_descriptor with annotated identifier is not implemented yet");
                 }
             }, field.name);
-            
+            if (err) return err;
         } else {
-            err = visit([this, &field, psig, &smplfields, &type](auto const& field_name) -> error_storage {
+            auto res = visit([this, &field, psig, &smplfields, &type](auto const& field_name) -> std::expected<int, error_storage> {
                 if constexpr (std::is_same_v<nullptr_t, std::decay_t<decltype(field_name)>>) {
                     if (smplfields.empty()) {
-                        return make_error<basic_general_error>(resource_location{}, "Cannot match unnamed field in signature"sv, nullptr, type.location);
+                        return std::unexpected(make_error<basic_general_error>(resource_location{}, "Cannot match unnamed field in signature"sv, nullptr, type.location));
                     }
                     if (smplfields.front().name()) {
-                        return make_error<basic_general_error>(resource_location{}, "Field name mismatch in signature, expected unnamed"sv, smplfields.front().name(), type.location);
+                        return std::unexpected(make_error<basic_general_error>(resource_location{}, "Field name mismatch in signature, expected unnamed"sv, smplfields.front().name(), type.location));
                     }
                     pattern_matcher field_pattern_matcher{ ctx_, bindings_, expressions_ };
                     return field_pattern_matcher.match(*field.value, annotated_entity_identifier{ smplfields.front().entity_id() });
                 } else if constexpr (std::is_same_v<placeholder, std::decay_t<decltype(field_name)>>) {
                     if (smplfields.empty()) {
-                        return make_error<basic_general_error>(field_name.location, "Cannot match placeholder in signature"sv, nullptr, type.location);
+                        return std::unexpected(make_error<basic_general_error>(field_name.location, "Cannot match placeholder in signature"sv, nullptr, type.location));
                     }
                     pattern_matcher field_pattern_matcher{ ctx_, bindings_, expressions_ };
                     return field_pattern_matcher.match(*field.value, annotated_entity_identifier{ smplfields.front().entity_id() });
                 } else if constexpr (std::is_same_v<annotated_identifier, std::decay_t<decltype(field_name)>>) {
                     if (smplfields.empty()) {
-                        return make_error<basic_general_error>(field_name.location, "Cannot match named field in signature"sv, field_name.value, type.location);
+                        return std::unexpected(make_error<basic_general_error>(field_name.location, "Cannot match named field in signature"sv, field_name.value, type.location));
                     }
                     if (smplfields.front().name() != field_name.value) {
-                        return make_error<basic_general_error>(field_name.location, "Field name mismatch in signature"sv, field_name.value, type.location);
+                        return std::unexpected(make_error<basic_general_error>(field_name.location, "Field name mismatch in signature"sv, field_name.value, type.location));
                     }
                     pattern_matcher field_pattern_matcher{ ctx_, bindings_, expressions_ };
                     return field_pattern_matcher.match(*field.value, annotated_entity_identifier{ smplfields.front().entity_id() });
@@ -155,12 +159,13 @@ error_storage pattern_matcher::do_match(syntax_pattern::signature_descriptor con
                     THROW_NOT_IMPLEMENTED_ERROR("do_match for signature_descriptor with non-ellipsis field is not implemented yet");
                 }
             }, field.name);
-            if (!err && field.bound_variable) {
+            if (!res) return std::move(res.error());
+            weight += *res;
+            if (field.bound_variable) {
                 bindings_.emplace_back(field.bound_variable, smplfields.front().entity_id());
             }
             smplfields = smplfields.subspan(1); // Move to the next field
         }
-        if (err) return err;
     }
     if (!smplfields.empty()) {
         return make_error<basic_general_error>(type.location, "Not all fields in signature are matched"sv, smplfields.front().name(), get_start_location(pattern));
@@ -272,18 +277,18 @@ error_storage pattern_matcher::do_match_positioned_ellipsis_field(annotated_iden
         field_descriptor const& fd = smplfields.front();
         
         pattern_matcher field_pattern_matcher{ ctx_, bindings_, expressions_ };
-        error_storage err = field_pattern_matcher.match(*fld.value, annotated_entity_identifier{ fd.entity_id() });
-        if (err) {
+        auto res = field_pattern_matcher.match(*fld.value, annotated_entity_identifier{ fd.entity_id() });
+        if (!res) {
             if (group_field_it != fld_it) {
                 --group_field_it;
                 continue;
             }
             return append_cause(
                 make_error<basic_general_error>(get_start_location(*fld.value), "Cannot match ellipsis argument pattern"sv, nullptr),
-                std::move(err)
+                std::move(res.error())
             );
         }
-            
+        weight += *res;
         if (group_field_it == fld_it) {
             accumulated_results.emplace_back(fd.name(), fd.entity_id(), true);
             //if (fd.is_const()) {

@@ -275,7 +275,7 @@ public:
     */
     error_storage finish_scope();
     // result value or type, is value, is empty function
-    std::expected<std::tuple<entity_identifier, bool, bool>, error_storage> finish_frame(internal_function_entity const&);
+    std::expected<std::tuple<entity_identifier, bool, bool>, error_storage> finish_frame(internal_function_entity const&, resource_location finish_location = {});
 
     //local_variable_entity const& get_variable(size_t index) const
     //{
@@ -309,8 +309,8 @@ public:
     semantic::expression_span store_semantic_expressions(semantic::managed_expression_list&&);
     semantic::managed_expression_list& expression_store() { return expression_store_; }
 
-    void append_return(semantic::expression_span return_expressions, size_t scope_sz, entity_identifier value_or_type, bool is_const_value_result);
-    void append_yield(semantic::expression_span yield_expressions, size_t scope_sz, entity_identifier value_or_type, bool is_const_value_result);
+    error_storage append_return(syntax_expression const&);
+    void append_yield(semantic::expression_span yield_expressions, size_t scope_sz, entity_identifier value_or_type, bool is_const_value);
 
     //std::pair<size_t, expression_list_t::iterator> current_expressions_pointer() const
     //{
@@ -364,12 +364,13 @@ public:
     inline expressions_state_type expressions_state() noexcept { return expressions_state_type{*this}; }
 #endif
 
-    entity_identifier result_value_or_type;
-    bool is_const_value_result = false;
+    //entity_identifier result_value_or_type;
+    //bool is_const_value_result = false;
+    entity_identifier result_type;
 
     //entity_identifier accum_result;
     entity_identifier context_type;
-    small_vector<semantic::return_statement*, 4> return_statements_;
+    small_vector<std::tuple<semantic::return_statement*, semantic::managed_expression_list, syntax_expression_result, resource_location>, 4> return_statements_;
     small_vector<semantic::yield_statement*, 4> yield_statements_;
     //void accumulate_result_type(entity_identifier t);
     //entity_identifier compute_result_type();

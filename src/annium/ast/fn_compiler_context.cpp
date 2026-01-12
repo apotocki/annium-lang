@@ -11,10 +11,131 @@
 #include "annium/entities/functional.hpp"
 #include "annium/entities/functions/internal_function_entity.hpp"
 
+#include "annium/ast/base_expression_visitor.hpp"
+
 #include "annium/errors/identifier_redefinition_error.hpp"
 #include "annium/auxiliary.hpp"
 
 namespace annium {
+
+namespace {
+
+bool all_paths_return(semantic::expression_span span);
+
+bool has_procedures(semantic::expression_span span);
+
+struct procedures_lookup_visitor
+{
+    bool operator()(semantic::expression_span nested) const
+    {
+        return has_procedures(nested);
+    }
+
+    bool operator()(semantic::return_statement const& rst) const noexcept
+    { 
+        return has_procedures(rst.result);
+    }
+
+    bool operator()(semantic::conditional_t const& cond) const
+    {
+        return has_procedures(cond.true_branch) || has_procedures(cond.false_branch);
+    }
+
+    bool operator()(semantic::switch_t const& sw) const
+    {
+        for (auto const& branch : sw.branches) {
+            if (has_procedures(branch)) return true;
+        }
+        return false;
+    }
+
+    bool operator()(semantic::not_empty_condition_t const& nec) const
+    {
+        return has_procedures(nec.branch);
+    }
+
+    bool operator()(semantic::loop_scope_t const& loop) const
+    {
+        return has_procedures(loop.branch) || has_procedures(loop.continue_branch);
+    }
+
+    bool operator()(semantic::invoke_function const& ifn) const
+    {
+        return true;
+    }
+
+    template <typename T>
+    bool operator()(T const& t) const noexcept
+    {
+        return false;
+    }
+};
+
+bool has_procedures(semantic::expression_span span)
+{
+    while (span) {
+        if (visit(procedures_lookup_visitor{}, span.front())) {
+            return true;
+        }
+        span.pop_front();
+    }
+    return false;
+}
+
+struct return_lookup_visitor
+{
+    bool operator()(semantic::return_statement const&) const noexcept { return true; }
+
+    bool operator()(semantic::expression_span nested) const
+    {
+        return all_paths_return(nested);
+    }
+
+    bool operator()(semantic::conditional_t const& cond) const
+    {
+        return all_paths_return(cond.true_branch) && all_paths_return(cond.false_branch);
+    }
+
+    bool operator()(semantic::switch_t const& sw) const
+    {
+        for (auto const& branch : sw.branches) {
+            if (!all_paths_return(branch)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool operator()(semantic::not_empty_condition_t const& nec) const
+    {
+        return all_paths_return(nec.branch);
+    }
+
+    bool operator()(semantic::loop_scope_t const& loop) const
+    {
+        return false;
+        //return all_paths_return(loop.branch) || all_paths_return(loop.continue_branch);
+    }
+
+    template <typename T>
+    bool operator()(T const&) const noexcept
+    {
+        return false;
+    }
+};
+
+bool all_paths_return(semantic::expression_span span)
+{
+    while (span) {
+        if (visit(return_lookup_visitor{}, span.front())) {
+            return true;
+        }
+        span.pop_front();
+    }
+    return false;
+}
+
+} // namespace
 
 #if 0
 struct parameter_pack_element_type_visitor : static_visitor<std::expected<pattern_expression_t, error_storage>>
@@ -287,7 +408,7 @@ size_t fn_compiler_context::append_result(semantic::expression_list_t& el, synta
     }
     append_expressions(el, er.expressions);
     size_t scope_sz = pop_scope();
-    if (!er.is_const_result && er.type() != env().get(builtin_eid::void_)) {
+    if (!er.is_const_result && er.type() != env().get(builtin_eid::void_type)) {
         ++scope_sz;
     }
     return scope_sz;
@@ -625,58 +746,299 @@ error_storage fn_compiler_context::finish_scope()
     return {};
 }
 
-std::expected<std::tuple<entity_identifier, bool, bool>, error_storage> fn_compiler_context::finish_frame(internal_function_entity const& fent)
+// result value or type, is value, is empty function
+std::expected<std::tuple<entity_identifier, bool, bool>, error_storage> fn_compiler_context::finish_frame(internal_function_entity const& fent, resource_location finish_location)
 {
-    bool is_empty_function = !expressions();
+    entity_identifier const_value_result; // empty if not a const value result
 
-    if (return_statements_.empty()) {
-        if (!result_value_or_type) {
-            result_value_or_type = env().get(builtin_eid::void_);
-            is_const_value_result = true;
-        } else {
-            if (!is_const_value_result) {
-                return std::unexpected(make_error<basic_general_error>(
-                    fent.location, "no return statements, but result type is not const value"sv, fent.id));
+    if (!result_type) {
+        // result type is not defined, so we need to deduce it from return statements
+        boost::container::small_flat_set<entity_identifier, 4> result_elements;
+        small_vector<entity_identifier, 4> stable_result_types_set;
+        small_vector<entity_identifier, 4> stable_result_values_set;
+
+        for (auto & [rts, el, er, loc] : return_statements_) {
+            if (er.is_const_result) {
+                if (result_elements.insert(er.value()).second) {
+                    stable_result_values_set.push_back(er.value());
+                }
+            } else if (result_elements.insert(er.type()).second) {
+                entity_signature const* psig = get_entity(env(), er.type()).signature();
+                if (psig && psig->name == env().get(builtin_qnid::union_)) {
+                    for (field_descriptor const& fd : psig->fields()) {
+                        if (result_elements.insert(fd.entity_id()).second) {
+                            if (fd.is_const()) {
+                                stable_result_values_set.push_back(fd.entity_id());
+                            } else {
+                                stable_result_types_set.push_back(fd.entity_id());
+                            }
+                        }
+                    }
+                } else {
+                    stable_result_types_set.push_back(er.type());
+                }
             }
         }
-        
-        append_return({}, 0, result_value_or_type, true);
-        return std::tuple{ result_value_or_type, true, is_empty_function };
+
+        if (stable_result_types_set.empty() && stable_result_values_set.empty()) {
+            result_type = env().get(builtin_eid::void_type);
+            const_value_result = env().get(builtin_eid::void_);
+        } else {
+            if (stable_result_types_set.empty() && stable_result_values_set.size() == 1) {
+                const_value_result = stable_result_values_set.front();
+                result_type = get_entity(env(), stable_result_values_set.front()).get_type();
+            } else if (stable_result_types_set.size() == 1 && stable_result_values_set.empty()) {
+                result_type = stable_result_types_set.front();
+                // const_value_result is empty
+            } else {
+                // build union
+                entity_signature usig(env().get(builtin_qnid::union_), env().get(builtin_eid::typename_));
+                for (entity_identifier const& eid : stable_result_values_set) {
+                    usig.push_back(field_descriptor{ eid, true });
+                }
+                for (entity_identifier const& eid : stable_result_types_set) {
+                    usig.push_back(field_descriptor{ eid, false });
+                }
+                result_type = env().make_basic_signatured_entity(std::move(usig)).id;
+                // const_value_result is empty, union type can't be const value even if all return statements are const values (union of const values)
+            }
+        }
+    } else {
+        // deduce const_value_result from return statements if possible
+        for (auto& [rts, el, er, loc] : return_statements_) {
+            if (!er.is_const_result) {
+                const_value_result = entity_identifier{}; // if there is at least one non-const return, the result is not const
+                break;
+            }
+            if (!const_value_result) {
+                if (get_entity(env(), er.value()).get_type() != result_type) {
+                    const_value_result = entity_identifier{}; // different return types, so the result is not const
+                    break;
+                }
+                const_value_result = er.value();
+            } else if (const_value_result != er.value()) {
+                const_value_result = entity_identifier{}; // different const return values, so the result is not const
+                break;
+            }
+        }
     }
 
-    // to do: append the return statement if needed (if no return expression recursievly in a branch found)
-    
+    BOOST_ASSERT(result_type);
 
-    if (result_value_or_type) {
-        // result type is already set
+    const bool need_return = !all_paths_return(expressions());
+    if (need_return) {
+        if (result_type != env().get(builtin_eid::void_type)) {
+            return std::unexpected(make_error<basic_general_error>(
+                fent.location, "not all control paths return a value, but result type is not void"sv, fent.id));
+        }
+        append_expression(semantic::return_statement{ .result = {} });
+        semantic::return_statement* pretst = &get<semantic::return_statement>(expressions().back());
+        syntax_expression_result er{ .value_or_type = env().get(builtin_eid::void_), .is_const_result = true };
+        return_statements_.emplace_back(pretst, semantic::managed_expression_list{ environment_ }, std::move(er), finish_location);
+        BOOST_ASSERT(all_paths_return(expressions()));
+    }
+
+    if (const_value_result) {
+        bool is_empty_function = fent.arg_count() == 0 && !has_procedures(expressions());
+        if (!is_empty_function) {
+            for (auto& [rts, el, er, loc] : return_statements_) {
+                push_chain();
+                size_t scope_sz = append_result(el, er);
+                auto return_expressions = expressions();
+                pop_chain();
+                rts->result = std::move(return_expressions);
+                rts->scope_size = scope_sz;
+            }
+        }
+        return std::tuple{ const_value_result, true, is_empty_function };
+    }
+
+    expected_result_t expected_result{ .type = result_type, .modifier = value_modifier_t::runtime_value };
+    // append cast to result union type for each return statement if needed
+    for (auto& [rts, el, er, loc] : return_statements_) {
+        if (!er.is_const_result && er.type() == result_type) {
+            // no cast needed
+            push_chain();
+            size_t scope_sz = append_result(el, er);
+            auto return_expressions = expressions();
+            pop_chain();
+            rts->result = std::move(return_expressions);
+            rts->scope_size = scope_sz;
+            continue;
+        }
+        call_builder cast_call{ loc };
+        expected_result.location = loc;
+        //rts->value_or_type = result_union_eid;
+        //rts->is_const_value_result = false;
+        if (er.is_const_result) {
+            cast_call.emplace_back(syntax_expression{ loc, entity_identifier{ er.value() } });
+        } else {
+            cast_call.emplace_back(make_indirect_value(environment_, el, std::move(er), loc));
+        }
+        auto res = find_and_apply(builtin_qnid::implicit_cast, cast_call, el, expected_result);
+        if (!res) {
+            return std::unexpected(append_cause(
+                make_error<basic_general_error>(loc, "failed to cast return value to function result type"sv, result_type),
+                std::move(res.error())
+            ));
+        }
+        push_chain();
+        size_t scope_sz = append_result(el, *res);
+        auto return_expressions = expressions();
+        pop_chain();
+        rts->result = std::move(return_expressions);
+        rts->scope_size = scope_sz;
+    }
+
+    return std::tuple{ result_type, false, false };
+#if 0
+    if (result_type) {
+        if (need_return) {
+            if (result_type != env().get(builtin_eid::void_type)) {
+                return std::unexpected(make_error<basic_general_error>(
+                    fent.location, "not all control paths return a value, but result type is not void"sv, fent.id));
+            }
+            syntax_expression void_expr{ .location = finish_location, .value = env().get(builtin_eid::void_) };
+            auto err = append_return(void_expr);
+            if (err) return std::unexpected(std::move(err));
+        }
+        //bool is_empty_function = is_const_value_result && fent.arg_count() == 0 && !has_procedures(expressions());
+        //return std::tuple{ result_value_or_type, is_const_value_result, is_empty_function };
+    } else {
+
+        
+
+        if (need_return) { // just add a return statement at the end of function 
+            append_expression(semantic::return_statement{});
+            semantic::return_statement* pretst = &get<semantic::return_statement>(expressions().back());
+            syntax_expression_result er{ .value_or_type = env().get(builtin_eid::void_), .is_const_result = true };
+            return_statements_.emplace_back(pretst, semantic::managed_expression_list{ environment_ }, std::move(er), finish_location);
+        }
+
+    BOOST_ASSERT(!return_statements_.empty());
+
+    if (return_statements_.size() == 1) { // single return statement at the end of function => use its type
+        auto& [rts, el, er, loc] = return_statements_.front();
+        result_value_or_type = er.value_or_type;
+        is_const_value_result = er.is_const_result;
+        push_chain();
+        size_t scope_sz = append_result(el, er);
+        auto return_expressions = expressions();
+        pop_chain();
+        rts->result = return_expressions;
+        rts->scope_size = scope_sz;
+        rts->value_or_type = result_value_or_type;
+        rts->is_const_value_result = is_const_value_result;
+        bool is_empty_function = is_const_value_result && fent.arg_count() == 0 && !has_procedures(expressions());
         return std::tuple{ result_value_or_type, is_const_value_result, is_empty_function };
     }
 
-    boost::container::small_flat_set<entity_identifier, 4> const_values;
-    boost::container::small_flat_set<entity_identifier, 4> types;
-    for (semantic::return_statement * rts : return_statements_) {
-        if (rts->is_const_value_result) {
-            const_values.insert(rts->value_or_type);
-            if (!types.empty() || const_values.size() > 1) {
-                types.insert(get_entity(env(), rts->value_or_type).get_type());
+    boost::container::small_flat_set<entity_identifier, 4> result_elements;
+    small_vector<entity_identifier, 4> stable_result_types_set;
+    small_vector<entity_identifier, 4> stable_result_values_set;
+
+    for (auto & [rts, el, er, loc] : return_statements_) {
+        if (er.is_const_result) {
+            if (result_elements.insert(er.value()).second) {
+                stable_result_values_set.push_back(er.value());
             }
-        } else {
-            types.insert(rts->value_or_type);
+        } else if (result_elements.insert(er.type()).second) {
+            entity_signature const* psig = get_entity(env(), er.type()).signature();
+            if (psig && psig->name == env().get(builtin_qnid::union_)) {
+                for (field_descriptor const& fd : psig->fields()) {
+                    if (result_elements.insert(fd.entity_id()).second) {
+                        if (fd.is_const()) {
+                            stable_result_values_set.push_back(fd.entity_id());
+                        } else {
+                            stable_result_types_set.push_back(fd.entity_id());
+                        }
+                    }
+                }
+            } else {
+                stable_result_types_set.push_back(er.type());
+            }
         }
     }
-    if (types.empty() && const_values.size() == 1) {
-        return std::tuple{ *const_values.begin(), true, is_empty_function };
+
+    if (stable_result_types_set.empty() && stable_result_values_set.size() == 1) {
+        result_value_or_type = stable_result_values_set.front();
+        is_const_value_result = true;
+        for (auto& [rts, el, er, loc] : return_statements_) {
+            BOOST_ASSERT(!er.expressions);
+            rts->result = {};
+            rts->scope_size = 0;
+            rts->value_or_type = result_value_or_type;
+            rts->is_const_value_result = is_const_value_result;
+        }
+        bool is_empty_function = fent.arg_count() == 0 && !has_procedures(expressions());
+        return std::tuple{ result_value_or_type, is_const_value_result, is_empty_function };
     }
-    if (types.size() == 1 && const_values.empty()) {
-        return std::tuple{ *types.begin(), false, is_empty_function };
+
+    if (stable_result_types_set.size() == 1 && stable_result_values_set.empty()) {
+        result_value_or_type = stable_result_types_set.front();
+        is_const_value_result = false;
+        for (auto& [rts, el, er, loc] : return_statements_) {
+            push_chain();
+            size_t scope_sz = append_result(el, er);
+            auto return_expressions = expressions();
+            pop_chain();
+            rts->result = std::move(return_expressions);
+            rts->scope_size = scope_sz;
+            rts->value_or_type = result_value_or_type;
+            rts->is_const_value_result = is_const_value_result;
+        }
+        return std::tuple{ result_value_or_type, is_const_value_result, false };
     }
-    THROW_NOT_IMPLEMENTED_ERROR("fn_compiler_context: finish_frame with multiple return values not implemented yet");
-    //if (accum_result) {
-    //    result = accum_result;
-    //} else { // no explicit return
-    //    result = env().get(builtin_eid::void_);
-    //    env().push_back_expression(expression_store_, expressions(), semantic::return_statement{});
-    //}
+
+    // build union
+    entity_signature usig(env().get(builtin_qnid::union_), env().get(builtin_eid::typename_));
+    for (entity_identifier const& eid : stable_result_values_set) {
+        usig.push_back(field_descriptor{ eid, true });
+    }
+    for (entity_identifier const& eid : stable_result_types_set) {
+        usig.push_back(field_descriptor{ eid, false });
+    }
+
+    entity_identifier result_union_eid = env().make_basic_signatured_entity(std::move(usig)).id;
+    expected_result_t expected_result { .type = result_union_eid, .modifier = value_modifier_t::runtime_value };
+    // append cast to result union type for each return statement
+    for (auto & [rts, el, er, loc] : return_statements_) {
+        call_builder cast_call{ loc };
+        expected_result.location = loc;
+        rts->value_or_type = result_union_eid;
+        rts->is_const_value_result = false;
+        if (er.is_const_result) {
+            cast_call.emplace_back(syntax_expression{ loc, entity_identifier{ er.value() } });
+        } else {
+            if (rts->value_or_type == result_union_eid) {
+                push_chain();
+                size_t scope_sz = append_result(el, er);
+                auto return_expressions = expressions();
+                pop_chain();
+                rts->result = std::move(return_expressions);
+                rts->scope_size = scope_sz;
+                continue;
+            }
+            cast_call.emplace_back(make_indirect_value(environment_, el, std::move(er), loc));
+        }
+
+        auto res = find_and_apply(builtin_qnid::implicit_cast, cast_call, el, expected_result);
+        if (!res) {
+            return std::unexpected(append_cause(
+                make_error<basic_general_error>(loc, "internal error, cannot perform implicit cast to result union type"sv),
+                std::move(res.error())
+            ));
+        }
+        push_chain();
+        size_t scope_sz = append_result(el, *res);
+        auto return_expressions = expressions();
+        pop_chain();
+        rts->result = std::move(return_expressions);
+        rts->scope_size = scope_sz;
+    }
+
+    return std::tuple{ result_union_eid, false, false };
+#endif
 }
 
 //void fn_compiler_context::accumulate_result_type(entity_identifier t)
@@ -771,20 +1133,28 @@ void fn_compiler_context::append_stored_expressions(semantic::expression_list_t&
     branches_expressions() = expression_store_.concat(branches_expressions(), std::move(sp));
 }
 
-void fn_compiler_context::append_return(semantic::expression_span return_expressions, size_t scope_sz, entity_identifier value_or_type, bool is_const_value_result)
+error_storage fn_compiler_context::append_return(syntax_expression const& expr)
 {
-    //return_expressions.for_each([this](semantic::expression const& e) {
+    expected_result_t exp{ .type = result_type, .location = expr.location, .modifier = value_modifier_t::constexpr_or_runtime_value };
+    
+    semantic::managed_expression_list el{ environment_ };
+    auto res = base_expression_visitor::visit(*this, el, exp, expr);
+    if (!res) return std::move(res.error());
+
+    // to do: add destroy calls for scope variables
+
+    syntax_expression_result& er = res->first;
+    // we don't know here wether result is finally constexpr or runtime value
+
+    //er.expressions.for_each([this](semantic::expression const& e) {
     //    GLOBAL_LOG_INFO() << env().print(e);
     //});
-    // return_expressions should contain a cast to return value_or type, if result_value_or_type is defined
-    append_expression(semantic::return_statement{
-        .result = return_expressions,
-        .scope_size = scope_sz,
-        .value_or_type = value_or_type,
-        .is_const_value_result = is_const_value_result
-    });
-    semantic::return_statement * pretst = &get<semantic::return_statement>(expressions().back());
-    return_statements_.emplace_back(pretst);
+
+    append_expression(semantic::return_statement{ .result = er.expressions }); // we need expressions span here to be able to test the function for havning procedures
+    semantic::return_statement* pretst = &get<semantic::return_statement>(expressions().back());
+    return_statements_.emplace_back(pretst, std::move(el), std::move(er), std::move(expr.location));
+    
+    return {};
 }
 
 void fn_compiler_context::append_yield(semantic::expression_span return_expressions, size_t scope_sz, entity_identifier value_or_type, bool is_const_value_result)

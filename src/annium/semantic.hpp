@@ -350,11 +350,11 @@ struct push_value
     value_t value;
     explicit push_value(value_t v) : value { std::move(v) }
     {
-        if (auto* bv = get_if<smart_blob>(&value); bv) {
-            std::ostringstream ss;
-            print_type(ss, bv->get());
-            //BOOST_ASSERT((uint8_t)(*bv)->type != 0xcd);
-        }
+        //if (auto* bv = get_if<smart_blob>(&value); bv) {
+        //    std::ostringstream ss;
+        //    print_type(ss, bv->get());
+        //    //BOOST_ASSERT((uint8_t)(*bv)->type != 0xcd);
+        //}
     }
 };
 struct push_local_variable
@@ -451,8 +451,8 @@ struct return_statement
 {
     expression_span result;
     size_t scope_size; // Numebr of elements on stack after evaluation of result expressions
-    entity_identifier value_or_type;
-    bool is_const_value_result;
+    //entity_identifier value_or_type;
+    //bool is_const_value_result;
 };
 
 struct yield_statement
@@ -561,6 +561,7 @@ using syntax_expression_const_result_t = syntax_expression_const_result; // synt
 
 void append_semantic_result(semantic::expression_list_t & el, syntax_expression_result& src, syntax_expression_result& dest);
 void append_semantic_result_to_branch(semantic::expression_list_t& el, syntax_expression_result& src, syntax_expression_result& dest, semantic::expression_span &dest_branch);
+void append_branch_semantic_result(semantic::expression_list_t& el, syntax_expression_result& src, syntax_expression_result& dest);
 
 syntax_expression make_indirect_value(environment&, semantic::expression_list_t&, syntax_expression_result && res, resource_location loc);
 syntax_expression_result retrieve_indirect(environment&, semantic::expression_list_t&, indirect_value const&);

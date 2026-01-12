@@ -21,12 +21,14 @@ class pattern_matcher
 
     mutable fields_t::const_iterator fld_bit, fld_it, fld_end;
 
+    mutable int weight = 0;
+
 public:
     inline pattern_matcher(fn_compiler_context& ctx, layered_binding_set& bindings, semantic::expression_list_t& expressions)
         : ctx_{ ctx }, bindings_{ bindings }, expressions_{ expressions }
     {}
 
-    error_storage match(syntax_pattern const&, annotated_entity_identifier const& type) const;
+    std::expected<int, error_storage> match(syntax_pattern const&, annotated_entity_identifier const& type) const;
 
 private:
     error_storage do_match(syntax_pattern::signature_descriptor const&, syntax_pattern const&, annotated_entity_identifier const&) const;

@@ -95,12 +95,18 @@ std::expected<syntax_expression_result, error_storage> internal_fn_pattern::appl
         return build(ctx, std::move(md.signature), md.bindings.to_basic_functional_binding());
     }));
 
-    if (!fne.result) { // we need building to resolve result type
+    // we need to build the function if:
+    if (!fne.result || // result type is not yet resolved
+        // the function has no runtime arguments and not zero count constexpr arguments (to check if result is constexpr too)
+        (!fne.is_built() && !mut_arg_cnt && fne.result.entity_id() != env.get(builtin_eid::void_type) &&
+            fne.result.entity_id() != env.get(builtin_eid::void_)) && md.matches.size())
+    {
+
         sonia::lang::compiler_task_tracer::task_guard tg = ctx.try_lock_task(entity_task_id{ fne });
         if (!tg) return std::unexpected(
             make_error<circular_dependency_error>(make_error<basic_general_error>(location_, "resolving function result type"sv, fne.id))
         );
-        if (!fne.result) {
+        if (!fne.is_built()) {
             if (auto err = fne.build(env)) {
                 return std::unexpected(std::move(err));
             }

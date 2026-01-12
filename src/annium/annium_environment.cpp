@@ -33,8 +33,9 @@
 #include "annium/entities/literals/numeric_literal_equal_pattern.hpp"
 #include "annium/entities/literals/numeric_literal_unary_minus_pattern.hpp"
 
-#include "annium/entities/literals/string_implicit_cast_pattern.hpp"
-#include "annium/entities/literals/string_concat_pattern.hpp"
+#include "annium/entities/literals/string/string_implicit_cast_pattern.hpp"
+#include "annium/entities/literals/string/string_concat_pattern.hpp"
+#include "annium/entities/literals/string/string_empty_pattern.hpp"
 
 #include "annium/entities/callables/to_callable_implicit_cast_pattern.hpp"
 
@@ -1358,19 +1359,20 @@ basic_signatured_entity const& environment::make_array_entity(entity_identifier 
     return make_basic_signatured_entity(std::move(sig));
 }
 
-entity const& environment::make_union_type_entity(span<entity_identifier> const& types)
+entity const& environment::make_union_type_entity(span<entity_identifier> const& items)
 {
-    if (types.empty()) {
-        return get_entity(*this, get(builtin_eid::void_));
+    if (items.empty()) {
+        return get_entity(*this, get(builtin_eid::void_type));
     }
 
-    if (types.size() == 1) {
-        return get_entity(*this, *types.begin());
+    if (items.size() == 1) {
+        return get_entity(*this, *items.begin());
     }
 
     entity_signature usig(get(builtin_qnid::union_), get(builtin_eid::typename_));
-    for (entity_identifier const& eid : types) {
-        usig.push_back(field_descriptor{ eid, false });
+    for (entity_identifier const& eid : items) {
+        bool is_const = get_entity(*this, eid).get_type() != get(builtin_eid::typename_);
+        usig.push_back(field_descriptor{ eid, is_const });
     }
 
     return make_basic_signatured_entity(std::move(usig));
@@ -1566,10 +1568,10 @@ environment::environment()
     tail_fnl.push(make_shared<tuple_tail_pattern>());
     tail_fnl.push(make_shared<fixed_array_tail_pattern>());
 
-    // empty(metaobject) -> bool
     functional& empty_fnl = fregistry_resolve(get(builtin_qnid::empty));
     //empty_fnl.push(make_shared<metaobject_empty_pattern>());
     empty_fnl.push(make_shared<tuple_empty_pattern>());
+    empty_fnl.push(make_shared<string_empty_pattern>());
 
     // is_const(_) -> const bool
     functional& is_const_fnl = fregistry_resolve(get(builtin_qnid::is_const));
@@ -1607,6 +1609,8 @@ environment::environment()
     builtin_eids_[(size_t)builtin_eid::array_set_at] = set_builtin_extern("__array_set_at($arr: runtime, $index: runtime integer, $value)"sv, &annium_array_set_at);
     builtin_eids_[(size_t)builtin_eid::equal] = set_builtin_extern("__equal(runtime any, runtime any)->bool"sv, &annium_any_equal);
     builtin_eids_[(size_t)builtin_eid::assert] = set_builtin_extern("__assert(runtime any)"sv, &annium_assert);
+    builtin_eids_[(size_t)builtin_eid::string_empty] = set_builtin_extern("empty(runtime string)->bool"sv, &annium_string_empty);
+    builtin_eids_[(size_t)builtin_eid::string_size] = set_builtin_extern("size(runtime string)->integer"sv, &annium_string_size);
     builtin_eids_[(size_t)builtin_eid::to_string] = set_builtin_extern("__to_string(runtime any)->string"sv, &annium_tostring);
     builtin_eids_[(size_t)builtin_eid::logical_not] = set_builtin_extern("__logical_not(runtime any)->bool"sv, &annium_logical_not);
     builtin_eids_[(size_t)builtin_eid::unary_minus] = set_builtin_extern("__unary_minus(runtime any)"sv, &annium_unary_minus);
@@ -1656,6 +1660,10 @@ intptr_t environment::retrieve_function_rt_identifier(internal_function_entity c
 
 size_t environment::compile(internal_function_entity const& fn_ent)
 {
+    fn_ent.body.for_each([this](semantic::expression const& e) {
+        GLOBAL_LOG_INFO() << print(e); // << "\n"sv
+    });
+
     asm_builder_t& asm_builder = static_cast<asm_builder_t&>(*asm_builder_);
     asm_builder_t::function_descriptor& fd = asm_builder.resolve_function(vmasm::fn_identity<entity_identifier>{ fn_ent.id });
     if (!fd.address) {

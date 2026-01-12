@@ -941,7 +941,8 @@ base_expression_visitor::result_type base_expression_visitor::operator()(binary_
         return this->operator()(builtin_qnid::logical_and, be);
         //return do_logic_and(be);
     case binary_operator_type::LOGIC_OR:
-        return do_logic_or(be);
+        //return do_logic_or(be);
+        return this->operator()(builtin_qnid::logical_or, be);
     case binary_operator_type::ASSIGN:
         return do_assign(be);
     default:

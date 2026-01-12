@@ -155,6 +155,19 @@ void annium_array_size(vm::context& ctx)
     ctx.stack_back().replace(smart_blob{ ui64_blob_result(sz) });
 }
 
+void annium_string_empty(vm::context& ctx)
+{
+    bool is_empty = ctx.stack_back().as<string_view>().empty();
+    ctx.stack_back().replace(smart_blob{ bool_blob_result(is_empty) });
+}
+
+void annium_string_size(vm::context& ctx)
+{
+    // to do: count characters, not bytes
+    size_t size = ctx.stack_back().as<string_view>().size();
+    ctx.stack_back().replace(smart_blob{ ui64_blob_result(size) });
+}
+
 void annium_array_at(vm::context& ctx)
 {
     auto idx = ctx.stack_back().as<size_t>();

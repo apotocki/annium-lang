@@ -21,6 +21,9 @@ void annium_array_tail(vm::context&);
 void annium_array_at(vm::context&);
 void annium_array_set_at(vm::context&);
 
+void annium_string_empty(vm::context&);
+void annium_string_size(vm::context&);
+
 void annium_create_extern_object(vm::context&);
 void annium_set_object_property(vm::context&);
 void annium_invoke(vm::context&);

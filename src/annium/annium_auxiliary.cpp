@@ -14,6 +14,15 @@ entity const& get_entity(environment const& env, entity_identifier const& eid)
     return env.eregistry_get(eid);
 }
 
+entity_identifier get_entity_type(environment const& env, field_descriptor const& fd)
+{
+    if (fd.is_const()) {
+        return env.eregistry_get(fd.entity_id()).get_type(); 
+    } else {
+        return fd.entity_id();
+    }
+}
+
 entity_identifier get_result_type(environment const& env, syntax_expression_result const& er, entity const** ppe)
 {
     if (er.is_const_result) {

@@ -7,6 +7,7 @@
 #include "annium/ast/fn_compiler_context.hpp"
 #include "annium/ast/declaration_visitor.hpp"
 
+#include "annium/auxiliary.hpp"
 //#define ANNIUM_NO_INLINE_FUNCTIONS 1
 
 namespace annium {
@@ -117,8 +118,7 @@ error_storage internal_function_entity::build(fn_compiler_context& fnctx)
     BOOST_ASSERT(!is_built_);
 
     if (result.entity_id()) {
-        fnctx.result_value_or_type = result.entity_id();
-        fnctx.is_const_value_result = result.is_const();
+        fnctx.result_type = get_entity_type(fnctx.env(), result);
     }
 
     //GLOBAL_LOG_INFO() << fnctx.env().print(sts_);
@@ -129,10 +129,8 @@ error_storage internal_function_entity::build(fn_compiler_context& fnctx)
     if (!fres) return fres.error();
         
     auto [value_or_type, is_value, is_empty] = fres.value();
-    if (!result.entity_id()) {
-        result = field_descriptor{ value_or_type, is_value };
-    }
-    
+    result = field_descriptor{ value_or_type, is_value }; // function result clarification (initialy not const can be const after analyzing the body)
+
     BOOST_ASSERT(fnctx.expressions_branch() == 1);
     body = fnctx.expressions();
     fnctx.env().store(std::move(fnctx.expression_store()));
@@ -154,9 +152,11 @@ error_storage internal_function_entity::build(fn_compiler_context& fnctx)
 
 bool internal_function_entity::is_const_eval(environment& e) const noexcept
 {
-    if (!result.is_const()) return false;
-    // to do: traverse expressions
-    return result.entity_id() != e.get(builtin_eid::void_);
+    return result.is_const() && is_empty_;
+
+    //if (!result.is_const()) return false;
+    //// to do: traverse expressions
+    //return result.entity_id() != e.get(builtin_eid::void_);
 }
 
 }

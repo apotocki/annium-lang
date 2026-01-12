@@ -70,6 +70,9 @@
     <Filter Include="annium\entities\callables">
       <UniqueIdentifier>{b50454e4-d22b-4ef2-a7e4-e24481ce435a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="annium\entities\literals\string">
+      <UniqueIdentifier>{d3ca2019-9d19-409d-b500-386d952edd6c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\annium\annium.cpp">
@@ -145,9 +148,6 @@
       <Filter>annium\entities\literals</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_implicit_cast_pattern.cpp">
-      <Filter>annium\entities\literals</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\literals\string_concat_pattern.cpp">
       <Filter>annium\entities\literals</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\union\union_bit_or_pattern.cpp">
@@ -306,9 +306,6 @@
     <ClCompile Include="..\..\..\src\annium\entities\union\union_apply_pattern.cpp">
       <Filter>annium\entities\union</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\literals\string_implicit_cast_pattern.cpp">
-      <Filter>annium\entities\literals</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_equal_pattern.cpp">
       <Filter>annium\entities\literals</Filter>
     </ClCompile>
@@ -389,6 +386,15 @@
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\functional_binding.cpp">
       <Filter>annium\entities</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\literals\string\string_concat_pattern.cpp">
+      <Filter>annium\entities\literals\string</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\literals\string\string_implicit_cast_pattern.cpp">
+      <Filter>annium\entities\literals\string</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\literals\string\string_empty_pattern.cpp">
+      <Filter>annium\entities\literals\string</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -510,9 +516,6 @@
       <Filter>annium\entities\literals</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_implicit_cast_pattern.hpp">
-      <Filter>annium\entities\literals</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\literals\string_concat_pattern.hpp">
       <Filter>annium\entities\literals</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\union\union_bit_or_pattern.hpp">
@@ -680,9 +683,6 @@
     <ClInclude Include="..\..\..\src\annium\entities\union\union_apply_pattern.hpp">
       <Filter>annium\entities\union</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\literals\string_implicit_cast_pattern.hpp">
-      <Filter>annium\entities\literals</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_equal_pattern.hpp">
       <Filter>annium\entities\literals</Filter>
     </ClInclude>
@@ -775,6 +775,15 @@
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\functional_binding.hpp">
       <Filter>annium\entities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\literals\string\string_concat_pattern.hpp">
+      <Filter>annium\entities\literals\string</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\literals\string\string_implicit_cast_pattern.hpp">
+      <Filter>annium\entities\literals\string</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\literals\string\string_empty_pattern.hpp">
+      <Filter>annium\entities\literals\string</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -136,14 +136,15 @@ std::expected<functional_match_descriptor_ptr, error_storage> basic_fn_pattern::
     // If the result is a pattern, we should handle it first.
     if (rpattern) {
         BOOST_ASSERT(exp);
-        auto err = pattern_matcher{ callee_ctx, pmd->bindings, call.expressions }.match(*rpattern, annotated_entity_identifier{ exp.type, exp.location });
-        if (err) {
+        auto res = pattern_matcher{ callee_ctx, pmd->bindings, call.expressions }.match(*rpattern, annotated_entity_identifier{ exp.type, exp.location });
+        if (!res) {
             return std::unexpected(append_cause(
                 make_error<basic_general_error>(call.location, "Cannot match result pattern"sv, nullptr, get_start_location(*rpattern)),
-                std::move(err)
+                std::move(res.error())
             ));
         }
-        pmd->weight -= static_cast<int>(pmd->bindings.size());
+        pmd->weight += *res;
+        //pmd->weight -= static_cast<int>(pmd->bindings.size());
         // to do: not only void_type can produce only constexpr result
         if (exp.type == e.get(builtin_eid::void_type)) {
             call_sig.result.emplace(e.get(builtin_eid::void_), true);

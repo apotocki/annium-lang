@@ -114,15 +114,6 @@ const char annium_bootstrap_code[] = R"#(
 
 fn print(:string ...) => __print($0 ..., size($0));
 
-inline fn not_equal(_, _) => !($0 == $1);
-
-inline fn logical_and($FT, $ST) -> union($FT, $ST) {
-    if $0 {
-        return $1;
-    } else {
-        return $0;
-    }
-}
 inline fn assert_equal(_, _, location: string = __call_location) -> () {
     if $0 != $1 {
         error(location: location, "Assertion failed: " .. to_string($0) .. " != " .. to_string($1));
@@ -133,6 +124,47 @@ inline fn assert_not_equal(_, _, location: string = __call_location) -> () {
         error(location: location, "Assertion failed: " .. to_string($0) .. " == " .. to_string($1));
     }
 }
+
+// LOGICAL
+inline fn not_equal(_, _) => !($0 == $1);
+
+inline fn __or($LHS, $RHS) {
+    if $LHS {
+        return $LHS;
+    } else {
+        return $RHS;
+    }
+}
+
+inline fn __or(~union(...), $RHS) => apply(to: $0, visitor: fn[$RHS]($x) => __or($x, $RHS));
+
+inline fn __and($LHS, $RHS) {
+    if $LHS {
+        return $RHS;
+    } else {
+        return false;//$LHS;
+    }
+}
+/*
+inline fn __and($LHS: bool, $RHS) {
+    if $LHS {
+        return $RHS;
+    } else {
+        return false;
+    }
+}
+
+inline fn __and($FT, $ST) -> union($FT, $ST) {
+    if $0 {
+        return $1;
+    } else {
+        return $0;
+    }
+}
+*/
+
+// STRINGS
+inline fn implicit_cast(string) ~> bool => !empty($0);
 
 // UNIONS
 inline fn equal($l: ~union(...), $r) => apply(to: $l, visitor: fn[$r]($value) => $value == $r);
@@ -372,7 +404,7 @@ void annium_impl::compile(span<const statement> decls, span<string_view> args)
 
 void annium_impl::do_compile(internal_function_entity const& fe)
 {
-    //GLOBAL_LOG_INFO() << "compiling function: " << environment_.print(fe.name());
+    GLOBAL_LOG_INFO() << "compiling function: " << environment_.print(fe.name());
 
     if (!fe.is_built()) {
         auto err = const_cast<internal_function_entity&>(fe).build(environment_);

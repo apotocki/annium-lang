@@ -339,6 +339,28 @@ prepared_call::session::use_next_positioned_argument(expected_result_t const& ex
     return std::unexpected(error_storage{});
 }
 
+
+std::expected<std::pair<syntax_expression_result, bool>, error_storage>
+prepared_call::session::get_named_argument(identifier name, expected_result_t const& exp, argument_descriptor_t* pe)
+{
+    argument_descriptor_t reserved_descr;
+    if (!pe) pe = &reserved_descr;
+    
+    auto result = use_named_argument(name, exp, pe);
+    if (!result) {
+        std::ostringstream errss;
+        if (result.error()) {
+            ctx.env().print_to(errss << "error resolving '"sv, name) << "' argument"sv;
+            return std::unexpected(append_cause(
+                make_error<basic_general_error>(pe->expression->location, errss.str()),
+                std::move(result.error())));
+        }
+        ctx.env().print_to(errss << "missing '"sv, name) << "' argument"sv;
+        return std::unexpected(make_error<basic_general_error>(call.location, errss.str()));
+    }
+    return result;
+}
+
 std::expected<std::pair<syntax_expression_result, bool>, error_storage>
 prepared_call::session::use_named_argument(identifier name, expected_result_t const& exp, argument_descriptor_t* pe)
 {

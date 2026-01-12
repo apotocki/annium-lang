@@ -64,7 +64,6 @@ std::expected<functional_match_descriptor_ptr, error_storage> to_union_implicit_
     entity_identifier er_type;
     optional<std::pair<size_t, bool>> type_index_and_kind; // index and 'no cast needed'
     
-
     if (er.is_const_result) { // first try to match constant value
         auto it = std::ranges::find_if(pusig->fields(), [val = er.value()](field_descriptor const& fd) noexcept {
             return fd.is_const() && fd.entity_id() == val;
@@ -82,7 +81,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> to_union_implicit_
             return !fd.is_const() && fd.entity_id() == er_type;
         });
         if (it != pusig->fields().end()) {
-            type_index_and_kind.emplace((size_t)(it - pusig->fields().begin()), true);
+            type_index_and_kind.emplace((size_t)(it - pusig->fields().begin()), !er.is_const_result); // if er is const, then runtime cast is needed
         }
     }
     if (!type_index_and_kind) {
@@ -115,14 +114,14 @@ std::expected<functional_match_descriptor_ptr, error_storage> to_union_implicit_
     }
     
     functional_match_descriptor_ptr pmd = make_shared<to_union_cast_match_descriptor>(call, get<0>(*type_index_and_kind), *pusig, get<1>(*type_index_and_kind));
-    pmd->emplace_back(0, er, arg_loc);
-    pmd->signature.emplace_back(er.value_or_type, er.is_const_result);
+    pmd->append_arg(er, arg_loc);
     
-    if (can_be_only_runtime(exp.modifier) || !er.is_const_result) {
-        pmd->signature.result.emplace(exp.type, false);
-    } else {
-        pmd->signature.result.emplace(er.value(), true);
-    }
+    pmd->signature.result.emplace(exp.type, false);
+    //if (can_be_only_runtime(exp.modifier) || !er.is_const_result) {
+    //    pmd->signature.result.emplace(exp.type, false);
+    //} else {
+    //    pmd->signature.result.emplace(er.value(), true);
+    //}
 
     return pmd;
 }
@@ -134,6 +133,8 @@ std::expected<syntax_expression_result, error_storage> to_union_implicit_cast_pa
 
     auto & [_, arg_er, arg_loc] = md.matches.front();
 
+    BOOST_ASSERT(!umd.signature.result->is_const());
+
     syntax_expression_result result{
         //.temporaries = std::move(arg_er.temporaries),
         //.expressions = arg_er.expressions,
@@ -141,7 +142,29 @@ std::expected<syntax_expression_result, error_storage> to_union_implicit_cast_pa
         .is_const_result = umd.signature.result->is_const()
     };
 
-    if (!umd.exact_case || (arg_er.is_const_result != result.is_const_result)) {
+    // if union has only which field?
+    bool enum_union = true;
+    for (field_descriptor const& fd : umd.usig.fields()) {
+        if (!fd.is_const()) {
+            enum_union = false;
+            break;
+        }
+    }
+
+    if (enum_union) {
+        env.push_back_expression(el, result.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(umd.which) } });
+        return result;
+    }
+    
+    if (umd.exact_case) {
+        if (arg_er.is_const_result) {
+            BOOST_ASSERT(umd.which_field().is_const());
+            // append null as dummy runtime value for const union element
+            env.push_back_expression(el, result.expressions, semantic::push_value{ smart_blob{} });
+        } else {
+            append_semantic_result(el, arg_er, result);
+        }
+    } else {
         // need cast
         call_builder cast_call_builder{ md.call_location };
         if (arg_er.is_const_result) {
@@ -149,37 +172,18 @@ std::expected<syntax_expression_result, error_storage> to_union_implicit_cast_pa
         } else {
             cast_call_builder.emplace_back(make_indirect_value(env, el, std::move(arg_er), arg_loc));
         }
+        BOOST_ASSERT(!umd.which_field().is_const());
         auto res = ctx.find_and_apply(builtin_qnid::implicit_cast, cast_call_builder, el,
             expected_result_t{
                 .type = umd.which_field().entity_id(),
                 .modifier = result.is_const_result ? value_modifier_t::constexpr_value : value_modifier_t::runtime_value
             });
-        //function_call cast_call{ md.call_location, qname_reference{} };
-        //if (arg_er.is_const_result) {
-        //    cast_call.emplace_back(annotated_entity_identifier{ arg_er.value(), arg_loc });
-        //} else {
-        //    cast_call.emplace_back(make_indirect_value(env, el, std::move(arg_er), arg_loc));
-        //}
-        //auto res = base_expression_visitor{ ctx, el, 
-        //    expected_result_t{
-        //        .type = umd.which_field().entity_id(),
-        //        .modifier = result.is_const_result ? value_modifier_t::constexpr_value : value_modifier_t::runtime_value
-        //    }
-        //}(builtin_qnid::implicit_cast, cast_call);
         if (!res) {
             return std::unexpected(std::move(res.error()));
         }
         append_semantic_result(el, *res, result);
-    } else {
-        // no cast needed, just move expressions
-        append_semantic_result(el, arg_er, result);
     }
-
-    // do not build union value if constexpr result
-    if (result.is_const_result) return result;
-
-    size_t which = static_cast<to_union_cast_match_descriptor&>(md).which;
-    env.push_back_expression(el, result.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(which) } });
+    env.push_back_expression(el, result.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(umd.which) } });
     env.push_back_expression(el, result.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(2) } });
     env.push_back_expression(el, result.expressions, semantic::invoke_function(env.get(builtin_eid::arrayify)));
 

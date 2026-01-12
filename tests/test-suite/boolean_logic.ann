@@ -1,0 +1,15 @@
+
+assert_equal(false && "flag is true" || "flag is false", "flag is false");
+assert_equal(true && "flag is true" || "flag is false", "flag is true");
+assert_equal(runtime_cast(false) && "flag is true" || "flag is false", "flag is false");
+assert_equal(runtime_cast(true) && "flag is true" || "flag is false", "flag is true");
+
+let flag0 = false;
+let flag1 = true;
+let flag2 = runtime_cast(false);
+let flag3 = runtime_cast(true);
+
+print(flag0 && "flag is true" || "flag is false");
+print(flag1 && "flag is true" || "flag is false");
+print(flag2 && "flag is true" || "flag is false");
+print(flag3 && "flag is true" || "flag is false");

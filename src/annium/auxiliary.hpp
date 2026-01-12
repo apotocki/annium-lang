@@ -11,8 +11,10 @@ namespace annium {
 class environment;
 class entity;
 struct syntax_expression_result;
+struct field_descriptor;
 
 entity const& get_entity(environment const&, entity_identifier const&);
+entity_identifier get_entity_type(environment const&, field_descriptor const&);
 
 inline entity const& get_entity(environment const& e, annotated_entity_identifier const& aeid)
 {

@@ -95,6 +95,17 @@ inline void linked_list_node_span<EntryT>::pop_front()
 }
 
 template <class EntryT>
+inline void linked_list_node_span<EntryT>::pop_back()
+{
+    BOOST_ASSERT(pair_t::first);
+    if (pair_t::first == pair_t::second) {
+        pair_t::first = pair_t::second = nullptr;
+    } else {
+        pair_t::second = static_cast<EntryT*>(linked_list<typename EntryT::value_type>::previous(*pair_t::second));
+    }
+}
+
+template <class EntryT>
 inline linked_list_node_span<EntryT> linked_list_node_span<EntryT>::subspan(size_t n) const
 {
     linked_list_node_span<EntryT> res = *this;

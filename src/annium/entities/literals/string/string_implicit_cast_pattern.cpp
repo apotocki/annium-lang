@@ -22,11 +22,6 @@ std::expected<functional_match_descriptor_ptr, error_storage> string_implicit_ca
         return std::unexpected(make_error<type_mismatch_error>(call.location, exp.type, "a string type"sv));
     }
 
-    entity_identifier teid = exp.type;
-    if (!teid) {
-        return std::unexpected(make_error<basic_general_error>(call.location, "expected a runtime numeric result"sv));
-    }
-
     auto call_session = call.new_session(ctx);
     prepared_call::argument_descriptor_t arg_descr;
     auto src_arg = call_session.use_next_positioned_argument(&arg_descr);

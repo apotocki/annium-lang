@@ -92,6 +92,9 @@ public:
 
         void reuse_argument(size_t argindex);
 
+        // auxiliary
+        std::expected<std::pair<syntax_expression_result, bool>, error_storage> get_named_argument(identifier name, expected_result_t const& exp, argument_descriptor_t* pe);
+
     private:
         std::expected<std::pair<syntax_expression_result, bool>, error_storage>
         do_resolve(argument_cache& arg_cache, expected_result_t const& exp);

@@ -60,6 +60,7 @@ struct linked_list_node_span : std::pair<EntryT*, EntryT*>
 
     //void emplace_back(EntryT*);
     void pop_front();
+    void pop_back();
     linked_list_node_span subspan(size_t) const;
 };
 

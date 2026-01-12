@@ -72,8 +72,9 @@
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_implicit_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_implicit_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_unary_minus_pattern.cpp" />
-    <ClCompile Include="..\..\..\src\annium\entities\literals\string_concat_pattern.cpp" />
-    <ClCompile Include="..\..\..\src\annium\entities\literals\string_implicit_cast_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\entities\literals\string\string_concat_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\entities\literals\string\string_empty_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\entities\literals\string\string_implicit_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\prepared_call.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\struct\is_struct_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\struct\struct_entity.cpp" />
@@ -200,8 +201,9 @@
     <ClInclude Include="..\..\..\src\annium\entities\literals\literal_entity.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_implicit_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_unary_minus_pattern.hpp" />
-    <ClInclude Include="..\..\..\src\annium\entities\literals\string_concat_pattern.hpp" />
-    <ClInclude Include="..\..\..\src\annium\entities\literals\string_implicit_cast_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\literals\string\string_concat_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\literals\string\string_empty_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\literals\string\string_implicit_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\prepared_call.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\signatured_entity.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\struct\is_struct_pattern.hpp" />

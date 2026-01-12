@@ -156,7 +156,11 @@ void expression_printer_visitor::operator()(set_local_variable const& lv) const
 void expression_printer_visitor::operator()(invoke_function const& f) const
 {
     do_indent();
-    ss << "invoke "sv << f.fn << '\n';
+    ss << "invoke "sv << f.fn;
+#ifdef SONIA_LANG_DEBUG
+    ss << "\t; "sv << f.fn.debug_name;
+#endif
+    ss << '\n';
 }
 
 void expression_printer_visitor::operator()(return_statement const&) const

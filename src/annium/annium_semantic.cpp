@@ -56,6 +56,15 @@ void append_semantic_result_to_branch(semantic::expression_list_t& el, syntax_ex
     dest_branch = el.concat(dest_branch, src.expressions);
 }
 
+void append_branch_semantic_result(semantic::expression_list_t& el, syntax_expression_result& src, syntax_expression_result& dest)
+{
+    dest.branches_expressions = el.concat(dest.branches_expressions, src.branches_expressions);
+    dest.branches_expressions = el.concat(dest.branches_expressions, src.expressions);
+    dest.temporaries.insert(dest.temporaries.end(), src.temporaries.begin(), src.temporaries.end());
+}
+
+
+
 namespace semantic {
 
 class managed_expression_result
