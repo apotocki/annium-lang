@@ -19,28 +19,19 @@ namespace annium {
 
 std::expected<functional_match_descriptor_ptr, error_storage> array_from_iterator_make_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const&) const
 {
-    environment& env = ctx.env();
     auto call_session = call.new_session(ctx);
 
     // Try to get the optional 'of' parameter first
-    prepared_call::argument_descriptor_t from_iterator_arg_descr;
-    auto from_iterator_res = call_session.use_named_argument(env.get(builtin_id::from_iterator), expected_result_t{ .modifier = value_modifier_t::runtime_value }, &from_iterator_arg_descr);
+    auto from_iterator_arg_descr = call_session.get_named_argument(builtin_id::from_iterator, expected_result_t{ .modifier = value_modifier_t::runtime_value });
     
-    if (!from_iterator_res) {
-        if (from_iterator_res.error()) {
-            return std::unexpected(append_cause(
-                make_error<basic_general_error>(from_iterator_arg_descr.expression->location, "invalid 'from_iterator' argument"sv),
-                std::move(from_iterator_res.error())));
-        }
-        return std::unexpected(make_error<basic_general_error>(call.location, "missing required 'from_iterator' argument"sv));
-    }
+    if (!from_iterator_arg_descr) return std::unexpected(std::move(from_iterator_arg_descr.error()));
 
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
     auto pmd = make_shared<functional_match_descriptor>(call);
-    pmd->append_arg(from_iterator_res->first, from_iterator_arg_descr.expression->location);
+    pmd->append_arg(from_iterator_arg_descr->name, from_iterator_arg_descr->result, from_iterator_arg_descr->expression->location);
     return pmd;
 }
 

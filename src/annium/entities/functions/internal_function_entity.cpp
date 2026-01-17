@@ -27,7 +27,7 @@ internal_function_entity::internal_function_entity(qname&& name, entity_signatur
     , is_provision_{ 1 } // by default all internal functions are provisions
     , is_built_{ 0 }
     , is_inline_{ 0 }
-    , is_empty_{ 1 }
+    , is_empty_{ 0 } // not empty by default
 {
     location = std::move(loc);
     // if the signature has a result, it's the function result.
@@ -123,7 +123,7 @@ error_storage internal_function_entity::build(fn_compiler_context& fnctx)
 
     //GLOBAL_LOG_INFO() << fnctx.env().print(sts_);
     declaration_visitor dvis{ fnctx };
-    if (auto err = dvis.apply(sts_); err) return err;
+    if (auto res = dvis.apply(sts_); !res) return res.error();
 
     auto fres = fnctx.finish_frame(*this); // unknown result type is resolving here
     if (!fres) return fres.error();
@@ -150,7 +150,7 @@ error_storage internal_function_entity::build(fn_compiler_context& fnctx)
     return {};
 }
 
-bool internal_function_entity::is_const_eval(environment& e) const noexcept
+bool internal_function_entity::is_const_eval(environment&) const noexcept
 {
     return result.is_const() && is_empty_;
 

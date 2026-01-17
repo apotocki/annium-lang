@@ -34,19 +34,12 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_get_pattern::
 {
     environment& env = ctx.env();
     auto call_session = call.new_session(ctx);
-    prepared_call::argument_descriptor_t slf_arg_descr;
-    auto slf_arg = call_session.use_named_argument(env.get(builtin_id::self), expected_result_t{}, &slf_arg_descr);
-    if (!slf_arg) {
-        if (slf_arg.error()) {
-            return std::unexpected(append_cause(
-                make_error<basic_general_error>(slf_arg_descr.expression->location, "invalid `self` argument"sv),
-                std::move(slf_arg.error())));
-        }
-        return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `self`"sv));
-    }
+    
+    auto slf_arg_descr = call_session.get_named_argument(builtin_id::self);
+    if (!slf_arg_descr) return std::unexpected(std::move(slf_arg_descr.error()));
 
-    resource_location const& slfargloc = slf_arg_descr.expression->location;
-    syntax_expression_result& slf_arg_er = slf_arg->first;
+    resource_location const& slfargloc = slf_arg_descr->expression->location;
+    syntax_expression_result& slf_arg_er = slf_arg_descr->result;
     if (!slf_arg_er.is_const_result) {
         return std::unexpected(make_error<type_mismatch_error>(slfargloc, slf_arg_er.value_or_type, "an enumeration typename"sv));
     }
@@ -56,24 +49,16 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_get_pattern::
         return std::unexpected(make_error<type_mismatch_error>(slfargloc, slf_arg_er.value(), "an enumeration typename"sv));
     }
     
-    prepared_call::argument_descriptor_t prop_arg_descr;
-    auto property_arg = call_session.use_named_argument(env.get(builtin_id::property),
-        expected_result_t{ .type = env.get(builtin_eid::identifier), .modifier = value_modifier_t::constexpr_value}, &prop_arg_descr);
-    if (!property_arg) {
-        if (property_arg.error()) {
-            return std::unexpected(append_cause(
-                make_error<basic_general_error>(prop_arg_descr.expression->location, "invalid `property` argument"sv),
-                std::move(property_arg.error())));
-        }
-        return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `property`"sv));
-    }
+    auto prop_arg_descr = call_session.get_named_argument(builtin_id::property, builtin_eid::identifier, value_modifier_t::constexpr_value);
+        
+    if (!prop_arg_descr) return std::unexpected(std::move(prop_arg_descr.error()));
 
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    resource_location const& propargloc = prop_arg_descr.expression->location;
-    syntax_expression_result& prop_arg_er = property_arg->first;
+    resource_location const& propargloc = prop_arg_descr->expression->location;
+    syntax_expression_result& prop_arg_er = prop_arg_descr->result;
     identifier_entity const& ident = dynamic_cast<identifier_entity const&>(get_entity(env, prop_arg_er.value()));
     auto opt_which = pe->find(ident.value());
     if (!opt_which) {
@@ -82,12 +67,11 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_get_pattern::
 
     auto pmd = make_shared<enum_get_match_descriptor>(call, *opt_which);
     
-    pmd->emplace_back(0, slf_arg_er, slfargloc);
-    pmd->emplace_back(1, prop_arg_er, propargloc);
+    pmd->append_arg(env.get(builtin_id::self), slf_arg_er, slfargloc);
+    pmd->append_arg(env.get(builtin_id::property), prop_arg_er, propargloc);
     
     entity_signature& call_sig = pmd->signature;
-    call_sig.emplace_back(env.get(builtin_id::self), slf_arg_er.value(), true);
-    call_sig.emplace_back(env.get(builtin_id::property), prop_arg_er.value(), true);
+    
     if (can_be_only_runtime(exp.modifier)) {
         call_sig.result.emplace(slf_arg_er.value(), false);
     } else {

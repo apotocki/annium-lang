@@ -62,6 +62,7 @@ error_storage pattern_matcher::do_match_context_identifier(context_identifier ci
     //if ((pattern.modifier & parameter_constraint_modifier_t::ellipsis) == parameter_constraint_modifier_t::ellipsis) {
     //    THROW_NOT_IMPLEMENTED_ERROR("do_match_context_identifier for ellipsis is not implemented yet");
     //}
+    --weight; // matching a new context identifier is less specific
     bindings_.emplace_back(cid.name, type.value);
     return do_match_concepts(pattern.concepts, type); // Context identifier matches the type
 }

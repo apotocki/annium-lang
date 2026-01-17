@@ -12,9 +12,9 @@ assert_equal(tt.3, tuple(.name1, f16));
 assert_equal(tt.4, tuple(.name0, "asd"));
 assert_equal(tt.name0, tuple(bool, "asd"));
 
-
 let t0val: t0 = (name0: runtime_cast(true), 42);
 assert_equal(t0val.0, (.name0, true));
+
 assert_equal(typeof(t0val.0), t0.0);
 
 assert_equal(t0val.1, 42);

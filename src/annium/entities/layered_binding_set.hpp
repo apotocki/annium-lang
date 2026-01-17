@@ -38,7 +38,7 @@ class layered_binding_set : public functional_binding
     uint32_t current_layer_ = (std::numeric_limits<uint32_t>::max)();
 
 public:
-    value_type const* lookup(identifier, resource_location const**) const noexcept override;
+    value_type const* lookup(identifier, resource_location const** = nullptr) const noexcept override;
     void emplace_back(annotated_identifier, value_type);
 
     void emplace_back(uint32_t, annotated_identifier, value_type);

@@ -13,18 +13,26 @@ namespace annium {
 class functional;
 class internal_function_entity;
 
-class declaration_visitor : public static_visitor<error_storage>
+class declaration_visitor
 {
     fn_compiler_context& ctx;
     mutable small_vector<span<const statement>, 4> decl_stack_;
-    //mutable small_vector<statement_span, 4> decl_stack_;
+
+    enum class break_scope_kind : int
+    {
+        none = 0,
+        loop,
+        function
+    };
+
+    using result_type = std::expected<break_scope_kind, error_storage>;
 
 public:
     inline explicit declaration_visitor(fn_compiler_context& c) noexcept
         : ctx{ c }
     {}
 
-    [[nodiscard]] error_storage apply(span<const statement>) const;
+    [[nodiscard]] result_type apply(span<const statement>) const;
 
     //void operator()(empty_t const&) const {}
 
@@ -72,7 +80,7 @@ private:
     environment& env() const noexcept;
 
     // for the case when condition is a runtime evaluated expression
-    [[nodiscard]] error_storage do_rt_if_decl(if_decl const&) const;
+    [[nodiscard]] result_type do_rt_if_decl(if_decl const&) const;
 };
 
 }

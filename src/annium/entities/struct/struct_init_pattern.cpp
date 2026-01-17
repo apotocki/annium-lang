@@ -55,33 +55,33 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_init_patter
             call_session.use_named_argument(field.name.value, argexp, &arg_descr) :
             call_session.use_next_positioned_argument(argexp, &arg_descr);
         resource_location const* pargloc;
-        if (res) {
+        if (!res) {
+            return std::unexpected(append_cause(
+                make_error<basic_general_error>(arg_descr.expression->location, "invalid argument"sv),
+                std::move(res.error())
+            ));
+        } else if (*res) {
             pargloc = &arg_descr.expression->location;
         } else {
-            if (res.error()) {
-                return std::unexpected(append_cause(
-                    make_error<basic_general_error>(arg_descr.expression->location, "invalid argument"sv),
-                    std::move(res.error())
-                ));
-            }
             if (syntax_expression const* default_expr = get_if<syntax_expression>(&field.default_value)) {
                 if (!scope_bindings.empty()) {
                     ctx.push_binding(scope_bindings);
                 }
                 SCOPE_EXIT([&ctx, &scope_bindings] { if (!scope_bindings.empty()) ctx.pop_binding(&scope_bindings); });
-                res = base_expression_visitor::visit(ctx, call.expressions, argexp, *default_expr);
-                if (!res) {
+                auto defres = base_expression_visitor::visit(ctx, call.expressions, argexp, *default_expr);
+                if (!defres) {
                     return std::unexpected(append_cause(
                         make_error<basic_general_error>(default_expr->location, "unable to evaluate default value expression"sv),
-                        std::move(res.error())
+                        std::move(defres.error())
                     ));
                 }
                 pargloc = &default_expr->location;
+                arg_descr.result = std::move(defres->first);
             } else {
                 return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument"sv));
             }
         }
-        pmd->emplace_back(static_cast<intptr_t>(&field - fields_span.data()), std::move(res->first), *pargloc);
+        pmd->emplace_back(static_cast<intptr_t>(&field - fields_span.data()), std::move(arg_descr.result), *pargloc);
         if (field.name) {
             pmd->signature.emplace_back(field.name.value, field.type, false);
         } else {

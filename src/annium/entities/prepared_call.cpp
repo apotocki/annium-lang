@@ -306,14 +306,12 @@ bool prepared_call::session::has_more_positioned_arguments() const noexcept
     return positioned_usage_map_ != 0;
 }
 
-std::expected<std::pair<syntax_expression_result, bool>, error_storage>
-prepared_call::session::use_next_positioned_argument(argument_descriptor_t* pe)
+std::expected<bool, error_storage> prepared_call::session::use_next_positioned_argument(argument_descriptor_t* pe)
 {
     return use_next_positioned_argument(expected_result_t{}, pe);
 }
 
-std::expected<std::pair<syntax_expression_result, bool>, error_storage>
-prepared_call::session::use_next_positioned_argument(expected_result_t const& exp, argument_descriptor_t* pe)
+std::expected<bool, error_storage> prepared_call::session::use_next_positioned_argument(expected_result_t const& exp, argument_descriptor_t* pe)
 {
     while (positioned_usage_map_) {
         // get next unused argument index
@@ -326,42 +324,93 @@ prepared_call::session::use_next_positioned_argument(expected_result_t const& ex
         BOOST_ASSERT(!name);
 
         auto res = do_resolve(arg_cache, exp);
-
-        if (pe) {
-            pe->name = {};
-            pe->expression = &arg_cache.expression;
-            pe->arg_index = argindex;
+        pe->name = {};
+        pe->expression = &arg_cache.expression;
+        pe->arg_index = argindex;
+        if (res) {
+            pe->result = std::move(res->first);
+            pe->has_been_casted = res->second;
+            return true;
         }
-        return res;
+        return std::unexpected(std::move(res.error()));
     }
 
     // no more positioned unused arguments
-    return std::unexpected(error_storage{});
+    return false;
 }
 
-
-std::expected<std::pair<syntax_expression_result, bool>, error_storage>
-prepared_call::session::get_named_argument(identifier name, expected_result_t const& exp, argument_descriptor_t* pe)
+std::expected<prepared_call::argument_descriptor_t, error_storage>
+prepared_call::session::get_named_argument(builtin_id name, builtin_eid type, value_modifier_t mod)
 {
-    argument_descriptor_t reserved_descr;
-    if (!pe) pe = &reserved_descr;
+    return get_named_argument(ctx.env().get(name), expected_result_t{ .type = ctx.env().get(type), .modifier = mod });
+}
+
+std::expected<prepared_call::argument_descriptor_t, error_storage>
+prepared_call::session::get_named_argument(builtin_id name, expected_result_t const& exp)
+{
+    return get_named_argument(ctx.env().get(name), exp);
+}
+
+std::expected<prepared_call::argument_descriptor_t, error_storage>
+prepared_call::session::get_named_argument(identifier name, expected_result_t const& exp)
+{
+    argument_descriptor_t result_descr;
     
-    auto result = use_named_argument(name, exp, pe);
+    auto result = use_named_argument(name, exp, &result_descr);
     if (!result) {
         std::ostringstream errss;
-        if (result.error()) {
-            ctx.env().print_to(errss << "error resolving '"sv, name) << "' argument"sv;
-            return std::unexpected(append_cause(
-                make_error<basic_general_error>(pe->expression->location, errss.str()),
-                std::move(result.error())));
-        }
+        ctx.env().print_to(errss << "error resolving '"sv, name) << "' argument"sv;
+        return std::unexpected(append_cause(
+            make_error<basic_general_error>(result_descr.expression->location, errss.str()),
+            std::move(result.error())));
+    }
+    else if (!*result) {
+        std::ostringstream errss;
         ctx.env().print_to(errss << "missing '"sv, name) << "' argument"sv;
         return std::unexpected(make_error<basic_general_error>(call.location, errss.str()));
     }
-    return result;
+    return result_descr;
 }
 
-std::expected<std::pair<syntax_expression_result, bool>, error_storage>
+std::expected<prepared_call::argument_descriptor_t, error_storage>
+prepared_call::session::get_next_positioned_argument(expected_result_t const& exp, string_view arg_hint)
+{
+    argument_descriptor_t result_descr;
+    auto result = use_next_positioned_argument(exp, &result_descr);
+    if (!result) {
+        error_storage err;
+        if (arg_hint.empty()) {
+            err = make_error<basic_general_error>(result_descr.expression->location, "error resolving positional argument"sv);
+        } else {
+            std::ostringstream errss;
+            errss << "error resolving `"sv << arg_hint << "` argument"sv;
+            err = make_error<basic_general_error>(result_descr.expression->location, errss.str());
+        }
+        return std::unexpected(append_cause(err, std::move(result.error())));
+    }
+    else if (!*result) {
+        if (arg_hint.empty()) {
+            return std::unexpected(make_error<basic_general_error>(call.location, "missing required positional argument"sv));
+        } else {
+            std::ostringstream errss;
+            errss << "missing required `"sv << arg_hint << "` argument"sv;
+            return std::unexpected(make_error<basic_general_error>(call.location, errss.str()));
+        }
+    }
+    return result_descr;
+}
+
+std::expected<prepared_call::argument_descriptor_t, error_storage> prepared_call::session::get_next_positioned_argument(builtin_eid type, value_modifier_t mod, string_view arg_hint)
+{
+    return get_next_positioned_argument(expected_result_t{ .type = ctx.env().get(type), .modifier = mod }, arg_hint);
+}
+
+std::expected<prepared_call::argument_descriptor_t, error_storage> prepared_call::session::get_next_positioned_argument(string_view arg_hint)
+{
+    return get_next_positioned_argument(expected_result_t{}, arg_hint);
+}
+
+std::expected<bool, error_storage>
 prepared_call::session::use_named_argument(identifier name, expected_result_t const& exp, argument_descriptor_t* pe)
 {
     for (auto tmp_map = named_usage_map_; tmp_map;) {
@@ -376,21 +425,26 @@ prepared_call::session::use_named_argument(identifier name, expected_result_t co
 
         if (name != argname) continue; // not the argument we are looking for
         
-        auto res = do_resolve(arg_cache, exp);
-        if (pe) {
-            pe->name = { argname, loc };
-            pe->expression = &arg_cache.expression;
-            pe->arg_index = argindex;
-        }
         named_usage_map_ -= pow2_argindex;
-        return res;
+
+        auto res = do_resolve(arg_cache, exp);
+
+        pe->name = { argname, loc };
+        pe->expression = &arg_cache.expression;
+        pe->arg_index = argindex;
+        if (res) {
+            pe->result = std::move(res->first);
+            pe->has_been_casted = res->second;
+            return true;
+        }
+        
+        return std::unexpected(std::move(res.error()));
     }
     // no more named unused arguments
-    return std::unexpected(error_storage{});
+    return false;
 }
 
-std::expected<std::pair<syntax_expression_result, bool>, error_storage>
-prepared_call::session::use_next_argument(expected_result_t const& exp, argument_descriptor_t* pe)
+std::expected<bool, error_storage> prepared_call::session::use_next_argument(expected_result_t const& exp, argument_descriptor_t* pe)
 {
     for (auto tmp_map = named_usage_map_ | positioned_usage_map_; tmp_map;) {
         uint64_t pow2_argindex = tmp_map - ((tmp_map - 1) & tmp_map);
@@ -403,16 +457,19 @@ prepared_call::session::use_next_argument(expected_result_t const& exp, argument
         auto& [argname, loc, arg_cache] = call.argument_caches_[argindex];
 
         auto res = do_resolve(arg_cache, exp);
-        if (pe) {
-            pe->name = { argname, loc };
-            pe->expression = &arg_cache.expression;
-            pe->arg_index = argindex;
+        pe->name = { argname, loc };
+        pe->expression = &arg_cache.expression;
+        pe->arg_index = argindex;
+        if (res) {
+            pe->result = std::move(res->first);
+            pe->has_been_casted = res->second;
+            return true;
         }
-        return res;
+        return std::unexpected(std::move(res.error()));
     }
 
     // no more named unused arguments
-    return std::unexpected(error_storage{});
+    return false;
 }
 
 opt_named_expression_t prepared_call::session::unused_argument()

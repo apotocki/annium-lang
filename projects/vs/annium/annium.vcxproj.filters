@@ -396,6 +396,9 @@
     <ClCompile Include="..\..\..\src\annium\entities\literals\string\string_empty_pattern.cpp">
       <Filter>annium\entities\literals\string</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\enum\enum_implicit_runtime_cast_pattern.cpp">
+      <Filter>annium\entities\enum</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\annium\location.hh">
@@ -784,6 +787,9 @@
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\literals\string\string_empty_pattern.hpp">
       <Filter>annium\entities\literals\string</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\enum\enum_implicit_runtime_cast_pattern.hpp">
+      <Filter>annium\entities\enum</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

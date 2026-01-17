@@ -20,14 +20,9 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_project_size
 {
     environment& e = ctx.env();
     auto call_session = call.new_session(ctx);
-    prepared_call::argument_descriptor_t arg_descr;
-    auto arg = call_session.use_next_positioned_argument(&arg_descr);
-    if (!arg) {
-        if (!arg.error()) {
-            return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument"sv));
-        }
-        return std::unexpected(std::move(arg.error()));
-    }
+
+    auto arg_descr = call_session.get_next_positioned_argument();
+    if (!arg_descr) return std::unexpected(std::move(arg_descr.error()));
 
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
@@ -35,8 +30,8 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_project_size
 
     entity_identifier slftype;
     
-    syntax_expression_result& arg_er = arg->first;
-    resource_location const& arg_loc = arg_descr.expression->location;
+    syntax_expression_result& arg_er = arg_descr->result;
+    resource_location const& arg_loc = arg_descr->expression->location;
     if (arg_er.is_const_result) {
         entity const& slf_entity = get_entity(e, arg_er.value());
         slftype = slf_entity.get_type();

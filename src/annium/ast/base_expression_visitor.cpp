@@ -159,6 +159,13 @@ base_expression_visitor::result_type base_expression_visitor::operator()(indirec
     return apply_cast(retrieve_indirect(env(), expressions, v));
 }
 
+base_expression_visitor::result_type base_expression_visitor::operator()(local_variable_expression const& lv) const
+{
+    semantic::expression_span exprs_span;
+    env().push_back_expression(expressions, exprs_span, semantic::push_local_variable{ lv.var });
+    return apply_cast(syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = lv.var.type, .is_const_result = false });
+}
+
 base_expression_visitor::result_type base_expression_visitor::operator()(stack_value_reference_expression const& svr) const
 {
     syntax_expression_result result{
@@ -514,8 +521,8 @@ base_expression_visitor::result_type base_expression_visitor::operator()(array_w
     qname nested{ env().new_identifier(), false };
     fn_compiler_context nested_ctx{ ctx, nested };
     declaration_visitor dvis{ nested_ctx };
-    auto err = dvis.apply(awb.body);
-    if (err) return std::unexpected(std::move(err));
+    auto res = dvis.apply(awb.body);
+    if (!res) return std::unexpected(std::move(res.error()));
     auto err2 = nested_ctx.finish_scope();
 
     THROW_NOT_IMPLEMENTED_ERROR("array_with_body_expression_t");
@@ -740,19 +747,12 @@ error_storage base_expression_visitor::make_function_call_arguments(pure_call co
     for (field_descriptor const& fd : args) {
         BOOST_ASSERT(!fd.is_const());
         expected_result_t arg_exp{ .type = fd.entity_id(), .modifier = value_modifier_t::runtime_value };
-        prepared_call::argument_descriptor_t arg_descr;
-        auto arg = fd.name() ?
-            call_session.use_named_argument(fd.name(), arg_exp, &arg_descr) :
-            call_session.use_next_positioned_argument(arg_exp, &arg_descr);
-        if (!arg) {
-            if (arg.error()) {
-                return append_cause(
-                    make_error<basic_general_error>(arg_descr.expression->location, "invalid argument"sv),
-                    std::move(arg.error()));
-            }
-            return make_error<basic_general_error>(pcall.location, "missing required argument"sv);
-        }
-        append_semantic_result(expressions, arg->first, result);
+        auto arg_descr = fd.name() ?
+            call_session.get_named_argument(fd.name(), arg_exp) :
+            call_session.get_next_positioned_argument(arg_exp);
+        if (!arg_descr) return std::move(arg_descr.error());
+        
+        append_semantic_result(expressions, arg_descr->result, result);
     }
     if (auto argterm = call_session.unused_argument(); argterm) {
         return make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value()));

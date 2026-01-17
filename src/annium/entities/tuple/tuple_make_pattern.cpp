@@ -21,21 +21,17 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_make_pattern
 
     auto pmd = make_shared<functional_match_descriptor>(call);
 
-    for (size_t arg_num = 0;; ++arg_num) {
+    for (;;) {
         prepared_call::argument_descriptor_t argdescr;
         auto res = call_session.use_next_argument(expected_result_t{}, &argdescr);
-        if (!res) {
-            if (res.error()) return std::unexpected(std::move(res.error()));
-            break;
-        }
-        auto& ser = res->first;
+        if (!res) return std::unexpected(std::move(res.error()));
+        if (!*res) break; // no more arguments
+            
+        auto& ser = argdescr.result;
         if (argdescr.name) {
-            pmd->signature.emplace_back(argdescr.name.value, ser.value_or_type, ser.is_const_result);
+            pmd->append_arg(argdescr.name, ser, argdescr.expression->location);
         } else {
-            pmd->signature.emplace_back(ser.value_or_type, ser.is_const_result);
-        }
-        if (!ser.is_const_result) {
-            pmd->emplace_back(arg_num, ser);
+            pmd->append_arg(ser, argdescr.expression->location);
         }
     }
     return pmd;
@@ -50,17 +46,21 @@ std::expected<syntax_expression_result, error_storage> tuple_make_pattern::apply
     signature.result.emplace(env.get(builtin_eid::typename_));
     
     syntax_expression_result result{ };
+    size_t rt_count = 0;
     for (auto& [_, mr, loc] : md.matches) {
-        append_semantic_result(el, mr, result);
+        if (!mr.is_const_result) {
+            ++rt_count;
+            append_semantic_result(el, mr, result);
+        }
     }
 
     entity const& tuple_type_ent = env.make_basic_signatured_entity(std::move(signature));
     BOOST_ASSERT(tuple_type_ent.signature() && tuple_type_ent.signature()->name == env.get(builtin_qnid::tuple));
-    if (md.matches.size() > 1) {
-        env.push_back_expression(el, result.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(md.matches.size()) } });
+    if (rt_count > 1) {
+        env.push_back_expression(el, result.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(rt_count) } });
         env.push_back_expression(el, result.expressions, semantic::invoke_function(env.get(builtin_eid::arrayify)));
     }
-    if (md.matches.size()) {
+    if (rt_count) {
         result.value_or_type = tuple_type_ent.id;
         result.is_const_result = false;
     } else {

@@ -20,27 +20,19 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_typename_get
 {
     environment& e = ctx.env();
     auto call_session = call.new_session(ctx);
-    prepared_call::argument_descriptor_t slf_arg_descr;
-    auto slf_arg = call_session.use_named_argument(e.get(builtin_id::self), expected_result_t{ .type = e.get(builtin_eid::typename_), .modifier = value_modifier_t::constexpr_value }, &slf_arg_descr);
-    if (!slf_arg) {
-        if (!slf_arg.error()) {
-            return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `self`"sv));
-        }
-        return std::unexpected(std::move(slf_arg.error()));
-    }
+    
+    auto slf_arg_descr = call_session.get_named_argument(builtin_id::self, builtin_eid::typename_, value_modifier_t::constexpr_value);
+    if (!slf_arg_descr) return std::unexpected(std::move(slf_arg_descr.error()));
 
     prepared_call::argument_descriptor_t prop_arg_descr;
     alt_error prop_errors;
     auto property_arg = call_session.use_named_argument(e.get(builtin_id::property), expected_result_t{ .type = e.get(builtin_eid::integer), .modifier = value_modifier_t::constexpr_value }, &prop_arg_descr);
-    if (!property_arg && property_arg.error()) {
+    if (!property_arg) {
         prop_errors.alternatives.emplace_back(std::move(property_arg.error()));
         call_session.reuse_argument(prop_arg_descr.arg_index);
         property_arg = call_session.use_named_argument(e.get(builtin_id::property), expected_result_t{ .type = e.get(builtin_eid::identifier), .modifier = value_modifier_t::constexpr_value }, &prop_arg_descr);
     }
     if (!property_arg) {
-        if (!property_arg.error()) {
-            return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `property`"sv));
-        }
         if (prop_errors.alternatives.empty()) {
             return std::unexpected(std::move(property_arg.error()));
         } else {
@@ -48,13 +40,15 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_typename_get
             return std::unexpected(make_error<alt_error>(std::move(prop_errors)));
         }
     }
-
+    if (!*property_arg) {
+        return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `property`"sv));
+    }
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    syntax_expression_result& slf_arg_er = slf_arg->first;
-    resource_location const& slf_arg_loc = slf_arg_descr.expression->location;
+    syntax_expression_result& slf_arg_er = slf_arg_descr->result;
+    resource_location const& slf_arg_loc = slf_arg_descr->expression->location;
 
     // This pattern only handles const results (tuple typename)
     if (!slf_arg_er.is_const_result) {
@@ -71,8 +65,8 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_typename_get
     }
 
     auto pmd = make_shared<tuple_typename_get_match_descriptor>(call, slf_entity, *psig);
-    pmd->append_arg(slf_arg_er, slf_arg_loc);
-    pmd->append_arg(property_arg->first, prop_arg_descr.expression->location);
+    pmd->append_arg(e.get(builtin_id::self), slf_arg_er, slf_arg_loc);
+    pmd->append_arg(e.get(builtin_id::property), prop_arg_descr.result, prop_arg_descr.expression->location);
     
     return pmd;
 }

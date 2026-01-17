@@ -19,14 +19,14 @@ std::expected<functional_match_descriptor_ptr, error_storage> void_implicit_cast
         return std::unexpected(make_error<basic_general_error>(call.location, "expected a void result"sv));
     }
     auto call_session = call.new_session(ctx);
-    prepared_call::argument_descriptor_t arg_desc;
-    auto arg = call_session.use_next_positioned_argument(&arg_desc);
-    if (!arg) return std::unexpected(arg.error());
+
+    auto arg_descr = call_session.get_next_positioned_argument();
+    if (!arg_descr) return std::unexpected(arg_descr.error());
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
     auto pmd = make_shared<functional_match_descriptor>(call);
-    pmd->append_arg(arg->first, arg_desc.expression->location);
+    pmd->append_arg(arg_descr->result, arg_descr->expression->location);
     pmd->signature.result.emplace(ctx.env().get(builtin_eid::void_), true);
     return pmd;
 }

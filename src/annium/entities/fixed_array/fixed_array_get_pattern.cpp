@@ -32,19 +32,12 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_get_pa
 {
     environment& env = ctx.env();
     auto call_session = call.new_session(ctx);
-    prepared_call::argument_descriptor_t slf_arg_descr;
-    auto slf_arg = call_session.use_named_argument(env.get(builtin_id::self), expected_result_t{}, &slf_arg_descr);
-    if (!slf_arg) {
-        if (slf_arg.error()) {
-            return std::unexpected(append_cause(
-                make_error<basic_general_error>(slf_arg_descr.expression->location, "invalid `self` argument"sv),
-                std::move(slf_arg.error())));
-        }
-        return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `self`"sv));
-    }
 
-    resource_location const& slfargloc = slf_arg_descr.expression->location;
-    syntax_expression_result& slf_arg_er = slf_arg->first;
+    auto slf_arg_descr = call_session.get_named_argument(builtin_id::self);
+    if (!slf_arg_descr) return std::unexpected(std::move(slf_arg_descr.error()));
+
+    resource_location const& slfargloc = slf_arg_descr->expression->location;
+    syntax_expression_result& slf_arg_er = slf_arg_descr->result;
     entity_identifier slftype = get_result_type(env, slf_arg_er);
     
     entity const& slf_type_entity = get_entity(env, slftype);
@@ -53,27 +46,17 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_get_pa
         return std::unexpected(make_error<type_mismatch_error>(slfargloc, slftype, "an array"sv));
     }
 
-    prepared_call::argument_descriptor_t prop_arg_descr;
-    auto property_arg = call_session.use_named_argument(env.get(builtin_id::property), expected_result_t{ env.get(builtin_eid::integer) }, &prop_arg_descr);
-    if (!property_arg) {
-        if (property_arg.error()) {
-            return std::unexpected(append_cause(
-                make_error<basic_general_error>(prop_arg_descr.expression->location, "invalid `property` argument"sv),
-                std::move(property_arg.error())));
-        }
-        return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `property`"sv));
-    }
+    auto prop_arg_descr = call_session.get_named_argument(builtin_id::property, builtin_eid::integer);
+    if (!prop_arg_descr) return std::unexpected(std::move(prop_arg_descr.error()));
 
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    resource_location const& propargloc = prop_arg_descr.expression->location;
-
     shared_ptr<fixed_array_get_match_descriptor> pmd = make_shared<fixed_array_get_match_descriptor>(call, *psig);
     
     pmd->append_arg(env.get(builtin_id::self), slf_arg_er, slfargloc);
-    pmd->append_arg(env.get(builtin_id::property), property_arg->first, propargloc);
+    pmd->append_arg(env.get(builtin_id::property), prop_arg_descr->result, prop_arg_descr->expression->location);
     return pmd;
 }
 

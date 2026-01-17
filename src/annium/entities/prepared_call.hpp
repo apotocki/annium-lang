@@ -10,6 +10,8 @@
 
 #include "functional.hpp"
 
+#include "annium/environment.hpp"
+
 namespace annium {
 
 class fn_compiler_context;
@@ -56,11 +58,20 @@ public:
 
     error_storage prepare();
 
+    //struct argument_descriptor_t
+    //{
+    //    annotated_identifier name;
+    //    syntax_expression const* expression;
+    //    size_t arg_index;
+    //};
+
     struct argument_descriptor_t
     {
         annotated_identifier name;
         syntax_expression const* expression;
-        size_t arg_index;
+        syntax_expression_result result;
+        size_t arg_index : 31;
+        size_t has_been_casted : 1;
     };
 
     //using argument_descriptor_t = std::pair<syntax_expression const*, size_t>;
@@ -82,18 +93,22 @@ public:
         session(fn_compiler_context&, prepared_call const&);
 
         bool has_more_positioned_arguments() const noexcept;
-        std::expected<std::pair<syntax_expression_result, bool>, error_storage> use_next_positioned_argument(argument_descriptor_t* = nullptr);
-        std::expected<std::pair<syntax_expression_result, bool>, error_storage> use_next_positioned_argument(expected_result_t const& exp, argument_descriptor_t* = nullptr);
+        std::expected<bool, error_storage> use_next_positioned_argument(argument_descriptor_t *);
+        std::expected<bool, error_storage> use_next_positioned_argument(expected_result_t const&, argument_descriptor_t*);
+        std::expected<bool, error_storage> use_named_argument(identifier name, expected_result_t const&, argument_descriptor_t*);
 
-        std::expected<std::pair<syntax_expression_result, bool>, error_storage> use_named_argument(identifier name, expected_result_t const& exp, argument_descriptor_t* = nullptr);
-
-        std::expected<std::pair<syntax_expression_result, bool>, error_storage> use_next_argument(expected_result_t const& exp, argument_descriptor_t* pe);
+        std::expected<bool, error_storage> use_next_argument(expected_result_t const&, argument_descriptor_t*);
         opt_named_expression_t unused_argument();
 
         void reuse_argument(size_t argindex);
 
-        // auxiliary
-        std::expected<std::pair<syntax_expression_result, bool>, error_storage> get_named_argument(identifier name, expected_result_t const& exp, argument_descriptor_t* pe);
+        // auxiliary: raising error if argument not found 
+        std::expected<argument_descriptor_t, error_storage> get_named_argument(identifier name, expected_result_t const& = {});
+        std::expected<argument_descriptor_t, error_storage> get_named_argument(builtin_id name, expected_result_t const& = {});
+        std::expected<argument_descriptor_t, error_storage> get_named_argument(builtin_id name, builtin_eid type, value_modifier_t = value_modifier_t::constexpr_or_runtime_value);
+        std::expected<argument_descriptor_t, error_storage> get_next_positioned_argument(expected_result_t const&, string_view arg_hint = ""sv);
+        std::expected<argument_descriptor_t, error_storage> get_next_positioned_argument(builtin_eid type, value_modifier_t = value_modifier_t::constexpr_or_runtime_value, string_view arg_hint = ""sv);
+        std::expected<argument_descriptor_t, error_storage> get_next_positioned_argument(string_view arg_hint = ""sv);
 
     private:
         std::expected<std::pair<syntax_expression_result, bool>, error_storage>

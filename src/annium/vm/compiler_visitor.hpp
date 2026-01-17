@@ -69,7 +69,7 @@ public:
         case semantic::push_by_base::frame_bottom:
             fnbuilder_.append_fpush(pv.offset);
             break;
-        case semantic::push_by_base::stack_bottom:
+        case semantic::push_by_base::stack_top:
             fnbuilder_.append_pushr(pv.offset);
             break;
         default:
@@ -257,7 +257,7 @@ public:
                 apply(e);
             });
             
-            auto branch_end_pt = fnbuilder_.make_label();
+            //auto branch_end_pt = fnbuilder_.make_label();
             branch_pt->operation = asm_builder_t::op_t::je;
             branch_pt->operand = true_branch_end_pt;
             //if (!c.true_branch_finished) {

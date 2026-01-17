@@ -47,20 +47,16 @@ std::expected<functional_match_descriptor_ptr, error_storage> to_union_implicit_
     }
 
     auto call_session = call.new_session(ctx);
-    prepared_call::argument_descriptor_t arg_descr;
-    auto arg = call_session.use_next_positioned_argument(&arg_descr);
-    if (!arg) {
-        if (!arg.error()) {
-            return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument"sv));
-        }
-        return std::unexpected(std::move(arg.error()));
-    }
+    
+    auto arg_descr = call_session.get_next_positioned_argument();
+    if (!arg_descr) return std::unexpected(std::move(arg_descr.error()));
+
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    resource_location arg_loc = arg_descr.expression->location;
-    syntax_expression_result& er = arg->first;
+    resource_location arg_loc = arg_descr->expression->location;
+    syntax_expression_result& er = arg_descr->result;
     entity_identifier er_type;
     optional<std::pair<size_t, bool>> type_index_and_kind; // index and 'no cast needed'
     

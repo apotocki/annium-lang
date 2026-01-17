@@ -23,23 +23,16 @@ std::expected<functional_match_descriptor_ptr, error_storage> string_implicit_ca
     }
 
     auto call_session = call.new_session(ctx);
-    prepared_call::argument_descriptor_t arg_descr;
-    auto src_arg = call_session.use_next_positioned_argument(&arg_descr);
-    if (!src_arg) {
-        if (src_arg.error()) {
-            return std::unexpected(append_cause(
-                make_error<basic_general_error>(arg_descr.expression->location, "invalid argument"sv),
-                std::move(src_arg.error())));
-        } else {
-            return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument"sv));
-        }
-    }
+    
+    auto arg_descr = call_session.get_next_positioned_argument();
+    if (!arg_descr) return std::unexpected(std::move(arg_descr.error()));
+       
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    syntax_expression_result& src_arg_er = src_arg->first;
-    resource_location const& src_arg_loc = arg_descr.expression->location;
+    syntax_expression_result& src_arg_er = arg_descr->result;
+    resource_location const& src_arg_loc = arg_descr->expression->location;
     entity_identifier source_type_id;
     entity const* source_type_entity = nullptr;
     if (src_arg_er.is_const_result) {

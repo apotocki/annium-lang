@@ -36,19 +36,11 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_new_pattern
     identifier tpid = env.get(builtin_id::type);
 
     auto call_session = call.new_session(ctx);
-    prepared_call::argument_descriptor_t type_arg_descr;
-    auto type_arg = call_session.use_named_argument(tpid, expected_result_t{ .modifier = value_modifier_t::constexpr_value }, &type_arg_descr);
-    if (!type_arg) {
-        if (type_arg.error()) {
-            return std::unexpected(append_cause(
-                make_error<basic_general_error>(type_arg_descr.expression->location, "invalid `__type` argument"sv),
-                std::move(type_arg.error())));
-        }
-        return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `__type`"sv));
-    }
+    auto type_arg_descr = call_session.get_named_argument(tpid, expected_result_t{ .modifier = value_modifier_t::constexpr_value });
+    if (!type_arg_descr) return std::unexpected(std::move(type_arg_descr.error()));
 
-    resource_location const& typeargloc = type_arg_descr.expression->location;
-    syntax_expression_result& type_arg_er = type_arg->first;
+    resource_location const& typeargloc = type_arg_descr->expression->location;
+    syntax_expression_result& type_arg_er = type_arg_descr->result;
 
     entity const& some_entity = get_entity(env, type_arg_er.value());
     struct_entity const* pse = dynamic_cast<struct_entity const*>(&some_entity);

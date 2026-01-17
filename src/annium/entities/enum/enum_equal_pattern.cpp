@@ -23,20 +23,11 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_equal_pattern
     auto call_session = call.new_session(ctx);
     
     // Get first argument
-    prepared_call::argument_descriptor_t lhs_descr;
-    auto lhs_arg = call_session.use_next_positioned_argument(expected_result_t{}, &lhs_descr);
-    if (!lhs_arg) {
-        if (lhs_arg.error()) {
-            return std::unexpected(append_cause(
-                make_error<basic_general_error>(lhs_descr.expression->location, "invalid first argument for enum equality comparison"sv),
-                std::move(lhs_arg.error())));
-        } else {
-            return std::unexpected(make_error<basic_general_error>(call.location, "enum equality comparison requires two arguments: missing first argument"sv));
-        }
-    }
+    auto lhs_descr = call_session.get_next_positioned_argument();
+    if (!lhs_descr) return std::unexpected(std::move(lhs_descr.error()));
 
-    resource_location const& lhs_loc = lhs_descr.expression->location;
-    syntax_expression_result& lhs_arg_er = lhs_arg->first;
+    resource_location const& lhs_loc = lhs_descr->expression->location;
+    syntax_expression_result& lhs_arg_er = lhs_descr->result;
     
     // Check if first argument is an enum
     entity_identifier lhs_type = get_result_type(env, lhs_arg_er);
@@ -46,20 +37,11 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_equal_pattern
     }
 
     // Get second argument, expecting the same enum type
-    prepared_call::argument_descriptor_t rhs_descr;
-    auto rhs_arg = call_session.use_next_positioned_argument(expected_result_t{ .type = lhs_type }, &rhs_descr);
-    if (!rhs_arg) {
-        if (rhs_arg.error()) {
-            return std::unexpected(append_cause(
-                make_error<basic_general_error>(rhs_descr.expression->location, "invalid second argument for enum equality comparison"sv),
-                std::move(rhs_arg.error())));
-        } else {
-            return std::unexpected(make_error<basic_general_error>(call.location, "enum equality comparison requires two arguments: missing second argument"sv));
-        }
-    }
+    auto rhs_descr = call_session.get_next_positioned_argument(expected_result_t{ .type = lhs_type } );
+    if (!rhs_descr) return std::unexpected(std::move(rhs_descr.error()));
 
-    resource_location const& rhs_loc = rhs_descr.expression->location;
-    syntax_expression_result& rhs_arg_er = rhs_arg->first;
+    resource_location const& rhs_loc = rhs_descr->expression->location;
+    syntax_expression_result& rhs_arg_er = rhs_descr->result;
 
     // Check if second argument is also an enum of the same type
     entity_identifier rhs_type = get_result_type(env, rhs_arg_er);
@@ -73,12 +55,10 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_equal_pattern
     }
 
     auto pmd = make_shared<functional_match_descriptor>(call);
-    pmd->emplace_back(0, lhs_arg_er, lhs_loc);
-    pmd->emplace_back(1, rhs_arg_er, rhs_loc);
+    pmd->append_arg(lhs_arg_er, lhs_loc);
+    pmd->append_arg(rhs_arg_er, rhs_loc);
     
     entity_signature& call_sig = pmd->signature;
-    call_sig.emplace_back(lhs_arg_er.value_or_type, lhs_arg_er.is_const_result);
-    call_sig.emplace_back(rhs_arg_er.value_or_type, rhs_arg_er.is_const_result);
     
     // If both arguments are constexpr and we can evaluate at compile time, or if expected result allows runtime
     if (lhs_arg_er.is_const_result && rhs_arg_er.is_const_result && !can_be_only_runtime(exp.modifier)) {

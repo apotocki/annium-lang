@@ -30,6 +30,7 @@
 
 #include "annium/utility/linked_list.hpp"
 #include "terms.hpp"
+#include "annium/semantic_fwd.hpp"
 
 #define ANNIUM_AST_INDIRECT_STORE_SIZE (8 * sizeof(void*))
 
@@ -374,6 +375,12 @@ struct probe_expression
 };
 
 struct nil_expression {};
+
+struct local_variable_expression
+{
+    local_variable var;
+};
+
 struct name_reference_expression { identifier name; }; // e.g. for identifiers started with $ or #, e.g.: $0, $$, #call_location
 struct qname_reference_expression { qname_view name; };
 struct stack_value_reference_expression
@@ -409,8 +416,8 @@ struct syntax_expression
         // literals
         nil_expression, bool, numetron::integer_view, numetron::decimal_view, string_view, identifier, entity_identifier,
         
-        // named references
-        name_reference_expression, qname_reference_expression,
+        // references
+        local_variable_expression, name_reference_expression, qname_reference_expression,
         
         // on stack reference
         stack_value_reference_expression,

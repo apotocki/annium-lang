@@ -21,24 +21,12 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_project_get_
     environment& e = ctx.env();
     auto call_session = call.new_session(ctx);
     
-    prepared_call::argument_descriptor_t slf_arg_descr;
-    auto slf_arg = call_session.use_named_argument(e.get(builtin_id::self), expected_result_t{}, &slf_arg_descr);
-    if (!slf_arg) {
-        if (!slf_arg.error()) {
-            return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `self`"sv));
-        }
-        return std::unexpected(std::move(slf_arg.error()));
-    }
+    auto slf_arg_descr = call_session.get_named_argument(builtin_id::self);
+    if (!slf_arg_descr) return std::unexpected(std::move(slf_arg_descr.error()));
 
-    //std::pair<syntax_expression const*, size_t> prop_arg_expr;
     // Note: We only accept integer for property in tuple_project_get
-    auto property_arg = call_session.use_named_argument(e.get(builtin_id::property), expected_result_t{ e.get(builtin_eid::integer) });// , & prop_arg_expr);
-    if (!property_arg) {
-        if (!property_arg.error()) {
-            return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `property`"sv));
-        }
-        return std::unexpected(std::move(property_arg.error()));
-    }
+    auto property_arg_descr = call_session.get_named_argument(builtin_id::property, builtin_eid::integer);
+    if (!property_arg_descr) return std::unexpected(std::move(property_arg_descr.error()));
 
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
@@ -46,7 +34,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_project_get_
 
     shared_ptr<tuple_project_get_match_descriptor> pmd;
     entity_identifier slftype;
-    syntax_expression_result& slf_arg_er = slf_arg->first;
+    syntax_expression_result& slf_arg_er = slf_arg_descr->result;
     if (slf_arg_er.is_const_result) {
         entity const& slf_entity = get_entity(e, slf_arg_er.value());
         slftype = slf_entity.get_type();
@@ -57,12 +45,12 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_project_get_
     entity const& tpl_prj_entity = get_entity(e, slftype);
     auto psig = tpl_prj_entity.signature();
     if (!psig || psig->name != e.get(builtin_qnid::tuple_project)) {
-        return std::unexpected(make_error<type_mismatch_error>(slf_arg_descr.expression->location, slftype, "a tuple_project"sv));
+        return std::unexpected(make_error<type_mismatch_error>(slf_arg_descr->expression->location, slftype, "a tuple_project"sv));
     }
         
     // Extract project name and original tuple from signature
     if (psig->field_count() != 2 || !psig->result || psig->result->entity_id() != e.get(builtin_eid::typename_) ) { // tuple_project, (id, orig_tuple)
-        return std::unexpected(make_error<basic_general_error>(slf_arg_descr.expression->location, "invalid tuple_project signature"sv, tpl_prj_entity.id));
+        return std::unexpected(make_error<basic_general_error>(slf_arg_descr->expression->location, "invalid tuple_project signature"sv, tpl_prj_entity.id));
     }
         
     // Get project name from signature (first field)
@@ -71,20 +59,20 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_project_get_
     if (identifier_entity const* pident = dynamic_cast<const identifier_entity*>(&name_entity)) {
         project_name = pident->value();
     } else {
-        return std::unexpected(make_error<basic_general_error>(slf_arg_descr.expression->location, "invalid tuple_project name"sv, name_entity.id));
+        return std::unexpected(make_error<basic_general_error>(slf_arg_descr->expression->location, "invalid tuple_project name"sv, name_entity.id));
     }
         
     // Get original tuple entity (third field)
     entity const& orig_tuple = get_entity(e, psig->field(1).entity_id());
     auto orig_sig = orig_tuple.signature();
     if (!orig_sig || orig_sig->name != e.get(builtin_qnid::tuple)) {
-        return std::unexpected(make_error<basic_general_error>(slf_arg_descr.expression->location, "invalid tuple_project origin tuple"sv, orig_tuple.id));
+        return std::unexpected(make_error<basic_general_error>(slf_arg_descr->expression->location, "invalid tuple_project origin tuple"sv, orig_tuple.id));
     }
         
     pmd = make_shared<tuple_project_get_match_descriptor>(call, project_name, orig_tuple, *orig_sig);
 
-    pmd->emplace_back(0, slf_arg_er);
-    pmd->emplace_back(1, property_arg->first);
+    pmd->append_arg(slf_arg_er, slf_arg_descr->expression->location);
+    pmd->append_arg(property_arg_descr->result, property_arg_descr->expression->location);
     
     return pmd;
 }

@@ -48,6 +48,7 @@ set (LIBRARY_SOURCES
     ${LIBRARY_HOME}/annium/entities/enum/enum_equal_pattern.cpp
     ${LIBRARY_HOME}/annium/entities/enum/enum_get_pattern.cpp
     ${LIBRARY_HOME}/annium/entities/enum/enum_implicit_cast_pattern.cpp
+    ${LIBRARY_HOME}/annium/entities/enum/enum_implicit_runtime_cast_pattern.cpp
     ${LIBRARY_HOME}/annium/entities/enum/enum_to_integer_pattern.cpp
     ${LIBRARY_HOME}/annium/entities/enum/enum_to_string_pattern.cpp
     
@@ -60,8 +61,9 @@ set (LIBRARY_SOURCES
     ${LIBRARY_HOME}/annium/entities/literals/numeric_literal_equal_pattern.cpp
     ${LIBRARY_HOME}/annium/entities/literals/numeric_literal_implicit_cast_pattern.cpp
     ${LIBRARY_HOME}/annium/entities/literals/numeric_literal_unary_minus_pattern.cpp
-    ${LIBRARY_HOME}/annium/entities/literals/string_concat_pattern.cpp
-    ${LIBRARY_HOME}/annium/entities/literals/string_implicit_cast_pattern.cpp
+    ${LIBRARY_HOME}/annium/entities/literals/string/string_empty_pattern.cpp
+    ${LIBRARY_HOME}/annium/entities/literals/string/string_concat_pattern.cpp
+    ${LIBRARY_HOME}/annium/entities/literals/string/string_implicit_cast_pattern.cpp
     
     ${LIBRARY_HOME}/annium/entities/struct/is_struct_pattern.cpp
     ${LIBRARY_HOME}/annium/entities/struct/struct_entity.cpp

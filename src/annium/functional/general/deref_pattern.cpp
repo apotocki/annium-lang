@@ -18,14 +18,14 @@ namespace annium {
 std::expected<functional_match_descriptor_ptr, error_storage> deref_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
 {
     auto call_session = call.new_session(ctx);
-    prepared_call::argument_descriptor_t arg_descr;
-    auto arg = call_session.use_next_positioned_argument(exp, &arg_descr);
-    if (!arg) return std::unexpected(arg.error());
+    
+    auto arg_descr = call_session.get_next_positioned_argument(exp);
+    if (!arg_descr) return std::unexpected(std::move(arg_descr.error()));
 
     auto argerror = [&arg_descr] {
-        return std::unexpected(make_error<basic_general_error>(arg_descr.expression->location, "argument mismatch"sv, *arg_descr.expression));
+        return std::unexpected(make_error<basic_general_error>(arg_descr->expression->location, "argument mismatch"sv, *arg_descr->expression));
     };
-    syntax_expression_result& arg_er = arg->first;
+    syntax_expression_result& arg_er = arg_descr->result;
     if (!arg_er.is_const_result) return argerror();
     entity const& argent = get_entity(ctx.env(), arg_er.value());
     if (argent.get_type() != ctx.env().get(builtin_eid::qname)) return argerror();
@@ -34,7 +34,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> deref_pattern::try
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
     auto pmd = make_shared<functional_match_descriptor>(call);
-    pmd->append_arg(arg_er, arg_descr.expression->location);
+    pmd->append_arg(arg_er, arg_descr->expression->location);
     return pmd;
 }
 

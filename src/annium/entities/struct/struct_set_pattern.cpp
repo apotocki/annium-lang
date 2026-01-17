@@ -39,20 +39,12 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_set_pattern
     environment& env = ctx.env();
     
     auto call_session = call.new_session(ctx);
-    prepared_call::argument_descriptor_t slf_arg_descr;
+    
+    auto slf_arg_descr = call_session.get_named_argument(env.get(builtin_id::self));
+    if (!slf_arg_descr) return std::unexpected(std::move(slf_arg_descr.error()));
 
-    auto slf_arg = call_session.use_named_argument(env.get(builtin_id::self), expected_result_t{}, &slf_arg_descr);
-    if (!slf_arg) {
-        if (slf_arg.error()) {
-            return std::unexpected(append_cause(
-                make_error<basic_general_error>(slf_arg_descr.expression->location, "invalid `self` argument"sv),
-                std::move(slf_arg.error())));
-        }
-        return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `self`"sv));
-    }
-
-    auto& slf_er = slf_arg->first;
-    resource_location const& slf_loc = slf_arg_descr.expression->location;
+    auto& slf_er = slf_arg_descr->result;
+    resource_location const& slf_loc = slf_arg_descr->expression->location;
     entity_identifier selftp = get_result_type(env, slf_er);
     struct_entity const* pstruct = dynamic_cast<struct_entity const*>(&get_entity(env, selftp)); // ensure entity exists
     if (!pstruct) {
@@ -62,22 +54,22 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_set_pattern
     prepared_call::argument_descriptor_t prop_arg_descr;
     alt_error prop_errors;
     auto property_arg = call_session.use_named_argument(env.get(builtin_id::property), expected_result_t{ env.get(builtin_eid::integer) }, &prop_arg_descr);
-    if (!property_arg && property_arg.error()) {
+    if (!property_arg) {
         prop_errors.alternatives.emplace_back(std::move(property_arg.error()));
         call_session.reuse_argument(prop_arg_descr.arg_index);
         property_arg = call_session.use_named_argument(env.get(builtin_id::property), expected_result_t{ env.get(builtin_eid::identifier) }, &prop_arg_descr);
     }
     if (!property_arg) {
-        if (!property_arg.error()) {
-            return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `property`"sv));
-        }
         prop_errors.alternatives.emplace_back(std::move(property_arg.error()));
         return std::unexpected(append_cause(
             make_error<basic_general_error>(prop_arg_descr.expression->location, "invalid `property` argument"sv),
             make_error<alt_error>(std::move(prop_errors))
         ));
     }
-    auto& prop_er = property_arg->first;
+    if (!*property_arg) {
+        return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `property`"sv));
+    }
+    auto& prop_er = prop_arg_descr.result;
     resource_location const& prop_loc = prop_arg_descr.expression->location;
 
     // Get underlying tuple entity for the struct
@@ -119,16 +111,8 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_set_pattern
             }
         }
 
-        prepared_call::argument_descriptor_t prop_val_arg_descr;
-        auto valarg = call_session.use_next_positioned_argument(expected_result_t{ .type = prop_value_type_eid, .modifier = value_modifier_t::runtime_value }, &prop_val_arg_descr);
-        if (!valarg) {
-            if (valarg.error()) {
-                return std::unexpected(append_cause(
-                    make_error<basic_general_error>(prop_val_arg_descr.expression->location, "invalid value argument"sv),
-                    std::move(valarg.error())));
-            }
-            return std::unexpected(make_error<basic_general_error>(call.location, "missing required value argument"sv));
-        }
+        auto prop_val_arg_descr = call_session.get_next_positioned_argument(expected_result_t{ .type = prop_value_type_eid, .modifier = value_modifier_t::runtime_value }, "value"sv);
+        if (!prop_val_arg_descr) return std::unexpected(std::move(prop_val_arg_descr.error()));
 
         auto pmd = make_shared<struct_set_match_descriptor>(call, *utl_sig);
         
@@ -136,7 +120,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> struct_set_pattern
         pmd->signature.emplace_back(env.get(builtin_id::self), pstruct->id, slf_er.is_const_result);
         pmd->append_arg(env.get(builtin_id::property), prop_er, prop_loc);
         
-        pmd->emplace_back(2, valarg->first, prop_val_arg_descr.expression->location);
+        pmd->emplace_back(2, prop_val_arg_descr->result, prop_val_arg_descr->expression->location);
         pmd->signature.emplace_back(prop_value_type_eid, false);
         pmd->property_index = field_index;
         

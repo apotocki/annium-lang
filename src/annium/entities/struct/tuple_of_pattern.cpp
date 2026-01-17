@@ -29,16 +29,8 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_of_pattern::
     environment& env = ctx.env();
     auto call_session = call.new_session(ctx);
     
-    prepared_call::argument_descriptor_t arg_descr;
-    auto arg = call_session.use_next_positioned_argument(expected_result_t{}, &arg_descr);
-    if (!arg) {
-        if (arg.error()) {
-            return std::unexpected(append_cause(
-                make_error<basic_general_error>(arg_descr.expression->location, "invalid argument for tuple_of"sv),
-                std::move(arg.error())));
-        }
-        return std::unexpected(make_error<basic_general_error>(call.location, "tuple_of requires one argument"sv));
-    }
+    auto arg_descr = call_session.get_next_positioned_argument();
+    if (!arg_descr) return std::unexpected(std::move(arg_descr.error()));
 
     // Check if there are any unused arguments
     if (auto argterm = call_session.unused_argument(); argterm) {
@@ -46,8 +38,8 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_of_pattern::
             "is_struct accepts exactly one argument"sv, std::move(argterm.value())));
     }
 
-    syntax_expression_result& arg_er = arg->first;
-    resource_location arg_loc = arg_descr.expression->location;
+    syntax_expression_result& arg_er = arg_descr->result;
+    resource_location arg_loc = arg_descr->expression->location;
 
     entity const* arg_entity;
     entity_identifier arg_type = get_result_type(env, arg_er, &arg_entity);

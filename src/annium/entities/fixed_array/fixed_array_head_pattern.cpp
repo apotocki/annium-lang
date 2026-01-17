@@ -33,19 +33,14 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_head_p
 {
     environment& e = ctx.env();
     auto call_session = call.new_session(ctx);
-    prepared_call::argument_descriptor_t arg_descr;
-    auto arg = call_session.use_next_positioned_argument(&arg_descr);
-    if (!arg) {
-        if (!arg.error()) {
-            return std::unexpected(make_error<basic_general_error>(call.location, "missing argument"sv));
-        }
-        return std::unexpected(arg.error());
-    }
+
+    auto arg_descr = call_session.get_next_positioned_argument();
+    
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    syntax_expression_result& er = arg->first;
+    syntax_expression_result& er = arg_descr->result;
     entity_identifier argtype;
     shared_ptr<functional_match_descriptor> pmd;
     if (er.is_const_result) {
@@ -54,7 +49,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_head_p
             argtype = arg_entity.get_type();
             pmd = make_shared<fixed_array_head_pattern_match_descriptor>(call, psig);
         } else {
-            return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, er.value(), "an array type"sv));
+            return std::unexpected(make_error<type_mismatch_error>(arg_descr->expression->location, er.value(), "an array type"sv));
         }
     } else {
         argtype = er.type();
@@ -63,10 +58,10 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_head_p
 
     entity const& arg_type_entity = get_entity(e, argtype);
     if (auto psig = arg_type_entity.signature(); !psig || psig->name != e.get(builtin_qnid::array)) {
-        return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, argtype, "an array type"sv));
+        return std::unexpected(make_error<type_mismatch_error>(arg_descr->expression->location, argtype, "an array type"sv));
     }
 
-    pmd->append_arg(er, arg_descr.expression->location);
+    pmd->append_arg(er, arg_descr->expression->location);
     return pmd;
 }
 

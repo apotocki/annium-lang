@@ -18,32 +18,19 @@ namespace annium {
 std::expected<functional_match_descriptor_ptr, error_storage> equal_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const&) const
 {
     auto call_session = call.new_session(ctx);
-    prepared_call::argument_descriptor_t lhs_descr, rhs_descr;
-    auto lhs_arg = call_session.use_next_positioned_argument(expected_result_t{}, &lhs_descr);
-    if (!lhs_arg) {
-        if (lhs_arg.error()) {
-            return std::unexpected(append_cause(
-                make_error<basic_general_error>(lhs_descr.expression->location, "invalid first argument for equality comparison"sv),
-                std::move(lhs_arg.error())));
-        }
-        return std::unexpected(make_error<basic_general_error>(call.location, "equality comparison requires two arguments: missing first argument"sv));
-    }
-    syntax_expression_result& lhs_arg_er = lhs_arg->first;
-    resource_location lhs_loc = lhs_descr.expression->location;
+    
+    auto lhs_descr = call_session.get_next_positioned_argument();
+    if (!lhs_descr) return std::unexpected(std::move(lhs_descr.error()));
+        
+    syntax_expression_result& lhs_arg_er = lhs_descr->result;
+    resource_location lhs_loc = lhs_descr->expression->location;
     entity_identifier lhs_type = lhs_arg_er.is_const_result ? get_entity(ctx.env(), lhs_arg_er.value()).get_type() : lhs_arg_er.type();
 
-    auto rhs_arg = call_session.use_next_positioned_argument(expected_result_t{ lhs_type }, &rhs_descr);
-    if (!rhs_arg) {
-        if (rhs_arg.error()) {
-            return std::unexpected(append_cause(
-                make_error<basic_general_error>(rhs_descr.expression->location, "invalid second argument for equality comparison"sv),
-                std::move(rhs_arg.error())));
-        } else {
-            return std::unexpected(make_error<basic_general_error>(call.location, "equality comparison requires two arguments: missing second argument"sv));
-        }
-    }
-    resource_location rhs_loc = rhs_descr.expression->location;
-    syntax_expression_result& rhs_arg_er = rhs_arg->first;
+    auto rhs_descr = call_session.get_next_positioned_argument(expected_result_t{ lhs_type });
+    if (!rhs_descr) return std::unexpected(std::move(rhs_descr.error()));
+        
+    resource_location rhs_loc = rhs_descr->expression->location;
+    syntax_expression_result& rhs_arg_er = rhs_descr->result;
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "equality comparison accepts exactly two arguments, but more were provided"sv, std::move(argterm.value())));
     }

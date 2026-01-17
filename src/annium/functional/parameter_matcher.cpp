@@ -54,7 +54,7 @@ struct constraint_matcher
     {
     }
 
-    std::expected<std::pair<syntax_expression_result, bool>, error_storage> do_retrieve_next_argument(expected_result_t const& argexp)
+    std::expected<bool, error_storage> do_retrieve_next_argument(expected_result_t const& argexp)
     {
         if (pd.ename) {
             return pmatcher.call_session.use_named_argument(pd.ename.value, argexp, &arg_descr);
@@ -68,11 +68,11 @@ struct constraint_matcher
     std::expected<std::pair<syntax_expression_result, bool>, error_storage> retrieve_next_argument(expected_result_t const& argexp)
     {
         auto res = do_retrieve_next_argument(argexp);
-        if (res) {
-            arg_er = res->first;
-            dweight = res->second ? 1 : 0;
-        }
-        return res;
+        if (!res) return std::unexpected(res.error());
+        if (!*res) return std::unexpected(error_storage{}); // no more arguments
+        arg_er = arg_descr.result;
+        dweight = arg_descr.has_been_casted ? 1 : 0;
+        return std::pair{ arg_descr.result, !!arg_descr.has_been_casted };
     }
 
     error_storage operator()(syntax_expression const* constraint) const

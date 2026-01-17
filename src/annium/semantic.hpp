@@ -340,11 +340,11 @@ namespace semantic {
 
 enum class push_by_base : uint8_t
 {
-    stack_bottom,
+    stack_top,
     frame_bottom
 };
 
-struct push_by_offset { intptr_t offset; push_by_base base = push_by_base::stack_bottom; }; // offset from the stack top
+struct push_by_offset { intptr_t offset; push_by_base base = push_by_base::stack_top; }; // offset from the stack top
 struct push_value
 {
     value_t value;
@@ -450,7 +450,7 @@ using expression_span = linked_list_node_span<expression_entry>;
 struct return_statement
 {
     expression_span result;
-    size_t scope_size; // Numebr of elements on stack after evaluation of result expressions
+    size_t scope_size; // Number of elements on stack after evaluation of result expressions
     //entity_identifier value_or_type;
     //bool is_const_value_result;
 };

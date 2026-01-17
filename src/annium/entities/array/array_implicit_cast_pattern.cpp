@@ -47,25 +47,16 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_implicit_cas
     }
 
     auto call_session = call.new_session(ctx);
-    prepared_call::argument_descriptor_t arg_descr;
     
-    auto arg = call_session.use_next_positioned_argument(&arg_descr);
-    if (!arg) {
-        if (arg.error()) {
-            return std::unexpected(append_cause(
-                make_error<basic_general_error>(arg_descr.expression->location, "invalid argument"sv),
-                std::move(arg.error())));
-        } else {
-            return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument"sv));
-        }
-    }
+    auto arg_descr = call_session.get_next_positioned_argument();
+    if (!arg_descr) return std::unexpected(std::move(arg_descr.error()));
 
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    resource_location const& argloc = arg_descr.expression->location;
-    syntax_expression_result& er = arg->first;
+    resource_location const& argloc = arg_descr->expression->location;
+    syntax_expression_result& er = arg_descr->result;
     entity_identifier argtype = get_result_type(env, er); // ensure type is resolved
     
     entity const& argtype_ent = get_entity(env, argtype);
@@ -189,8 +180,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_implicit_cas
         env.push_back_expression(call.expressions, pmd->result->expressions, semantic::push_value{ smart_blob{ ui64_blob_result(arg_data->fields().size()) } });
         env.push_back_expression(call.expressions, pmd->result->expressions, semantic::invoke_function{ env.get(builtin_eid::arrayify) });
             
-        pmd->emplace_back(0, er, argloc);
-        pmd->signature.emplace_back(er.value(), true);
+        pmd->append_arg(er, argloc);
         pmd->signature.result.emplace(exp.type, false);
     }
     

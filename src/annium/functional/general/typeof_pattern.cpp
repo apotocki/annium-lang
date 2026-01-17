@@ -17,23 +17,15 @@ namespace annium {
 std::expected<functional_match_descriptor_ptr, error_storage> typeof_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const&) const
 {
     auto call_session = call.new_session(ctx);
-    prepared_call::argument_descriptor_t arg_descr;
-    auto arg = call_session.use_next_positioned_argument(&arg_descr);
-    if (!arg) {
-        if (arg.error()) {
-            return std::unexpected(append_cause(
-                make_error<basic_general_error>(arg_descr.expression->location, "invalid argument"sv),
-                std::move(arg.error())));
-        }
-        return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument"sv));
-    }
+    auto arg_descr = call_session.get_next_positioned_argument();
+    if (!arg_descr) return std::unexpected(std::move(arg_descr.error()));
     
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
     auto pmd = make_shared<functional_match_descriptor>(call);
-    pmd->append_arg(arg->first, arg_descr.expression->location);
-    pmd->signature.result.emplace(get_result_type(ctx.env(), arg->first), true);
+    pmd->append_arg(arg_descr->result, arg_descr->expression->location);
+    pmd->signature.result.emplace(get_result_type(ctx.env(), arg_descr->result), true);
     return pmd;
 }
 

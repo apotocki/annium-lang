@@ -40,10 +40,14 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_make_p
     prepared_call::argument_descriptor_t of_arg_descr;
     auto of_res = call_session.use_named_argument(e.get(builtin_id::of), 
         expected_result_t{ .type = e.get(builtin_eid::typename_), .modifier = value_modifier_t::constexpr_value }, &of_arg_descr);
-    
-    if (of_res) {
+    if (!of_res) {
+        return std::unexpected(append_cause(
+            make_error<basic_general_error>(of_arg_descr.expression->location, "invalid 'of' argument"sv),
+            std::move(of_res.error())));
+    }
+    if (*of_res) {
         // Explicit type specified
-        auto& of_arg = of_res->first;
+        auto& of_arg = of_arg_descr.result;
         // Check that it's a valid type
         entity const& etype = get_entity(e, of_arg.value());
         if (etype.get_type() != e.get(builtin_eid::typename_)) {
@@ -52,10 +56,6 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_make_p
         pmd->element_type = of_arg.value();
         pmd->has_explicit_type = true;
         pmd->emplace_back(0, of_arg, of_arg_descr.expression->location);
-    } else if (of_res.error()) {
-        return std::unexpected(append_cause(
-            make_error<basic_general_error>(of_arg_descr.expression->location, "invalid 'of' argument"sv),
-            std::move(of_res.error())));
     } else {
         // No explicit type, will be inferred from elements
         pmd->has_explicit_type = false;
@@ -72,13 +72,13 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_make_p
         prepared_call::argument_descriptor_t elem_descr;
         auto elem_res = call_session.use_next_positioned_argument(exp_element_res, &elem_descr);
         if (!elem_res) {
-            if (elem_res.error()) 
-                return std::unexpected(append_cause(
-                    make_error<basic_general_error>(elem_descr.expression->location, "invalid argument"sv),
-                    std::move(elem_res.error())));
-            break;
+            return std::unexpected(append_cause(
+                make_error<basic_general_error>(elem_descr.expression->location, "invalid argument"sv),
+                std::move(elem_res.error())));
         }
-        auto& ser = elem_res->first;
+        if (!*elem_res) break;
+        
+        auto& ser = elem_descr.result;
 
         if (!pmd->has_explicit_type) {
             entity_identifier etype;

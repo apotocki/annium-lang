@@ -23,25 +23,19 @@ string_empty_pattern::try_match(fn_compiler_context& ctx, prepared_call const& c
     environment& env = ctx.env();
 
     auto call_session = call.new_session(ctx);
-    prepared_call::argument_descriptor_t arg_descr;
+    
     expected_result_t string_exp{
         .type = env.get(builtin_eid::string),
         .modifier = value_modifier_t::constexpr_value
     };
-    auto arg = call_session.use_next_positioned_argument(string_exp, &arg_descr);
-    if (!arg) {
-        if (arg.error()) {
-            return std::unexpected(append_cause(
-                make_error<basic_general_error>(arg_descr.expression->location, "invalid argument"sv),
-                std::move(arg.error())));
-        }
-        return std::unexpected(make_error<basic_general_error>(call.location, "missing argument"sv));
-    }
+    auto arg_descr = call_session.get_next_positioned_argument(string_exp);
+    if (!arg_descr) return std::unexpected(std::move(arg_descr.error()));
+        
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    syntax_expression_result& er = arg->first;
+    syntax_expression_result& er = arg_descr->result;
     BOOST_ASSERT(er.is_const_result);
     
     entity const& arg_entity = get_entity(env, er.value());
@@ -53,7 +47,7 @@ string_empty_pattern::try_match(fn_compiler_context& ctx, prepared_call const& c
     bool const is_empty = str_literal->value().as<string_view>().empty();
 
     auto pmd = make_shared<functional_match_descriptor>(call);
-    pmd->append_arg(er, arg_descr.expression->location);
+    pmd->append_arg(er, arg_descr->expression->location);
     pmd->signature.result.emplace(env.make_bool_entity(is_empty).id, true);
     return pmd;
 }

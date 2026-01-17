@@ -25,12 +25,12 @@ union_bit_or_pattern::try_match(fn_compiler_context& ctx, prepared_call const& c
         prepared_call::argument_descriptor_t arg_descr;
         auto arg = call_session.use_next_positioned_argument(expected_result_t{ .modifier = value_modifier_t::constexpr_value }, &arg_descr);
         if (!arg) {
-            if (!arg.error()) break; // no more arguments
             return std::unexpected(append_cause(
                 make_error<basic_general_error>(arg_descr.expression->location, "invalid argument"sv),
                 std::move(arg.error())));
         }
-        syntax_expression_result& er = arg->first;
+        if (!*arg) break; // no more arguments
+        syntax_expression_result& er = arg_descr.result;
         resource_location const& arg_loc = arg_descr.expression->location;
         if (!er.is_const_result) {
             return std::unexpected(make_error<basic_general_error>(arg_loc, "argument must be a constant expression"sv));

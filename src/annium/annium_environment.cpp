@@ -66,6 +66,7 @@
 #include "annium/entities/struct/tuple_of_pattern.hpp"
 
 #include "annium/entities/enum/enum_implicit_cast_pattern.hpp"
+#include "annium/entities/enum/enum_implicit_runtime_cast_pattern.hpp"
 #include "annium/entities/enum/enum_get_pattern.hpp"
 #include "annium/entities/enum/enum_equal_pattern.hpp"
 #include "annium/entities/enum/enum_to_string_pattern.hpp"
@@ -1505,6 +1506,7 @@ environment::environment()
     functional& implicit_cast_fnl = fregistry_resolve(get(builtin_qnid::implicit_cast));
     //implicit_cast_fnl.push(make_shared<struct_implicit_cast_pattern>());
     implicit_cast_fnl.push(make_shared<enum_implicit_cast_pattern>());
+    implicit_cast_fnl.push(make_shared<enum_implicit_runtime_cast_pattern>());
     //implicit_cast_fnl.push(make_shared<fixed_array_implicit_cast_pattern>()); // array to vector
     implicit_cast_fnl.push(make_shared<array_implicit_cast_pattern>()); // vector to vector
     //implicit_cast_fnl.push(make_shared<fixed_array_elements_implicit_cast_pattern>());
@@ -1660,9 +1662,10 @@ intptr_t environment::retrieve_function_rt_identifier(internal_function_entity c
 
 size_t environment::compile(internal_function_entity const& fn_ent)
 {
-    fn_ent.body.for_each([this](semantic::expression const& e) {
-        GLOBAL_LOG_INFO() << print(e); // << "\n"sv
-    });
+    //GLOBAL_LOG_INFO() << "environment : compiling function: " << print(fn_ent.name());
+    //fn_ent.body.for_each([this](semantic::expression const& e) {
+    //    GLOBAL_LOG_INFO() << print(e); // << "\n"sv
+    //});
 
     asm_builder_t& asm_builder = static_cast<asm_builder_t&>(*asm_builder_);
     asm_builder_t::function_descriptor& fd = asm_builder.resolve_function(vmasm::fn_identity<entity_identifier>{ fn_ent.id });

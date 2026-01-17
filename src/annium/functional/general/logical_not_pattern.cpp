@@ -22,17 +22,9 @@ logical_not_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
     
     // Expect a boolean argument
     expected_result_t bool_exp{ env.get(builtin_eid::boolean), call.location };
-    prepared_call::argument_descriptor_t arg_descr;
-    auto arg = call_session.use_next_positioned_argument(bool_exp, &arg_descr);
-    if (!arg) {
-        if (arg.error()) {
-            return std::unexpected(append_cause(
-                make_error<basic_general_error>(arg_descr.expression->location, "invalid argument"sv),
-                std::move(arg.error())));
-        } else {
-            return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument"sv));
-        }
-    }
+    
+    auto arg_descr = call_session.get_next_positioned_argument(bool_exp);
+    if (!arg_descr) return std::unexpected(std::move(arg_descr.error()));
     
     // Check if there are any unused arguments
     if (auto argterm = call_session.unused_argument(); argterm) {
@@ -42,8 +34,8 @@ logical_not_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
     
     // Create match descriptor
     auto pmd = make_shared<functional_match_descriptor>(call);
-    pmd->append_arg(arg->first, arg_descr.expression->location);
-    pmd->signature.result.emplace(env.get(builtin_eid::boolean), arg->first.is_const_result);
+    pmd->append_arg(arg_descr->result, arg_descr->expression->location);
+    pmd->signature.result.emplace(env.get(builtin_eid::boolean), arg_descr->result.is_const_result);
     
     return pmd;
 }

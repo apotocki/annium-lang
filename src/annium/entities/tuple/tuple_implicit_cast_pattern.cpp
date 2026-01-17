@@ -52,19 +52,16 @@ tuple_implicit_cast_pattern::try_match(fn_compiler_context& ctx, prepared_call c
 
     auto call_session = call.new_session(ctx);
     // Get (source tuple)
-    prepared_call::argument_descriptor_t slf_arg_descr;
-    auto src_arg = call_session.use_next_positioned_argument(&slf_arg_descr);
-    if (!src_arg) {
-        return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument"sv));
-    }
-
+    auto arg_descr = call_session.get_next_positioned_argument();
+    if (!arg_descr) return std::unexpected(std::move(arg_descr.error()));
+    
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
     // Both must be tuple types
     entity_identifier src_type;
-    syntax_expression_result& src_arg_er = src_arg->first;
+    syntax_expression_result& src_arg_er = arg_descr->result;
     if (src_arg_er.is_const_result) {
         entity const& src_entity = get_entity(e, src_arg_er.value());
         src_type = src_entity.get_type();
@@ -75,7 +72,7 @@ tuple_implicit_cast_pattern::try_match(fn_compiler_context& ctx, prepared_call c
     if (src_type == exp.type) {
         // No cast needed, just return the source as is
         auto pmd = make_shared<tuple_implicit_cast_match_descriptor>(call);
-        pmd->emplace_back(0, src_arg_er);
+        pmd->append_arg(src_arg_er, arg_descr->expression->location);
         return pmd;
     }
 
@@ -99,7 +96,7 @@ tuple_implicit_cast_pattern::try_match(fn_compiler_context& ctx, prepared_call c
     }
 
     auto pmd = make_shared<tuple_implicit_cast_match_descriptor>(call, src_entity_type, *dst_sig); // ?location = get_start_location(*pself_expr))
-    pmd->append_arg(src_arg_er, slf_arg_descr.expression->location);
+    pmd->append_arg(src_arg_er, arg_descr->expression->location);
     pmd->signature.result.emplace(exp.type, can_be_only_constexpr(exp.modifier));
     return pmd;
 }

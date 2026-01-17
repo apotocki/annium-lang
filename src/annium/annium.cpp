@@ -112,13 +112,12 @@ using namespace annium;
 
 const char annium_bootstrap_code[] = R"#(
 
-fn print(:string ...) => __print($0 ..., size($0));
-
+// CONTROL
 inline fn assert_equal(_, _, location: string = __call_location) -> () {
-    if $0 != $1 {
-        error(location: location, "Assertion failed: " .. to_string($0) .. " != " .. to_string($1));
-    }
+    if $0 == $1 { return; }
+    error(location: location, "Assertion failed: " .. to_string($0) .. " != " .. to_string($1));
 }
+
 inline fn assert_not_equal(_, _, location: string = __call_location) -> () {
     if $0 == $1 {
         error(location: location, "Assertion failed: " .. to_string($0) .. " == " .. to_string($1));
@@ -153,14 +152,6 @@ inline fn __and($LHS: bool, $RHS) {
         return false;
     }
 }
-
-inline fn __and($FT, $ST) -> union($FT, $ST) {
-    if $0 {
-        return $1;
-    } else {
-        return $0;
-    }
-}
 */
 
 // STRINGS
@@ -174,7 +165,7 @@ inline fn to_string(~union(...)) => apply(to: $0, visitor: fn($x) => to_string($
 inline viable fn implicit_cast(~ union(...)) ~> $T => apply(to: $0, visitor: (fn($x)->$T => implicit_cast($x)));
 
 // STRUCTS
-inline fn::get(self: @is_struct, property: constexpr __identifier) => get(self: tuple_of(self), property: property);
+inline viable fn::get(self: @is_struct, property: constexpr __identifier) => get(self: tuple_of(self), property: property);
 
 // ARRAYS
 typefn array(of: typename, size?: constexpr integer);
@@ -206,6 +197,9 @@ inline fn make_transform_iterator(from_iterator: runtime, functor: constexpr) ->
 
 inline fn has_next(~transform_iterator(...)) => has_next($0.iterator);
 inline fn next(~transform_iterator(...)) => $0.functor(next($0.iterator));
+
+// UTILITY
+inline fn print(string ...) => __print($0 ..., size($0));
 
 // AUXILIARY
 inline fn __bit_and(typename tuple($l...), typename tuple($r...)) => tuple($l..., $r...);
@@ -239,8 +233,8 @@ void annium_impl::bootstrap()
     fn_compiler_context ctx{ environment_, dummy };
 
     declaration_visitor dvis{ ctx };
-    if (auto err = dvis.apply(*decls); err) throw exception(environment_.print(*err));
-    //for (auto& d : *exp_decls) { apply_visitor(dvis, d); }
+    if (auto res = dvis.apply(*decls); !res)
+        throw exception(environment_.print(*res.error()));
     auto res = ctx.finish_frame(dummy);
     if (!res) {
         throw exception(environment_.print(*res.error()));
@@ -404,7 +398,10 @@ void annium_impl::compile(span<const statement> decls, span<string_view> args)
 
 void annium_impl::do_compile(internal_function_entity const& fe)
 {
-    GLOBAL_LOG_INFO() << "compiling function: " << environment_.print(fe.name());
+    //GLOBAL_LOG_INFO() << "compiling function: " << environment_.print(fe.name());
+    //fe.body.for_each([this](semantic::expression const& e) {
+    //    GLOBAL_LOG_INFO() << environment_.print(e); // << "\n"sv
+    //});
 
     if (!fe.is_built()) {
         auto err = const_cast<internal_function_entity&>(fe).build(environment_);

@@ -47,19 +47,19 @@ std::expected<functional_match_descriptor_ptr, error_storage> numeric_implicit_c
     (void)ntype; // suppress unused variable warning
 
     auto call_session = call.new_session(ctx);
-    prepared_call::argument_descriptor_t slf_arg_descr;
-    auto src_arg = call_session.use_next_positioned_argument(&slf_arg_descr);
-    if (!src_arg) {
-        return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument"sv));
+    
+    auto arg_descr = call_session.get_next_positioned_argument();
+    if (!arg_descr) {
+        return std::unexpected(std::move(arg_descr.error()));
     }
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    syntax_expression_result& src_arg_er = src_arg->first;
+    syntax_expression_result& src_arg_er = arg_descr->result;
     // Only allow compatible argument
     if (!exp.is_modifier_compatible(src_arg_er)) {
-        return std::unexpected(make_error<basic_general_error>(slf_arg_descr.expression->location, "argument and result must be both constexpr or both runtime"sv));
+        return std::unexpected(make_error<basic_general_error>(arg_descr->expression->location, "argument and result must be both constexpr or both runtime"sv));
     }
 
     functional_match_descriptor_ptr pmd;
@@ -82,26 +82,26 @@ std::expected<functional_match_descriptor_ptr, error_storage> numeric_implicit_c
             argtype != e.get(builtin_eid::i64) &&
             argtype != e.get(builtin_eid::u64))
         {
-            return std::unexpected(make_error<value_mismatch_error>(slf_arg_descr.expression->location, src_arg_er.value(), "a numeric literal"sv));
+            return std::unexpected(make_error<value_mismatch_error>(arg_descr->expression->location, src_arg_er.value(), "a numeric literal"sv));
         }
 
         if (argent.get_type() == teid) {
-            return std::unexpected(make_error<basic_general_error>(slf_arg_descr.expression->location, "argument and result types must be different"sv, teid));
+            return std::unexpected(make_error<basic_general_error>(arg_descr->expression->location, "argument and result types must be different"sv, teid));
         }
         generic_literal_entity const& src_arg_literal = dynamic_cast<generic_literal_entity const&>(argent);
         pmd = sonia::make_shared<numeric_implicit_cast_match_descriptor>(src_arg_literal);
         --pmd->weight; // lower weight for implicit casts
     } else {
         if (src_arg_er.type() == teid) {
-            return std::unexpected(make_error<basic_general_error>(slf_arg_descr.expression->location, "argument and result types must be different"sv, teid));
+            return std::unexpected(make_error<basic_general_error>(arg_descr->expression->location, "argument and result types must be different"sv, teid));
         }
         if (src_arg_er.type() == e.get(builtin_eid::integer)) {
             pmd = make_shared<numeric_implicit_cast_match_descriptor>();
         } else {
-            return std::unexpected(make_error<type_mismatch_error>(slf_arg_descr.expression->location, src_arg_er.type(), "integer"sv));
+            return std::unexpected(make_error<type_mismatch_error>(arg_descr->expression->location, src_arg_er.type(), "integer"sv));
         }
     }
-    pmd->append_arg(src_arg_er, slf_arg_descr.expression->location);
+    pmd->append_arg(src_arg_er, arg_descr->expression->location);
     pmd->signature.result.emplace(exp.type, can_be_only_constexpr(exp.modifier));
     return pmd;
 }

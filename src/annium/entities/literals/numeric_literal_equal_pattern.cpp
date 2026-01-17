@@ -202,21 +202,12 @@ numeric_literal_equal_pattern::try_match(fn_compiler_context& ctx, prepared_call
     environment& e = ctx.env();
 
     auto call_session = call.new_session(ctx);
-    prepared_call::argument_descriptor_t lhs_descr, rhs_descr;
     
     // Get first argument
-    auto lhs_arg = call_session.use_next_positioned_argument(&lhs_descr);
-    if (!lhs_arg) {
-        if (lhs_arg.error()) {
-            return std::unexpected(append_cause(
-                make_error<basic_general_error>(lhs_descr.expression->location, "invalid first argument"sv),
-                std::move(lhs_arg.error())));
-        } else {
-            return std::unexpected(make_error<basic_general_error>(call.location, "missing required first argument"sv));
-        }
-    }
+    auto lhs_descr = call_session.get_next_positioned_argument();
+    if (!lhs_descr) return std::unexpected(std::move(lhs_descr.error()));
 
-    syntax_expression_result & lhs_arg_er = lhs_arg->first;
+    syntax_expression_result & lhs_arg_er = lhs_descr->result;
     
     entity_identifier lhs_type_id;
     entity const* lhs_type_entity = nullptr;
@@ -227,29 +218,21 @@ numeric_literal_equal_pattern::try_match(fn_compiler_context& ctx, prepared_call
         lhs_type_id = lhs_arg_er.type();
     }
     builtin_eid lhs_type = static_cast<builtin_eid>(lhs_type_id.value);
-    resource_location lhs_arg_loc = lhs_descr.expression->location;
+    resource_location lhs_arg_loc = lhs_descr->expression->location;
     // Check if first argument is numeric
     if (!is_numeric_type(lhs_type)) {
         return std::unexpected(make_error<type_mismatch_error>(lhs_arg_loc, lhs_type_id, "a numeric literal type"sv));
     }
 
     // Get second argument
-    auto rhs_arg = call_session.use_next_positioned_argument(expected_result_t{}, &rhs_descr);
-    if (!rhs_arg) {
-        if (rhs_arg.error()) {
-            return std::unexpected(append_cause(
-                make_error<basic_general_error>(rhs_descr.expression->location, "invalid second argument"sv),
-                std::move(rhs_arg.error())));
-        } else {
-            return std::unexpected(make_error<basic_general_error>(call.location, "missing required second argument"sv));
-        }
-    }
+    auto rhs_descr = call_session.get_next_positioned_argument();
+    if (!rhs_descr) return std::unexpected(std::move(rhs_descr.error()));
 
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    syntax_expression_result & rhs_arg_er = rhs_arg->first;
+    syntax_expression_result & rhs_arg_er = rhs_descr->result;
     
     entity_identifier rhs_type_id;
     entity const* rhs_type_entity = nullptr;
@@ -260,7 +243,7 @@ numeric_literal_equal_pattern::try_match(fn_compiler_context& ctx, prepared_call
         rhs_type_id = rhs_arg_er.type();
     }
     builtin_eid rhs_type = static_cast<builtin_eid>(rhs_type_id.value);
-    resource_location rhs_arg_loc = rhs_descr.expression->location;
+    resource_location rhs_arg_loc = rhs_descr->expression->location;
 
     // Check if second argument is numeric
     if (!is_numeric_type(rhs_type)) {
@@ -274,20 +257,15 @@ numeric_literal_equal_pattern::try_match(fn_compiler_context& ctx, prepared_call
         dynamic_cast<generic_literal_entity const*>(rhs_type_entity) : nullptr;
 
     auto pmd = sonia::make_shared<numeric_literal_equal_match_descriptor>(call, lhs_literal, rhs_literal);
-    
-    // Set up signature
-    pmd->signature.emplace_back(lhs_arg_er.value_or_type, lhs_arg_er.is_const_result);
-    pmd->signature.emplace_back(rhs_arg_er.value_or_type, rhs_arg_er.is_const_result);
-    
+    pmd->append_arg(lhs_arg_er, lhs_arg_loc);
+    pmd->append_arg(rhs_arg_er, rhs_arg_loc);
+
     // Result is boolean, constexpr if both arguments are constexpr
     bool is_constexpr_result = lhs_arg_er.is_const_result && rhs_arg_er.is_const_result;
     if (!is_constexpr_result) {
         pmd->signature.result.emplace(e.get(builtin_eid::boolean), false);
     }
-    
-    pmd->emplace_back(0, lhs_arg_er, lhs_arg_loc);
-    pmd->emplace_back(1, rhs_arg_er, rhs_arg_loc);
-    
+
     return pmd;
 }
 

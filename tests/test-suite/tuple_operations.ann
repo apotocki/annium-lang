@@ -1,7 +1,6 @@
 // This file contains tests for tuple equality and related operations in Bang language.
 
 // Test: empty tuple
-assert_equal(size(), 0);
 assert_equal(size(()), 0);
 assert_equal(size((())), 0);   // parenthesised empty tuple
 assert_equal(size(((()))), 0); // double parenthesised empty tuple

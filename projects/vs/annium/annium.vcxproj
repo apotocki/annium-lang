@@ -31,6 +31,7 @@
     <ClCompile Include="..\..\..\src\annium\entities\callables\to_callable_implicit_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\enum\enum_equal_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\enum\enum_get_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\entities\enum\enum_implicit_runtime_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\enum\enum_to_integer_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\enum\enum_to_string_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\fixed_array\fixed_array_elements_implicit_cast_pattern.cpp" />
@@ -165,6 +166,7 @@
     <ClInclude Include="..\..\..\src\annium\entities\callables\to_callable_implicit_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\enum\enum_equal_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\enum\enum_get_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\enum\enum_implicit_runtime_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\enum\enum_to_integer_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\enum\enum_to_string_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\fixed_array\fixed_array_elements_implicit_cast_pattern.hpp" />

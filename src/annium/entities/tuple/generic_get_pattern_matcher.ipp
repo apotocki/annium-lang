@@ -43,15 +43,11 @@ std::expected<functional_match_descriptor_ptr, error_storage> generic_get_patter
     environment& e = ctx.env();
     auto call_session = call.new_session(ctx);
 
-    auto slf_arg = call_session.use_named_argument(e.get(builtin_id::self), expected_result_t{}, &slf_arg_descr);
-    if (!slf_arg) {
-        if (!slf_arg.error()) {
-            return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `self`"sv));
-        }
-        return std::unexpected(std::move(slf_arg.error()));
-    }
+    auto slf_arg = call_session.get_named_argument(e.get(builtin_id::self), expected_result_t{});
+    if (!slf_arg) return std::unexpected(std::move(slf_arg.error()));
+    slf_arg_descr = std::move(*slf_arg);
 
-    syntax_expression_result& slf_arg_er = slf_arg->first;
+    syntax_expression_result& slf_arg_er = slf_arg_descr.result;
     if (slf_arg_er.is_const_result) {
         entity const& slf_entity = get_entity(e, slf_arg_er.value());
         slftype = slf_entity.get_type();
@@ -64,15 +60,15 @@ std::expected<functional_match_descriptor_ptr, error_storage> generic_get_patter
 
     alt_error prop_errors;
     auto property_arg = call_session.use_named_argument(e.get(builtin_id::property), expected_result_t{ e.get(builtin_eid::integer) }, &property_arg_descr);
-    if (!property_arg && property_arg.error()) {
+    if (!property_arg) {
         prop_errors.alternatives.emplace_back(std::move(property_arg.error()));
         call_session.reuse_argument(property_arg_descr.arg_index);
         property_arg = call_session.use_named_argument(e.get(builtin_id::property), expected_result_t{ e.get(builtin_eid::identifier) }, &property_arg_descr);
     }
+    if (property_arg && !*property_arg) {
+        return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `property`"sv));
+    }
     if (!property_arg) {
-        if (!property_arg.error()) {
-            return std::unexpected(make_error<basic_general_error>(call.location, "missing required argument: `property`"sv));
-        }
         if (prop_errors.alternatives.empty()) {
             return std::unexpected(std::move(property_arg.error()));
         } else {
@@ -89,7 +85,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> generic_get_patter
     if (optpmd) {
         functional_match_descriptor& md = **optpmd;
         md.emplace_back(0, slf_arg_er);
-        md.emplace_back(1, property_arg->first);
+        md.emplace_back(1, property_arg_descr.result);
     }
     return std::move(optpmd);
 }

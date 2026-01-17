@@ -402,15 +402,6 @@ public:
 
     std::string describe_efn(size_t index) const;
 
-    //small_string as_string(identifier const& id) const;
-    //small_string as_string(entity_identifier const& id) const;
-    //small_string as_string(qname_view name) const;
-    //small_string as_string(qname_identifier name) const;
-
-    //small_u32string as_u32string(identifier const& id) const;
-    
-    //functional_entity& get_functional_entity(binary_operator_type);
-
     void set_cout_writer(function<void(string_view)> writer)
     {
         cout_writer_ = std::move(writer);

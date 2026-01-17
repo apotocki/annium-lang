@@ -21,31 +21,24 @@ std::expected<functional_match_descriptor_ptr, error_storage> error_pattern::try
     
     // Accept a single unnamed string argument
     expected_result_t string_exp{ e.get(builtin_eid::string), call.location };
-    prepared_call::argument_descriptor_t arg_descr;
-    auto arg = call_session.use_next_positioned_argument(string_exp, &arg_descr);
     
-    if (!arg) {
-        if (!arg.error()) {
-            return std::unexpected(make_error<basic_general_error>(call.location, "missing string argument"sv));
-        }
-        return std::unexpected(arg.error());
-    }
+    auto arg_descr = call_session.get_next_positioned_argument(string_exp);
+    
+    if (!arg_descr) return std::unexpected(arg_descr.error());
 
-    auto locarg = call_session.use_named_argument(e.get(builtin_id::location), string_exp, &arg_descr);
-    if (!locarg) {
-        if (locarg.error()) {
-            return std::unexpected(locarg.error());
-        }
-    }
+    prepared_call::argument_descriptor_t loc_arg_descr;
+    auto locarg = call_session.use_named_argument(e.get(builtin_id::location), string_exp, &loc_arg_descr);
+    if (!locarg) return std::unexpected(std::move(locarg.error()));
+
     // Verify no more arguments
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
     
     auto pmd = make_shared<functional_match_descriptor>(call);
-    pmd->emplace_back(0, arg->first);
-    if (locarg) {
-        pmd->emplace_back(1, locarg->first);
+    pmd->append_arg(arg_descr->result, arg_descr->expression->location);
+    if (*locarg) {
+        pmd->append_arg(e.get(builtin_id::location), loc_arg_descr.result, loc_arg_descr.expression->location);
     }
     return pmd;
 }

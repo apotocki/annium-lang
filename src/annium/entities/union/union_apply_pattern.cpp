@@ -14,6 +14,8 @@
 #include "annium/errors/type_mismatch_error.hpp"
 #include "annium/auxiliary.hpp"
 
+#include "sonia/utility/scope_exit.hpp"
+
 namespace annium {
 
 class union_apply_match_descriptor : public functional_match_descriptor
@@ -30,6 +32,7 @@ public:
     small_vector<entity_identifier, 4> stable_result_types_set;
     small_vector<entity_identifier, 4> stable_result_values_set;
     small_vector<syntax_expression_result, 4> branch_results;
+    local_variable visitor_var, union_value_var;
     expected_result_t expected_result;
     bool enum_union;
 };
@@ -42,13 +45,12 @@ union_apply_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
     auto call_session = call.new_session(ctx);
 
     // Get union argument
-    prepared_call::argument_descriptor_t union_arg_descr;
-    auto union_arg = call_session.get_named_argument(env.get(builtin_id::to), expected_result_t{}, &union_arg_descr);
-    if (!union_arg) return std::unexpected(std::move(union_arg.error()));
+    auto union_arg_descr = call_session.get_named_argument(builtin_id::to);
+    if (!union_arg_descr) return std::unexpected(std::move(union_arg_descr.error()));
 
     // Union argument must be a union type
-    resource_location const& union_arg_loc = union_arg_descr.expression->location;
-    syntax_expression_result& union_arg_er = union_arg->first;
+    resource_location const& union_arg_loc = union_arg_descr->expression->location;
+    syntax_expression_result& union_arg_er = union_arg_descr->result;
     if (union_arg_er.is_const_result) {
         return std::unexpected(make_error<basic_general_error>(union_arg_loc, "'to' argument must be a runtime value"sv));
     }
@@ -60,16 +62,15 @@ union_apply_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
     }
 
     // Get visitor argument
-    prepared_call::argument_descriptor_t visitor_arg_descr;
-    auto visitor_arg = call_session.get_named_argument(env.get(builtin_id::visitor), expected_result_t{}, &visitor_arg_descr);
-    if (!visitor_arg) return std::unexpected(std::move(visitor_arg.error()));
+    auto visitor_arg_descr = call_session.get_named_argument(builtin_id::visitor);
+    if (!visitor_arg_descr) return std::unexpected(std::move(visitor_arg_descr.error()));
 
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
     }
 
-    resource_location const& visitor_arg_loc = visitor_arg_descr.expression->location;
-    syntax_expression_result & visitor_arg_er = visitor_arg->first;
+    resource_location const& visitor_arg_loc = visitor_arg_descr->expression->location;
+    syntax_expression_result & visitor_arg_er = visitor_arg_descr->result;
 
     // if union has only which field?
     bool enum_union = true;
@@ -81,9 +82,6 @@ union_apply_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
         }
     }
 
-    // calculate size of union after unfolding
-    size_t unfolded_union_size = 1 + (enum_union ? 0 : 1); // 1 for which + 1 for value if not enum
-
     auto pmd = make_shared<union_apply_match_descriptor>(call, union_entity_type, enum_union, exp);
     
     // Validate that visitor can be applied to ALL types of the union
@@ -91,7 +89,8 @@ union_apply_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
     if (visitor_arg_er.is_const_result) {
         visitor_arg_expr.emplace(visitor_arg_loc, visitor_arg_er.value());
     } else {
-        visitor_arg_expr.emplace(visitor_arg_loc, stack_value_reference_expression{ .type = visitor_arg_er.type(), .offset = static_cast<intptr_t>(unfolded_union_size) });
+        pmd->visitor_var = local_variable{ .type = visitor_arg_er.type(), .varid = env.new_variable_identifier() };
+        visitor_arg_expr.emplace(visitor_arg_loc, local_variable_expression{ pmd->visitor_var });
     }
     
     // Collect results
@@ -105,7 +104,15 @@ union_apply_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
         if (!union_field.is_const()) {
             // Provide a placeholder runtime argument of the proper type
             // union 'which' will be on top of stack, value will be under it
-            visitor_call_builder.emplace_back(visitor_arg_loc, stack_value_reference_expression{ .type = union_field.entity_id(), .offset = 1 });
+            if (!pmd->union_value_var.type) {
+                // create new variable
+                pmd->union_value_var = local_variable{ .type = union_field.entity_id(), .varid = env.new_variable_identifier() };
+            } else {
+                // or fix type of existing one
+                pmd->union_value_var.type = union_field.entity_id();
+            }
+            
+            visitor_call_builder.emplace_back(visitor_arg_loc, local_variable_expression{ pmd->union_value_var });
         } else {
             // Provide a constant typed argument
             visitor_call_builder.emplace_back(visitor_arg_loc, union_field.entity_id());
@@ -178,19 +185,25 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
 
     syntax_expression_result result{ .is_const_result = false };
     
-    size_t apply_args_size = 1;
     // Prepare visitor object expression
     if (!visitor_er.is_const_result) {
+        semantic::expression_span vis_expr = std::move(visitor_er.expressions);
+        visitor_er.expressions = {};
         append_semantic_result(el, visitor_er, result);
-        ++apply_args_size;
+        result.temporaries.emplace_back(identifier{}, apply_md.visitor_var, std::move(vis_expr));
     }
     
     // Prepare union value expression
     append_semantic_result(el, union_er, result);
     if (!apply_md.enum_union) {
         env.push_back_expression(el, result.expressions, semantic::invoke_function{ env.get(builtin_eid::unfold) });
-        ++apply_args_size;
-    } // enum value is the pure 'which' field => no unfold is needed
+        
+        BOOST_ASSERT(apply_md.union_value_var.type);
+        result.temporaries.emplace_back(identifier{}, apply_md.union_value_var, semantic::expression_span{});
+        env.push_back_expression(el, result.expressions, semantic::push_by_offset{ .offset = 1, .base = semantic::push_by_base::stack_top });
+        env.push_back_expression(el, result.expressions, semantic::set_local_variable{ apply_md.union_value_var });
+        env.push_back_expression(el, result.expressions, semantic::truncate_values{ .count = 1, .keep_back = 0 });
+    } // else enum value is the pure 'which' field => no unfold is needed
     
     // 'which' is on top of stack now
     env.push_back_expression(el, result.expressions, semantic::switch_t{}); // doesn't 'eat' the 'which' value
@@ -221,7 +234,7 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
             }
         }
         // the result value is on top of stack now, remove apply's arguments under it
-        env.push_back_expression(el, result.expressions, semantic::truncate_values{ .count = uint16_t(apply_args_size), .keep_back = 1 });
+        //env.push_back_expression(el, result.expressions, semantic::truncate_values{ .count = uint16_t(apply_vars_cnt), .keep_back = 1 });
         result.value_or_type = apply_md.expected_result.type;
         return result;
     }
@@ -262,7 +275,7 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
         env.push_back_expression(el, result.expressions, semantic::invoke_function(env.get(builtin_eid::arrayify)));
     }
     // the result value is on top of stack now, remove apply's arguments under it
-    env.push_back_expression(el, result.expressions, semantic::truncate_values{ .count = uint16_t(apply_args_size), .keep_back = 1 });
+    //env.push_back_expression(el, result.expressions, semantic::truncate_values{ .count = uint16_t(apply_vars_cnt), .keep_back = 1 });
     result.value_or_type = env.make_basic_signatured_entity(std::move(usig)).id;
     return result;
 

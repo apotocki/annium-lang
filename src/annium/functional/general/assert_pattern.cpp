@@ -26,29 +26,30 @@ std::expected<functional_match_descriptor_ptr, error_storage> assert_pattern::tr
 {
     auto call_session = call.new_session(ctx);
     expected_result_t bool_exp{ ctx.env().get(builtin_eid::boolean), call.location };
-    prepared_call::argument_descriptor_t arg_descr;
-    auto firstarg = call_session.use_next_positioned_argument(bool_exp, &arg_descr);
-    if (!firstarg) return std::unexpected(firstarg.error());
+    
+    auto first_arg_descr = call_session.get_next_positioned_argument(bool_exp);
+    if (!first_arg_descr) return std::unexpected(first_arg_descr.error());
     auto pmd = make_shared<assert_match_descriptor>(call);
     size_t argnum = 0;
 
-    auto append_arg = [&pmd, &argnum, &arg_descr](environment& e, syntax_expression_result& res) {
-        pmd->emplace_back(argnum++, res);
-        if (res.is_const_result && res.value() == e.get(builtin_eid::true_)) {
+    auto append_arg = [&pmd, &argnum, &first_arg_descr](environment& e, prepared_call::argument_descriptor_t& arg_descr) {
+        pmd->append_arg(arg_descr.result, arg_descr.expression->location);
+        if (arg_descr.result.is_const_result && arg_descr.result.value() == e.get(builtin_eid::true_)) {
             pmd->reserved_errors.emplace_back(); // just dummy, no error doesn't need details
         } else {
            // assert failed
             pmd->reserved_errors.emplace_back(
-                make_error<basic_general_error>(arg_descr.expression->location, "Assertion failed!"sv, *arg_descr.expression)
+                make_error<basic_general_error>(first_arg_descr->expression->location, "Assertion failed!"sv, *arg_descr.expression)
             );
         }
     };
-    append_arg(ctx.env(), firstarg->first);
+    append_arg(ctx.env(), *first_arg_descr);
     
     while (call_session.has_more_positioned_arguments()) {
+        prepared_call::argument_descriptor_t arg_descr;
         auto nextarg = call_session.use_next_positioned_argument(bool_exp, &arg_descr);
         if (!nextarg) return std::unexpected(nextarg.error());
-        append_arg(ctx.env(), nextarg->first);
+        append_arg(ctx.env(), arg_descr);
     }
     
     if (auto argterm = call_session.unused_argument(); argterm) {

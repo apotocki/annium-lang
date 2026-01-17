@@ -61,12 +61,14 @@ struct procedures_lookup_visitor
 
     bool operator()(semantic::invoke_function const& ifn) const
     {
+        (void)ifn;
         return true;
     }
 
     template <typename T>
     bool operator()(T const& t) const noexcept
     {
+        (void)t;
         return false;
     }
 };
@@ -113,6 +115,7 @@ struct return_lookup_visitor
 
     bool operator()(semantic::loop_scope_t const& loop) const
     {
+        (void)loop;
         return false;
         //return all_paths_return(loop.branch) || all_paths_return(loop.continue_branch);
     }
@@ -374,8 +377,8 @@ optional<std::variant<entity_identifier, local_variable>> fn_compiler_context::g
             //if (local_variable const* lv = get<local_variable>(optval); lv) return *lv;
         }
     }
-    for (functional_binding const& binding : boost::adaptors::reverse(scoped_locals_)) {
-        if (auto optval = binding.lookup(name); optval) {
+    for (auto const& scope_descriptor : boost::adaptors::reverse(scoped_locals_)) {
+        if (auto optval = scope_descriptor.named_set.lookup(name); optval) {
             if (entity_identifier const* eid = get_if<entity_identifier>(optval); eid) return *eid;
             if (local_variable const* lv = get_if<local_variable>(optval); lv) return *lv;
         }
@@ -402,9 +405,11 @@ size_t fn_compiler_context::append_result(semantic::expression_list_t& el, synta
         } else {
             append_expressions(el, sp);
         }
-        push_scope_variable(
-            annotated_identifier{ varname },
-            var); //local_variable{ .type = t, .varid = varid, .is_weak = false },
+        if (varname) {
+            push_scope_variable( annotated_identifier{ varname }, var);
+        } else {
+            push_scope_variable(var);
+        }
     }
     append_expressions(el, er.expressions);
     size_t scope_sz = pop_scope();
@@ -417,7 +422,7 @@ size_t fn_compiler_context::append_result(semantic::expression_list_t& el, synta
 void fn_compiler_context::push_scope()
 {
     ns_ = ns_ / environment_.new_identifier();
-    scope_offset_ += scoped_locals_.back().variables_count();
+    scope_offset_ += scoped_locals_.back().total_variables_count();
     scoped_locals_.emplace_back();
 }
 
@@ -425,19 +430,26 @@ size_t fn_compiler_context::pop_scope()
 {
     assert(ns_.parts().size() > base_ns_size_);
     ns_.truncate(ns_.parts().size() - 1);
-    size_t cleared_vars_count = scoped_locals_.back().variables_count();
+    size_t cleared_vars_count = scoped_locals_.back().total_variables_count();
     scoped_locals_.pop_back(); // to do: call destructor for local variables
     if (!scoped_locals_.empty()) {
-        scope_offset_ -= scoped_locals_.back().variables_count();
+        scope_offset_ -= scoped_locals_.back().total_variables_count();
     }
     return cleared_vars_count;
 }
 
+void fn_compiler_context::push_scope_variable(local_variable lv)
+{
+    int64_t index = scope_offset_ + scoped_locals_.back().total_variables_count();
+    fent_.push_variable(lv.varid, index);
+    ++scoped_locals_.back().unnamed_count;
+}
+
 void fn_compiler_context::push_scope_variable(annotated_identifier name, local_variable lv)
 {
-    int64_t index = scope_offset_ + scoped_locals_.back().variables_count();
+    int64_t index = scope_offset_ + scoped_locals_.back().total_variables_count();
     fent_.push_variable(lv.varid, index);
-    scoped_locals_.back().emplace_back(std::move(name), std::move(lv));
+    scoped_locals_.back().named_set.emplace_back(std::move(name), std::move(lv));
     //return *get<local_variable>(&);
 }
 
@@ -703,11 +715,11 @@ local_variable & fn_compiler_context::new_variable(annotated_identifier name, en
 void fn_compiler_context::new_constant(annotated_identifier name, entity_identifier eid)
 {
     resource_location const* ploc;
-    functional_binding::value_type const* pv = scoped_locals_.back().lookup(name.value, &ploc);
+    functional_binding::value_type const* pv = scoped_locals_.back().named_set.lookup(name.value, &ploc);
     if (pv) {
         throw identifier_redefinition_error(name, *ploc);
     }
-    scoped_locals_.back().emplace_back(name, eid);
+    scoped_locals_.back().named_set.emplace_back(name, eid);
 }
 
 #if 0
@@ -831,16 +843,19 @@ std::expected<std::tuple<entity_identifier, bool, bool>, error_storage> fn_compi
             return std::unexpected(make_error<basic_general_error>(
                 fent.location, "not all control paths return a value, but result type is not void"sv, fent.id));
         }
-        append_expression(semantic::return_statement{ .result = {} });
+        const_value_result = env().get(builtin_eid::void_);
+        append_expression(semantic::return_statement{ .result = {}, .scope_size = 0 });
         semantic::return_statement* pretst = &get<semantic::return_statement>(expressions().back());
-        syntax_expression_result er{ .value_or_type = env().get(builtin_eid::void_), .is_const_result = true };
+        syntax_expression_result er{ .value_or_type = const_value_result, .is_const_result = true };
         return_statements_.emplace_back(pretst, semantic::managed_expression_list{ environment_ }, std::move(er), finish_location);
         BOOST_ASSERT(all_paths_return(expressions()));
     }
 
     if (const_value_result) {
         bool is_empty_function = fent.arg_count() == 0 && !has_procedures(expressions());
+
         if (!is_empty_function) {
+            // e.g. to handle: return print( <something> );
             for (auto& [rts, el, er, loc] : return_statements_) {
                 push_chain();
                 size_t scope_sz = append_result(el, er);
@@ -850,6 +865,7 @@ std::expected<std::tuple<entity_identifier, bool, bool>, error_storage> fn_compi
                 rts->scope_size = scope_sz;
             }
         }
+
         return std::tuple{ const_value_result, true, is_empty_function };
     }
 
@@ -1150,7 +1166,7 @@ error_storage fn_compiler_context::append_return(syntax_expression const& expr)
     //    GLOBAL_LOG_INFO() << env().print(e);
     //});
 
-    append_expression(semantic::return_statement{ .result = er.expressions }); // we need expressions span here to be able to test the function for havning procedures
+    append_expression(semantic::return_statement{ .result = er.expressions, .scope_size = 0 }); // we need expressions span here to be able to test the function for havning procedures
     semantic::return_statement* pretst = &get<semantic::return_statement>(expressions().back());
     return_statements_.emplace_back(pretst, std::move(el), std::move(er), std::move(expr.location));
     
