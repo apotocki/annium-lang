@@ -16,7 +16,7 @@
 #include "sonia/utility/invocation/invocation.hpp"
 
 #include "annium/entities/variable_entity.hpp"
-#include "annium/entities/functional.hpp"
+#include "annium/functional/functional.hpp"
 
 #include "sonia/utility/lang/compiler.hpp"
 #include "annium/utility/linked_list.ipp"

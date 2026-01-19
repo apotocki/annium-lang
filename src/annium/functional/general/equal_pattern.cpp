@@ -24,16 +24,37 @@ std::expected<functional_match_descriptor_ptr, error_storage> equal_pattern::try
         
     syntax_expression_result& lhs_arg_er = lhs_descr->result;
     resource_location lhs_loc = lhs_descr->expression->location;
-    entity_identifier lhs_type = lhs_arg_er.is_const_result ? get_entity(ctx.env(), lhs_arg_er.value()).get_type() : lhs_arg_er.type();
+    entity_identifier lhs_type = get_result_type(ctx.env(), lhs_arg_er);
 
     auto rhs_descr = call_session.get_next_positioned_argument(expected_result_t{ lhs_type });
-    if (!rhs_descr) return std::unexpected(std::move(rhs_descr.error()));
+    if (!rhs_descr) {
+        alt_error err;
+        err.alternatives.emplace_back(std::move(lhs_descr.error()));
+
+        // try to start with right argument
+        rhs_descr = call_session.get_next_positioned_argument();
+        if (!rhs_descr) {
+            err.alternatives.emplace_back(std::move(rhs_descr.error()));
+            return std::unexpected(make_error<alt_error>(std::move(err)));
+        }
+        entity_identifier rhs_type = get_result_type(ctx.env(), rhs_descr->result);
+        if (auto argterm = call_session.unused_argument(); argterm) {
+            return std::unexpected(make_error<basic_general_error>(argterm.location(), "equality comparison accepts exactly two arguments, but more were provided"sv, std::move(argterm.value())));
+        }
+        call_session.reuse_argument(rhs_descr->arg_index);
+        call_session.reuse_argument(lhs_descr->arg_index);
+        lhs_descr = call_session.get_next_positioned_argument(expected_result_t{ rhs_type });
+        if (!lhs_descr) {
+            err.alternatives.emplace_back(std::move(lhs_descr.error()));
+            return std::unexpected(make_error<alt_error>(std::move(err)));
+        }
+        lhs_loc = lhs_descr->expression->location;
         
-    resource_location rhs_loc = rhs_descr->expression->location;
-    syntax_expression_result& rhs_arg_er = rhs_descr->result;
-    if (auto argterm = call_session.unused_argument(); argterm) {
+    } else if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "equality comparison accepts exactly two arguments, but more were provided"sv, std::move(argterm.value())));
     }
+    resource_location rhs_loc = rhs_descr->expression->location;
+    syntax_expression_result& rhs_arg_er = rhs_descr->result;
     auto pmd = make_shared<functional_match_descriptor>(call);
     pmd->append_arg(lhs_arg_er, lhs_loc);
     pmd->append_arg(rhs_arg_er, rhs_loc);

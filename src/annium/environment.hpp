@@ -24,10 +24,10 @@
 #include "dataforge/unicode/utf.hpp"
 #include "dataforge/quark_push_iterator.hpp"
 
-#include "semantic.hpp"
-#include "entities/variable_entity.hpp"
-#include "entities/functional.hpp"
-#include "entities/functional_registry.hpp"
+#include "annium/semantic.hpp"
+#include "annium/entities/variable_entity.hpp"
+#include "annium/functional/functional.hpp"
+#include "annium/functional/functional_registry.hpp"
 
 #include "annium/ast/ast_resource.hpp"
 

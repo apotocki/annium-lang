@@ -32,7 +32,7 @@ public:
 protected:
     bool try_backtrack(fn_compiler_context& callee_ctx);
     std::expected<expected_result_t, error_storage> resolve_expression_expected_result(fn_compiler_context& callee_ctx, annotated_identifier const&, parameter_constraint_modifier_t, syntax_expression const&, entity_identifier& pconstraint_value_eid);
-    void finalize_ellipsis(fn_compiler_context& callee_ctx);
+    void finalize_variadic(fn_compiler_context& callee_ctx);
 
     struct star_frame
     {
@@ -41,7 +41,12 @@ protected:
     };
     small_vector<star_frame, 2> star_stack;
 
-    std::vector<uint32_t> argindices_stack;
+    struct handled_argument
+    {
+        match_penalty penalty;
+        uint32_t index;
+    };
+    small_vector<handled_argument, 1> handled_arguments_stack;
 };
 
 }

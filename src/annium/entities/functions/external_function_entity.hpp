@@ -7,7 +7,7 @@
 
 #include "annium/semantic_fwd.hpp"
 //#include "annium/semantic.hpp"
-//#include "annium/entities/functional.hpp"
+//#include "annium/functional/functional.hpp"
 
 namespace annium {
 

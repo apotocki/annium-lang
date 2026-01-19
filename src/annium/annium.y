@@ -786,7 +786,7 @@ parameter-decl:
     | qname ELLIPSIS parameter-default-value-opt[default]
         {
             auto constraint = ctx.make<syntax_expression>(std::move($qname.location), qname_reference_expression{ ctx.make_qname_view(std::move($qname)) });
-            $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = constraint, .default_value = std::move($default), .modifier = parameter_constraint_modifier_t::constexpr_or_runtime_type | parameter_constraint_modifier_t::ellipsis };
+            $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = constraint, .default_value = std::move($default), .modifier = parameter_constraint_modifier_t::constexpr_or_runtime_type | parameter_constraint_modifier_t::variadic };
             IGNORE_TERM($ELLIPSIS);
         }
 
@@ -826,9 +826,9 @@ parameter-decl:
     | UNDERSCORE parameter-default-value-opt[default]
         { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($UNDERSCORE) } } ), .default_value = std::move($default), .modifier =  parameter_constraint_modifier_t::constexpr_or_runtime_type }; }
     | internal-identifier[intid] ELLIPSIS parameter-default-value-opt[default]
-        { $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($ELLIPSIS) } } ), .default_value = std::move($default), .modifier =  parameter_constraint_modifier_t::constexpr_or_runtime_type | parameter_constraint_modifier_t::ellipsis }; }
+        { $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($ELLIPSIS) } } ), .default_value = std::move($default), .modifier =  parameter_constraint_modifier_t::constexpr_or_runtime_type | parameter_constraint_modifier_t::variadic }; }
     | ELLIPSIS parameter-default-value-opt[default]
-        { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($ELLIPSIS) } } ), .default_value = std::move($default), .modifier =  parameter_constraint_modifier_t::constexpr_or_runtime_type | parameter_constraint_modifier_t::ellipsis }; }
+        { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($ELLIPSIS) } } ), .default_value = std::move($default), .modifier =  parameter_constraint_modifier_t::constexpr_or_runtime_type | parameter_constraint_modifier_t::variadic }; }
     
     //| TILDA pattern-mod[pm] parameter-default-value-opt[default]
     //    { $$ = parameter{ .name = unnamed_parameter_name{}, .constraint = std::move(get<0>($pm)), .default_value = std::move($default), .modifier =  get<1>($pm) }; }
@@ -847,13 +847,13 @@ constraint-expression-specified:
       constraint-expression-specified-mod[mod] type-expr[match]
         { $$ = std::pair{ ctx.make<syntax_expression>(std::move($match)), get<1>($mod) }; }
     | constraint-expression-specified-mod[mod] type-expr[match] ELLIPSIS
-        { $$ = std::pair{ ctx.make<syntax_expression>(std::move($match)), get<1>($mod) | parameter_constraint_modifier_t::ellipsis }; IGNORE_TERM($ELLIPSIS); }
+        { $$ = std::pair{ ctx.make<syntax_expression>(std::move($match)), get<1>($mod) | parameter_constraint_modifier_t::variadic }; IGNORE_TERM($ELLIPSIS); }
     
     // not a type expression, but a placeholders
     | constraint-expression-specified-mod[mod]
         { $$ = std::pair{ ctx.make<syntax_pattern>(syntax_pattern{ .descriptor = placeholder{ std::move(get<0>($mod)) } }), get<1>($mod) }; }
     | constraint-expression-specified-mod[mod] ELLIPSIS
-        { $$ = std::pair{ ctx.make<syntax_pattern>(syntax_pattern{ .descriptor = placeholder{ std::move($ELLIPSIS) } }), get<1>($mod) | parameter_constraint_modifier_t::ellipsis }; }
+        { $$ = std::pair{ ctx.make<syntax_pattern>(syntax_pattern{ .descriptor = placeholder{ std::move($ELLIPSIS) } }), get<1>($mod) | parameter_constraint_modifier_t::variadic }; }
     ;
 
 constraint-expression-mod:
@@ -869,17 +869,17 @@ constraint-expression:
       constraint-expression-mod[mod] type-expr[match]
         { $$ = std::pair{ ctx.make<syntax_expression>(std::move($match)), get<1>($mod) }; }
     | constraint-expression-mod[mod] type-expr[match] ELLIPSIS
-        { $$ = std::pair{ ctx.make<syntax_expression>(std::move($match)), get<1>($mod) | parameter_constraint_modifier_t::ellipsis }; IGNORE_TERM($ELLIPSIS); }
+        { $$ = std::pair{ ctx.make<syntax_expression>(std::move($match)), get<1>($mod) | parameter_constraint_modifier_t::variadic }; IGNORE_TERM($ELLIPSIS); }
 
     // not a type expression, but a placeholders
     | constraint-expression-mod[mod]
         { $$ = std::pair{ ctx.make<syntax_pattern>(syntax_pattern{ .descriptor = placeholder{ get<0>($mod) } }), get<1>($mod) }; }
     | constraint-expression-mod[mod] ELLIPSIS
-        { $$ = std::pair{ ctx.make<syntax_pattern>(syntax_pattern{ .descriptor = placeholder{ std::move($ELLIPSIS) } }), get<1>($mod) | parameter_constraint_modifier_t::ellipsis }; }
+        { $$ = std::pair{ ctx.make<syntax_pattern>(syntax_pattern{ .descriptor = placeholder{ std::move($ELLIPSIS) } }), get<1>($mod) | parameter_constraint_modifier_t::variadic }; }
     //| TYPENAME 
     //    { $$ = std::pair{ ctx.make<syntax_pattern>(syntax_pattern{ .descriptor = placeholder{ std::move($TYPENAME) } }), parameter_constraint_modifier_t::typename_value }; }
     //| TYPENAME ELLIPSIS
-    //    { $$ = std::pair{ ctx.make<syntax_pattern>(syntax_pattern{ .descriptor = placeholder{ std::move($TYPENAME) } }), parameter_constraint_modifier_t::typename_value | parameter_constraint_modifier_t::ellipsis }; IGNORE_TERM($ELLIPSIS); }
+    //    { $$ = std::pair{ ctx.make<syntax_pattern>(syntax_pattern{ .descriptor = placeholder{ std::move($TYPENAME) } }), parameter_constraint_modifier_t::typename_value | parameter_constraint_modifier_t::variadic }; IGNORE_TERM($ELLIPSIS); }
     ;
 
 /////////////////////////// PATTERNS
@@ -909,10 +909,10 @@ pattern-field-sfx:
     
       // named pattern
     | ASSIGN pattern-sfx[ps]
-        { $$ = syntax_pattern::field{ .name = nullptr, .value = ctx.make<syntax_pattern>(std::move(get<0>($ps))), .ellipsis = has(get<1>($ps), parameter_constraint_modifier_t::ellipsis) }; IGNORE_TERM($ASSIGN); }
+        { $$ = syntax_pattern::field{ .name = nullptr, .value = ctx.make<syntax_pattern>(std::move(get<0>($ps))), .ellipsis = has(get<1>($ps), parameter_constraint_modifier_t::variadic) }; IGNORE_TERM($ASSIGN); }
       // named pattern with a bound variable
     | internal-identifier[iid] ASSIGN pattern-sfx[ps]
-        { $$ = syntax_pattern::field{ .name = nullptr, .bound_variable = std::move($iid.name), .value = ctx.make<syntax_pattern>(std::move(get<0>($ps))), .ellipsis = has(get<1>($ps), parameter_constraint_modifier_t::ellipsis) }; IGNORE_TERM($ASSIGN); }
+        { $$ = syntax_pattern::field{ .name = nullptr, .bound_variable = std::move($iid.name), .value = ctx.make<syntax_pattern>(std::move(get<0>($ps))), .ellipsis = has(get<1>($ps), parameter_constraint_modifier_t::variadic) }; IGNORE_TERM($ASSIGN); }
     ;
 
 pattern-field:
@@ -930,7 +930,7 @@ pattern-field:
     | QMARK concept-expression-list-opt[cpts] ELLIPSIS
         { $$ = syntax_pattern::field{ .name = placeholder{ std::move($QMARK) }, .value = syntax_pattern{ .descriptor = placeholder{ }, .concepts = std::move($cpts) }, .ellipsis = true }; IGNORE_TERM($ELLIPSIS); }
     | QMARK ASSIGN pattern-sfx[ps]
-        { $$ = syntax_pattern::field{ .name = placeholder{ std::move($QMARK) }, .value = std::move(get<0>($ps)), .ellipsis = has(get<1>($ps), parameter_constraint_modifier_t::ellipsis) }; IGNORE_TERM($ASSIGN); }
+        { $$ = syntax_pattern::field{ .name = placeholder{ std::move($QMARK) }, .value = std::move(get<0>($ps)), .ellipsis = has(get<1>($ps), parameter_constraint_modifier_t::variadic) }; IGNORE_TERM($ASSIGN); }
     */
         // unnamed field
     | pattern-field-sfx[f]
@@ -952,8 +952,8 @@ pattern-mod:
 
 pattern-sfx:
       pattern { $$ = std::pair{ std::move($pattern), parameter_constraint_modifier_t::none }; }
-    | pattern ELLIPSIS { $$ = std::pair{ std::move($pattern), parameter_constraint_modifier_t::ellipsis }; IGNORE_TERM($ELLIPSIS); }
-    | ELLIPSIS { $$ = std::pair{ syntax_pattern{ .descriptor = placeholder{} }, parameter_constraint_modifier_t::ellipsis }; IGNORE_TERM($ELLIPSIS); }
+    | pattern ELLIPSIS { $$ = std::pair{ std::move($pattern), parameter_constraint_modifier_t::variadic }; IGNORE_TERM($ELLIPSIS); }
+    | ELLIPSIS { $$ = std::pair{ syntax_pattern{ .descriptor = placeholder{} }, parameter_constraint_modifier_t::variadic }; IGNORE_TERM($ELLIPSIS); }
     ;
 
 pattern:

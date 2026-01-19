@@ -4,7 +4,7 @@
 #pragma once
 
 #include "annium/errors.hpp"
-#include "annium/entities/functional.hpp"
+#include "annium/functional/functional.hpp"
 
 namespace annium {
 
@@ -20,7 +20,7 @@ public:
     }
 
     void visit(error_visitor& vis) const override { vis(*this); }
-    location_t location() const noexcept override { return pattern_.location(); }
+    location_t location() const noexcept override { return pattern_.location; }
     string_t object(environment const&) const noexcept override;
     string_t description(environment const&) const noexcept override;
 };

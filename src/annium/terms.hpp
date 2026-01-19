@@ -119,7 +119,7 @@ enum class parameter_constraint_modifier_t : uint8_t
     constexpr_not_a_typename_value = 8,
     constexpr_value = 12,
     any_constexpr = 14,
-    ellipsis = 16
+    variadic = 16
 };
 
 inline parameter_constraint_modifier_t operator|(parameter_constraint_modifier_t lhs, parameter_constraint_modifier_t rhs) noexcept

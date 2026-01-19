@@ -30,7 +30,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> internal_fn_patter
     // check if vaible
     functional_match_descriptor& md = **res;
 
-    indirect_internal_function_entity smpl{ md.signature, location() };
+    indirect_internal_function_entity smpl{ md.signature, location };
 
     environment& env = caller_ctx.env();
 
@@ -40,13 +40,13 @@ std::expected<functional_match_descriptor_ptr, error_storage> internal_fn_patter
 
     sonia::lang::compiler_task_tracer::task_guard tg = caller_ctx.try_lock_task(entity_task_id{ fne });
     if (!tg) return std::unexpected(
-        make_error<circular_dependency_error>(make_error<basic_general_error>(location_, "function build failed"sv, fne.id))
+        make_error<circular_dependency_error>(make_error<basic_general_error>(location, "function build failed"sv, fne.id))
     );
     if (fne.is_built()) return res; // already checked for vailability
     if (fne.build_errors || (fne.build_errors = fne.build(env))) {
         fne.set_provision(true); // this definition will be used as a provision only
         return std::unexpected(append_cause(
-            make_error<basic_general_error>(location_, "function build failed"sv, fne.id),
+            make_error<basic_general_error>(location, "function build failed"sv, fne.id),
             std::move(fne.build_errors)
         ));
     }
@@ -89,7 +89,7 @@ std::expected<syntax_expression_result, error_storage> internal_fn_pattern::appl
     environment& env = ctx.env();
     auto [result, mut_arg_cnt] = apply_arguments(ctx, el, md);
 
-    indirect_internal_function_entity smpl{ md.signature, location() };
+    indirect_internal_function_entity smpl{ md.signature, location };
 
     internal_function_entity& fne = static_cast<internal_function_entity&>(env.eregistry_find_or_create(smpl, [this, &ctx, &md]() {
         return build(ctx, std::move(md.signature), md.bindings.to_basic_functional_binding());
@@ -104,7 +104,7 @@ std::expected<syntax_expression_result, error_storage> internal_fn_pattern::appl
 
         sonia::lang::compiler_task_tracer::task_guard tg = ctx.try_lock_task(entity_task_id{ fne });
         if (!tg) return std::unexpected(
-            make_error<circular_dependency_error>(make_error<basic_general_error>(location_, "resolving function result type"sv, fne.id))
+            make_error<circular_dependency_error>(make_error<basic_general_error>(location, "resolving function result type"sv, fne.id))
         );
         if (!fne.is_built()) {
             if (auto err = fne.build(env)) {

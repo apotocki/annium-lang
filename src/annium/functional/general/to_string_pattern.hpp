@@ -3,15 +3,15 @@
 
 #pragma once
 
-#include "annium/entities/functional.hpp"
+#include "annium/functional/functional.hpp"
 
 namespace annium {
 
 class to_string_pattern : public functional::pattern
 {
 public:
-    // Zero default weight (default implementation). Any overload must win the match.
-    inline to_string_pattern() noexcept : functional::pattern{ 0 } {}
+    // Default implementation. Any overload must win the match.
+    inline to_string_pattern() noexcept : functional::pattern{ functional::default_pattern_implementation_weight } {}
 
     std::expected<functional_match_descriptor_ptr, error_storage> try_match(fn_compiler_context&, prepared_call const&, expected_result_t const&) const override;
     std::expected<syntax_expression_result, error_storage> apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const override;

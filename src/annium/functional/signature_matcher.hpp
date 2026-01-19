@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "annium/entities/functional.hpp"
+#include "annium/functional/functional.hpp"
 //#include "annium/errors.hpp"
 
 namespace annium {

@@ -9,7 +9,7 @@
 #include "sonia/shared_ptr.hpp"
 
 #include "annium/entities/signatured_entity.hpp"
-#include "annium/entities/functional.hpp"
+#include "annium/functional/functional.hpp"
 #include "annium/errors.hpp"
 
 namespace annium {

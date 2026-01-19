@@ -102,9 +102,6 @@
     <ClCompile Include="..\..\..\src\annium\vm\annium_vm.cpp">
       <Filter>annium\vm</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\functional.cpp">
-      <Filter>annium\entities</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\prepared_call.cpp">
       <Filter>annium\entities</Filter>
     </ClCompile>
@@ -399,6 +396,12 @@
     <ClCompile Include="..\..\..\src\annium\entities\enum\enum_implicit_runtime_cast_pattern.cpp">
       <Filter>annium\entities\enum</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\match_penalty.cpp">
+      <Filter>annium\functional</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\functional.cpp">
+      <Filter>annium\functional</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\annium\location.hh">
@@ -454,12 +457,6 @@
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\utility\linked_list.ipp">
       <Filter>annium\utility</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\functional.hpp">
-      <Filter>annium\entities</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\functional_registry.hpp">
-      <Filter>annium\entities</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\prepared_call.hpp">
       <Filter>annium\entities</Filter>
@@ -790,6 +787,15 @@
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\enum\enum_implicit_runtime_cast_pattern.hpp">
       <Filter>annium\entities\enum</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\match_penalty.hpp">
+      <Filter>annium\functional</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\functional.hpp">
+      <Filter>annium\functional</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\functional_registry.hpp">
+      <Filter>annium\functional</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

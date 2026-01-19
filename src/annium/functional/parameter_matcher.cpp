@@ -31,7 +31,7 @@ parameter_matcher::parameter_matcher(
         , call_session{ c.new_session(caller_ctx) }
         , md{ mdval }
 {
-    argindices_stack.reserve(c.args.size());
+    handled_arguments_stack.reserve(c.args.size());
 }
 
 struct constraint_matcher
@@ -41,57 +41,58 @@ struct constraint_matcher
 
     basic_fn_pattern::parameter_descriptor const& pd;
     annotated_identifier const& param_name;
+    expected_result_t argexp;
     syntax_expression_result arg_er;
     prepared_call::argument_descriptor_t arg_descr;
     entity_identifier pconstraint_value_eid; // empty means no constraint value (any value is allowed)
-    int dweight; // = res->second;
+    bool has_cast; // = res->second;
 
     constraint_matcher(parameter_matcher& pmatcher_val, fn_compiler_context& callee_ctx_val, basic_fn_pattern::parameter_descriptor const& pd_val)
         : pmatcher{ pmatcher_val }
         , callee_ctx{ callee_ctx_val }
         , pd{ pd_val }
         , param_name{ pd_val.ename.self_or(pd_val.inames.front()) }
+        , argexp{ .modifier = to_value_modifier(pd.modifier) }
     {
     }
 
-    std::expected<bool, error_storage> do_retrieve_next_argument(expected_result_t const& argexp)
+    std::expected<bool, error_storage> do_retrieve_next_argument()
     {
         if (pd.ename) {
             return pmatcher.call_session.use_named_argument(pd.ename.value, argexp, &arg_descr);
-        } else if (!has(pd.modifier, parameter_constraint_modifier_t::ellipsis)) {
+        } else if (!has(pd.modifier, parameter_constraint_modifier_t::variadic)) {
             return pmatcher.call_session.use_next_positioned_argument(argexp, &arg_descr);
         } else { // unnamed ellipsis eats any next argument
             return pmatcher.call_session.use_next_argument(argexp, &arg_descr);
         }
     }
 
-    std::expected<std::pair<syntax_expression_result, bool>, error_storage> retrieve_next_argument(expected_result_t const& argexp)
+    std::expected<std::pair<syntax_expression_result, bool>, error_storage> retrieve_next_argument()
     {
-        auto res = do_retrieve_next_argument(argexp);
+        auto res = do_retrieve_next_argument();
         if (!res) return std::unexpected(res.error());
         if (!*res) return std::unexpected(error_storage{}); // no more arguments
         arg_er = arg_descr.result;
-        dweight = arg_descr.has_been_casted ? 1 : 0;
+        has_cast = !!arg_descr.has_been_casted;
         return std::pair{ arg_descr.result, !!arg_descr.has_been_casted };
     }
 
-    error_storage operator()(syntax_expression const* constraint) const
+    std::expected<match_penalty, error_storage> operator()(syntax_expression const* constraint) const
     {
         if (has(pd.modifier, parameter_constraint_modifier_t::constexpr_value)) {
             BOOST_ASSERT(pconstraint_value_eid); // shuld be set by resolve_expression_expected_result call
             if (arg_er.value() != pconstraint_value_eid) {
-                return make_error<value_mismatch_error>(arg_descr.expression->location, arg_er.value(), pconstraint_value_eid, constraint->location);
+                return std::unexpected(make_error<value_mismatch_error>(arg_descr.expression->location, arg_er.value(), pconstraint_value_eid, constraint->location));
                 //return append_cause(
                 //    make_error<basic_general_error>(call.location, "argument value does not match constraint"sv, param_name.value, param_name.location),
                 //    make_error<value_mismatch_error>(arg_descr.expression->location, arg_er.value(), pconstraint_value_eid, get_start_location(constraint))
                 //);
             }
         } // else it's just a type constraint that has met by successful call_session.use_*** call
-        pmatcher.md.weight -= dweight; // implicit cast decreases weight
-        return {};
+        return match_penalty{ .casts = has_cast, .cast_allowances = 1 };
     }
 
-    error_storage operator()(syntax_pattern const* constraint) const
+    std::expected<match_penalty, error_storage> operator()(syntax_pattern const* constraint) const
     {
         environment& env = callee_ctx.env();
         entity_identifier type_to_match;
@@ -99,7 +100,7 @@ struct constraint_matcher
             entity const& arg_res_entity = get_entity(env, arg_er.value());
             if (has(pd.modifier, parameter_constraint_modifier_t::typename_value)) { // typename as constexpr value matching
                 if (arg_res_entity.get_type() != env.get(builtin_eid::typename_)) {
-                    return make_error<type_mismatch_error>(arg_descr.expression->location, arg_er.value(), "a typename"sv);
+                    return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, arg_er.value(), "a typename"sv));
                 }
                 type_to_match = arg_er.value();
             } else {
@@ -108,17 +109,18 @@ struct constraint_matcher
         } else {
             type_to_match = arg_er.type();
         }
-        auto pattern_weight = pattern_matcher{ callee_ctx, pmatcher.md.bindings, pmatcher.call.expressions }
+        match_penalty pattern_penalty;
+        error_storage err = pattern_matcher{ callee_ctx, pmatcher.md.bindings, pmatcher.call.expressions, pattern_penalty }
             .match(*constraint, annotated_entity_identifier{ type_to_match, arg_descr.expression->location });
-        if (!pattern_weight) {
-            return append_cause(
+        if (err) {
+            return std::unexpected(append_cause(
                 make_error<basic_general_error>(param_name.location, "cannot match argument pattern"sv, param_name.value),
-                std::move(pattern_weight.error())
-            );
+                std::move(err)
+            ));
         }
-        pmatcher.md.weight += *pattern_weight;
-        //pmatcher.md.weight -= 1; // pattern match decreases weight
-        return {};
+        return std::expected<match_penalty, error_storage>{
+            std::in_place, std::move(pattern_penalty)
+        };
     }
 };
 
@@ -138,8 +140,7 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
     while (param_it != param_end) {
         constraint_matcher cmatcher{ *this, callee_ctx, *param_it };
         //entity_identifier pconstraint_value_eid; // empty means no constraint value (any value is allowed)
-        expected_result_t argexp{ .modifier = to_value_modifier(param_it->modifier) };
-
+        
         // resolve the parameter constraint value if it is specified
         if (syntax_expression const* const* param_expr = get_if<syntax_expression const*>(&param_it->constraint)) {
             auto argexp_res = resolve_expression_expected_result(callee_ctx, cmatcher.param_name, param_it->modifier, **param_expr, cmatcher.pconstraint_value_eid);
@@ -148,19 +149,18 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
                 if (try_backtrack(callee_ctx)) continue;
                 return result_error();
             }
-            argexp = std::move(*argexp_res);
+            cmatcher.argexp = std::move(*argexp_res);
         }
 
-        bool is_param_ellipsis = has(param_it->modifier, parameter_constraint_modifier_t::ellipsis);
-        if (is_param_ellipsis && (star_stack.empty() || star_stack.back().param_it != param_it)) {
+        bool is_variadic_param = has(param_it->modifier, parameter_constraint_modifier_t::variadic);
+        if (is_variadic_param && (star_stack.empty() || star_stack.back().param_it != param_it)) {
             star_stack.emplace_back(param_it, entity_signature{ env.get(builtin_qnid::tuple), env.get(builtin_eid::typename_) });
-            md.weight -= 1; // as ellipsis
         }
 
         uint32_t argindex;
-        auto res = cmatcher.retrieve_next_argument(argexp);
+        auto res = cmatcher.retrieve_next_argument();
         if (!res) {
-            if (!is_param_ellipsis) {
+            if (!is_variadic_param) {
                 if (res.error()) {
                     match_errors.alternatives.emplace_back(append_cause(
                         make_error<basic_general_error>(cmatcher.param_name.location, "cannot match argument"sv, cmatcher.param_name.value, cmatcher.arg_descr.expression->location),
@@ -172,7 +172,7 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
                 // no more arguments
                 } else if (syntax_expression const* const* default_expr = get_if<syntax_expression const*>(&param_it->default_value); default_expr) {
                     // try default value
-                    res = base_expression_visitor::visit(callee_ctx, call.expressions, argexp, **default_expr);
+                    res = base_expression_visitor::visit(callee_ctx, call.expressions, cmatcher.argexp, **default_expr);
                     if (!res) {
                         match_errors.alternatives.emplace_back(append_cause(
                             make_error<basic_general_error>(cmatcher.param_name.location, "cannot evaluate default value for argument"sv, cmatcher.param_name.value),
@@ -183,7 +183,7 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
                         return result_error();
                     }
                     cmatcher.arg_er = std::move(res->first);
-                    cmatcher.dweight = res->second ? 1 : 0;
+                    cmatcher.has_cast = res->second;
                     argindex = argindex_for_default--;
                 } else if (holds_alternative<required_t>(param_it->default_value)) {
                     match_errors.alternatives.emplace_back(make_error<basic_general_error>(cmatcher.param_name.location, "missing required argument"sv, cmatcher.param_name.value));
@@ -192,7 +192,8 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
                     return result_error();
                 } else { // else optional, continue
                     // ?? bind inames to ()
-                    argindices_stack.push_back(argindex_for_default--);
+                    // ?? do we really have optional parameters without default value?
+                    handled_arguments_stack.push_back({.penalty = {/* penalty for not existed argument*/}, .index = argindex_for_default--});
                     continue;
                 }
             } else {
@@ -200,23 +201,22 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
                     call_session.reuse_argument(cmatcher.arg_descr.arg_index);
                     match_errors.alternatives.emplace_back(std::move(res.error()));
                 } // else no more arguments
-                finalize_ellipsis(callee_ctx);
+                finalize_variadic(callee_ctx);
                 ++param_it;
                 continue;
             }
         } else {
             argindex = static_cast<uint32_t>(cmatcher.arg_descr.arg_index);
-            
         }
 
         BOOST_ASSERT(res);
-        argindices_stack.push_back(argindex);
+        handled_arguments_stack.push_back({.index = argindex});
         md.bindings.set_current_layer(argindex);
-        error_storage err = visit(cmatcher, param_it->constraint);
+        auto penalty = visit(cmatcher, param_it->constraint);
             
-        if (err) {
-            if (!is_param_ellipsis) {
-                match_errors.alternatives.emplace_back(std::move(err));
+        if (!penalty) {
+            if (!is_variadic_param) {
+                match_errors.alternatives.emplace_back(std::move(penalty.error()));
                 if (try_backtrack(callee_ctx)) continue;
                 return result_error();
             } else {
@@ -226,11 +226,14 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
                     BOOST_ASSERT(argindex == argindex_for_default + 1);
                     ++argindex_for_default; // to reuse index
                 }
-                finalize_ellipsis(callee_ctx);
+                finalize_variadic(callee_ctx);
                 ++param_it;
                 continue;
             }
         }
+
+        penalty->variadics = is_variadic_param;
+        handled_arguments_stack.back().penalty = std::move(*penalty);
 
         if (cmatcher.arg_descr.name) {
             md.append_arg(cmatcher.arg_descr.name.value, cmatcher.arg_er, cmatcher.arg_descr.expression->location);
@@ -238,13 +241,13 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
             md.append_arg(cmatcher.arg_er, cmatcher.arg_descr.expression->location);
         }
 
-        if (is_param_ellipsis) {
-            entity_signature& ellipsis_type_sig = star_stack.back().signature;
+        if (is_variadic_param) {
+            entity_signature& variadic_type_sig = star_stack.back().signature;
             if (cmatcher.arg_er.is_const_result) {
                 if (cmatcher.arg_descr.name) {
-                    ellipsis_type_sig.emplace_back(cmatcher.arg_descr.name.value, cmatcher.arg_er.value(), true);
+                    variadic_type_sig.emplace_back(cmatcher.arg_descr.name.value, cmatcher.arg_er.value(), true);
                 } else {
-                    ellipsis_type_sig.emplace_back(cmatcher.arg_er.value(), true);
+                    variadic_type_sig.emplace_back(cmatcher.arg_er.value(), true);
                 }
             } else {
                 //std::array<char, 16> argname = { '#' };
@@ -258,9 +261,9 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
                 entity_identifier unnamedid_entid = env.make_qname_entity(qname{ unnamedid, false }).id;
 
                 if (cmatcher.arg_descr.name) {
-                    ellipsis_type_sig.emplace_back(cmatcher.arg_descr.name.value, unnamedid_entid, true);
+                    variadic_type_sig.emplace_back(cmatcher.arg_descr.name.value, unnamedid_entid, true);
                 } else {
-                    ellipsis_type_sig.emplace_back(unnamedid_entid, true);
+                    variadic_type_sig.emplace_back(unnamedid_entid, true);
                 }
                 local_variable var{ .type = cmatcher.arg_er.type(), .varid = env.new_variable_identifier(), .is_weak = false };
                 md.bindings.emplace_back(argindex, annotated_identifier{ unnamedid, cmatcher.arg_descr.expression->location }, var);
@@ -300,7 +303,11 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
         return result_error();
     }
 
-    //THROW_NOT_IMPLEMENTED_ERROR("parameter_matcher::match is not implemented yet");
+    // summarize penalties
+    for (auto const& arg : handled_arguments_stack) {
+        md.penalty += arg.penalty;
+    }
+
     return {};
 }
 
@@ -309,28 +316,28 @@ bool parameter_matcher::try_backtrack(fn_compiler_context& callee_ctx)
     while (!star_stack.empty()) {
         star_frame& frame = star_stack.back();
         while (param_it != frame.param_it) {
-            BOOST_ASSERT(!argindices_stack.empty());
-            auto argindex = argindices_stack.back();
+            BOOST_ASSERT(!handled_arguments_stack.empty());
+            auto argindex = handled_arguments_stack.back().index;
             if (argindex < argindex_for_default) {
                 call_session.reuse_argument(argindex);
             } else {
                 BOOST_ASSERT(argindex == argindex_for_default + 1);
                 ++argindex_for_default; // to reuse index
             }
-            argindices_stack.pop_back();
+            handled_arguments_stack.pop_back();
             md.remove_last_arg();
             md.bindings.remove_layer(argindex);
             --param_it;
         }
         if (!frame.signature.empty()) {
-            BOOST_ASSERT(!argindices_stack.empty());
-            auto argindex = argindices_stack.back();
+            BOOST_ASSERT(!handled_arguments_stack.empty());
+            auto argindex = handled_arguments_stack.back().index;
             call_session.reuse_argument(argindex);
-            argindices_stack.pop_back();
+            handled_arguments_stack.pop_back();
             md.bindings.remove_layer(argindex);
             md.remove_last_arg();
             frame.signature.pop_back();
-            finalize_ellipsis(callee_ctx);
+            finalize_variadic(callee_ctx);
             ++param_it;
             return true;
         }
@@ -375,7 +382,7 @@ parameter_matcher::resolve_expression_expected_result(fn_compiler_context& calle
     return expr_exp;
 }
 
-void parameter_matcher::finalize_ellipsis(fn_compiler_context& callee_ctx)
+void parameter_matcher::finalize_variadic(fn_compiler_context& callee_ctx)
 {
     environment& env = callee_ctx.env();
     star_frame& sf = star_stack.back();
@@ -383,7 +390,7 @@ void parameter_matcher::finalize_ellipsis(fn_compiler_context& callee_ctx)
     basic_signatured_entity const& ellipsis_type = env.make_basic_signatured_entity(entity_signature{ sf.signature });
     entity_identifier ellipsis_type_unit_eid = env.make_empty_entity(ellipsis_type).id;
 
-    uint32_t argindex = argindices_stack.empty() ? (std::numeric_limits<uint32_t>::max)() : argindices_stack.back();
+    uint32_t argindex = handled_arguments_stack.empty() ? (std::numeric_limits<uint32_t>::max)() : handled_arguments_stack.back().index;
     for (auto const& iname : sf.param_it->inames) {
         md.bindings.emplace_back(argindex, iname, ellipsis_type_unit_eid);
     }

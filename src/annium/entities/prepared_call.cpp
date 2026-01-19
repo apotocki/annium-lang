@@ -355,9 +355,9 @@ std::expected<prepared_call::argument_descriptor_t, error_storage>
 prepared_call::session::get_named_argument(identifier name, expected_result_t const& exp)
 {
     argument_descriptor_t result_descr;
-    
     auto result = use_named_argument(name, exp, &result_descr);
     if (!result) {
+        reuse_argument(result_descr.arg_index);
         std::ostringstream errss;
         ctx.env().print_to(errss << "error resolving '"sv, name) << "' argument"sv;
         return std::unexpected(append_cause(
@@ -386,6 +386,7 @@ prepared_call::session::get_next_positioned_argument(expected_result_t const& ex
             errss << "error resolving `"sv << arg_hint << "` argument"sv;
             err = make_error<basic_general_error>(result_descr.expression->location, errss.str());
         }
+        reuse_argument(result_descr.arg_index);
         return std::unexpected(append_cause(err, std::move(result.error())));
     }
     else if (!*result) {

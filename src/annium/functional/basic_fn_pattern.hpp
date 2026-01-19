@@ -4,7 +4,7 @@
 #pragma once
 
 #include "sonia/small_vector.hpp"
-#include "annium/entities/functional.hpp"
+#include "annium/functional/functional.hpp"
 
 namespace annium {
 

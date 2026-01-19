@@ -90,7 +90,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> numeric_implicit_c
         }
         generic_literal_entity const& src_arg_literal = dynamic_cast<generic_literal_entity const&>(argent);
         pmd = sonia::make_shared<numeric_implicit_cast_match_descriptor>(src_arg_literal);
-        --pmd->weight; // lower weight for implicit casts
+        ++pmd->penalty.casts; // penalty for implicit casts
     } else {
         if (src_arg_er.type() == teid) {
             return std::unexpected(make_error<basic_general_error>(arg_descr->expression->location, "argument and result types must be different"sv, teid));

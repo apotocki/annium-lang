@@ -29,7 +29,7 @@ namespace annium {
 
 error_storage basic_fn_pattern::init(fn_compiler_context& ctx, fn_pure const& fnd)
 {
-    location_ = fnd.location;
+    location = fnd.location;
     visit([this](auto&& expr) {
         if constexpr (std::is_same_v<std::decay_t<decltype(expr)>, nullptr_t>) {
             result_ = nullptr;
@@ -136,14 +136,13 @@ std::expected<functional_match_descriptor_ptr, error_storage> basic_fn_pattern::
     // If the result is a pattern, we should handle it first.
     if (rpattern) {
         BOOST_ASSERT(exp);
-        auto res = pattern_matcher{ callee_ctx, pmd->bindings, call.expressions }.match(*rpattern, annotated_entity_identifier{ exp.type, exp.location });
-        if (!res) {
+        error_storage err = pattern_matcher{ callee_ctx, pmd->bindings, call.expressions, pmd->penalty }.match(*rpattern, annotated_entity_identifier{ exp.type, exp.location });
+        if (err) {
             return std::unexpected(append_cause(
                 make_error<basic_general_error>(call.location, "Cannot match result pattern"sv, nullptr, get_start_location(*rpattern)),
-                std::move(res.error())
+                std::move(err)
             ));
         }
-        pmd->weight += *res;
         //pmd->weight -= static_cast<int>(pmd->bindings.size());
         // to do: not only void_type can produce only constexpr result
         if (exp.type == e.get(builtin_eid::void_type)) {
@@ -203,7 +202,7 @@ shared_ptr<internal_function_entity> basic_fn_pattern::build(fn_compiler_context
     auto pife = make_shared<internal_function_entity>(
         std::move(fn_ns),
         std::move(signature),
-        location(),
+        location,
         std::move(result_field));
 
     build_scope(env, std::move(mdbindings), *pife);
@@ -218,7 +217,7 @@ void basic_fn_pattern::build_scope(environment& e, basic_functional_binding&& md
         functional_binding::value_type const* bsp = mdbindings.lookup(pd.inames.front().value);
         BOOST_ASSERT(bsp);
 
-        if (!has(pd.modifier, parameter_constraint_modifier_t::ellipsis)) {
+        if (!has(pd.modifier, parameter_constraint_modifier_t::variadic)) {
             if (local_variable const* plv = get_if<local_variable>(bsp); plv) {
                 fent.push_argument(plv->varid);
             } // else arg is constant
@@ -330,7 +329,7 @@ std::ostream& basic_fn_pattern::print(environment const& e, std::ostream& ss) co
                 static_assert(false);
             }
         }, pd.constraint);
-        if (has(pd.modifier, parameter_constraint_modifier_t::ellipsis)) {
+        if (has(pd.modifier, parameter_constraint_modifier_t::variadic)) {
             ss << "... "sv;
         } 
     }

@@ -5,7 +5,7 @@
 
 #include <expected>
 
-#include "annium/entities/functional.hpp"
+#include "annium/functional/functional.hpp"
 #include "annium/ast/fn_compiler_context.hpp"
 
 namespace annium {

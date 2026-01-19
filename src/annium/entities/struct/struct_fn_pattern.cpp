@@ -42,7 +42,7 @@ std::expected<syntax_expression_result, error_storage> struct_fn_pattern::apply(
         // e.fregistry().resolve(struct_ns).name() // do we need a functional to store qname?
         auto res = sonia::make_shared<struct_entity>(std::move(struct_ns), std::move(md.signature), body_);
         res->context_bindings() = std::move(md.bindings);
-        res->location = location();
+        res->location = location;
         return res;
     });
 

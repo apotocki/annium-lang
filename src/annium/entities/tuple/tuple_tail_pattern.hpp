@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "annium/entities/functional.hpp"
+#include "annium/functional/functional.hpp"
 #include "tuple_pattern_base.hpp"
 
 namespace annium {

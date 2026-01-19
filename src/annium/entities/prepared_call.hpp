@@ -8,7 +8,7 @@
 
 #include <boost/container/flat_map.hpp>
 
-#include "functional.hpp"
+#include "annium/functional/functional.hpp"
 
 #include "annium/environment.hpp"
 

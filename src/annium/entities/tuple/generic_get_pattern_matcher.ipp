@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "annium/entities/functional.hpp"
+#include "annium/functional/functional.hpp"
 #include "annium/ast/fn_compiler_context.hpp"
 #include "annium/entities/prepared_call.hpp"
 #include "annium/auxiliary.hpp"

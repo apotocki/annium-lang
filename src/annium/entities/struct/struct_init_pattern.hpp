@@ -3,14 +3,14 @@
 
 #pragma once
 
-#include "annium/entities/functional.hpp"
+#include "annium/functional/functional.hpp"
 
 namespace annium {
 
 class struct_init_pattern : public functional::pattern
 {
 public:
-    struct_init_pattern() = default;
+    //inline struct_init_pattern() noexcept : functional::pattern(0) {}
     
     std::expected<functional_match_descriptor_ptr, error_storage> try_match(fn_compiler_context&, prepared_call const&, expected_result_t const&) const override;
 

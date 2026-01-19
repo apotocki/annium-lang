@@ -11,7 +11,7 @@
 
 #include "annium/semantic.hpp"
 #include "annium/entities/signatured_entity.hpp"
-#include "annium/entities/functional.hpp"
+#include "annium/functional/functional.hpp"
 
 namespace annium {
 

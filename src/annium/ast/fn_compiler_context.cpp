@@ -8,7 +8,7 @@
 #include <boost/container/flat_set.hpp>
 #include <boost/range/adaptor/reversed.hpp>
 
-#include "annium/entities/functional.hpp"
+#include "annium/functional/functional.hpp"
 #include "annium/entities/functions/internal_function_entity.hpp"
 
 #include "annium/ast/base_expression_visitor.hpp"

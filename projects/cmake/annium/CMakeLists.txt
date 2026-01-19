@@ -27,7 +27,6 @@ set (LIBRARY_SOURCES
     ${LIBRARY_HOME}/annium/ast/base_expression_visitor.cpp
     ${LIBRARY_HOME}/annium/ast/declaration_visitor.cpp
     ${LIBRARY_HOME}/annium/ast/fn_compiler_context.cpp
-    ${LIBRARY_HOME}/annium/entities/functional.cpp
     ${LIBRARY_HOME}/annium/entities/functional_binding.cpp
     ${LIBRARY_HOME}/annium/entities/layered_binding_set.cpp
     ${LIBRARY_HOME}/annium/entities/prepared_call.cpp
@@ -93,6 +92,8 @@ set (LIBRARY_SOURCES
     ${LIBRARY_HOME}/annium/entities/union/union_apply_pattern.cpp
     ${LIBRARY_HOME}/annium/entities/union/union_bit_or_pattern.cpp
     
+    ${LIBRARY_HOME}/annium/functional/match_penalty.cpp
+    ${LIBRARY_HOME}/annium/functional/functional.cpp
     ${LIBRARY_HOME}/annium/functional/basic_fn_pattern.cpp
     ${LIBRARY_HOME}/annium/functional/external_fn_pattern.cpp
     ${LIBRARY_HOME}/annium/functional/internal_fn_pattern.cpp

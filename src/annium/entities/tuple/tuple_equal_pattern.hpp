@@ -3,14 +3,14 @@
 
 #pragma once
 
-#include "annium/entities/functional.hpp"
+#include "annium/functional/functional.hpp"
 
 namespace annium {
 
 class tuple_equal_pattern : public functional::pattern
 {
 public:
-    tuple_equal_pattern() noexcept : functional::pattern{ numetron::decimal{ "0.1"sv } } {}
+    //tuple_equal_pattern() noexcept : functional::pattern{ numetron::decimal{ "0.1"sv } } {}
 
     std::expected<functional_match_descriptor_ptr, error_storage>
     try_match(fn_compiler_context&, prepared_call const&, expected_result_t const&) const override;
@@ -19,7 +19,7 @@ public:
     apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const override;
 
     std::ostream& print(environment const&, std::ostream& s) const override {
-        return s << "equal(:tuple(...), :tuple(...))->bool";
+        return s << "equal(~tuple(...), ~tuple(...))->bool";
     }
 };
 

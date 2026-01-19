@@ -18,6 +18,8 @@
 
 #include "annium/entities/layered_binding_set.hpp"
 
+#include "annium/functional/match_penalty.hpp"
+
 namespace annium {
 
 class fn_compiler_context;
@@ -74,7 +76,7 @@ public:
     layered_binding_set bindings;
     resource_location call_location;
 
-    int weight{ 0 };
+    match_penalty penalty;
 
     inline functional_match_descriptor() = default;
     inline functional_match_descriptor(qname_identifier fname, resource_location loc) noexcept
@@ -148,20 +150,22 @@ public:
     using identifier_type = qname_identifier;
     using qname_view_type = qname_view;
     
+    static constexpr int default_pattern_implementation_weight = -65536;
+    static constexpr int base_pattern_implementation_weight = 0;
+
     class pattern
     {
-    protected:
-        numetron::decimal weight_;
-        resource_location location_;
+    public:
+        numetron::decimal weight;
+        resource_location location;
 
-        inline explicit pattern(numetron::decimal w = 1) noexcept : weight_{ w } {}
+    protected:
+        inline pattern() noexcept : weight{ base_pattern_implementation_weight } {}
+        inline explicit pattern(numetron::decimal w) noexcept : weight{ std::move(w) } {}
 
     public:
         virtual std::expected<functional_match_descriptor_ptr, error_storage> try_match(fn_compiler_context&, prepared_call const&, expected_result_t const&) const = 0;
         virtual std::expected<syntax_expression_result, error_storage> apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const = 0;
-
-        inline numetron::decimal const& get_weight() const noexcept { return weight_; }
-        inline resource_location const& location() const noexcept { return location_; }
 
         virtual std::ostream& print(environment const&, std::ostream& s) const { return s << "some pattern"; }
     };
@@ -216,10 +220,8 @@ public:
     void set_default_entity(shared_ptr<entity_resolver>); // can throw redefinition_error
     void set_default_result(functional_variable); // can throw redefinition_error
 
-    void push(shared_ptr<pattern> p)
-    {
-        patterns_.push_back(std::move(p));
-    }
+    void push(shared_ptr<pattern> p);
+    
 
     // looking by argument expressions (pattern matching)
     std::expected<match, error_storage> find(
@@ -234,7 +236,6 @@ private:
     small_vector<identifier, 4> qnameids_;
     mutable std::variant<annotated_entity_identifier, functional_variable, shared_ptr<entity_resolver>> default_result_; // corresponds to name without call
     small_vector<shared_ptr<pattern>, 1> patterns_;
-
     mutable fibers::mutex default_entity_mtx_;
 };
 

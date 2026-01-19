@@ -339,6 +339,17 @@ struct expression_stack_checker
 #endif
 };
 
+void functional::push(shared_ptr<pattern> p)
+{
+    // patterns_ is kept sorted by weight descending
+    // find insertion point based on weight using binary search
+    auto it = std::lower_bound(patterns_.begin(), patterns_.end(), p,
+        [](auto const& a, auto const& b) {
+            return a->weight > b->weight;
+        });
+    patterns_.emplace(it, std::move(p));
+}
+
 std::expected<functional::match, error_storage> functional::find(
     fn_compiler_context& ctx,
     syntax_expression_result* capture_result, // optional, nullptr if not needed
@@ -347,8 +358,6 @@ std::expected<functional::match, error_storage> functional::find(
     semantic::expression_list_t& ael,
     expected_result_t const& expected_result) const
 {
-    numetron::decimal major_weight = (std::numeric_limits<int32_t>::min)();
-    int minor_weight = 0;
     using alternative_t = std::pair<pattern const*, functional_match_descriptor_ptr>;
     small_vector<alternative_t, 2> alternatives;
 
@@ -358,10 +367,12 @@ std::expected<functional::match, error_storage> functional::find(
     if (auto err = pcall.prepare(); err) return std::unexpected(std::move(err));
 
     alt_error err;
+    
     for (auto const& p : patterns_) {
-        auto cmp = major_weight <=> p->get_weight();
-        if (cmp == std::strong_ordering::greater) continue;
-
+        if (!alternatives.empty() && alternatives.front().first->weight > p->weight) {
+            break; // since patterns are sorted by weight descending
+        }
+        
         auto match_descriptor = p->try_match(ctx, pcall, expected_result);
 
         BOOST_ASSERT(expr_stack_state.check(ctx));
@@ -374,15 +385,18 @@ std::expected<functional::match, error_storage> functional::find(
                 err.alternatives.emplace_back(make_error<pattern_match_error>(*p, std::move(match_descriptor.error())));
             }
         } else {
-            int match_weight = (**match_descriptor).weight;
-            if (cmp == std::strong_ordering::less || minor_weight < match_weight) {
-                major_weight = p->get_weight();
-                minor_weight = match_weight;
-                alternatives.clear();
+            if (alternatives.empty()) {
                 alternatives.emplace_back(p.get(), std::move(*match_descriptor));
-            } else if (minor_weight == match_weight) { // cmp == std::strong_ordering::equal
-                alternatives.emplace_back(p.get(), std::move(*match_descriptor));
-            } // else skip less weighted alternatives
+                continue;
+            } else {
+                auto cmp = alternatives.front().second->penalty <=> (**match_descriptor).penalty;
+                if (cmp == std::strong_ordering::greater) {
+                    alternatives.clear();
+                    alternatives.emplace_back(p.get(), std::move(*match_descriptor));
+                } else if (cmp == std::strong_ordering::equal) {
+                    alternatives.emplace_back(p.get(), std::move(*match_descriptor));
+                } // else skip more penalized alternative
+            }
         }
     }
 
@@ -400,7 +414,7 @@ std::expected<functional::match, error_storage> functional::find(
         for (alternative_t const& a : alternatives) {
             std::ostringstream ss;
             get<0>(a)->print(ctx.env(), ss);
-            as.emplace_back(get<0>(a)->location(), ss.str(), get<1>(a)->signature);
+            as.emplace_back(get<0>(a)->location, ss.str(), get<1>(a)->signature);
         }
         return std::unexpected(make_error<ambiguity_error>(annotated_qname_identifier{ id_, call_location }, std::move(as)));
     }

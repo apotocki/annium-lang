@@ -6,7 +6,7 @@
 #include "enum_entity.hpp"
 
 #include "annium/environment.hpp"
-#include "annium/entities/functional.hpp"
+#include "annium/functional/functional.hpp"
 
 namespace annium {
 

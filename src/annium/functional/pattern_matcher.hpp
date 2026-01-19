@@ -5,6 +5,7 @@
 
 #include "annium/ast_terms.hpp"
 #include "annium/errors.hpp"
+#include "annium/functional/match_penalty.hpp"
 
 namespace annium {
 
@@ -21,14 +22,15 @@ class pattern_matcher
 
     mutable fields_t::const_iterator fld_bit, fld_it, fld_end;
 
-    mutable int weight = 0;
+    match_penalty & penalty;
+    mutable size_t hierarchy_level;
 
 public:
-    inline pattern_matcher(fn_compiler_context& ctx, layered_binding_set& bindings, semantic::expression_list_t& expressions)
-        : ctx_{ ctx }, bindings_{ bindings }, expressions_{ expressions }
+    inline pattern_matcher(fn_compiler_context& ctx, layered_binding_set& bindings, semantic::expression_list_t& expressions, match_penalty& penalty_ref, size_t hlevel = 0) noexcept
+        : ctx_{ ctx }, bindings_{ bindings }, expressions_{ expressions }, penalty{ penalty_ref }, hierarchy_level{ hlevel }
     {}
 
-    std::expected<int, error_storage> match(syntax_pattern const&, annotated_entity_identifier const& type) const;
+    error_storage match(syntax_pattern const&, annotated_entity_identifier const& type) const;
 
 private:
     error_storage do_match(syntax_pattern::signature_descriptor const&, syntax_pattern const&, annotated_entity_identifier const&) const;
@@ -43,6 +45,14 @@ private:
     //    variant<placeholder, annotated_qname, context_identifier, syntax_expression> const& name,
     //    entity_signature const& sig, 
     //    annotated_entity_identifier const& type) const;
+
+    inline void append_penalty_for_placeholder() const
+    {
+        if (penalty.placeholders.size() <= hierarchy_level) {
+            penalty.placeholders.resize(hierarchy_level + 1, 0);
+        }
+        ++penalty.placeholders[hierarchy_level];
+    }
 };
 
 }
