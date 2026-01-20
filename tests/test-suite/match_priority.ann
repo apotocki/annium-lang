@@ -1,0 +1,17 @@
+fn tesnfn0(integer) => 1;
+fn tesnfn0(~integer) => 2;
+assert_equal(tesnfn0(42), 2); // prefer exact type match
+assert_equal(tesnfn0(42.0), 1); // cast is needed
+
+fn tesnfn1(integer) => 1;
+fn tesnfn1(~$T) => 2;
+assert_equal(tesnfn1(42), 1); // prefer non-generic match
+assert_equal(tesnfn1((fn()-> i8 => 42)()), 2); // cast i8 to integer is less preferred than generic
+assert_equal(tesnfn1((fn()-> u8 => 42.0)()), 2); // cast i8 to integer is less preferred than generic
+
+fn tesnfn2(~array(of $ET, size $SZ)) => $SZ;
+fn tesnfn2(~array(of $ET, size = {3})) => -3;
+fn tesnfn2(~$T) => 22;
+assert_equal(tesnfn2([42, 42]), 2); // prefer more specific match
+assert_equal(tesnfn2([42, 42, 42]), -3); // prefer more specific match with partial specialization for size
+
