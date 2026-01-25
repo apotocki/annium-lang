@@ -22,6 +22,7 @@ set (ANNIUM_TESTS_SOURCES
     ${PROJECT_HOME}/tpls/sonia-prime/sonia/fibers/condition_variable.cpp
     ${PROJECT_HOME}/tpls/sonia-prime/sonia/fibers/context.cpp
     ${PROJECT_HOME}/tpls/sonia-prime/sonia/fibers/context_shared.cpp
+    ${PROJECT_HOME}/tpls/sonia-prime/sonia/fibers/default_stack.cpp
     ${PROJECT_HOME}/tpls/sonia-prime/sonia/fibers/fiber.cpp
     ${PROJECT_HOME}/tpls/sonia-prime/sonia/fibers/future.cpp
     ${PROJECT_HOME}/tpls/sonia-prime/sonia/fibers/mutex.cpp

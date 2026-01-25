@@ -307,7 +307,16 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
     for (auto const& arg : handled_arguments_stack) {
         md.penalty += arg.penalty;
     }
-
+    if (!star_stack.empty()) {
+        // consider each ellipsis as an implicit placeholder
+        auto& phs = md.penalty.placeholders;
+        if (phs.empty()) {
+            phs.push_back(static_cast<unsigned int>(star_stack.size()));
+        } else {
+            phs.front() += static_cast<unsigned int>(star_stack.size());
+        }
+    }
+    
     return {};
 }
 

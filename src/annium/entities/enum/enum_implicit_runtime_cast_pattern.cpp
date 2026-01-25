@@ -33,11 +33,16 @@ std::expected<functional_match_descriptor_ptr, error_storage> enum_implicit_runt
     }
 
     auto call_session = call.new_session(ctx);
-    auto arg_descr = call_session.get_next_positioned_argument(expected_result_t{ .type = enum_ent.id, .modifier = value_modifier_t::constexpr_or_runtime_value });
+    auto arg_descr = call_session.get_next_positioned_argument(expected_result_t{ .modifier = value_modifier_t::constexpr_or_runtime_value });
     if (!arg_descr) return std::unexpected(std::move(arg_descr.error()));
     
     if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "argument mismatch"sv, std::move(argterm.value())));
+    }
+    // .type = enum_ent.id,
+    entity_identifier rtid = get_result_type(ctx.env(), arg_descr->result);
+    if (rtid != exp.type) {
+        return std::unexpected(make_error<type_mismatch_error>(arg_descr->expression->location, rtid, exp.type));
     }
 
     functional_match_descriptor_ptr pmd = make_shared<functional_match_descriptor>(call);

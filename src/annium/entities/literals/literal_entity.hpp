@@ -6,6 +6,7 @@
 #include "annium/semantic_fwd.hpp"
 #include "annium/environment.hpp"
 #include "annium/auxiliary.hpp"
+#include "sonia/utility/invocation/invocation.hpp"
 
 namespace annium {
 
@@ -40,7 +41,7 @@ public:
     bool equal(entity const& rhs) const noexcept override
     {
         if (literal_entity const* pr = dynamic_cast<literal_entity const*>(&rhs); pr) {
-            return pr->value_ == value_ && pr->type_ == type_;
+            return pr->type_ == type_ && pr->value_ == value_;
         }
         return false;
     }
@@ -93,6 +94,20 @@ public:
     std::ostream& print_to(std::ostream& os, environment const& e) const override
     {
         return get_entity(e, type_).print_to(os << "unit^^"sv, e);
+    }
+};
+
+class generic_literal_entity : public literal_entity<smart_blob>
+{
+public:
+    using literal_entity<smart_blob>::literal_entity;
+
+    bool equal(entity const& rhs) const noexcept override
+    {
+        if (generic_literal_entity const* pr = dynamic_cast<generic_literal_entity const*>(&rhs); pr) {
+            return pr->get_type() == get_type() && pr->value()->type == value()->type && pr->value() == value();
+        }
+        return false;
     }
 };
 

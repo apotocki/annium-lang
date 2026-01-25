@@ -116,6 +116,7 @@
     <ClCompile Include="..\..\..\src\annium\functional\expression_property_visitor.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\external_fn_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\functional.cpp" />
+    <ClCompile Include="..\..\..\src\annium\functional\general\any_implicit_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\assert_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\create_identifier_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\deref_pattern.cpp" />
@@ -251,6 +252,7 @@
     <ClInclude Include="..\..\..\src\annium\functional\external_fn_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\functional.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\functional_registry.hpp" />
+    <ClInclude Include="..\..\..\src\annium\functional\general\any_implicit_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\assert_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\create_identifier_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\deref_pattern.hpp" />

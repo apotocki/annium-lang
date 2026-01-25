@@ -113,6 +113,7 @@ set (LIBRARY_SOURCES
     ${LIBRARY_HOME}/annium/functional/general/to_string_pattern.cpp
     ${LIBRARY_HOME}/annium/functional/general/typeof_pattern.cpp
     ${LIBRARY_HOME}/annium/functional/general/void_implicit_cast_pattern.cpp
+    ${LIBRARY_HOME}/annium/functional/general/any_implicit_cast_pattern.cpp
     
     ${LIBRARY_HOME}/annium/errors/assign_error.cpp
     ${LIBRARY_HOME}/annium/errors/cast_error.cpp

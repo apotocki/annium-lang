@@ -51,7 +51,7 @@ public:
 using entity_ptr = shared_ptr<entity>;
 template <typename ValueT> class literal_entity;
 
-using generic_literal_entity = literal_entity<smart_blob>;
+class generic_literal_entity;
 using identifier_entity = literal_entity<identifier>;
 using functional_identifier_entity = literal_entity<qname_identifier>;
 using qname_entity = literal_entity<qname>; // a reference to a variable or a functional

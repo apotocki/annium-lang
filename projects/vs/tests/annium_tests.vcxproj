@@ -73,6 +73,7 @@
     <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\json\json_value.cpp" />
     <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\parsers\json\json_model.cpp" />
     <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\fibers\context_shared.cpp" />
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\fibers\default_stack.cpp" />
     <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\utility\mvvm\view_model.cpp" />
   </ItemGroup>
   <ItemGroup>

@@ -18,6 +18,7 @@
 #include "annium/functional/general/error_pattern.hpp"
 #include "annium/functional/general/assert_pattern.hpp"
 #include "annium/functional/general/void_implicit_cast_pattern.hpp"
+#include "annium/functional/general/any_implicit_cast_pattern.hpp"
 #include "annium/functional/general/runtime_cast_pattern.hpp"
 #include "annium/functional/general/deref_pattern.hpp"
 #include "annium/functional/general/equal_pattern.hpp"
@@ -1294,7 +1295,7 @@ functional_identifier_entity const& environment::make_functional_identifier_enti
 
 generic_literal_entity const& environment::make_nil_entity(entity_identifier type)
 {
-    generic_literal_entity smpl{ smart_blob{ }, type ? type : get(builtin_eid::any) };
+    generic_literal_entity smpl{ smart_blob{ }, type ? type : get(builtin_eid::void_type) };
     return static_cast<generic_literal_entity&>(eregistry_find_or_create(smpl, [&smpl]() {
         return make_shared<generic_literal_entity>(std::move(smpl));
     }));
@@ -1517,6 +1518,7 @@ environment::environment()
     implicit_cast_fnl.push(make_shared<string_implicit_cast_pattern>());
     implicit_cast_fnl.push(make_shared<to_callable_implicit_cast_pattern>());
     implicit_cast_fnl.push(make_shared<void_implicit_cast_pattern>());
+    implicit_cast_fnl.push(make_shared<any_implicit_cast_pattern>());
 
     auto union_pattern = make_shared<union_bit_or_pattern>();
     functional& bit_or_fnl = fregistry_resolve(get(builtin_qnid::bit_or));
@@ -1609,14 +1611,14 @@ environment::environment()
     builtin_eids_[(size_t)builtin_eid::array_tail] = set_builtin_extern("__array_tail(~runtime tuple(_, $t...))->tuple($t...)"sv, &annium_array_tail);
     builtin_eids_[(size_t)builtin_eid::array_at] = set_builtin_extern("__array_at()"sv, &annium_array_at);
     builtin_eids_[(size_t)builtin_eid::array_set_at] = set_builtin_extern("__array_set_at($arr: runtime, $index: runtime integer, $value)"sv, &annium_array_set_at);
-    builtin_eids_[(size_t)builtin_eid::equal] = set_builtin_extern("__equal(runtime any, runtime any)->bool"sv, &annium_any_equal);
-    builtin_eids_[(size_t)builtin_eid::assert] = set_builtin_extern("__assert(runtime any)"sv, &annium_assert);
+    builtin_eids_[(size_t)builtin_eid::equal] = set_builtin_extern("__equal(runtime, runtime)->bool"sv, &annium_any_equal);
+    builtin_eids_[(size_t)builtin_eid::assert] = set_builtin_extern("__assert(runtime)"sv, &annium_assert);
     builtin_eids_[(size_t)builtin_eid::string_empty] = set_builtin_extern("empty(runtime string)->bool"sv, &annium_string_empty);
     builtin_eids_[(size_t)builtin_eid::string_size] = set_builtin_extern("size(runtime string)->integer"sv, &annium_string_size);
-    builtin_eids_[(size_t)builtin_eid::to_string] = set_builtin_extern("__to_string(runtime any)->string"sv, &annium_tostring);
-    builtin_eids_[(size_t)builtin_eid::logical_not] = set_builtin_extern("__logical_not(runtime any)->bool"sv, &annium_logical_not);
-    builtin_eids_[(size_t)builtin_eid::unary_minus] = set_builtin_extern("__unary_minus(runtime any)"sv, &annium_unary_minus);
-    builtin_eids_[(size_t)builtin_eid::concat] = set_builtin_extern("__concat(runtime any)->string"sv, &annium_concat);
+    builtin_eids_[(size_t)builtin_eid::to_string] = set_builtin_extern("__to_string(runtime)->string"sv, &annium_tostring);
+    builtin_eids_[(size_t)builtin_eid::logical_not] = set_builtin_extern("__logical_not(runtime)->bool"sv, &annium_logical_not);
+    builtin_eids_[(size_t)builtin_eid::unary_minus] = set_builtin_extern("__unary_minus(runtime)"sv, &annium_unary_minus);
+    builtin_eids_[(size_t)builtin_eid::concat] = set_builtin_extern("__concat(runtime)->string"sv, &annium_concat);
     builtin_eids_[(size_t)builtin_eid::error] = set_builtin_extern("__error(runtime string)"sv, &annium_error);
     //set_const_extern<to_string_pattern>("size(const metaobjct))->integer"sv);
 

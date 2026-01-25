@@ -15,3 +15,6 @@ assert_equal(to_integer(runtime_cast(to_test_enum(.C))), 2);
 
 print(to_string(to_test_enum(.C)));
 print(to_string(test_enum.B));
+
+let arg1 = .B;
+let carg1: test_enum = runtime_cast(arg1);

@@ -77,7 +77,7 @@ base_expression_visitor::result_type base_expression_visitor::apply_cast(entity 
 {
     BOOST_ASSERT(er.is_const_result);
     bool is_modifier_compatible = can_be_constexpr(expected_result.modifier);
-    if (is_modifier_compatible && (!expected_result.type || expected_result.type == env().get(builtin_eid::any) || ent.get_type() == expected_result.type)) {
+    if (is_modifier_compatible && (!expected_result.type || ent.get_type() == expected_result.type)) {
         return std::pair{ std::move(er), false };
     }
     BOOST_ASSERT(ent.id);
@@ -114,7 +114,7 @@ base_expression_visitor::result_type base_expression_visitor::apply_cast(syntax_
     }
 
     bool is_modifier_compatible = expected_result.is_modifier_compatible(er);
-    if (is_modifier_compatible && (!expected_result.type || expected_result.type == env().get(builtin_eid::any) || er.type() == expected_result.type)) {
+    if (is_modifier_compatible && (!expected_result.type || er.type() == expected_result.type)) {
         return std::pair{ std::move(er), false };
     }
     

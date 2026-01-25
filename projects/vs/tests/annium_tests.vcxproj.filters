@@ -125,6 +125,9 @@
     <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\utility\mvvm\view_model.cpp">
       <Filter>sonia\utility\mvvm</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\fibers\default_stack.cpp">
+      <Filter>sonia\fibers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="sonia">
