@@ -317,7 +317,7 @@ void builder<ContextT>::function_builder::materialize()
 
     for (instruction_entry& e : dr_.instructions) {
         switch (e.operation) {
-        case op_t::noop: continue;
+        case op_t::noop:
         case op_t::cmp:
         case op_t::push_stsz:
         case op_t::pushfp:
@@ -440,6 +440,7 @@ void builder<ContextT>::function_builder::materialize()
             b.code.resize(b.code.size() - b.op_applied_size);
             b.op_applied_size = 0;
             size_t csz = b.code.size();
+            BOOST_ASSERT(it->second.second != -1); // block must be defined
             size_t jmp_block_index = (size_t)it->second.second;
             if (!b.deps_calculated) {
                 for (block & db : (jmp_block_index > block_index ? span{ blocks }.subspan(block_index + 1, jmp_block_index - block_index - 1) : span{ blocks }.subspan(jmp_block_index, block_index - jmp_block_index))) {

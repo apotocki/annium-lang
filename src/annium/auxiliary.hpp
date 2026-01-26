@@ -4,7 +4,7 @@
 #pragma once
 
 #include "annium/terms.hpp"
-//#include "annium/semantic.hpp"
+#include "annium/semantic.hpp"
 
 namespace annium {
 
@@ -22,5 +22,7 @@ inline entity const& get_entity(environment const& e, annotated_entity_identifie
 }
 
 entity_identifier get_result_type(environment const&, syntax_expression_result const&, entity const** ppe = nullptr);
+
+bool all_paths_return(semantic::expression_span span);
 
 }

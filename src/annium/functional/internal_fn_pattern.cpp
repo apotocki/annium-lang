@@ -97,9 +97,9 @@ std::expected<syntax_expression_result, error_storage> internal_fn_pattern::appl
 
     // we need to build the function if:
     if (!fne.result || // result type is not yet resolved
-        // the function has no runtime arguments and not zero count constexpr arguments (to check if result is constexpr too)
+        // the function has no runtime arguments and doesn't return void (to check if result is constexpr too)
         ((!fne.is_built() && !mut_arg_cnt && fne.result.entity_id() != env.get(builtin_eid::void_type) &&
-            fne.result.entity_id() != env.get(builtin_eid::void_)) && md.matches.size()))
+            fne.result.entity_id() != env.get(builtin_eid::void_)) ))
     {
 
         sonia::lang::compiler_task_tracer::task_guard tg = ctx.try_lock_task(entity_task_id{ fne });

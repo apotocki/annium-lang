@@ -249,21 +249,21 @@ public:
                 apply(e);
             });
             
-            //if (!c.true_branch_finished) {
-            //    fnbuilder_.append_noop();
-            //}
+            if (!c.true_branch_finished) {
+                fnbuilder_.append_noop();
+            }
             auto true_branch_end_pt = fnbuilder_.make_label();
             c.false_branch.for_each([this](semantic::expression const& e) {
                 apply(e);
             });
             
-            //auto branch_end_pt = fnbuilder_.make_label();
+            auto branch_end_pt = fnbuilder_.make_label();
             branch_pt->operation = asm_builder_t::op_t::je;
             branch_pt->operand = true_branch_end_pt;
-            //if (!c.true_branch_finished) {
-            //    true_branch_end_pt->operation = asm_builder_t::op_t::jmp;
-            //    true_branch_end_pt->operand = branch_end_pt;
-            //}
+            if (!c.true_branch_finished) {
+                true_branch_end_pt->operation = asm_builder_t::op_t::jmp;
+                true_branch_end_pt->operand = branch_end_pt;
+            }
         }
     }
 

@@ -109,4 +109,59 @@ resource_location get_start_location(syntax_pattern const& ptrn)
     }, ptrn.descriptor);
 }
 
+struct return_lookup_visitor
+{
+    bool operator()(semantic::return_statement const&) const noexcept { return true; }
+
+    bool operator()(semantic::expression_span nested) const
+    {
+        return all_paths_return(nested);
+    }
+
+    bool operator()(semantic::conditional_t const& cond) const
+    {
+        return all_paths_return(cond.true_branch) && all_paths_return(cond.false_branch);
+    }
+
+    bool operator()(semantic::switch_t const& sw) const
+    {
+        for (auto const& branch : sw.branches) {
+            if (!all_paths_return(branch)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool operator()(semantic::not_empty_condition_t const& nec) const
+    {
+        return all_paths_return(nec.branch);
+    }
+
+    bool operator()(semantic::loop_scope_t const& loop) const
+    {
+        (void)loop;
+        return false;
+        //return all_paths_return(loop.branch) || all_paths_return(loop.continue_branch);
+    }
+
+    template <typename T>
+    bool operator()(T const&) const noexcept
+    {
+        return false;
+    }
+};
+
+
+bool all_paths_return(semantic::expression_span span)
+{
+    while (span) {
+        if (visit(return_lookup_visitor{}, span.front())) {
+            return true;
+        }
+        span.pop_front();
+    }
+    return false;
+}
+
 }

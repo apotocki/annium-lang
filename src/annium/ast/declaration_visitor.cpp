@@ -150,6 +150,10 @@ declaration_visitor::result_type declaration_visitor::do_rt_if_decl(if_decl cons
         cond.true_branch = ctx.expressions();
         ctx.pop_chain();
         break_result_value = *res;
+
+        if (!stm.false_body.empty()) {
+            cond.true_branch_finished = all_paths_return(cond.true_branch);
+        }
     }
 
     if (!stm.false_body.empty()) {
@@ -163,6 +167,7 @@ declaration_visitor::result_type declaration_visitor::do_rt_if_decl(if_decl cons
         if (!res) return res;
         cond.false_branch = ctx.expressions();
         ctx.pop_chain();
+        //cond.false_branch_finished = all_paths_return(cond.false_branch); // actually not used
 
         if (static_cast<int>(break_result_value) > static_cast<int>(*res)) {
             break_result_value = *res;
