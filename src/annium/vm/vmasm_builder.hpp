@@ -9,6 +9,9 @@
 
 #include <boost/intrusive/list.hpp>
 
+#include <boost/multi_index_container.hpp>
+#include <boost/multi_index/hashed_index.hpp>
+
 #include "sonia/small_vector.hpp"
 #include "sonia/utility/object_pool.hpp"
 
@@ -33,7 +36,13 @@ public:
     using function_identity_store_t = automatic_polymorphic<function_identity, SONIA_VM_FN_IDENTITY_STORE_SIZE>;
 
     struct instruction_entry;
-    using operand_t = std::variant<null_t, size_t, instruction_entry const*, function_identity_store_t>;
+    struct label
+    {
+        instruction_entry* ie;
+        inline bool operator==(label const& rhs) const noexcept { return ie == rhs.ie; }
+    };
+
+    using operand_t = std::variant<null_t, size_t, label const*, function_identity_store_t>;
     struct instruction_entry
     {
         boost::intrusive::list_member_hook<> hook;
@@ -80,7 +89,16 @@ public:
         builder& builder_;
         function_descriptor& dr_;
 
-        std::unordered_map<instruction_entry const*, std::pair<int, int>> labels_; // ie -> {refs; blocknum, negative means undefined}
+        using label_set_t = boost::multi_index::multi_index_container<
+            label,
+            boost::multi_index::indexed_by<
+                boost::multi_index::hashed_non_unique<
+                    boost::multi_index::member<label, instruction_entry *, &label::ie>
+                >
+            >
+        >;
+
+        label_set_t labels_;
 
         struct block
         {
@@ -107,7 +125,7 @@ public:
         inline explicit function_builder(builder& b, function_descriptor& fd) noexcept
             : builder_{ b }, dr_{ fd }
         {
-            make_label(nullptr, -1);
+            labels_.insert(label{ nullptr });
         }
 
         function_builder(function_builder const&) = delete;
@@ -118,31 +136,11 @@ public:
             return dr_.instructions.empty() ? nullptr : &dr_.instructions.back();
         }
 
-        inline instruction_entry* make_label()
+        inline label const* make_label()
         {
             instruction_entry* ie = current_entry();
-            make_label(ie, ie ? -1 : 0);
-            return ie;
-        }
-
-        inline instruction_entry* make_label(instruction_entry* ie, int value)
-        {
-            auto it = labels_.find(ie);
-            if (it != labels_.end()) {
-                ++it->second.first;
-            } else {
-                labels_.emplace_hint(it, ie, std::make_pair(1, value));
-            }
-            return ie;
-        }
-
-        inline void remove_label(instruction_entry const* ie)
-        {
-            auto it = labels_.find(ie);
-            BOOST_ASSERT(it != labels_.end());
-            if (--it->second.first == 0) {
-                labels_.erase(it);
-            }
+            label const& lbl = *labels_.insert(label{ ie }).first;
+            return &lbl;
         }
 
         void append_push_pooled_const(variable_type&&);
@@ -181,17 +179,20 @@ public:
 
         void append_collapse(size_t num) { append_op(op_t::collapse, num); }
 
-        inline void append_jmp(instruction_entry* ebefore) { append_op(op_t::jmp, ebefore); }
+        inline void append_jmp(operand_t ebefore) { append_op(op_t::jmp, std::move(ebefore)); }
 
         void remove(instruction_entry* e)
         {
             auto it = dr_.instructions.s_iterator_to(*e);
-            if (auto lit = labels_.find(e); lit != labels_.end()) {
-                labels_.erase(lit);
-                if (it != dr_.instructions.begin()) {
-                    auto pit = it; --pit;
-                    make_label(&*pit, -1);
-                }
+            instruction_entry* prev_e = nullptr;
+            if (it != dr_.instructions.begin()) {
+                auto pit = it; --pit;
+                prev_e = &*pit;
+            }
+            for (;;) {
+                auto lit = labels_.find(e);
+                if (lit == labels_.end()) break;
+                labels_.modify(lit, [prev_e](label& l) { l.ie = prev_e; });
             }
             dr_.instructions.erase(it);
             builder_.free_entry(*e);
@@ -315,6 +316,8 @@ void builder<ContextT>::function_builder::materialize()
     std::vector<block> blocks;
     blocks.emplace_back();
 
+    std::unordered_map<instruction_entry const*, size_t> label_block_indices;
+
     for (instruction_entry& e : dr_.instructions) {
         switch (e.operation) {
         case op_t::noop:
@@ -395,7 +398,7 @@ void builder<ContextT>::function_builder::materialize()
         {
             block& cur_block = blocks.back();
             cur_block.operation = e.operation;
-            cur_block.operand = get<instruction_entry const*>(e.operand);
+            cur_block.operand = get<label const*>(e.operand)->ie;
             cur_block.op_supposed_size = 2;
             blocks.emplace_back();
             break;
@@ -404,13 +407,13 @@ void builder<ContextT>::function_builder::materialize()
         default:
             THROW_NOT_IMPLEMENTED_ERROR("function_builder::materialize");
         }
-        auto it = labels_.find(&e);
-        if (it != labels_.end()) {
+        
+        if (labels_.contains(&e)) {
             if (!blocks.back().code.empty()) {
-                it->second.second = static_cast<int>(blocks.size());
+                label_block_indices[&e] = blocks.size();
                 blocks.emplace_back();
             } else { // new block has been already appended
-                it->second.second = static_cast<int>(blocks.size() - 1);
+                label_block_indices[&e] = blocks.size() - 1;
             }
         }
     }
@@ -435,13 +438,13 @@ void builder<ContextT>::function_builder::materialize()
         block& b = blocks[block_index];
         if (b.operand && b.need_recalculation) {
             b.need_recalculation = 0;
-            auto it = labels_.find(b.operand);
-            BOOST_ASSERT(it != labels_.end());
+            auto it = label_block_indices.find(b.operand);
+            BOOST_ASSERT(it != label_block_indices.end());
             b.code.resize(b.code.size() - b.op_applied_size);
             b.op_applied_size = 0;
             size_t csz = b.code.size();
-            BOOST_ASSERT(it->second.second != -1); // block must be defined
-            size_t jmp_block_index = (size_t)it->second.second;
+            //BOOST_ASSERT(it->second.second != -1); // block must be defined
+            size_t jmp_block_index = it->second;
             if (!b.deps_calculated) {
                 for (block & db : (jmp_block_index > block_index ? span{ blocks }.subspan(block_index + 1, jmp_block_index - block_index - 1) : span{ blocks }.subspan(jmp_block_index, block_index - jmp_block_index))) {
                     db.dependent_block_indices.push_back(static_cast<uint_least32_t>(block_index));

@@ -22,7 +22,7 @@ protected:
     asm_builder_t::function_builder& fnbuilder_;
 
     using breaks_t = small_vector<asm_builder_t::instruction_entry*, 4>;
-    mutable small_vector<std::pair<asm_builder_t::instruction_entry*, breaks_t*>, 4> loop_stack_; // [{loop start, [loop brakes]}]
+    mutable small_vector<std::pair<asm_builder_t::label const*, breaks_t*>, 4> loop_stack_; // [{loop start, [loop brakes]}]
 
 public:
     compiler_visitor_base(environment& e, asm_builder_t::function_builder & b, internal_function_entity const& ife)
@@ -166,8 +166,8 @@ public:
             });
             
             auto loop_begin_pos = fnbuilder_.make_label();
-            scope_begin_pos->operation = asm_builder_t::op_t::jmp;
-            scope_begin_pos->operand = loop_begin_pos;
+            scope_begin_pos->ie->operation = asm_builder_t::op_t::jmp;
+            scope_begin_pos->ie->operand = loop_begin_pos;
         }
         
         breaks_t breaks;
@@ -261,8 +261,8 @@ public:
             branch_pt->operation = asm_builder_t::op_t::je;
             branch_pt->operand = true_branch_end_pt;
             if (!c.true_branch_finished) {
-                true_branch_end_pt->operation = asm_builder_t::op_t::jmp;
-                true_branch_end_pt->operand = branch_end_pt;
+                true_branch_end_pt->ie->operation = asm_builder_t::op_t::jmp;
+                true_branch_end_pt->ie->operand = branch_end_pt;
             }
         }
     }
@@ -273,7 +273,7 @@ public:
             fnbuilder_.append_pop(); // pop branch index value
             return;
         }
-        small_vector<asm_builder_t::instruction_entry*, 16> branch_exit_points;
+        small_vector<asm_builder_t::label const*, 16> branch_exit_points;
 
         // each branch should take into account that there is a branch index value on the stack top
         
@@ -315,8 +315,8 @@ public:
         auto exit_pt = branch_exit_points.back();
         branch_exit_points.pop_back();
         for (auto bep : branch_exit_points) {
-            bep->operation = asm_builder_t::op_t::jmp;
-            bep->operand = exit_pt;
+            bep->ie->operation = asm_builder_t::op_t::jmp;
+            bep->ie->operand = exit_pt;
         }
 
 
@@ -370,19 +370,17 @@ public:
     void finalize()
     {
         auto fin_pos = fnbuilder_.make_label();
-        while (!rpositions_.empty() && rpositions_.back() == fin_pos) { // inline fn returns right at the code end
+        while (!rpositions_.empty() && rpositions_.back() == fin_pos->ie) { // inline fn returns right at the code end
             fnbuilder_.remove(rpositions_.back()); // fin_pos label is moved here
             rpositions_.pop_back();
-            fin_pos = fnbuilder_.current_entry(); // just update actual value
+            // fin_pos is updated by fnbuilder_.remove call
         }
-        if (rpositions_.empty()) {
-            fnbuilder_.remove_label(fin_pos);
-        } else {
-            for (auto rpos : rpositions_) {
-                rpos->operation = asm_builder_t::op_t::jmp;
-                rpos->operand = fin_pos;
-            }
+
+        for (auto rpos : rpositions_) {
+            rpos->operation = asm_builder_t::op_t::jmp;
+            rpos->operand = fin_pos;
         }
+
         size_t param_count = fn_context_->arg_count() + fn_context_->captured_var_count(); // including captured_variables
         BOOST_ASSERT(fn_context_->result.entity_id());
         if (fn_context_->result.entity_id() != environment_.get(builtin_eid::void_)) {
@@ -404,7 +402,7 @@ public:
 class compiler_visitor : public compiler_visitor_generic<compiler_visitor>
 {
 public:
-    mutable optional<asm_builder_t::instruction_entry*> local_return_position;
+    mutable asm_builder_t::label const* local_return_position = nullptr;
 
     using generic_base_t::generic_base_t;
 
@@ -418,7 +416,7 @@ public:
             visit(*this, e);
         });
         if (local_return_position) {
-            fnbuilder_.append_jmp(*local_return_position);
+            fnbuilder_.append_jmp(local_return_position);
             return;
         } else if (fn_context_) {
             local_return_position = fnbuilder_.make_label();
