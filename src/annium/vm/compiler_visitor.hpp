@@ -77,6 +77,11 @@ public:
         }
     }
 
+    void operator()(semantic::dup_stack_top const&) const
+    {
+        fnbuilder_.append_dup();
+    }
+
     void operator()(semantic::set_by_offset const& sv) const
     {
         fnbuilder_.append_setr(sv.offset);
@@ -227,7 +232,7 @@ public:
         }
         fnbuilder_.append_noop();
         auto branch_pt = fnbuilder_.current_entry();
-        if (!c.false_branch) {
+        if (!c.false_branch) { // only true branch
             //c.true_branch.for_each([this](semantic::expression const& e) {
             //    GLOBAL_LOG_INFO() << "true branch: " << environment_.print(e);
             //});
@@ -281,6 +286,7 @@ public:
         auto branches = std::span{ c.branches };
         auto first_branch = branches.front(); branches = branches.subspan(1);
 
+        fnbuilder_.append_dup(); // duplicate branch index value because first branch does not need cmp
         fnbuilder_.append_op(asm_builder_t::op_t::jne);
         auto branch_pt = fnbuilder_.current_entry();
         first_branch.for_each([this](semantic::expression const& e) {
@@ -294,13 +300,13 @@ public:
 
         size_t branch_index = 1;
         for (auto const& br : branches) {
-            if (branch_index != 1) fnbuilder_.append_pop(); // pop previous branch compare result
+            //if (branch_index != 1) fnbuilder_.append_pop(); // pop previous branch compare result
             
             fnbuilder_.append_push_pooled_const(ui64_blob_result(branch_index));
             fnbuilder_.append_op(asm_builder_t::op_t::cmp);
             fnbuilder_.append_op(asm_builder_t::op_t::jne);
             auto branch_pt = fnbuilder_.current_entry();
-            fnbuilder_.append_pop(); // pop condition value
+            //fnbuilder_.append_pop(); // pop condition value
             br.for_each([this](semantic::expression const& e) {
                 apply(e);
             });

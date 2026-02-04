@@ -878,7 +878,7 @@ base_expression_visitor::result_type base_expression_visitor::operator()(new_exp
     auto res = ctx.find_and_apply(builtin_qnid::new_, new_call, expressions, expected_result);
     if (!res) {
         return std::unexpected(append_cause(
-            make_error<basic_general_error>(context_expression_.location, "can't instantiate the object"sv, *ne.name),
+            make_error<basic_general_error>(context_expression_.location, "can't instantiate the type"sv, *ne.name),
             std::move(res.error())
         ));
     }

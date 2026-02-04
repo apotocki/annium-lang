@@ -402,6 +402,7 @@ struct set_local_variable
 struct stack_frame_begin {};
 struct stack_frame_end {};
 struct push_variable { functional_variable var; };
+struct dup_stack_top {};
 struct set_variable { functional_variable var; };
 struct set_by_offset { size_t offset; }; // offset from the stack top
 struct truncate_values
@@ -495,7 +496,7 @@ struct loop_breaker {};
 
 using expression = std::variant<
     empty_t, // no op
-    push_value, push_local_variable, push_by_offset, push_special_value, push_variable, truncate_values,
+    push_value, push_local_variable, push_by_offset, push_special_value, push_variable, dup_stack_top, truncate_values,
     set_local_variable, set_variable, set_by_offset,
     stack_frame_begin, stack_frame_end, invoke_context_function,
     invoke_function, return_statement, yield_statement, loop_breaker, loop_continuer,

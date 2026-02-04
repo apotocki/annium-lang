@@ -241,6 +241,7 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 
 %type <statement_list_t> statement_any finished-statement-any
 %type <statement_list_t> infunction-statement-any finished-infunction-statement-any infunction-statement-set braced-statements function-body
+%type <statement_list_t> if-else-tail
 
 %type <let_statement> let-decl-start let-decl-start-with-opt-type let-decl
 
@@ -452,7 +453,7 @@ finished-statement:
         { $$ = statement{ for_statement{ .iter = std::move($iter), .coll = std::move($coll), .body = ctx.make_array<statement>($body) } }; }
     | IF syntax-expression[cond] braced-statements[body]
         { $$ = statement{ if_decl{ .condition = std::move($cond), .true_body = ctx.make_array<statement>($body) } }; }
-    | IF syntax-expression[cond] braced-statements[trueBody] ELSE braced-statements[falseBody]
+    | IF syntax-expression[cond] braced-statements[trueBody] if-else-tail[falseBody]
         { $$ = statement{ if_decl{ .condition = std::move($cond), .true_body = ctx.make_array<statement>($trueBody), .false_body = ctx.make_array<statement>($falseBody) } }; }
     | fn-prefix-decl[fndescr] fn-decl[fn] braced-statements[body]
         {   
@@ -466,6 +467,13 @@ finished-statement:
     //    { $$ = struct_decl{ .name = std::move($qname), .parameters = std::move($parameters), .body = ctx.make_array<statement>($body)) }; IGNORE_TERM($beginParams); }
     | ENUM enum-decl[enum]
         { $$ = statement{ std::move($enum) }; }
+    ;
+
+if-else-tail:
+      ELSE braced-statements[falseBody]
+        { $$ = std::move($falseBody); }
+    | ELSE finished-statement[st]
+        { $$ = statement_list_t{ std::move($st) }; }
     ;
 
 infunction-statement-set:
@@ -1315,158 +1323,19 @@ type-expr:
     //| OPEN_PARENTHESIS pack-expression[elements] CLOSE_PARENTHESIS ARROW type-expr[rexpr]
     //    { $$ = syntax_expression{ std::move($OPEN_PARENTHESIS), annium_fn_type{ .args = ctx.make_array<opt_named_expression_t>($elements), .result = ctx.make<syntax_expression>(std::move($rexpr)) } }; }
     ;
-
-    /*
+    
+/*
 opt-type-list:
     %empty
         { $$ = annium_preliminary_tuple_t{}; }
-    | type-expr
+	| type-expr
         { $$ = annium_preliminary_tuple_t{}; $$.fields.emplace_back(std::move($1)); }
-    | opt-type-list COMMA type-expr
+	| opt-type-list COMMA type-expr
         { $$ = std::move($1); $$.fields.emplace_back(std::move($3)); }
     ;
-    */
-
-
+*/
 
     /*
-expression:
-      expression QMARK
-        { $$ = not_empty_expression_t{ std::move($1) }; }
-
-    //| expression QMARK POINT identifier
-    //    { $$ = member_expression_t { std::move($1), std::move($4), true }; IGNORE_TERM($3); }
-    | expression LOGIC_AND expression
-        { $$ = binary_expression{ binary_operator_type::LOGIC_AND, std::move($1), std::move($3), std::move($2) }; }
-	| expression LOGIC_OR expression
-        { $$ = binary_expression{ binary_operator_type::LOGIC_OR, std::move($1), std::move($3), std::move($2) }; }
-    //| expression PLUS expression
-    //    { $$ = binary_expression{ binary_operator_type::PLUS, std::move($1), std::move($3), std::move($2) }; }
-
-
-//////////////////////////// 9 priority
-
-
-
-    //| qname OPEN_BROKET opt-named-expr-list CLOSE_BROKET
-   //     { $$ = syntax_expression { ctprocedure{ std::move($1), std::move($3) } }; }
-    ;
-
-    */
-
-//identifier-chain:
-//      identifier
-//        { $$ = identifier_chain_t{ std::move($1) }; }
-//    | identifier-chain POINT identifier
-//        { $$ = std::move($1); $1.emplace_back(std::move($3)); }
-//    ;
-
-
-/*
-   expr-with-comma END_STATEMENT
-        { $$ = std::move($1); }
-   |
-   RETURN expr-with-comma END_STATEMENT
-        { $$ = return_statement_t{std::move($2)}; }
-   ;
-*/
-/*
-
-arg-list:
-	  %empty
-        { $$ = named_expression_term_list_t{}; }
-	| arg-list-not-empty
-	;
-
-arg-list-not-empty:
-	  named-arg
-        { $$ = named_expression_term_list_t{std::move($1)}; }
-	| arg-list-not-empty COMMA named-arg
-        { $$ = std::move($1); $$.push_back(std::move($3)); }
-	;
-
-named-arg:
-	identifier COLON expr
-        { $$ = std::pair{std::move($1), $3}; }
-    | HASHTAG IDENTIFIER COLON expr
-        { $$ = std::pair{ctx.make_required_identifier($2), $4}; }
-	;
-*/
-/*
-
-opt-type-expr-list:
-    %empty
-        { $$ = type_expression_list_t{}; }
-	| type-expr-list-not-empty
-	;
-
-type-expr-list-not-empty:
-	  type-expr
-        { $$ = type_expression_list_t{std::move($1)}; }
-	| type-expr-list-not-empty COMMA type-expr
-        { $$ = std::move($1); $$.push_back(std::move($3)); }
-	;
-*/
-/*
-    CONST_ IDENTIFIER opt-type-modifiers
-        {
-            $$ = type_expression_list_t{type_modifier::CONST_MODIFIER, ctx.make_identifier($2)};
-            $$.insert($$.end(), std::make_move_iterator($3.begin()), std::make_move_iterator($3.end()));
-        }
-    | IDENTIFIER opt-type-modifiers
-        {
-            $$ = type_expression_list_t{ctx.make_identifier($1)};
-            $$.insert($$.end(), std::make_move_iterator($2.begin()), std::make_move_iterator($2.end()));
-        }
-    | OPEN_PARENTHESIS type-expr CLOSE_PARENTHESIS
-        {
-            $$ = $2;
-        }
-    | type-expr ARROW type-expr
-        {
-            $$ = $1;
-            $$.push_back(std::move($3));
-        }
-    ;
-
-opt-type-modifiers:
-    %empty
-        { $$ = type_expression_list_t{}; }
-    | type-modifiers
-        { $$ = std::move($1); }
-    ;
-  
-type-modifiers:
-      type-modifier
-        { $$ = type_expression_list_t{$1}; }
-    | type-modifiers type-modifier
-        { $$ = std::move($1); $$.push_back($2); }
-    ;
-    
-
-type-modifier:
-      CONST { $$ = type_modifier::CONST_MODIFIER; }
-    | ASTERISK { $$ = type_modifier::POINTER_MODIFIER; }
-    | AMPERSAND { $$ = type_modifier::REFERENCE_MODIFIER; }
-    | AND { $$ = type_modifier::RVALUE_REFERENCE_MODIFIER; }
-    ;
-*/
-
-/*
-nsname:
-    DBLCOLON
-        {
-            $$ = qname();
-        }
-    |
-    qname
-    ;
-
-
-*/
-
-//////////////
-/*
 expr:
       VOID_
         { $$ = expression_list{ctx.make_identifier("void")}; }
@@ -1615,7 +1484,7 @@ expr:
 
 	;
 */
-    //////////////////////////// 16 priority
+/////////////////////////// 16 priority
     
     /*
 expr-with-comma:

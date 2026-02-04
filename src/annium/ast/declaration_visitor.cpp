@@ -143,8 +143,6 @@ declaration_visitor::result_type declaration_visitor::do_rt_if_decl(if_decl cons
         SCOPE_EXIT([this] { ctx.pop_scope(); });
 
         ctx.push_chain();
-        ctx.append_expression(semantic::truncate_values{ 1, false });
-        
         auto res = apply(stm.true_body);
         if (!res) return res;
         cond.true_branch = ctx.expressions();
@@ -161,8 +159,6 @@ declaration_visitor::result_type declaration_visitor::do_rt_if_decl(if_decl cons
         SCOPE_EXIT([this] { ctx.pop_scope(); });
         
         ctx.push_chain();
-        ctx.append_expression(semantic::truncate_values{ 1, false });
-
         auto res = apply(stm.false_body);
         if (!res) return res;
         cond.false_branch = ctx.expressions();
@@ -275,8 +271,9 @@ declaration_visitor::result_type declaration_visitor::operator()(for_statement c
     ctx.append_expression(semantic::conditional_t{});
     semantic::conditional_t& cond = get<semantic::conditional_t>(ctx.expressions().back());
     ctx.push_chain();
-    ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)has_next_sz, .keep_back = 0 }); // remove has_next result
-    
+    if (has_next_sz > 1) {
+        ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)(has_next_sz - 1), .keep_back = 0 }); // remove has_next result
+    }
     // push iterator variable to stack
     call_builder next_call{ coll_expr_loc };
     if (iterator_result->is_const_result) {
@@ -327,7 +324,9 @@ declaration_visitor::result_type declaration_visitor::operator()(for_statement c
 
     // False branch: break the loop
     ctx.push_chain();
-    ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)has_next_sz, .keep_back = 0 }); // remove has_next result
+    if (has_next_sz > 1) {
+        ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)(has_next_sz - 1), .keep_back = 0 }); // remove has_next result
+    }
     ctx.append_expression(semantic::loop_breaker{});
     cond.false_branch = ctx.expressions();
     ctx.pop_chain();

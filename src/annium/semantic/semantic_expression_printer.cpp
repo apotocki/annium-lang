@@ -136,6 +136,12 @@ void expression_printer_visitor::operator()(push_variable const& v) const
     e_.print_to(ss << "get EXT_VAR("sv, v.var.name) << ")\n"sv;
 }
 
+void expression_printer_visitor::operator()(dup_stack_top const&) const
+{
+    do_indent();
+    ss << "dup\n"sv;
+}
+
 void expression_printer_visitor::operator()(set_variable const& v) const
 {
     do_indent();

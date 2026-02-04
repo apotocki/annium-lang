@@ -108,8 +108,8 @@ std::expected<syntax_expression_result, error_storage> array_from_iterator_make_
         result.value_or_type = env.make_array_type_entity(elemtype).id;
     }
     
-    // remove has_next result from stack
-    env.push_back_expression(el, true_branch_res.expressions, semantic::truncate_values{ .count = 1, .keep_back = 0 });
+    // no need to remove has_next result from stack
+    // env.push_back_expression(el, true_branch_res.expressions, semantic::truncate_values{ .count = 1, .keep_back = 0 });
 
     // push next_result to stack
     append_semantic_result(el, *next_result, true_branch_res);
@@ -124,8 +124,8 @@ std::expected<syntax_expression_result, error_storage> array_from_iterator_make_
     // False branch:
     syntax_expression_result false_branch_res{ .is_const_result = false };
 
-    // remove has_next result from stack
-    env.push_back_expression(el, false_branch_res.expressions, semantic::truncate_values{ .count = 1, .keep_back = 0 });
+    // no need to remove has_next result from stack
+    // env.push_back_expression(el, false_branch_res.expressions, semantic::truncate_values{ .count = 1, .keep_back = 0 });
 
     // We have all elements on the stack
     // Need to count them and create array using arrayify

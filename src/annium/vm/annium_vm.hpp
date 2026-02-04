@@ -98,7 +98,7 @@ inline std::basic_ostream<Elem, Traits>& operator<<(std::basic_ostream<Elem, Tra
 }
 */
 
-class context
+class context : public sonia::vm::basic_context<smart_blob>
 {
     using call_stack_type = std::vector<uint32_t>;
     call_stack_type call_stack_;
@@ -107,7 +107,6 @@ class context
     stack_frames_type stack_frames_;
 
 public:
-    using variable_type = smart_blob;
     bool is_zero(variable_type const&) const noexcept;
     bool is_positive(variable_type const&) const noexcept;
     bool is_negative(variable_type const&) const noexcept;
@@ -153,7 +152,7 @@ public:
     static small_string camel2kebab(string_view cc);
 
     inline size_t consts_size() const noexcept { return vm_.consts().size(); }
-    inline size_t stack_size() const noexcept { return vm_.stack().size(); }
+    
 
     variable_type const& const_at(size_t i) const
     {
@@ -170,7 +169,7 @@ public:
         if (ssz <= i) [[unlikely]] {
             THROW_INTERNAL_ERROR("wrong stack index");
         }
-        return vm_.stack()[i];
+        return stack()[i];
     }
 
     variable_type & stack_at(size_t i)
@@ -179,7 +178,7 @@ public:
         if (ssz <= i) [[unlikely]] {
             THROW_INTERNAL_ERROR("wrong stack index");
         }
-        return vm_.stack()[i];
+        return stack()[i];
     }
 
     span<const variable_type> stack_span(size_t last_offset, size_t count) const
@@ -188,31 +187,7 @@ public:
         if (ssz < last_offset + count) [[unlikely]] {
             THROW_INTERNAL_ERROR("wrong stack index");
         }
-        return span{ vm_.stack().data() + (ssz - last_offset - count), count };
-    }
-
-    variable_type const& stack_back(size_t i = 0) const
-    {
-        size_t ssz = stack_size();
-        if (ssz <= i) [[unlikely]] {
-            THROW_INTERNAL_ERROR("wrong stack index");
-        }
-        return vm_.stack()[ssz - 1 - i];
-    }
-
-    variable_type & stack_back(size_t i = 0)
-    {
-        size_t ssz = stack_size();
-        if (ssz <= i) [[unlikely]] {
-            THROW_INTERNAL_ERROR("wrong stack index");
-        }
-        return vm_.stack()[ssz - 1 - i];
-    }
-
-    void stack_pop(size_t n = 1)
-    {
-        size_t ssz = stack_size();
-        vm_.stack().resize(ssz - n);
+        return span{ stack().data() + (ssz - last_offset - count), count };
     }
 
     void stack_collapse(size_t n = 1)
@@ -221,20 +196,15 @@ public:
         if (ssz <= n) [[unlikely]] {
             THROW_INTERNAL_ERROR("wrong collapse count");
         }
-        vm_.stack().at(ssz - n - 1).swap(stack_back());
-        vm_.stack().resize(ssz - n);
+        stack().at(ssz - n - 1).swap(stack_back());
+        stack().resize(ssz - n);
     }
 
     template <typename T>
     requires (std::is_convertible_v<std::remove_cvref_t<T>, variable_type>)
     void stack_push(T && b)
     {
-        vm_.stack().emplace_back(std::forward<T>(b));
-    }
-
-    void stack_truncate(size_t sz)
-    {
-        vm_.stack().resize(sz);
+        stack().emplace_back(std::forward<T>(b));
     }
 
     void call_stack_push(size_t address)

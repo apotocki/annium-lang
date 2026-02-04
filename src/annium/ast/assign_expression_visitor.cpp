@@ -33,12 +33,18 @@ assign_expression_visitor::result_type assign_expression_visitor::operator()(qna
             }
             */
         }
-        auto res = base_expression_visitor::visit(ctx_, expressions, expected_result_t{ assign_type, assign_location_ }, rhs_);
+        auto res = base_expression_visitor::visit(
+            ctx_,
+            expressions,
+            expected_result_t{
+                .type = assign_type,
+                .location = assign_location_,
+                .modifier = value_modifier_t::runtime_value },
+            rhs_);
+
         if (!res) return std::unexpected(std::move(res.error()));
         auto& ser = res->first;
-        if (ser.is_const_result) {
-            env().push_back_expression(expressions, ser.expressions, semantic::push_value{ ser.value() });
-        }
+        BOOST_ASSERT(!ser.is_const_result);
 
         if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, local_variable>) {
             if (eid_or_var.is_weak) {

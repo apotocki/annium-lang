@@ -694,7 +694,7 @@ expression_visitor::result_type expression_visitor::operator()(new_expression_t 
     auto match = ctx.find(builtin_qnid::new_, new_call, expected_result);
     if (!match) {
         return std::unexpected(append_cause(
-            make_error<basic_general_error>(ne.location, "can't instantiate the object"sv, ne.name),
+            make_error<basic_general_error>(ne.location, "can't instantiate the type"sv, ne.name),
             std::move(match.error())
         ));
     }

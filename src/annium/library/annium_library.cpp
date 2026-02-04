@@ -427,8 +427,8 @@ void annium_create_extern_object(vm::context& ctx)
     if (resobj->type == blob_type::error) {
         throw exception(resobj.as<std::string>());
     }
-    using wobj_t = invocation::wrapper_object<shared_ptr<invocation::invocable>>;
-    GLOBAL_LOG_DEBUG() << "Creating extern object: %1%, address: %2%"_fmt % name % resobj.as<wobj_t>().value.get();
+    //using wobj_t = invocation::wrapper_object<shared_ptr<invocation::invocable>>;
+    //GLOBAL_LOG_DEBUG() << "Creating extern object: %1%, address: %2%"_fmt % name % resobj.as<wobj_t>().value.get();
     ctx.stack_back().replace(std::move(resobj));
 }
 

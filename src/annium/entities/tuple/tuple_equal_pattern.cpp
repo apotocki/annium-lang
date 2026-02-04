@@ -232,11 +232,13 @@ tuple_equal_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
         result.temporaries.insert(result.temporaries.begin(), eq_res->temporaries.begin(), eq_res->temporaries.end());
         result.branches_expressions = el.concat(result.branches_expressions, eq_res->branches_expressions);
         if (current_branch_owner_code) {
+            // duplicate current branch expressions because it will be erased by conditional but we need it for false branch
+            e.push_back_expression(el, *current_branch_owner_code, semantic::dup_stack_top{});
             // append conditional branch
             e.push_back_expression(el, *current_branch_owner_code, semantic::conditional_t{});
             semantic::conditional_t& cond = get<semantic::conditional_t>(current_branch_owner_code->back());
 
-            // removing 'true' from previous field equality check
+            // remove 'true' from previous field equality check
             e.push_back_expression(el, cond.true_branch, semantic::truncate_values{ 1, false });
 
             // append the result of current field equality check

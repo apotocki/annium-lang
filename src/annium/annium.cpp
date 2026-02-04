@@ -545,6 +545,7 @@ smart_blob annium_impl::invoke(blob_result & ftor, span<const blob_result> args)
 {
     try {
         vm::context ctx{ environment_, penv_ };
+        size_t init_stack_sz = ctx.stack_size();
         ctx.stack_push(smart_blob{ftor});
         annium_unfold(ctx);
         size_t cindex = ctx.stack_back().as<size_t>();
@@ -554,10 +555,17 @@ smart_blob annium_impl::invoke(blob_result & ftor, span<const blob_result> args)
             ctx.stack_push(smart_blob(arg));
         }
         environment_.bvm().run(ctx, address);
-        smart_blob result = std::move(ctx.stack_back());
-        ctx.stack_pop();
+        size_t final_stack_sz = ctx.stack_size();
+        smart_blob result;
+        if (final_stack_sz > init_stack_sz) {
+            BOOST_ASSERT(final_stack_sz == init_stack_sz + 1);
+            result = std::move(ctx.stack_back());
+            ctx.stack_pop();
+        }
+        BOOST_ASSERT(ctx.stack_size() == init_stack_sz);
         return result;
     } catch (...) {
+        GLOBAL_LOG_ERROR() << "Exception in annium_impl::invoke: " << boost::current_exception_diagnostic_information();
         return smart_blob{ error_blob_result(boost::current_exception_diagnostic_information()) };
     }
 }

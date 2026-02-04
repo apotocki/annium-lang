@@ -151,7 +151,7 @@ public:
 
         inline void append_push(size_t num) { append_op(op_t::push, num); }
         inline void append_pushc(size_t num) { append_op(op_t::pushc, num); }
-        
+        inline void append_dup() { append_op(op_t::dup); }
         inline void append_push_stsz() { append_op(op_t::push_stsz); }
         //inline void append_push_stsz(size_t num) { append_op(op_t::push_stsz, num); }
         inline void append_pushr(size_t offset) { append_op(op_t::pushr, offset); }
@@ -324,6 +324,7 @@ void builder<ContextT>::function_builder::materialize()
         case op_t::cmp:
         case op_t::push_stsz:
         case op_t::pushfp:
+        case op_t::dup:
         case op_t::indexc:
         case op_t::popfp:
         case op_t::pop:
