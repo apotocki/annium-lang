@@ -109,6 +109,8 @@ public:
         }
         return false;
     }
+
+    void visit(entity_visitor const& v) const override { v(*this); }
 };
 
 /*
