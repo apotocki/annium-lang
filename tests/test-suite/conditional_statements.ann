@@ -1,0 +1,24 @@
+if runtime_cast(false) {
+    print("It's true!");
+}
+let str1 = runtime_cast("The flag is ");
+assert_equal(str1 .. "true", "The flag is true");
+
+let chain = runtime_cast("");
+if runtime_cast(false) {
+    chain = "if";
+} else if runtime_cast(true) {
+    chain = "else_if";
+} else {
+    chain = "else";
+}
+assert_equal(chain, "else_if");
+let chain2 = runtime_cast("");
+if runtime_cast(false) {
+    chain2 = "if";
+} else if runtime_cast(false) {
+    chain2 = "else_if";
+} else {
+    chain2 = "else";
+}
+assert_equal(chain2, "else");

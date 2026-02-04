@@ -160,7 +160,7 @@ inline fn implicit_cast(string) ~> bool => !empty($0);
 // UNIONS
 inline fn equal($l: ~union(...), $r) => apply(to: $l, visitor: fn[$r]($value) => $value == $r);
 inline fn equal($l, $r: ~union(...)) => apply(to: $r, visitor: fn[$l]($value) => $value == $l);
-inline fn to_string(~union(...)) => apply(to: $0, visitor: fn($x) => to_string($x));
+inline fn to_string(~union(...))->string => apply(to: $0, visitor: fn($x) => to_string($x));
 
 inline viable fn implicit_cast(~ union(...)) ~> $T => apply(to: $0, visitor: (fn($x)->$T => implicit_cast($x)));
 

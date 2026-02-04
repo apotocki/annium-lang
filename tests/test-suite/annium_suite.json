@@ -1,5 +1,6 @@
-[/*
-   {
+[
+    /*
+    {
         "src": "draft.ann",
         "output": ""
     },*/
@@ -49,7 +50,6 @@
         "src": "match_priority.ann",
         "output": ""
     }
-    
     /*
     
     {
