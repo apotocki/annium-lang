@@ -136,7 +136,7 @@ shared_ptr<internal_function_entity> to_callable_implicit_cast_pattern::build(fn
     pife->set_body(span<const statement>{ &*rst, 1 });
     pife->set_provision(false);
     if (!get<1>(md.matches.front()).is_const_result) pife->set_captured_var_count(1);
-    // the function implementation is just proxying to another function call, so no circular dependencies or other errors should occur here
+    // the function implementation is just proxying to another function call, so no circular dependencies or other errors may occur here
     auto err = pife->build(env);
     BOOST_ASSERT(!err);
 

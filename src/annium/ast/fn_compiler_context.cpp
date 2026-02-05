@@ -1004,17 +1004,6 @@ std::expected<std::tuple<entity_identifier, bool, bool>, error_storage> fn_compi
 #endif
 }
 
-//void fn_compiler_context::accumulate_result_type(entity_identifier t)
-//{
-//    if (!accum_result) {
-//        accum_result = std::move(t);
-//    } else {
-//        THROW_NOT_IMPLEMENTED_ERROR("compiler context: accumulate_result_type");
-//#if 0
-//        accum_result = make_union_type(*accum_result, &t);
-//#endif
-//    }
-//}
 
 #if 0
 entity_identifier fn_compiler_context::compute_result_type()

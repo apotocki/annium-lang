@@ -1674,9 +1674,6 @@ size_t environment::compile(internal_function_entity const& fn_ent)
     if (!fd.address) {
         asm_builder_t::function_builder fb{ asm_builder, fd };
 
-        // for accessing function arguments and local variables by zero-based index
-        fb.append_pushfp();
-
         vm::compiler_visitor vmcvis{ *this, fb, fn_ent };
         vmcvis(fn_ent.body);
         if (!vmcvis.local_return_position) { // no explicit return

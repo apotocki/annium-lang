@@ -391,9 +391,11 @@ public:
         size_t param_count = fn_context_->arg_count() + fn_context_->captured_var_count(); // including captured_variables
         BOOST_ASSERT(fn_context_->result.entity_id());
         if (fn_context_->result.entity_id() != environment_.get(builtin_eid::void_)) {
-            fnbuilder_.append_fset(-static_cast<intptr_t>(param_count));
-            fnbuilder_.append_truncatefp(-static_cast<intptr_t>(param_count) + 1);
-        } else {
+            if (param_count) {
+                fnbuilder_.append_fset(-static_cast<intptr_t>(param_count));
+                fnbuilder_.append_truncatefp(-static_cast<intptr_t>(param_count) + 1);
+            }
+        } else if (param_count) {
             fnbuilder_.append_truncatefp(-static_cast<intptr_t>(param_count));
         }
     }
@@ -410,6 +412,15 @@ class compiler_visitor : public compiler_visitor_generic<compiler_visitor>
 {
 public:
     mutable asm_builder_t::label const* local_return_position = nullptr;
+
+    compiler_visitor(environment& e, asm_builder_t::function_builder& b, internal_function_entity const& ife)
+        : generic_base_t{ e, b, ife }
+    {
+        if (fn_context_->arg_count() + fn_context_->captured_var_count() + fn_context_->variables_count() > 0) {
+            // for accessing function arguments and local variables by zero-based index
+            fnbuilder_.append_pushfp();
+        }
+    }
 
     using generic_base_t::generic_base_t;
 
@@ -431,14 +442,16 @@ public:
             //size_t param_count = fn_context_->parameter_count(); // including captured_variables
             BOOST_ASSERT(fn_context_->result.entity_id());
             if (fn_context_->result.entity_id() != environment_.get(builtin_eid::void_)) {
-                fnbuilder_.append_fset(-static_cast<intptr_t>(param_count));
-                fnbuilder_.append_truncatefp(-static_cast<intptr_t>(param_count) + 1);
+                if (param_count) {
+                    fnbuilder_.append_fset(-static_cast<intptr_t>(param_count));
+                    fnbuilder_.append_truncatefp(-static_cast<intptr_t>(param_count) + 1);
+                }
             } else if (param_count) {
                 fnbuilder_.append_truncatefp(-static_cast<intptr_t>(param_count));
             }
-            //if (param_count) {
+            if (param_count + fn_context_->variables_count() > 0) {
                 fnbuilder_.append_popfp();
-            //}
+            }
         }
         fnbuilder_.append_ret();
     }
@@ -538,13 +551,18 @@ void compiler_visitor_base::operator()(semantic::invoke_function const& invf) co
                 //GLOBAL_LOG_INFO() << "entering inline function: " << environment_.print(invf.fn);
                 BOOST_ASSERT(fe->is_built());
                 inline_compiler_visitor ivis{ environment_, fnbuilder_, *fe };
-                fnbuilder_.append_pushfp();
+                size_t param_count = fe->arg_count() + fe->captured_var_count();
+                if (param_count + fn_context_->variables_count() > 0) {
+                    fnbuilder_.append_pushfp();
+                }
                 fe->body.for_each([this, &ivis](semantic::expression const& e) {
                     //GLOBAL_LOG_INFO() << environment_.print(e);
                     visit(ivis, e);
                 });
                 ivis.finalize();
-                fnbuilder_.append_popfp();
+                if (param_count + fn_context_->variables_count() > 0) {
+                    fnbuilder_.append_popfp();
+                }
                 //GLOBAL_LOG_INFO() << "leaving inline function: " << environment_.print(invf.fn);
             } else {
                 vmasm::fn_identity fnident{ fe->id };
@@ -556,70 +574,6 @@ void compiler_visitor_base::operator()(semantic::invoke_function const& invf) co
     } else {
         THROW_NOT_IMPLEMENTED_ERROR("compiler_visitor invoke_function");
     }
-#if 0
-    /*
-    if (auto optecall = bvm_.get_ecall(invf.function_entity_name); optecall) {
-        bvm_.append_ecall(*optecall);
-    }
-    if (invf.function_entity_name == environment_.builtin(annium::builtin_type::arrayify)) {
-        bvm_.append_builtin(annium::builtin_type::arrayify);
-    } else if (invf.function_entity_name == environment_.builtin(annium::builtin_type::print_string)) {
-        bvm_.append_builtin(annium::builtin_type::print_string);
-    } else if (invf.function_entity_name == environment_.builtin(annium::builtin_type::tostring)) {
-        bvm_.append_builtin(annium::builtin_type::tostring);
-    }
-    else 
-    */
-    if (auto eptr = environment_.eregistry().find(invf.varname); eptr) {
-        // to do: visitor
-        if (auto pefe = dynamic_pointer_cast<external_function_entity>(eptr); pefe) {
-            bvm().append_ecall(pefe->fn_index);
-        }
-        //else if (auto pte = dynamic_pointer_cast<type_entity>(eptr); pte) {
-        //    bvm().append_ecall(virtual_stack_machine::builtin_fn::extern_object_constructor);
-        //}
-        else if (auto fe = dynamic_pointer_cast<function_entity>(eptr); fe) {
-            if (fe->is_inline()) {
-                for (auto const& e : fe->body) {
-                    apply_visitor(*this, e);
-                }
-            } else {
-                bvm().append_push_static_const(i64_blob_result((fe->signature().parameters_count() + 1) * (fe->is_void() ? -1 : 1)));
-                bvm().append_fpush(fe->index());
-                bvm().append_callp();
-            }
-            //bvm_.append_builtin(annium::builtin_type::call_function_object);
-            /*
-            // assigned captured variables (if exist)
-            for (auto const& pair : fe->captured_variables) {
-                // refiry
-                bvm_.append_freferify(std::get<0>(pair)->index());
-                bvm_.append_fpush(std::get<0>(pair)->index());
-            }
-            //
-            if (!fe->is_defined()) {
-                size_t pos = bvm_.push_on_stack(smart_blob{}); // just reserve
-                fe->set_variable_index(pos);
-            }
-            if (fe->is_inline()) {
-                for (auto const& e : fe->body) {
-                    apply_visitor(*this, e);
-                }
-            } else if (fe->is_variable_index()) {
-                bvm_.append_push(fe->get_address());
-                bvm_.appned_callp();
-            } else {
-                bvm_.append_call(fe->get_address());
-            }
-            */
-            //THROW_NOT_IMPLEMENTED_ERROR("unimplemented function call name: '%1%'"_fmt % environment_.print(invf.entity));
-        } else {
-            THROW_NOT_IMPLEMENTED_ERROR("unknown entity found, unresolved function call name: '%1%'"_fmt % environment_.print(invf.varname));
-        }
-    } else {
-        throw exception("unresolved name: '%1%'"_fmt % environment_.print(invf.varname));
-    }
-#endif
 }
 
 }
