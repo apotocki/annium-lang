@@ -18,3 +18,9 @@ print(to_string(test_enum.B));
 
 let arg1 = .B;
 let carg1: test_enum = runtime_cast(arg1);
+
+inline fn implicit_cast(test_enum) ~> bool => true;
+let v1: test_enum = (runtime_cast(false) && .A || .B);
+assert_equal(v1, .B);
+let v2: test_enum = (runtime_cast(true) && .A || .B);
+assert_equal(v2, .A);

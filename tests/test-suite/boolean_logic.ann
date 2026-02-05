@@ -4,6 +4,19 @@ assert_equal(true && "flag is true" || "flag is false", "flag is true");
 assert_equal(runtime_cast(false) && "flag is true" || "flag is false", "flag is false");
 assert_equal(runtime_cast(true) && "flag is true" || "flag is false", "flag is true");
 
+let tmp:string = runtime_cast(false) && runtime_cast("flag is true") || "flag is false";
+assert_equal(tmp, "flag is false");
+tmp = runtime_cast(true) && runtime_cast("flag is true") || "flag is false";
+assert_equal(tmp, "flag is true");
+tmp = runtime_cast(false) && runtime_cast("flag is true") || runtime_cast("flag is false");
+assert_equal(tmp, "flag is false");
+tmp = runtime_cast(true) && runtime_cast("flag is true") || runtime_cast("flag is false");
+assert_equal(tmp, "flag is true");
+tmp = runtime_cast(false) && "flag is true" || runtime_cast("flag is false");
+assert_equal(tmp, "flag is false");
+tmp = runtime_cast(true) && "flag is true" || runtime_cast("flag is false");
+assert_equal(tmp, "flag is true");
+
 let flag0 = false;
 let flag1 = true;
 let flag2 = runtime_cast(false);

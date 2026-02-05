@@ -134,6 +134,8 @@ union_apply_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
             }
         } else {
             if (result_elements.insert(branch_er.type()).second) {
+                // do not decompose union result types
+#if 0
                 entity_signature const* psig = get_entity(env, branch_er.type()).signature();
                 if (psig && psig->name == env.get(builtin_qnid::union_)) {
                     for (field_descriptor const& fd : psig->fields()) {
@@ -148,6 +150,8 @@ union_apply_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
                 } else {
                     pmd->stable_result_types_set.push_back(branch_er.type());
                 }
+#endif
+                pmd->stable_result_types_set.push_back(branch_er.type());
             }
         }
         pmd->branch_results.emplace_back(std::move(branch_er));
@@ -247,11 +251,11 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
     for (entity_identifier const& eid : apply_md.stable_result_types_set) {
         usig.push_back(field_descriptor{ eid, false });
     }
-
+    bool is_result_enum_union = apply_md.stable_result_types_set.empty();
     // not a clean code, implicit cast to union type should be done here for each branch result
     for (syntax_expression_result& branch_er : apply_md.branch_results) {
         if (branch_er.is_const_result) {
-            if (!apply_md.enum_union) {
+            if (!is_result_enum_union) {
                 // append null as dummy runtime value for const union element
                 env.push_back_expression(el, branch_er.expressions, semantic::push_value{ smart_blob{} });
             }
@@ -270,7 +274,7 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
         append_branch_semantic_result(el, branch_er, result);
     }
     // fold union result
-    if (!apply_md.enum_union) {
+    if (!is_result_enum_union) {
         env.push_back_expression(el, result.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(2) } });
         env.push_back_expression(el, result.expressions, semantic::invoke_function(env.get(builtin_eid::arrayify)));
     }

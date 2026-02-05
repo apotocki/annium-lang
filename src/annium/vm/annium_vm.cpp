@@ -267,7 +267,7 @@ void vm::context::extern_variable_get()
 
 void vm::context::extern_variable_set()
 {
-    SCOPE_EXIT([this] { stack_pop(2); }); // no arguments on stack after that
+    SCOPE_EXIT([this] { stack_pop(1); }); // value on top of stack after this function
     string_view propname = stack_back().as<string_view>();
     blob_result const& propvalue = *stack_back(1);
     if (penv_) {

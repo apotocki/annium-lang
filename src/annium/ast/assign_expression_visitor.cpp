@@ -52,17 +52,17 @@ assign_expression_visitor::result_type assign_expression_visitor::operator()(qna
                 //ctx.append_expression(semantic::invoke_function{ ctx.env().get_builtin_function(unit::builtin_fn::weak_create) });
             }
             env().push_back_expression(expressions, ser.expressions, semantic::set_local_variable{ eid_or_var });
-            if (eid_or_var.is_weak) {
-                ctx_.append_expression(semantic::truncate_values(1, 0));
-            }
+            //if (eid_or_var.is_weak) {
+            //    ctx_.append_expression(semantic::truncate_values(1, 0));
+            //}
         } else if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, functional_variable>) {
             env().push_back_expression(expressions, ser.expressions, semantic::set_variable{ eid_or_var });
             //ctx_.append_expression(semantic::truncate_values(1, 0));
         } else {
             THROW_INTERNAL_ERROR("unhandled assign_expression_visitor qname_reference_expression case");
         }
-        ser.value_or_type = env().get(builtin_eid::void_);
-        ser.is_const_result = true;
+        //ser.value_or_type = env().get(builtin_eid::void_);
+        //ser.is_const_result = true;
         return std::move(ser);
     }, e);
     //    if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, local_variable>) {

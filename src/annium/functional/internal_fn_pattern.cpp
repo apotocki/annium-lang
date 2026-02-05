@@ -118,7 +118,7 @@ std::expected<syntax_expression_result, error_storage> internal_fn_pattern::appl
     result.value_or_type = fne.result.entity_id();
     result.is_const_result = fne.result.is_const();
 
-    if (mut_arg_cnt || !fne.is_const_eval(env)) {
+    if (!fne.is_built() || !fne.is_const_eval(env)) {
         env.push_back_expression(el, result.expressions, semantic::invoke_function(fne.id));
     }
 

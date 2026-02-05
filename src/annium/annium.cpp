@@ -162,7 +162,7 @@ inline fn equal($l: ~union(...), $r) => apply(to: $l, visitor: fn[$r]($value) =>
 inline fn equal($l, $r: ~union(...)) => apply(to: $r, visitor: fn[$l]($value) => $value == $l);
 inline fn to_string(~union(...))->string => apply(to: $0, visitor: fn($x) => to_string($x));
 
-inline viable fn implicit_cast(~ union(...)) ~> $T => apply(to: $0, visitor: (fn($x)->$T => implicit_cast($x)));
+viable fn implicit_cast(~ union(...)) ~> $T => apply(to: $0, visitor: (fn($x)->$T => implicit_cast($x)));
 
 // STRUCTS
 inline viable fn::get(self: @is_struct, property: constexpr __identifier) => get(self: tuple_of(self), property: property);
@@ -410,7 +410,7 @@ void annium_impl::do_compile(internal_function_entity const& fe)
         }
     }
     
-    if (fe.is_inline())
+    if (fe.is_inline() || fe.is_empty())
         return;
 
     environment_.compile(fe);

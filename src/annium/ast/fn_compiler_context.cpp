@@ -719,6 +719,7 @@ std::expected<std::tuple<entity_identifier, bool, bool>, error_storage> fn_compi
                     stable_result_values_set.push_back(er.value());
                 }
             } else if (result_elements.insert(er.type()).second) {
+                /*
                 entity_signature const* psig = get_entity(env(), er.type()).signature();
                 if (psig && psig->name == env().get(builtin_qnid::union_)) {
                     for (field_descriptor const& fd : psig->fields()) {
@@ -733,6 +734,8 @@ std::expected<std::tuple<entity_identifier, bool, bool>, error_storage> fn_compi
                 } else {
                     stable_result_types_set.push_back(er.type());
                 }
+                */
+                stable_result_types_set.push_back(er.type());
             }
         }
 
@@ -796,8 +799,8 @@ std::expected<std::tuple<entity_identifier, bool, bool>, error_storage> fn_compi
     }
 
     if (const_value_result) {
-        bool is_empty_function = fent.arg_count() == 0 && !has_procedures(expressions());
-
+        //bool is_empty_function = fent.arg_count() == 0 && !has_procedures(expressions());
+        bool is_empty_function = !has_procedures(expressions());
         if (!is_empty_function) {
             // e.g. to handle: return print( <something> );
             for (auto& [rts, el, er, loc] : return_statements_) {

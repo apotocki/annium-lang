@@ -289,6 +289,7 @@ public:
         fnbuilder_.append_dup(); // duplicate branch index value because first branch does not need cmp
         fnbuilder_.append_op(asm_builder_t::op_t::jne);
         auto branch_pt = fnbuilder_.current_entry();
+        fnbuilder_.append_pop(); // pop branch index value
         first_branch.for_each([this](semantic::expression const& e) {
             apply(e);
         });
