@@ -22,3 +22,5 @@ if runtime_cast(false) {
     chain2 = "else";
 }
 assert_equal(chain2, "else");
+
+assert_equal(__get_frame_stack_height(), 3);

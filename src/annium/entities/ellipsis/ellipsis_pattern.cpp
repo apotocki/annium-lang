@@ -80,7 +80,7 @@ std::expected<field_descriptor, error_storage> push_by_name(fn_compiler_context&
             if (!eid_or_var) return std::unexpected(make_error<undeclared_identifier_error>(std::move(name)));
             return field_descriptor{ eid_or_var, true };
         } else if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, local_variable>) {
-            ctx.env().push_back_expression(el, result, semantic::push_local_variable{ eid_or_var });
+            ctx.env().push_back_expression(el, result, semantic::push_local_variable::create(eid_or_var));
             return field_descriptor{ eid_or_var.type, false };
         } else {
             static_assert(std::is_same_v<std::decay_t<decltype(eid_or_var)>, functional_variable>);

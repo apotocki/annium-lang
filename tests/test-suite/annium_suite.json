@@ -1,5 +1,4 @@
-[
-    /*
+[/*
     {
         "src": "draft.ann",
         "output": ""
@@ -43,13 +42,15 @@
         "output": "0Hello!Hello, World!120033a4d056e0789iv_call(23)"
     },
     {
-        "src": "boolean_logic.ann",
-        "output": "flag is falseflag is trueflag is falseflag is true"
-    },
-    {
         "src": "match_priority.ann",
         "output": ""
+    },
+    {
+        "src": "boolean_logic.ann",
+        "output": "flag is falseflag is trueflag is falseflag is true"
     }
+
+
     /*
     
     {

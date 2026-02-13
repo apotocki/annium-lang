@@ -132,7 +132,7 @@ std::expected<syntax_expression_result, error_storage> array_from_iterator_make_
     
     // put current stack size on top of the stack to track number of elements added
     env.push_back_expression(el, false_branch_res.expressions, semantic::push_special_value{ semantic::push_special_value::kind_type::stack_size });
-    env.push_back_expression(el, false_branch_res.expressions, semantic::push_local_variable{ stack_size_var });
+    env.push_back_expression(el, false_branch_res.expressions, semantic::push_local_variable::create(stack_size_var));
     env.push_back_expression(el, false_branch_res.expressions, semantic::invoke_function(env.get(builtin_eid::isubtract)));
     //env.push_back_expression(el, false_branch_res.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(1) } }); // subtract 2 (because we have two stack size variables on stack)
     //env.push_back_expression(el, false_branch_res.expressions, semantic::invoke_function(env.get(builtin_eid::isubtract)));
@@ -147,8 +147,8 @@ std::expected<syntax_expression_result, error_storage> array_from_iterator_make_
     // finalize false branch
     append_semantic_result_to_branch(el, false_branch_res, result, cond.false_branch);
     
-    result.temporaries.emplace_back(iterator_var_name, std::move(iterator_var), semantic::expression_span{});
-    result.temporaries.emplace_back(stack_size_var_name, std::move(stack_size_var), semantic::expression_span{});
+    result.temporaries.emplace_back(/*iterator_var_name,*/ std::move(iterator_var), semantic::expression_span{});
+    result.temporaries.emplace_back(/*stack_size_var_name,*/ std::move(stack_size_var), semantic::expression_span{});
 
     return result;
 }

@@ -364,12 +364,14 @@ struct push_local_variable
 #endif
     variable_identifier varid;
 
-    inline explicit push_local_variable(local_variable const& v) noexcept
-        : varid{ v.varid }
+    inline static push_local_variable create(local_variable const& v) noexcept
     {
+        return push_local_variable{
 #ifdef SONIA_LANG_DEBUG
-        debug_name = v.debug_name.value;
+            .debug_name = v.debug_name.value,
 #endif
+            .varid = v.varid
+        };
     }
 };
 
@@ -399,8 +401,8 @@ struct set_local_variable
     }
 };
 
-struct stack_frame_begin {};
-struct stack_frame_end {};
+//struct stack_frame_begin {};
+//struct stack_frame_end {};
 struct push_variable { functional_variable var; };
 struct dup_stack_top {};
 struct set_variable { functional_variable var; };
@@ -450,10 +452,7 @@ using expression_span = linked_list_node_span<expression_entry>;
 
 struct return_statement
 {
-    expression_span result;
-    size_t scope_size; // Number of elements on stack after evaluation of result expressions
-    //entity_identifier value_or_type;
-    //bool is_const_value_result;
+    expression_span scope_deconstruction; // Expressions to be evaluated for scope destruction after (or before) evaluation of result expressions
 };
 
 struct yield_statement
@@ -498,7 +497,8 @@ using expression = std::variant<
     empty_t, // no op
     push_value, push_local_variable, push_by_offset, push_special_value, push_variable, dup_stack_top, truncate_values,
     set_local_variable, set_variable, set_by_offset,
-    stack_frame_begin, stack_frame_end, invoke_context_function,
+    //stack_frame_begin, stack_frame_end,
+    invoke_context_function,
     invoke_function, return_statement, yield_statement, loop_breaker, loop_continuer,
     indexs,
     expression_span,
@@ -523,8 +523,8 @@ using managed_expression_list = managed_linked_list<expression, environment>;
 
 struct syntax_expression_result
 {
-    // {temporary name, temporary type, initilizing expressions}
-    small_vector<std::tuple<identifier, local_variable, semantic::expression_span>, 2> temporaries;
+    // {variable, initilizing expressions}
+    small_vector<std::tuple<local_variable, semantic::expression_span>, 2> temporaries;
 
     // because expressions with branches like if, for, while, etc. don't own their expressions, we need to store them separately
     semantic::expression_span branches_expressions;

@@ -279,9 +279,8 @@ entity_identifier environment::set_builtin_extern(string_view signature, void(*p
     arena a;
     auto [pf, fndecl] = parse_extern_fn(signature, a);
     auto ptrn = make_shared<PT>(fn_identifier_counter_);
-    internal_function_entity default_fentity{ qname{}, entity_signature{}, resource_location{}, field_descriptor{} };
-    fn_compiler_context ctx{ *this, default_fentity };
-    if (auto err = ptrn->init(ctx, fndecl); err) {
+    internal_function_entity default_fentity{ *this, qname{}, entity_signature{}, resource_location{}, field_descriptor{} };
+    if (auto err = ptrn->init(default_fentity.context(), fndecl); err) {
         throw exception(print(*err));
     }
     auto pent = make_shared<external_function_entity>(fn_identifier_counter_);
@@ -1620,6 +1619,7 @@ environment::environment()
     builtin_eids_[(size_t)builtin_eid::unary_minus] = set_builtin_extern("__unary_minus(runtime)"sv, &annium_unary_minus);
     builtin_eids_[(size_t)builtin_eid::concat] = set_builtin_extern("__concat(runtime)->string"sv, &annium_concat);
     builtin_eids_[(size_t)builtin_eid::error] = set_builtin_extern("__error(runtime string)"sv, &annium_error);
+    builtin_eids_[(size_t)builtin_eid::get_frame_stack_height] = set_builtin_extern("__get_frame_stack_height()->integer"sv, &annium_get_frame_stack_height);
     //set_const_extern<to_string_pattern>("size(const metaobjct))->integer"sv);
 
     //set_extern<external_fn_pattern>("__error(mut string)"sv, &annium_error);
@@ -1676,9 +1676,9 @@ size_t environment::compile(internal_function_entity const& fn_ent)
 
         vm::compiler_visitor vmcvis{ *this, fb, fn_ent };
         vmcvis(fn_ent.body);
-        if (!vmcvis.local_return_position) { // no explicit return
-            fb.append_ret();
-        }
+        //if (!vmcvis.local_return_position) { // no explicit return
+        //    fb.append_ret();
+        //}
         fb.materialize();
         if (fd.index) {
             bvm().set_const(*fd.index, smart_blob{ ui64_blob_result(*fd.address) });

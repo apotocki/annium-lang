@@ -24,3 +24,5 @@ let v1: test_enum = (runtime_cast(false) && .A || .B);
 assert_equal(v1, .B);
 let v2: test_enum = (runtime_cast(true) && .A || .B);
 assert_equal(v2, .A);
+
+assert_equal(__get_frame_stack_height(), 3);

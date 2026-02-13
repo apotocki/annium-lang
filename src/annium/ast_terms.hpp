@@ -378,11 +378,18 @@ struct nil_expression {};
 
 struct local_variable_expression
 {
-    local_variable var;
+    entity_identifier type;
+    variable_identifier varid;
+
+    inline static local_variable_expression from_var(local_variable const& var) noexcept
+    {
+        return { var.type, var.varid };
+    }
 };
 
 struct name_reference_expression { identifier name; }; // e.g. for identifiers started with $ or #, e.g.: $0, $$, #call_location
 struct qname_reference_expression { qname_view name; };
+
 struct stack_value_reference_expression
 {
     identifier name;

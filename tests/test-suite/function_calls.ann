@@ -2,3 +2,4 @@ fn test() {
     print("test function called");
 }
 test();
+assert_equal(__get_frame_stack_height(), 0);

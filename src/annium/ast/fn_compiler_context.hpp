@@ -117,6 +117,7 @@ class fn_compiler_context
     sonia::lang::compiler_worker_id worker_id_;
     small_vector<functional_binding const*, 4> bindings_;
 
+    /*
     struct scope_locals_descriptor
     {
         layered_binding_set named_set;
@@ -126,7 +127,30 @@ class fn_compiler_context
     };
 
     std::list<scope_locals_descriptor> scoped_locals_; // scope named set and unnamed count
-    int64_t scope_offset_;
+    */
+    //int64_t scope_offset_; // = -(number of runtime arguments + number of captured runtime variables)
+
+    struct scope_locals_stack_item
+    {
+        annotated_identifier name;
+        std::variant<entity_identifier, local_variable> value; // for local variables, the variable identifier; for constexpr values, the entity identifier
+    };
+    std::vector<scope_locals_stack_item> scoped_locals_; // for tracking scope locals when pushing/popping scopes
+    struct scope_state
+    {
+        uint32_t offset; // scoped_locals_'s index of the first variable in this scope
+        uint32_t next_variable_index;
+    };
+    std::vector<scope_state> scope_states_; // for tracking scope offsets when pushing/popping scopes
+
+    std::vector<scope_locals_stack_item> scoped_locals_stash_;
+    std::vector<scope_state> scope_states_stash_;
+    struct stash_state
+    {
+        uint32_t locals_size;
+        uint32_t states_size;
+    };
+    std::vector<stash_state> stash_states_;
 
 public:
     fn_compiler_context(environment& e, internal_function_entity&);
@@ -157,14 +181,27 @@ public:
 
     // append_result is used to append the result of an expression evaluation to the current function context
     // returns the number of expressions appended
-    [[nodiscard]] size_t append_result(semantic::expression_list_t&, syntax_expression_result&);
-
+    // [[nodiscard]] size_t
+    void append_result(semantic::expression_list_t&, syntax_expression_result&, annotated_identifier = {});
+    void append_result_inplace(semantic::expression_list_t&, syntax_expression_result&, annotated_identifier = {});
+    void append_variables(semantic::expression_list_t&, span<const std::tuple<local_variable, semantic::expression_span>> vars);
 
     void push_scope();
-    void push_scope_variable(local_variable); // unnamed variable, just for scope tracking
-    void push_scope_variable(annotated_identifier name, local_variable);
-    size_t pop_scope();
-    inline layered_binding_set const& current_scope_binding() const noexcept { return scoped_locals_.back().named_set; }
+    void push_scope_variable(entity_identifier vartype); // unnamed variable, just for scope tracking
+    void push_scope_variable(annotated_identifier name, entity_identifier vartype);
+    void push_scope_variable(local_variable);
+    void push_scope_constant(annotated_identifier, entity_identifier);
+    void pop_scope_variable();
+    void pop_scope(bool move_top_to_parent = false);
+    void pop_scope(semantic::expression_list_t&, semantic::expression_span&, bool move_top_to_parent = false);
+    void pop_all_scopes(semantic::expression_list_t&, semantic::expression_span&, bool move_top_to_parent);
+    inline size_t scoped_locals_count() const noexcept { return scoped_locals_.size(); }
+
+    void push_scopes_to_stash();
+    void pop_scopes_from_stash();
+    void peek_scopes_from_stash();
+    void pop_dismiss_scopes_from_stash();
+    //inline layered_binding_set const& current_scope_binding() const noexcept { return scoped_locals_.back().named_set; }
 
     inline environment& env() const noexcept { return environment_; }
 
@@ -252,7 +289,7 @@ public:
     //}
 
     //local_variable& new_variable(annotated_identifier, entity_identifier type);
-    void new_constant(annotated_identifier, entity_identifier);
+    
 
 #if 0
     small_vector<std::pair<variable_entity*, variable_entity*>, 16> captured_variables;
@@ -380,14 +417,21 @@ public:
 
     //entity_identifier accum_result;
     entity_identifier context_type;
-    small_vector<std::tuple<semantic::return_statement*, semantic::managed_expression_list, syntax_expression_result, resource_location>, 4> return_statements_;
-    small_vector<semantic::yield_statement*, 4> yield_statements_;
+    struct return_statement_descriptor
+    {
+        semantic::return_statement* stmt;
+        resource_location location;
+        entity_identifier value_or_type;
+        bool is_const_result;
+    };
+    small_vector<return_statement_descriptor, 1> return_statements_;
+    small_vector<semantic::yield_statement*, 1> yield_statements_;
     //void accumulate_result_type(entity_identifier t);
     //entity_identifier compute_result_type();
 
 private:
     void init();
-
+    void check_scope_name_conflict(annotated_identifier const& name) const;
 private:
     //semantic::expression_list_t root_expressions_;
     small_vector<std::tuple<semantic::expression_span, semantic::expression_span>, 8> expr_stack_;

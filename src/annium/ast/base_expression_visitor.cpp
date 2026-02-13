@@ -162,8 +162,8 @@ base_expression_visitor::result_type base_expression_visitor::operator()(indirec
 base_expression_visitor::result_type base_expression_visitor::operator()(local_variable_expression const& lv) const
 {
     semantic::expression_span exprs_span;
-    env().push_back_expression(expressions, exprs_span, semantic::push_local_variable{ lv.var });
-    return apply_cast(syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = lv.var.type, .is_const_result = false });
+    env().push_back_expression(expressions, exprs_span, semantic::push_local_variable{ .varid = lv.varid });
+    return apply_cast(syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = lv.type, .is_const_result = false });
 }
 
 base_expression_visitor::result_type base_expression_visitor::operator()(stack_value_reference_expression const& svr) const
@@ -172,7 +172,9 @@ base_expression_visitor::result_type base_expression_visitor::operator()(stack_v
         .value_or_type = svr.type,
         .is_const_result = false
     };
-    env().push_back_expression(expressions, result.expressions, semantic::push_by_offset{ svr.offset });
+    if (svr.offset) {
+        env().push_back_expression(expressions, result.expressions, semantic::push_by_offset{ svr.offset });
+    }
     return apply_cast(std::move(result));
 }
 
@@ -518,14 +520,14 @@ struct array_expression_processor : static_visitor<void>
 
 base_expression_visitor::result_type base_expression_visitor::operator()(array_with_body_expression const& awb) const
 {
-    qname nested{ env().new_identifier(), false };
-    fn_compiler_context nested_ctx{ ctx, nested };
-    declaration_visitor dvis{ nested_ctx };
-    auto res = dvis.apply(awb.body);
-    if (!res) return std::unexpected(std::move(res.error()));
-    auto err2 = nested_ctx.finish_scope();
-
+    (void)awb;
     THROW_NOT_IMPLEMENTED_ERROR("array_with_body_expression_t");
+    //qname nested{ env().new_identifier(), false };
+    //fn_compiler_context nested_ctx{ ctx, nested };
+    //declaration_visitor dvis{ nested_ctx };
+    //auto res = dvis.apply(awb.body);
+    //if (!res) return std::unexpected(std::move(res.error()));
+    //auto err2 = nested_ctx.finish_scope();
 }
 
 base_expression_visitor::result_type base_expression_visitor::operator()(array_expression const& ve) const
@@ -638,7 +640,7 @@ base_expression_visitor::result_type base_expression_visitor::operator()(fn_comp
             return std::unexpected(make_error<undeclared_identifier_error>(context_expression_.location, qn));
         } else if constexpr (std::is_same_v<std::decay_t<decltype(entid_or_var)>, local_variable>) {
             semantic::expression_span exprs_span;
-            env().push_back_expression(expressions, exprs_span, semantic::push_local_variable{ entid_or_var });
+            env().push_back_expression(expressions, exprs_span, semantic::push_local_variable::create(entid_or_var));
             return apply_cast(syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = entid_or_var.type, .is_const_result = false });
         } else {
             static_assert(std::is_same_v<std::decay_t<decltype(entid_or_var)>, functional_variable>);
@@ -823,8 +825,8 @@ base_expression_visitor::result_type base_expression_visitor::make_function_call
         
             auto err = make_function_call_arguments(proc, args_span, ftor);
             if (err) return std::unexpected(std::move(err));
-            env().push_back_expression(expressions, ftor.expressions, semantic::push_local_variable{ fn_address_var });
-            ftor.temporaries.emplace_back(fn_address_var_name, std::move(fn_address_var), semantic::expression_span{});
+            env().push_back_expression(expressions, ftor.expressions, semantic::push_local_variable::create(fn_address_var));
+            ftor.temporaries.emplace_back(/*fn_address_var_name,*/ std::move(fn_address_var), semantic::expression_span{});
         }
         env().push_back_expression(expressions, ftor.expressions, semantic::invoke_context_function{ });
         return apply_cast(std::move(ftor));

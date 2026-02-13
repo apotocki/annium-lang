@@ -9,6 +9,8 @@ namespace annium {
 
 void annium_error(vm::context&);
 void annium_assert(vm::context&);
+void annium_get_frame_stack_height(vm::context&);
+
 void annium_any_equal(vm::context&);
 void annium_decimal_equal(vm::context&);
 void annium_tostring(vm::context&);

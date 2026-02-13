@@ -177,10 +177,12 @@ std::expected<functional_match_descriptor_ptr, error_storage> basic_fn_pattern::
 std::pair<syntax_expression_result, size_t> basic_fn_pattern::apply_arguments(fn_compiler_context&, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     size_t count = 0;
-    syntax_expression_result result{ };
+    syntax_expression_result result{};
     for (auto& [_, mr, loc] : md.matches) {
-        append_semantic_result(el, mr, result);
-        if (!mr.is_const_result) ++count;
+        if (!mr.is_const_result) {
+            append_semantic_result(el, mr, result);
+            ++count;
+        }
     }
     result.is_const_result = !count;
     return { result, count };
@@ -200,6 +202,7 @@ shared_ptr<internal_function_entity> basic_fn_pattern::build(fn_compiler_context
         result_field = *signature.result;
     }
     auto pife = make_shared<internal_function_entity>(
+        env,
         std::move(fn_ns),
         std::move(signature),
         location,
@@ -219,7 +222,7 @@ void basic_fn_pattern::build_scope(environment& e, basic_functional_binding&& md
 
         if (!has(pd.modifier, parameter_constraint_modifier_t::variadic)) {
             if (local_variable const* plv = get_if<local_variable>(bsp); plv) {
-                fent.push_argument(plv->varid);
+                fent.context().push_scope_variable(*plv);
             } // else arg is constant
             continue;
         }
@@ -245,7 +248,7 @@ void basic_fn_pattern::build_scope(environment& e, basic_functional_binding&& md
                 BOOST_ASSERT(bvar);
                 local_variable const* plv = get_if<local_variable>(bvar);
                 BOOST_ASSERT(plv);
-                fent.push_argument(plv->varid);
+                fent.context().push_scope_variable(*plv);
             }
         }
     }
@@ -297,6 +300,8 @@ void basic_fn_pattern::build_scope(environment& e, basic_functional_binding&& md
         });
 #endif
     fent.bindings = std::move(mdbindings);
+    fent.set_argument_variables();
+    //fent.context().push_scope();
 }
 
 std::ostream& basic_fn_pattern::print(environment const& e, std::ostream& ss) const

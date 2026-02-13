@@ -20,6 +20,7 @@ protected:
     environment& environment_;
     internal_function_entity const* fn_context_;
     asm_builder_t::function_builder& fnbuilder_;
+    mutable size_t fpheight_ = 0; // current frame pointer height (number of variables in current function)
 
     using breaks_t = small_vector<asm_builder_t::instruction_entry*, 4>;
     mutable small_vector<std::pair<asm_builder_t::label const*, breaks_t*>, 4> loop_stack_; // [{loop start, [loop brakes]}]
@@ -43,6 +44,7 @@ public:
     void operator()(semantic::push_value const& pv) const
     {
         visit(push_value_visitor{ environment_, fnbuilder_ }, pv.value);
+        ++fpheight_;
     }
 
     inline void operator()(semantic::push_special_value const& c) const
@@ -54,6 +56,7 @@ public:
         default:
             BOOST_ASSERT(!"unknown special value type");
         }
+        ++fpheight_;
     }
 
     void operator()(semantic::push_local_variable const& pv) const
@@ -61,6 +64,7 @@ public:
         BOOST_ASSERT(fn_context_);
         intptr_t index = fn_context_->resolve_variable_index(pv.varid);
         fnbuilder_.append_fpush(index);
+        ++fpheight_;
     }
 
     void operator()(semantic::push_by_offset const& pv) const
@@ -75,16 +79,19 @@ public:
         default:
             BOOST_ASSERT(!"unknown push_by_offset base type");
         }
+        ++fpheight_;
     }
 
     void operator()(semantic::dup_stack_top const&) const
     {
         fnbuilder_.append_dup();
+        ++fpheight_;
     }
 
     void operator()(semantic::set_by_offset const& sv) const
     {
         fnbuilder_.append_setr(sv.offset);
+        // for consuming set we will decrease fpheight_ by 1, but if it's not consuming at the moment
     }
 
     inline void operator()(semantic::truncate_values const& c) const
@@ -95,6 +102,7 @@ public:
         } else {
             fnbuilder_.append_pop(c.count);
         }
+        fpheight_ -= c.count;
     }
 
     void operator()(semantic::set_local_variable const& lv) const
@@ -102,6 +110,7 @@ public:
         BOOST_ASSERT(fn_context_);
         intptr_t index = fn_context_->resolve_variable_index(lv.varid);
         fnbuilder_.append_fset(index);
+        // for consuming set we will decrease fpheight_ by 1, but if it's not consuming at the moment
     }
 
     void operator()(semantic::set_variable const& sv) const
@@ -111,6 +120,7 @@ public:
         strbr.allocate();
         fnbuilder_.append_push_pooled_const(std::move(strbr));
         fnbuilder_.append_ecall((size_t)virtual_stack_machine::builtin_fn::extern_variable_set);
+        // for consuming set we will decrease fpheight_ by 1, but if it's not consuming at the moment
     }
 
     void operator()(semantic::push_variable const& pv) const
@@ -120,21 +130,23 @@ public:
         strbr.allocate();
         fnbuilder_.append_push_pooled_const(std::move(strbr));
         fnbuilder_.append_ecall((size_t)virtual_stack_machine::builtin_fn::extern_variable_get);
+        ++fpheight_;
     }
 
-    inline void operator()(semantic::stack_frame_begin const&) const
-    {
-        fnbuilder_.append_pushfp();
-    }
+    //inline void operator()(semantic::stack_frame_begin const&) const
+    //{
+    //    fnbuilder_.append_pushfp();
+    //}
 
-    inline void operator()(semantic::stack_frame_end const&) const
-    {
-        fnbuilder_.append_popfp();
-    }
+    //inline void operator()(semantic::stack_frame_end const&) const
+    //{
+    //    fnbuilder_.append_popfp();
+    //}
 
     inline void operator()(semantic::indexs const& idxs) const
     {
         fnbuilder_.append_indexs(idxs.shift);
+        // indexs is replacing => do not change fpheight_ here
     }
 
     void operator()(semantic::invoke_context_function const&) const;
@@ -232,6 +244,7 @@ public:
         }
         fnbuilder_.append_noop();
         auto branch_pt = fnbuilder_.current_entry();
+        fpheight_ -= 1; // condition value is consumed here
         if (!c.false_branch) { // only true branch
             //c.true_branch.for_each([this](semantic::expression const& e) {
             //    GLOBAL_LOG_INFO() << "true branch: " << environment_.print(e);
@@ -289,7 +302,7 @@ public:
         fnbuilder_.append_dup(); // duplicate branch index value because first branch does not need cmp
         fnbuilder_.append_op(asm_builder_t::op_t::jne);
         auto branch_pt = fnbuilder_.current_entry();
-        fnbuilder_.append_pop(); // pop branch index value
+        //fnbuilder_.append_pop(); // pop branch index value
         first_branch.for_each([this](semantic::expression const& e) {
             apply(e);
         });
@@ -303,9 +316,9 @@ public:
         for (auto const& br : branches) {
             //if (branch_index != 1) fnbuilder_.append_pop(); // pop previous branch compare result
             
-            fnbuilder_.append_push_pooled_const(ui64_blob_result(branch_index));
-            fnbuilder_.append_op(asm_builder_t::op_t::cmp);
-            fnbuilder_.append_op(asm_builder_t::op_t::jne);
+            fnbuilder_.append_push_pooled_const(ui64_blob_result(branch_index)); // state after: fpheight + 1
+            fnbuilder_.append_op(asm_builder_t::op_t::cmp); // state after: fpheight + 1
+            fnbuilder_.append_op(asm_builder_t::op_t::jne); // state after: fpheight
             auto branch_pt = fnbuilder_.current_entry();
             //fnbuilder_.append_pop(); // pop condition value
             br.for_each([this](semantic::expression const& e) {
@@ -325,10 +338,6 @@ public:
             bep->ie->operation = asm_builder_t::op_t::jmp;
             bep->ie->operand = exit_pt;
         }
-
-
-
-        //THROW_NOT_IMPLEMENTED_ERROR("compiler_visitor switch_t");
     }
 
     virtual void apply(semantic::expression const&) const = 0;
@@ -365,7 +374,11 @@ public:
 
     inline void operator()(semantic::return_statement const& rst) const
     {
-        rst.result.for_each([this](semantic::expression const& e) {
+        //rst.cast_expressions.for_each([this](semantic::expression const& e) {
+        //    //GLOBAL_LOG_INFO() << environment_.print(e);
+        //    visit(*this, e);
+        //});
+        rst.scope_deconstruction.for_each([this](semantic::expression const& e) {
             //GLOBAL_LOG_INFO() << environment_.print(e);
             visit(*this, e);
         });
@@ -387,17 +400,6 @@ public:
             rpos->operation = asm_builder_t::op_t::jmp;
             rpos->operand = fin_pos;
         }
-
-        size_t param_count = fn_context_->arg_count() + fn_context_->captured_var_count(); // including captured_variables
-        BOOST_ASSERT(fn_context_->result.entity_id());
-        if (fn_context_->result.entity_id() != environment_.get(builtin_eid::void_)) {
-            if (param_count) {
-                fnbuilder_.append_fset(-static_cast<intptr_t>(param_count));
-                fnbuilder_.append_truncatefp(-static_cast<intptr_t>(param_count) + 1);
-            }
-        } else if (param_count) {
-            fnbuilder_.append_truncatefp(-static_cast<intptr_t>(param_count));
-        }
     }
 
     template <typename T>
@@ -411,12 +413,10 @@ public:
 class compiler_visitor : public compiler_visitor_generic<compiler_visitor>
 {
 public:
-    mutable asm_builder_t::label const* local_return_position = nullptr;
-
     compiler_visitor(environment& e, asm_builder_t::function_builder& b, internal_function_entity const& ife)
         : generic_base_t{ e, b, ife }
     {
-        if (fn_context_->arg_count() + fn_context_->captured_var_count() + fn_context_->variables_count() > 0) {
+        if (fn_context_->need_framepointer()) {
             // for accessing function arguments and local variables by zero-based index
             fnbuilder_.append_pushfp();
         }
@@ -429,30 +429,18 @@ public:
     inline void operator()(semantic::return_statement const& rst) const
     {
         //GLOBAL_LOG_INFO() << environment_.print(rst.result);
-        rst.result.for_each([this](semantic::expression const& e) {
+        //rst.cast_expressions.for_each([this](semantic::expression const& e) {
+        //    //GLOBAL_LOG_INFO() << environment_.print(e);
+        //    visit(*this, e);
+        //});
+        rst.scope_deconstruction.for_each([this](semantic::expression const& e) {
             //GLOBAL_LOG_INFO() << environment_.print(e);
             visit(*this, e);
         });
-        if (local_return_position) {
-            fnbuilder_.append_jmp(local_return_position);
-            return;
-        } else if (fn_context_) {
-            local_return_position = fnbuilder_.make_label();
-            size_t param_count = fn_context_->arg_count() + fn_context_->captured_var_count();
-            //size_t param_count = fn_context_->parameter_count(); // including captured_variables
-            BOOST_ASSERT(fn_context_->result.entity_id());
-            if (fn_context_->result.entity_id() != environment_.get(builtin_eid::void_)) {
-                if (param_count) {
-                    fnbuilder_.append_fset(-static_cast<intptr_t>(param_count));
-                    fnbuilder_.append_truncatefp(-static_cast<intptr_t>(param_count) + 1);
-                }
-            } else if (param_count) {
-                fnbuilder_.append_truncatefp(-static_cast<intptr_t>(param_count));
-            }
-            if (param_count + fn_context_->variables_count() > 0) {
-                fnbuilder_.append_popfp();
-            }
+        if (fn_context_->need_framepointer()) {
+            fnbuilder_.append_popfp();
         }
+
         fnbuilder_.append_ret();
     }
 
@@ -551,8 +539,8 @@ void compiler_visitor_base::operator()(semantic::invoke_function const& invf) co
                 //GLOBAL_LOG_INFO() << "entering inline function: " << environment_.print(invf.fn);
                 BOOST_ASSERT(fe->is_built());
                 inline_compiler_visitor ivis{ environment_, fnbuilder_, *fe };
-                size_t param_count = fe->arg_count() + fe->captured_var_count();
-                if (param_count + fn_context_->variables_count() > 0) {
+                
+                if (fe->need_framepointer()) {
                     fnbuilder_.append_pushfp();
                 }
                 fe->body.for_each([this, &ivis](semantic::expression const& e) {
@@ -560,7 +548,7 @@ void compiler_visitor_base::operator()(semantic::invoke_function const& invf) co
                     visit(ivis, e);
                 });
                 ivis.finalize();
-                if (param_count + fn_context_->variables_count() > 0) {
+                if (fe->need_framepointer()) {
                     fnbuilder_.append_popfp();
                 }
                 //GLOBAL_LOG_INFO() << "leaving inline function: " << environment_.print(invf.fn);

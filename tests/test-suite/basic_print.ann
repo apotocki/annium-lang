@@ -5,4 +5,6 @@ print("Hello from Annium!(2)");
 print(runtime_cast("Hello"), runtime_cast(" from "), "Annium!(3)");
 print("Hello", " from ", "Annium!(4)");
 print(); // do nothing
-assert($$ == 0) // no arguments
+assert($$ == 0); // no arguments
+
+assert_equal(__get_frame_stack_height(), 0);

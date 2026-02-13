@@ -41,11 +41,9 @@ std::ostream& signatured_entity::print_to(std::ostream& os, environment const& e
 
 void append_semantic_result(semantic::expression_list_t& el, syntax_expression_result& src, syntax_expression_result& dest)
 {
-    if (!src.is_const_result) {
-        dest.branches_expressions = el.concat(dest.branches_expressions, src.branches_expressions);
-        dest.expressions = el.concat(dest.expressions, src.expressions);
-        dest.temporaries.insert(dest.temporaries.end(), src.temporaries.begin(), src.temporaries.end());
-    }
+    dest.branches_expressions = el.concat(dest.branches_expressions, src.branches_expressions);
+    dest.expressions = el.concat(dest.expressions, src.expressions);
+    dest.temporaries.insert(dest.temporaries.end(), src.temporaries.begin(), src.temporaries.end());
 }
 
 void append_semantic_result_to_branch(semantic::expression_list_t& el, syntax_expression_result& src, syntax_expression_result& dest, semantic::expression_span & dest_branch)
@@ -71,7 +69,7 @@ class managed_expression_result
 {
 public:
     mutable managed_expression_list store_el;
-    small_vector<std::tuple<identifier, local_variable, semantic::expression_span>, 2> temporaries;
+    small_vector<std::tuple<local_variable, semantic::expression_span>, 2> temporaries;
     semantic::expression_span branches_expressions;
     semantic::expression_span expressions;
 
@@ -85,7 +83,7 @@ public:
         temporaries.reserve(res.temporaries.size());
         for (auto const& tmp : res.temporaries) {
             temporaries.emplace_back(tmp);
-            store_el.splice_back(el, get<2>(tmp));
+            store_el.splice_back(el, get<1>(tmp));
         }
 
         store_el.splice_back(el, res.expressions);
@@ -98,7 +96,7 @@ public:
     {
         temporaries.reserve(rhs.temporaries.size());
         for (auto const& tmp : rhs.temporaries) {
-            temporaries.emplace_back(std::tuple{ get<0>(tmp), get<1>(tmp), store_el.deep_copy(get<2>(tmp)) });
+            temporaries.emplace_back(std::tuple{ get<0>(tmp), store_el.deep_copy(get<1>(tmp)) });
         }
     }
 };
@@ -171,8 +169,8 @@ syntax_expression_result retrieve_indirect(environment&e, semantic::expression_l
     el.splice_back(tmp_el, result.branches_expressions);
     result.temporaries.reserve(mer.temporaries.size());
     for (auto const& tmp : mer.temporaries) {
-        result.temporaries.emplace_back(std::tuple{ get<0>(tmp), get<1>(tmp), tmp_el.deep_copy(get<2>(tmp)) });
-        el.splice_back(tmp_el, get<2>(result.temporaries.back()));
+        result.temporaries.emplace_back(std::tuple{ get<0>(tmp), tmp_el.deep_copy(get<1>(tmp)) });
+        el.splice_back(tmp_el, get<1>(result.temporaries.back()));
     }
     result.expressions = tmp_el.deep_copy(mer.expressions);
     el.splice_back(tmp_el, result.expressions);
@@ -197,8 +195,8 @@ syntax_expression_result retrieve_indirect(environment&e, semantic::expression_l
     el.splice_back(tmp_el, result.branches_expressions);
     result.temporaries.reserve(mer.temporaries.size());
     for (auto const& tmp : mer.temporaries) {
-        result.temporaries.emplace_back(std::tuple{ get<0>(tmp), get<1>(tmp), tmp_el.deep_copy(get<2>(tmp)) });
-        el.splice_back(tmp_el, get<2>(result.temporaries.back()));
+        result.temporaries.emplace_back(std::tuple{ get<0>(tmp), tmp_el.deep_copy(get<1>(tmp)) });
+        el.splice_back(tmp_el, get<1>(result.temporaries.back()));
     }
     result.expressions = tmp_el.deep_copy(mer.expressions);
     el.splice_back(tmp_el, result.expressions);

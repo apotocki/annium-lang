@@ -35,9 +35,11 @@ ftor0();
 
 let ftor1 : string->() = my_print0;
 ftor1("3");
+assert_equal(__get_frame_stack_height(), 0);
 
 let ftor1a : (string)->() = my_print0;
 ftor1a("3a");
+assert_equal(__get_frame_stack_height(), 0);
 
 let ftor2 : (string, string)->() = my_print0;
 ftor2("4", "d");

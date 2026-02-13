@@ -43,7 +43,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> internal_fn_patter
         make_error<circular_dependency_error>(make_error<basic_general_error>(location, "function build failed"sv, fne.id))
     );
     if (fne.is_built()) return res; // already checked for vailability
-    if (fne.build_errors || (fne.build_errors = fne.build(env))) {
+    if (fne.build_errors || (fne.build_errors = fne.build())) {
         fne.set_provision(true); // this definition will be used as a provision only
         return std::unexpected(append_cause(
             make_error<basic_general_error>(location, "function build failed"sv, fne.id),
@@ -71,14 +71,18 @@ void internal_fn_pattern::build_scope(environment& e, basic_functional_binding&&
         BOOST_ASSERT(psig);
         span<const field_descriptor> fields = psig->fields().subspan(1); // skip 'this'
         // calculate runtime size of captures
-        size_t rt_size = std::ranges::count_if(fields, [](field_descriptor const& fd) { return !fd.is_const(); });
-        fent.set_captured_var_count(rt_size);
-        int64_t capture_var_offset = -static_cast<int64_t>(rt_size);
+        //size_t rt_size = std::ranges::count_if(fields, [](field_descriptor const& fd) { return !fd.is_const(); });
+        //fent.set_captured_var_count(rt_size);
+        //int64_t capture_var_offset = -static_cast<int64_t>(rt_size);
         for (field_descriptor const& fd : fields) {
             if (!fd.is_const()) {
-                fent.push_capture(e, fd.name(), fd.entity_id(), capture_var_offset++);
+                fent.context().push_scope_variable(annotated_identifier{ fd.name() }, fd.entity_id());
+                //captured_var_count++;
+            } else {
+                fent.context().push_scope_constant(annotated_identifier{ fd.name() }, fd.entity_id());
             }
         }
+        fent.set_captured_end_offset();
         // to do: for multivalued names bound constexpr vector of captures
     }
     basic_fn_pattern::build_scope(e, std::move(bindings), fent);
@@ -87,6 +91,7 @@ void internal_fn_pattern::build_scope(environment& e, basic_functional_binding&&
 std::expected<syntax_expression_result, error_storage> internal_fn_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const
 {
     environment& env = ctx.env();
+    
     auto [result, mut_arg_cnt] = apply_arguments(ctx, el, md);
 
     indirect_internal_function_entity smpl{ md.signature, location };
@@ -107,7 +112,7 @@ std::expected<syntax_expression_result, error_storage> internal_fn_pattern::appl
             make_error<circular_dependency_error>(make_error<basic_general_error>(location, "resolving function result type"sv, fne.id))
         );
         if (!fne.is_built()) {
-            if (auto err = fne.build(env)) {
+            if (auto err = fne.build()) {
                 return std::unexpected(std::move(err));
             }
         }

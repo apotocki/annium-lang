@@ -15,26 +15,47 @@ namespace annium {
 #ifdef ANNIUM_NO_INLINE_FUNCTIONS
     [[nodiscard]] bool internal_function_entity::is_inline() const noexcept { return false; }
 #else
-    [[nodiscard]] bool internal_function_entity::is_inline() const noexcept { return !!is_inline_; }
+    [[nodiscard]] bool internal_function_entity::is_inline() const noexcept
+    {
+        return get_flag(mask_is_inline, std::memory_order_relaxed);
+    }
 #endif // ANNIUM_NO_INLINE_FUNCTIONS
 
-internal_function_entity::internal_function_entity(qname&& name, entity_signature&& sig, resource_location loc, field_descriptor r)
+internal_function_entity::internal_function_entity(environment& env, qname&& name, entity_signature&& sig, resource_location loc, field_descriptor r)
     : name_{ std::move(name) }
     , sig_{ std::move(sig) }
     , result{ std::move(r) }
-    , arg_count_{ 0 }
-    , captured_var_count_{ 0 }
-    , is_provision_{ 1 } // by default all internal functions are provisions
-    , is_built_{ 0 }
-    , is_inline_{ 0 }
-    , is_empty_{ 0 } // not empty by default
 {
     location = std::move(loc);
-    // if the signature has a result, it's the function result.
-    // If the signature has no result, the function result should be set later by analizing the body of the function.
-    //if (sig_.result) {
-    //    result = *sig_.result;
-    //}
+
+    // by default all internal functions are provisions
+    set_provision(true);
+    set_built(false);
+    set_inline(false);
+    set_need_framepointer(false);
+
+    // non-empty by default
+    set_flag(mask_is_empty, false, std::memory_order_relaxed);
+
+    context_ = make_shared<fn_compiler_context>(env, *this);
+}
+
+void internal_function_entity::set_captured_end_offset() noexcept
+{
+    update_state_cas([&](uint64_t cur) {
+        state_fields flds = std::bit_cast<state_fields>(cur);
+        flds.captured_offset = static_cast<uint64_t>(context().scoped_locals_count());
+        return std::bit_cast<uint64_t>(flds);
+    });
+}
+
+void internal_function_entity::set_argument_variables() noexcept
+{
+    update_state_cas([&](uint64_t cur) {
+        state_fields flds = std::bit_cast<state_fields>(cur);
+        flds.arg_count = flds.variable_count;
+        return std::bit_cast<uint64_t>(flds);
+    });
 }
 
 //size_t internal_function_entity::hash() const noexcept
@@ -55,26 +76,34 @@ std::ostream& internal_function_entity::print_to(std::ostream& os, environment c
     return os << "fn "sv << e.print(sig_);
 }
 
-void internal_function_entity::push_argument(variable_identifier varid)
-{
-    auto it = variables_.find(varid);
-    if (it == variables_.end()) {
-        variables_.emplace_hint(it, std::pair{ varid, (uint64_t)arg_count_});
-        ++arg_count_;
-    }
-}
+//void internal_function_entity::push_argument(variable_identifier varid)
+//{
+//    auto it = variables_.find(varid);
+//    if (it == variables_.end()) {
+//        variables_.emplace_hint(it, std::pair{ varid, (uint64_t)arg_count_});
+//        ++arg_count_;
+//    }
+//}
 
 void internal_function_entity::push_variable(variable_identifier varid, intptr_t index)
 {
-    BOOST_VERIFY(variables_.insert(std::pair{ varid, index }).second);
+    if (varid) {
+        BOOST_VERIFY(variables_.insert(std::pair{ varid, index }).second);
+    }
+
+    update_state_cas([&](uint64_t cur) {
+        state_fields flds = std::bit_cast<state_fields>(cur);
+        ++flds.variable_count;
+        return std::bit_cast<uint64_t>(flds);
+    });
 }
 
-void internal_function_entity::push_capture(environment& e, identifier name, entity_identifier type, intptr_t index)
-{
-    variable_identifier varid = e.new_variable_identifier();
-    captured_bindings.emplace_back(annotated_identifier{ name }, local_variable{ .type = type, .varid = varid });
-    variables_.insert(std::pair{ varid, index });
-}
+//void internal_function_entity::push_capture(environment& e, identifier name, entity_identifier type, intptr_t index)
+//{
+//    variable_identifier varid = e.new_variable_identifier();
+//    captured_bindings.emplace_back(annotated_identifier{ name }, local_variable{ .type = type, .varid = varid });
+//    variables_.insert(std::pair{ varid, index });
+//}
 
 //void internal_function_entity::push_argument(annotated_identifier name, local_variable&& lv)
 //{
@@ -88,48 +117,42 @@ void internal_function_entity::push_capture(environment& e, identifier name, ent
 //    variables_.emplace_back(lv.varid);
 //}
 
+bool internal_function_entity::need_framepointer() const noexcept
+{
+    return !variables_.empty() || get_flag(mask_force_fp, std::memory_order_relaxed);
+}
+
 intptr_t internal_function_entity::resolve_variable_index(variable_identifier varid) const
 {
     auto it = variables_.find(varid);
     if (it == variables_.end()) {
         THROW_INTERNAL_ERROR("internal_function_entity::resolve_variable_index (%1%) variable not found"_fmt % varid);
     }
-    return it->second - arg_count_;
-    //auto it = variables_.get<1>().find(varid);
-    //if (it == variables_.get<1>().end()) {
-    //    THROW_INTERNAL_ERROR("internal_function_entity::resolve_variable_index (%1%) variable not found"_fmt % varid);
-    //}
-    //auto pos = variables_.project<0>(it) - variables_.get<0>().begin();
-    //return static_cast<intptr_t>(bound_arguments.size()) - static_cast<intptr_t>(pos) - 1;
+    return it->second - static_cast<intptr_t>(arg_count());
 }
 
-error_storage internal_function_entity::build(environment& e)
+error_storage internal_function_entity::build()
 {
-    fn_compiler_context fnctx{ e, *this };
-    if (captured_var_count_) {
-        fnctx.push_binding(captured_bindings);
-    }
-    fnctx.push_binding(bindings);
-    return build(fnctx);
+    context().push_binding(bindings);
+    return build(context());
 }
 
 error_storage internal_function_entity::build(fn_compiler_context& fnctx)
 {
-    BOOST_ASSERT(!is_built_);
+    BOOST_ASSERT(!is_built());
 
     if (result.entity_id()) {
         fnctx.result_type = get_entity_type(fnctx.env(), result);
     }
 
-    //GLOBAL_LOG_INFO() << fnctx.env().print(sts_);
     declaration_visitor dvis{ fnctx };
     if (auto res = dvis.apply(sts_); !res) return res.error();
 
-    auto fres = fnctx.finish_frame(*this); // unknown result type is resolving here
+    auto fres = fnctx.finish_frame(*this);
     if (!fres) return fres.error();
-        
+
     auto [value_or_type, is_value, is_empty] = fres.value();
-    result = field_descriptor{ value_or_type, is_value }; // function result clarification (initialy not const can be const after analyzing the body)
+    result = field_descriptor{ value_or_type, is_value };
 
     BOOST_ASSERT(fnctx.expressions_branch() == 1);
     body = fnctx.expressions();
@@ -137,26 +160,17 @@ error_storage internal_function_entity::build(fn_compiler_context& fnctx)
 
     BOOST_ASSERT(!fnctx.expression_store());
 
-    //GLOBAL_LOG_INFO() << "built inline function begin: " << e.print(*this);
-    //body.for_each([&e](semantic::expression const& e) {
-    //    GLOBAL_LOG_INFO() << e.print(e);
-    //});
-    //GLOBAL_LOG_INFO() << "built inline function end: " << e.print(*this);
-    //sts_.reset();
-    is_built_ = 1;
-    is_empty_ = result.is_const() && is_empty;
+    // publish build results
+    set_flag(mask_is_empty, result.is_const() && is_empty, std::memory_order_relaxed);
     sts_ = {};
-    //is_empty_ = 0;
+    set_built(true);
+
     return {};
 }
 
 bool internal_function_entity::is_const_eval(environment&) const noexcept
 {
-    return result.is_const() && is_empty_;
-
-    //if (!result.is_const()) return false;
-    //// to do: traverse expressions
-    //return result.entity_id() != e.get(builtin_eid::void_);
+    return result.is_const() && is_empty();
 }
 
 }

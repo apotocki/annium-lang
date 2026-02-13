@@ -174,6 +174,7 @@ enum class builtin_eid : entity_identifier::value_type
     void_, // constexpr literal of empty tuple type
     object,
     true_, false_, identifier, qname,
+    get_frame_stack_height, // builtin ::__get_frame_stack_height(level)-> integer
     arrayify, // builtin ::arrayify(...)->array
     unfold, // builtin ::unfold(:array(...))
     array_tail, // builtin ::array_tail(array)-> array

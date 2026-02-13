@@ -31,7 +31,7 @@ struct procedures_lookup_visitor
 
     bool operator()(semantic::return_statement const& rst) const noexcept
     { 
-        return has_procedures(rst.result);
+        return has_procedures(rst.scope_deconstruction);
     }
 
     bool operator()(semantic::conditional_t const& cond) const
@@ -280,7 +280,6 @@ fn_compiler_context::fn_compiler_context(environment& e, internal_function_entit
     , fent_{ fent }
     , parent_{ nullptr }
     , ns_{ fent.name() }
-    , scope_offset_{ static_cast<int64_t>(fent.scope_offset()) } // offset by function parameters
     , expression_store_{ e }
 {
     init();
@@ -291,7 +290,6 @@ fn_compiler_context::fn_compiler_context(fn_compiler_context& parent, qname_view
     , fent_{ parent.fent_ }
     , parent_{ nested.has_prefix(parent.ns()) ? &parent : nullptr }
     , ns_{ parent.ns() / nested }
-    , scope_offset_{ parent.scope_offset_ }
     , expression_store_{ parent.environment_ }
 {
     init();
@@ -302,7 +300,8 @@ void fn_compiler_context::init()
     assert(ns_.is_absolute());
     base_ns_size_ = ns_.parts().size();
     expr_stack_.emplace_back();
-    scoped_locals_.emplace_back(); // initial scope
+    scope_states_.emplace_back(0, 0); // initial scope before captures and arguments
+    scope_states_.emplace_back(0, 0); // captures and arguments scope
 }
 
 fn_compiler_context::~fn_compiler_context()
@@ -321,12 +320,17 @@ optional<std::variant<entity_identifier, local_variable>> fn_compiler_context::g
             //if (local_variable const* lv = get<local_variable>(optval); lv) return *lv;
         }
     }
-    for (auto const& scope_descriptor : boost::adaptors::reverse(scoped_locals_)) {
-        if (auto optval = scope_descriptor.named_set.lookup(name); optval) {
-            if (entity_identifier const* eid = get_if<entity_identifier>(optval); eid) return *eid;
-            if (local_variable const* lv = get_if<local_variable>(optval); lv) return *lv;
+    for (auto const& scope_locals_stack_item : boost::adaptors::reverse(scoped_locals_)) {
+        if (scope_locals_stack_item.name.value == name) {
+            return scope_locals_stack_item.value;
         }
     }
+    //for (auto const& scope_descriptor : boost::adaptors::reverse(scoped_locals_)) {
+    //    if (auto optval = scope_descriptor.named_set.lookup(name); optval) {
+    //        if (entity_identifier const* eid = get_if<entity_identifier>(optval); eid) return *eid;
+    //        if (local_variable const* lv = get_if<local_variable>(optval); lv) return *lv;
+    //    }
+    //}
 
     return nullopt;
 }
@@ -336,12 +340,9 @@ sonia::lang::compiler_task_tracer::task_guard fn_compiler_context::try_lock_task
     return environment_.task_tracer().try_lock_task(tid, worker_id_);
 }
 
-size_t fn_compiler_context::append_result(semantic::expression_list_t& el, syntax_expression_result& er)
+void fn_compiler_context::append_variables(semantic::expression_list_t& el, span<const std::tuple<local_variable, semantic::expression_span>> vars)
 {
-    append_stored_expressions(el, er.branches_expressions);
-
-    push_scope();
-    for (auto& [varname, var, sp] : er.temporaries) {
+    for (auto& [var, sp] : vars) {
         if (!sp) {
             semantic::expression_span reserve_expression;
             env().push_back_expression(el, reserve_expression, semantic::push_value{ smart_blob{} });
@@ -349,52 +350,243 @@ size_t fn_compiler_context::append_result(semantic::expression_list_t& el, synta
         } else {
             append_expressions(el, sp);
         }
-        if (varname) {
-            push_scope_variable( annotated_identifier{ varname }, var);
-        } else {
-            push_scope_variable(var);
-        }
+        push_scope_variable(var);
     }
+}
+
+void fn_compiler_context::append_result_inplace(semantic::expression_list_t& el, syntax_expression_result& er, annotated_identifier name)
+{
+    append_stored_expressions(el, er.branches_expressions);
+    append_variables(el, er.temporaries);
     append_expressions(el, er.expressions);
-    size_t scope_sz = pop_scope();
-    if (!er.is_const_result && er.type() != env().get(builtin_eid::void_type)) {
-        ++scope_sz;
+
+    if (!er.is_const_result) { // er.type() != env().get(builtin_eid::void_type)
+        push_scope_variable(name, er.type());
+    } else if (name) {
+        push_scope_constant(std::move(name), er.value());
     }
-    return scope_sz;
+}
+
+void fn_compiler_context::append_result(semantic::expression_list_t& el, syntax_expression_result& er, annotated_identifier name)
+{
+    if (!er.temporaries.empty()) push_scope();
+    append_result_inplace(el, er, annotated_identifier{});
+    if (!er.temporaries.empty()) pop_scope(!er.is_const_result);
+    if (!er.is_const_result && name) {
+        scoped_locals_.back().name = std::move(name);
+        local_variable& lv = get<local_variable>(scoped_locals_.back().value);
+        BOOST_ASSERT(!lv.varid);
+        lv.varid = environment_.new_variable_identifier();
+        fent_.push_variable(lv.varid, scope_states_.back().next_variable_index - 1);
+    }
+
+    //if (er.temporaries.empty()) {
+    //    append_result_inplace(el, er, std::move(name));
+    //} else {
+    //    push_scope();
+    //    append_stored_expressions(el, er.branches_expressions);
+    //    append_variables(el, er.temporaries);
+    //    append_expressions(el, er.expressions);
+    //    pop_scope(!er.is_const_result);
+    //    if (!er.is_const_result) { // er.type() != env().get(builtin_eid::void_type)
+    //        push_scope_variable(name, er.type());
+    //    } else if (name) {
+    //        push_scope_constant(std::move(name), er.value());
+    //    }
+    //}
+}
+
+void fn_compiler_context::push_scopes_to_stash()
+{
+    stash_state so{
+        .locals_size = static_cast<uint32_t>(scoped_locals_.size()),
+        .states_size = static_cast<uint32_t>(scope_states_.size())
+    };
+    stash_states_.push_back(so);
+    scoped_locals_stash_.insert(scoped_locals_stash_.end(), scoped_locals_.begin(), scoped_locals_.end());
+    scope_states_stash_.insert(scope_states_stash_.end(), scope_states_.begin(), scope_states_.end());
+}
+
+void fn_compiler_context::pop_scopes_from_stash()
+{
+    BOOST_ASSERT(!stash_states_.empty());
+    stash_state so = stash_states_.back();
+    stash_states_.pop_back();
+    scoped_locals_.clear();
+    scoped_locals_.insert(scoped_locals_.end(),
+        scoped_locals_stash_.end() - so.locals_size,
+        scoped_locals_stash_.end());
+    scoped_locals_stash_.resize(scoped_locals_stash_.size() - so.locals_size);
+    scope_states_.clear();
+    scope_states_.insert(scope_states_.end(),
+        scope_states_stash_.end() - so.states_size,
+        scope_states_stash_.end());
+    scope_states_stash_.resize(scope_states_stash_.size() - so.states_size);
+}
+
+void fn_compiler_context::peek_scopes_from_stash()
+{
+    BOOST_ASSERT(!stash_states_.empty());
+    stash_state so = stash_states_.back();
+    scoped_locals_.clear();
+    scoped_locals_.insert(scoped_locals_.end(),
+        scoped_locals_stash_.end() - so.locals_size,
+        scoped_locals_stash_.end());
+    scope_states_.clear();
+    scope_states_.insert(scope_states_.end(),
+        scope_states_stash_.end() - so.states_size,
+        scope_states_stash_.end());
+}
+
+void fn_compiler_context::pop_dismiss_scopes_from_stash()
+{
+    BOOST_ASSERT(!stash_states_.empty());
+    stash_state so = stash_states_.back();
+    stash_states_.pop_back();
+    scoped_locals_stash_.resize(scoped_locals_stash_.size() - so.locals_size);
+    scope_states_stash_.resize(scope_states_stash_.size() - so.states_size);
 }
 
 void fn_compiler_context::push_scope()
 {
     ns_ = ns_ / environment_.new_identifier();
-    scope_offset_ += scoped_locals_.back().total_variables_count();
-    scoped_locals_.emplace_back();
+    scope_states_.emplace_back(static_cast<uint32_t>(scoped_locals_.size()), scope_states_.back().next_variable_index);
+    //scope_offset_ += scoped_locals_.back().total_variables_count();
+    //scoped_locals_.emplace_back();
 }
 
-size_t fn_compiler_context::pop_scope()
+void fn_compiler_context::pop_scope(bool move_top_to_parent)
 {
-    assert(ns_.parts().size() > base_ns_size_);
-    ns_.truncate(ns_.parts().size() - 1);
-    size_t cleared_vars_count = scoped_locals_.back().total_variables_count();
-    scoped_locals_.pop_back(); // to do: call destructor for local variables
-    if (!scoped_locals_.empty()) {
-        scope_offset_ -= scoped_locals_.back().total_variables_count();
+    pop_scope(expression_store_, expressions(), move_top_to_parent);
+}
+
+void fn_compiler_context::pop_scope(semantic::expression_list_t& el, semantic::expression_span& rout, bool move_top_to_parent)
+{
+    if (!ns_.parts().empty()) {
+        //assert(ns_.parts().size() > base_ns_size_);
+        ns_.truncate(ns_.parts().size() - 1);
     }
-    return cleared_vars_count;
+
+    auto [scope_offset, upper_variable_index] = scope_states_.back();
+    scope_states_.pop_back();
+    
+    uint32_t local_index_threshold_to_remove = static_cast<uint32_t>(scoped_locals_.size());
+    auto lit = scoped_locals_.end();
+    int32_t skipped_top_variable_index = move_top_to_parent ? -1 : -2;
+    //local_variable* moving_var = nullptr;
+    while (local_index_threshold_to_remove > scope_offset) {
+        --lit;
+        --local_index_threshold_to_remove;
+        local_variable * lv = get_if<local_variable>(&lit->value);
+        if (lv) {
+            if (skipped_top_variable_index == -1) {
+                //moving_var = lv;
+                skipped_top_variable_index = static_cast<int32_t>(local_index_threshold_to_remove);
+                BOOST_ASSERT(!lit->name); // to ensure we're moving unnamed variable
+                BOOST_ASSERT(!lv->varid); // to ensure we're moving unbound variable
+            } else {
+                // to do: call destructor for local variables    
+            }
+        }
+    }
+    BOOST_ASSERT(!scope_states_.empty());
+    uint32_t variables_to_clear = upper_variable_index - scope_states_.back().next_variable_index;
+    if (move_top_to_parent) {
+        BOOST_ASSERT(skipped_top_variable_index >= 0); // to ensure we've found the top variable to skip
+        --variables_to_clear;
+        //++scope_states_.back().next_variable_index; // update upper variable index for parent scope to account for moved variable
+    }
+    if (variables_to_clear) {
+        env().push_back_expression(el, rout,
+            semantic::truncate_values{
+                .count = static_cast<uint16_t>(variables_to_clear),
+                .keep_back = static_cast<uint16_t>(move_top_to_parent ? 1u : 0u)
+            });
+    }
+    if (skipped_top_variable_index >= 0) {
+        if (skipped_top_variable_index != static_cast<int32_t>(scope_offset)) {
+            scoped_locals_[scope_offset] = scoped_locals_[skipped_top_variable_index];
+        }
+        ++scope_states_.back().next_variable_index; // update upper variable index for parent scope to account for moved variable
+        /*
+        BOOST_ASSERT(moving_var);
+        variable_identifier varid = environment_.new_variable_identifier();
+        scoped_locals_[scope_offset] = scope_locals_stack_item{
+            .name = {},
+            .value = local_variable{ .type = moving_var->type, .varid = varid, .is_weak = moving_var->is_weak }
+        };
+        fent_.push_variable(varid, scope_states_.back().next_variable_index++);
+        */
+    }
+    scoped_locals_.resize(scope_offset + (move_top_to_parent ? 1 : 0));
 }
 
-void fn_compiler_context::push_scope_variable(local_variable lv)
+void fn_compiler_context::pop_all_scopes(semantic::expression_list_t& el, semantic::expression_span& rout, bool move_top_to_parent)
 {
-    int64_t index = scope_offset_ + scoped_locals_.back().total_variables_count();
-    fent_.push_variable(lv.varid, index);
-    ++scoped_locals_.back().unnamed_count;
+    while (scope_states_.size() > 1) {
+        pop_scope(el, rout, move_top_to_parent);
+    }
 }
 
-void fn_compiler_context::push_scope_variable(annotated_identifier name, local_variable lv)
+void fn_compiler_context::push_scope_variable(local_variable var)
 {
-    int64_t index = scope_offset_ + scoped_locals_.back().total_variables_count();
-    fent_.push_variable(lv.varid, index);
-    scoped_locals_.back().named_set.emplace_back(std::move(name), std::move(lv));
-    //return *get<local_variable>(&);
+    variable_identifier varid = var.varid;
+    BOOST_ASSERT(varid);
+    scoped_locals_.emplace_back(annotated_identifier{}, std::move(var));
+    uint32_t& next_variable_index = scope_states_.back().next_variable_index;
+    fent_.push_variable(varid, next_variable_index);
+    ++next_variable_index;
+}
+
+void fn_compiler_context::push_scope_variable(entity_identifier vartype)
+{
+    variable_identifier varid = environment_.new_variable_identifier();
+    scoped_locals_.emplace_back(annotated_identifier{}, local_variable{ .type = std::move(vartype), .varid = varid, .is_weak = false });
+    uint32_t& next_variable_index = scope_states_.back().next_variable_index;
+    fent_.push_variable(varid, next_variable_index);
+    ++next_variable_index;
+
+    //scoped_locals_.emplace_back(annotated_identifier{}, std::move(lv));
+    //uint32_t& next_variable_index = scope_states_.back().next_variable_index;
+    //fent_.push_variable(lv.varid, scope_offset_ + next_variable_index);
+    //++next_variable_index;
+    
+    //int64_t index = scope_offset_ + scoped_locals_.back().total_variables_count();
+    //fent_.push_variable(lv.varid, index);
+    //++scoped_locals_.back().unnamed_count;
+}
+
+void fn_compiler_context::check_scope_name_conflict(annotated_identifier const& name) const
+{
+    auto& current_scope_state = scope_states_.back();
+    for (size_t i = current_scope_state.offset; i < scoped_locals_.size(); ++i) {
+        if (scoped_locals_[i].name.value == name.value) {
+            throw identifier_redefinition_error(name, scoped_locals_[i].name.location);
+        }
+    }
+}
+
+void fn_compiler_context::pop_scope_variable()
+{
+    // it's allowed to pop only boolean variables, because they are used for control flow and don't require destructor calls, so we can guarantee that the top variable is the one we want to pop without additional checks
+    BOOST_ASSERT(!scoped_locals_.empty());
+    BOOST_ASSERT(std::holds_alternative<local_variable>(scoped_locals_.back().value));
+    BOOST_ASSERT(std::get<local_variable>(scoped_locals_.back().value).type == env().get(builtin_eid::boolean));
+    scoped_locals_.pop_back();
+    --scope_states_.back().next_variable_index;
+}
+
+void fn_compiler_context::push_scope_variable(annotated_identifier name, entity_identifier type)
+{
+    variable_identifier varid;
+    if (name) {
+        check_scope_name_conflict(name);
+        varid = environment_.new_variable_identifier();
+    }
+    scoped_locals_.emplace_back(std::move(name), local_variable{ .type = std::move(type), .varid = varid, .is_weak = false });
+    uint32_t& next_variable_index = scope_states_.back().next_variable_index;
+    if (varid) fent_.push_variable(varid, next_variable_index);
+    ++next_variable_index;
 }
 
 void fn_compiler_context::push_chain()
@@ -656,14 +848,17 @@ local_variable & fn_compiler_context::new_variable(annotated_identifier name, en
 }
 */
 
-void fn_compiler_context::new_constant(annotated_identifier name, entity_identifier eid)
+void fn_compiler_context::push_scope_constant(annotated_identifier name, entity_identifier eid)
 {
-    resource_location const* ploc;
-    functional_binding::value_type const* pv = scoped_locals_.back().named_set.lookup(name.value, &ploc);
-    if (pv) {
-        throw identifier_redefinition_error(name, *ploc);
-    }
-    scoped_locals_.back().named_set.emplace_back(name, eid);
+    check_scope_name_conflict(name);
+    scoped_locals_.emplace_back(std::move(name), std::move(eid));
+
+    //resource_location const* ploc;
+    //functional_binding::value_type const* pv = scoped_locals_.back().named_set.lookup(name.value, &ploc);
+    //if (pv) {
+    //    throw identifier_redefinition_error(name, *ploc);
+    //}
+    //scoped_locals_.back().named_set.emplace_back(name, eid);
 }
 
 #if 0
@@ -713,12 +908,12 @@ std::expected<std::tuple<entity_identifier, bool, bool>, error_storage> fn_compi
         small_vector<entity_identifier, 4> stable_result_types_set;
         small_vector<entity_identifier, 4> stable_result_values_set;
 
-        for (auto & [rts, el, er, loc] : return_statements_) {
-            if (er.is_const_result) {
-                if (result_elements.insert(er.value()).second) {
-                    stable_result_values_set.push_back(er.value());
+        for (auto & [rts, loc, value_or_type, is_const_result] : return_statements_) {
+            if (is_const_result) {
+                if (result_elements.insert(value_or_type).second) {
+                    stable_result_values_set.push_back(value_or_type);
                 }
-            } else if (result_elements.insert(er.type()).second) {
+            } else if (result_elements.insert(value_or_type).second) {
                 /*
                 entity_signature const* psig = get_entity(env(), er.type()).signature();
                 if (psig && psig->name == env().get(builtin_qnid::union_)) {
@@ -735,13 +930,12 @@ std::expected<std::tuple<entity_identifier, bool, bool>, error_storage> fn_compi
                     stable_result_types_set.push_back(er.type());
                 }
                 */
-                stable_result_types_set.push_back(er.type());
+                stable_result_types_set.push_back(value_or_type);
             }
         }
 
         if (stable_result_types_set.empty() && stable_result_values_set.empty()) {
             result_type = env().get(builtin_eid::void_type);
-            const_value_result = env().get(builtin_eid::void_);
         } else {
             if (stable_result_types_set.empty() && stable_result_values_set.size() == 1) {
                 const_value_result = stable_result_values_set.front();
@@ -764,18 +958,18 @@ std::expected<std::tuple<entity_identifier, bool, bool>, error_storage> fn_compi
         }
     } else {
         // deduce const_value_result from return statements if possible
-        for (auto& [rts, el, er, loc] : return_statements_) {
-            if (!er.is_const_result) {
+        for (auto& [rts, loc, value_or_type, is_const_result] : return_statements_) {
+            if (!is_const_result) {
                 const_value_result = entity_identifier{}; // if there is at least one non-const return, the result is not const
                 break;
             }
             if (!const_value_result) {
-                if (get_entity(env(), er.value()).get_type() != result_type) {
+                if (get_entity(env(), value_or_type).get_type() != result_type) {
                     const_value_result = entity_identifier{}; // different return types, so the result is not const
                     break;
                 }
-                const_value_result = er.value();
-            } else if (const_value_result != er.value()) {
+                const_value_result = value_or_type;
+            } else if (const_value_result != value_or_type) {
                 const_value_result = entity_identifier{}; // different const return values, so the result is not const
                 break;
             }
@@ -791,66 +985,84 @@ std::expected<std::tuple<entity_identifier, bool, bool>, error_storage> fn_compi
                 fent.location, "not all control paths return a value, but result type is not void"sv, fent.id));
         }
         const_value_result = env().get(builtin_eid::void_);
-        append_expression(semantic::return_statement{ .result = {}, .scope_size = 0 });
+        semantic::expression_span scope_destruction_expressions;
+        pop_all_scopes(expression_store_, scope_destruction_expressions, false);
+        append_expression(semantic::return_statement{ .scope_deconstruction = std::move(scope_destruction_expressions) });
         semantic::return_statement* pretst = &get<semantic::return_statement>(expressions().back());
-        syntax_expression_result er{ .value_or_type = const_value_result, .is_const_result = true };
-        return_statements_.emplace_back(pretst, semantic::managed_expression_list{ environment_ }, std::move(er), finish_location);
+        return_statements_.emplace_back(return_statement_descriptor{
+            .stmt = pretst,
+            .location = std::move(finish_location),
+            .value_or_type = const_value_result,
+            .is_const_result = true
+        });
         BOOST_ASSERT(all_paths_return(expressions()));
     }
 
     if (const_value_result) {
         //bool is_empty_function = fent.arg_count() == 0 && !has_procedures(expressions());
         bool is_empty_function = !has_procedures(expressions());
-        if (!is_empty_function) {
-            // e.g. to handle: return print( <something> );
-            for (auto& [rts, el, er, loc] : return_statements_) {
-                push_chain();
-                size_t scope_sz = append_result(el, er);
-                auto return_expressions = expressions();
-                pop_chain();
-                rts->result = std::move(return_expressions);
-                rts->scope_size = scope_sz;
-            }
-        }
+        //if (!is_empty_function) {
+        //    // e.g. to handle: return print( <something> );
+        //    for (auto& [rts, el, er, loc] : return_statements_) {
+
+        //        push_scopes_to_stash();
+        //        semantic::expression_span dsp;
+        //        pop_all_scopes(expression_store_, dsp, !er.is_const_result);
+        //        rts->scope_deconstruction = expressions();
+        //        pop_scopes_from_stash();
+        //        pop_chain();
+        //    }
+        //}
 
         return std::tuple{ const_value_result, true, is_empty_function };
     }
 
     expected_result_t expected_result{ .type = result_type, .modifier = value_modifier_t::runtime_value };
     // append cast to result union type for each return statement if needed
-    for (auto& [rts, el, er, loc] : return_statements_) {
-        if (!er.is_const_result && er.type() == result_type) {
+    for (auto& [rts, loc, value_or_type, is_const_result] : return_statements_) {
+        if (!is_const_result && value_or_type == result_type) {
             // no cast needed
-            push_chain();
-            size_t scope_sz = append_result(el, er);
-            auto return_expressions = expressions();
-            pop_chain();
-            rts->result = std::move(return_expressions);
-            rts->scope_size = scope_sz;
+            //push_chain();
+            //append_result_inplace(el, er);
+            //rts->result = expressions();
+            //pop_chain();
+            //push_chain();
+            //pop_all_scopes(!er.is_const_result);
+            //rts->scope_deconstruction = expressions();
+            //pop_chain();
             continue;
         }
         call_builder cast_call{ loc };
         expected_result.location = loc;
         //rts->value_or_type = result_union_eid;
         //rts->is_const_value_result = false;
-        if (er.is_const_result) {
-            cast_call.emplace_back(syntax_expression{ loc, entity_identifier{ er.value() } });
+        if (is_const_result) {
+            cast_call.emplace_back(syntax_expression{ loc, entity_identifier{ value_or_type } });
         } else {
-            cast_call.emplace_back(make_indirect_value(environment_, el, std::move(er), loc));
+            cast_call.emplace_back(loc, stack_value_reference_expression{
+                .name = env().new_identifier(),
+                .type = value_or_type,
+                .offset = 0 // offset from the stack top
+            });
         }
-        auto res = find_and_apply(builtin_qnid::implicit_cast, cast_call, el, expected_result);
+        auto res = find_and_apply(builtin_qnid::implicit_cast, cast_call, expression_store_, expected_result);
         if (!res) {
             return std::unexpected(append_cause(
                 make_error<basic_general_error>(loc, "failed to cast return value to function result type"sv, result_type),
                 std::move(res.error())
             ));
         }
-        push_chain();
-        size_t scope_sz = append_result(el, *res);
-        auto return_expressions = expressions();
-        pop_chain();
-        rts->result = std::move(return_expressions);
-        rts->scope_size = scope_sz;
+        // this is to union cast => no const result possible, no branches expressions possible, no temporaries possible
+        BOOST_ASSERT(!res->is_const_result);
+        BOOST_ASSERT(!res->branches_expressions);
+        BOOST_ASSERT(res->temporaries.empty());
+        if (is_const_result) {
+            // runtime cast of constexpr value can be placed after scope deconstruction, but it must be before return statement, so we put it at the end of scope deconstruction expressions
+            rts->scope_deconstruction = expression_store_.concat(rts->scope_deconstruction, res->expressions);
+        } else {
+            // runtime cast of non-constexpr value must be placed before scope deconstruction, so we put it at the beginning of scope deconstruction expressions
+            rts->scope_deconstruction = expression_store_.concat(res->expressions, rts->scope_deconstruction);
+        }
     }
 
     return std::tuple{ result_type, false, false };
@@ -1093,18 +1305,29 @@ error_storage fn_compiler_context::append_return(syntax_expression const& expr)
     auto res = base_expression_visitor::visit(*this, el, exp, expr);
     if (!res) return std::move(res.error());
 
-    // to do: add destroy calls for scope variables
-
     syntax_expression_result& er = res->first;
+    append_result_inplace(el, er);
+    
+    semantic::expression_span scope_destruction_expressions;
+    pop_all_scopes(expression_store_, scope_destruction_expressions, !er.is_const_result);
+    
     // we don't know here wether result is finally constexpr or runtime value
 
     //er.expressions.for_each([this](semantic::expression const& e) {
     //    GLOBAL_LOG_INFO() << env().print(e);
     //});
 
-    append_expression(semantic::return_statement{ .result = er.expressions, .scope_size = 0 }); // we need expressions span here to be able to test the function for havning procedures
+    append_expression(semantic::return_statement{
+        .scope_deconstruction = scope_destruction_expressions,
+    });
+
     semantic::return_statement* pretst = &get<semantic::return_statement>(expressions().back());
-    return_statements_.emplace_back(pretst, std::move(el), std::move(er), std::move(expr.location));
+    return_statements_.emplace_back(return_statement_descriptor{
+        .stmt = pretst,
+        .location = std::move(expr.location),
+        .value_or_type = er.value_or_type,
+        .is_const_result = er.is_const_result
+    });
     
     return {};
 }
@@ -1151,8 +1374,8 @@ std::pair<identifier, local_variable> fn_compiler_context_scope::push_scope_vari
 {
     environment& env = ctx_.env();
     identifier unnamedid = env.new_identifier();
-    local_variable lv{ .type = std::move(type), .varid = env.new_variable_identifier(), .is_weak = false };
-    ctx_.push_scope_variable(annotated_identifier{ unnamedid }, lv);
+    ctx_.push_scope_variable(annotated_identifier{ unnamedid }, type);
+    local_variable lv{ .type = type, .varid = {} /*env.new_variable_identifier()*/, .is_weak = false };
     return { std::move(unnamedid), std::move(lv) };
 }
 
@@ -1160,7 +1383,7 @@ void fn_compiler_context_scope::skip_scope_variables()
 {
     ctx_.push_scope_variable(
         annotated_identifier{},
-        local_variable{ .type = {}, .varid = {}, .is_weak = false });
+        entity_identifier{}); // local_variable{ .type = {}, .varid = {}, .is_weak = false }
 }
 
 }

@@ -114,7 +114,7 @@ std::expected<syntax_expression_result, error_storage> struct_get_pattern::apply
     } else {
         tuple_var_name = e.new_identifier();
         local_variable tuple_var = fn_scope.new_temporary(tuple_var_name, tmd.tpl_entity.id); // here we substitute the tuple entity id instead of the original struct type id
-        result.temporaries.emplace_back(tuple_var_name, std::move(tuple_var), slfer.expressions);
+        result.temporaries.emplace_back(/*tuple_var_name,*/ std::move(tuple_var), slfer.expressions);
         get_call.emplace_back(e.get(builtin_id::self), md.call_location, name_reference_expression{ tuple_var_name });
     }
     if (proper.is_const_result) {
@@ -123,7 +123,7 @@ std::expected<syntax_expression_result, error_storage> struct_get_pattern::apply
     } else {
         property_var_name = e.new_identifier();
         local_variable property_var = fn_scope.new_temporary(property_var_name, proper.type());
-        result.temporaries.emplace_back(property_var_name, std::move(property_var), proper.expressions);
+        result.temporaries.emplace_back(/*property_var_name,*/ std::move(property_var), proper.expressions);
         get_call.emplace_back(e.get(builtin_id::property), md.call_location, name_reference_expression{ property_var_name });
     }
 

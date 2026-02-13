@@ -162,7 +162,7 @@ inline fn equal($l: ~union(...), $r) => apply(to: $l, visitor: fn[$r]($value) =>
 inline fn equal($l, $r: ~union(...)) => apply(to: $r, visitor: fn[$l]($value) => $value == $l);
 inline fn to_string(~union(...))->string => apply(to: $0, visitor: fn($x) => to_string($x));
 
-viable fn implicit_cast(~ union(...)) ~> $T => apply(to: $0, visitor: (fn($x)->$T => implicit_cast($x)));
+inline viable fn implicit_cast(~ union(...)) ~> $T => apply(to: $0, visitor: (fn($x)->$T => implicit_cast($x)));
 
 // STRUCTS
 inline viable fn::get(self: @is_struct, property: constexpr __identifier) => get(self: tuple_of(self), property: property);
@@ -228,14 +228,13 @@ void annium_impl::bootstrap()
     auto decls = parser.parse_string(string_view{ annium_bootstrap_code });
     if (!decls.has_value()) throw exception(decls.error());
     
-    internal_function_entity dummy{ qname{}, entity_signature{}, resource_location{}, field_descriptor{} };
+    internal_function_entity dummy{ environment_, qname{}, entity_signature{}, resource_location{}, field_descriptor{} };
     dummy.set_body(*decls);
-    fn_compiler_context ctx{ environment_, dummy };
-
-    declaration_visitor dvis{ ctx };
+    
+    declaration_visitor dvis{ dummy.context() };
     if (auto res = dvis.apply(*decls); !res)
         throw exception(environment_.print(*res.error()));
-    auto res = ctx.finish_frame(dummy);
+    auto res = dummy.context().finish_frame(dummy);
     if (!res) {
         throw exception(environment_.print(*res.error()));
     }
@@ -273,7 +272,7 @@ void annium_impl::compile(span<const statement> decls, span<string_view> args)
 {
     //identifier main_id = environment_.new_identifier();
     entity_signature main_sig{};
-    auto main_fn_ent = make_shared<internal_function_entity>(qname{}, std::move(main_sig), resource_location{}, field_descriptor{});
+    auto main_fn_ent = make_shared<internal_function_entity>(environment_, qname{}, std::move(main_sig), resource_location{}, field_descriptor{});
     main_fn_ent->set_body(decls);
     //fn_compiler_context ctx{ environment_, qname{ main_id } };
     fn_compiler_context ctx{ environment_, *main_fn_ent };
@@ -350,7 +349,7 @@ void annium_impl::compile(span<const statement> decls, span<string_view> args)
         //GLOBAL_LOG_INFO() << environment_.print(e);
         if (auto* fe = dynamic_cast<internal_function_entity*>(&e); fe && !fe->is_provision()) {
             if (!fe->is_built()) {
-                if (auto err = fe->build(environment_)) {
+                if (auto err = fe->build()) {
                     throw exception("function '%1%' build error:\n%2%"_fmt % environment_.print(fe->id) % environment_.print(*err));
                 }
             }
@@ -404,7 +403,7 @@ void annium_impl::do_compile(internal_function_entity const& fe)
     //});
 
     if (!fe.is_built()) {
-        auto err = const_cast<internal_function_entity&>(fe).build(environment_);
+        auto err = const_cast<internal_function_entity&>(fe).build();
         if (err) {
             throw exception(environment_.print(*err));
         }

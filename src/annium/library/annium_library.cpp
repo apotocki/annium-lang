@@ -28,6 +28,11 @@ void annium_assert(vm::context& ctx)
     ctx.stack_pop(2);
 }
 
+void annium_get_frame_stack_height(vm::context& ctx)
+{
+    ctx.stack_push(smart_blob{ ui64_blob_result(ctx.stack().size() - ctx.frame_stack_back()) });
+}
+
 void annium_any_equal(vm::context& ctx)
 {
     bool result = ctx.stack_back() == ctx.stack_back(1);

@@ -117,16 +117,9 @@ declaration_visitor::result_type declaration_visitor::operator()(expression_stat
     auto res = base_expression_visitor::visit(ctx, el, exp, ed.expression);
     if (!res) return std::unexpected(std::move(res.error()));
 
-    //semantic::expression_span ess = res->first.expressions;
-    //while (ess) {
-    //    GLOBAL_LOG_INFO() << env().print(ess.front());
-    //    ess.pop_front();
-    //}
-
-    size_t scope_sz = ctx.append_result(el, res->first);
-    if (scope_sz) {
-        ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)scope_sz });
-    }
+    ctx.push_scope();
+    ctx.append_result_inplace(el, res->first);
+    ctx.pop_scope(false);
     
     return break_scope_kind::none;
 }
@@ -135,13 +128,14 @@ declaration_visitor::result_type declaration_visitor::do_rt_if_decl(if_decl cons
 {
     ctx.append_expression(semantic::conditional_t{});
     semantic::conditional_t& cond = get<semantic::conditional_t>(ctx.expressions().back());
-
+    ctx.pop_scope_variable(); // remove the condition variable from the scope (because it's consumed by conditional jump)
     break_scope_kind break_result_value = break_scope_kind::none;
 
+    ctx.push_scopes_to_stash();
     if (!stm.true_body.empty()) {
+        
         ctx.push_scope();
-        SCOPE_EXIT([this] { ctx.pop_scope(); });
-
+        
         ctx.push_chain();
         auto res = apply(stm.true_body);
         if (!res) return res;
@@ -152,11 +146,18 @@ declaration_visitor::result_type declaration_visitor::do_rt_if_decl(if_decl cons
         if (!stm.false_body.empty()) {
             cond.true_branch_finished = all_paths_return(cond.true_branch);
         }
+        if (break_result_value == break_scope_kind::none) {
+            ctx.pop_scope();
+        } // else the scope has been popped by break/continue/return statement, so do not pop it again
+    }
+
+    if (break_result_value != break_scope_kind::none) { // scope locals destroyed by break/continue/return statement, we need to restore it
+        ctx.peek_scopes_from_stash();
     }
 
     if (!stm.false_body.empty()) {
+
         ctx.push_scope();
-        SCOPE_EXIT([this] { ctx.pop_scope(); });
         
         ctx.push_chain();
         auto res = apply(stm.false_body);
@@ -168,8 +169,19 @@ declaration_visitor::result_type declaration_visitor::do_rt_if_decl(if_decl cons
         if (static_cast<int>(break_result_value) > static_cast<int>(*res)) {
             break_result_value = *res;
         }
+        if (*res == break_scope_kind::none) {
+            ctx.pop_scope();
+            ctx.pop_dismiss_scopes_from_stash();
+        } else if (break_result_value == break_scope_kind::none) {
+            ctx.pop_scopes_from_stash();
+        } else {
+            // all branches destroyed by break/continue/return statement
+            // no need to restore the scope
+            ctx.pop_dismiss_scopes_from_stash();
+        }
     } else {
         break_result_value = break_scope_kind::none;
+        ctx.pop_dismiss_scopes_from_stash(); // because the false branch is empty, we won't execute it, so we can dismiss the popped scopes
     }
     
     return break_result_value;
@@ -188,22 +200,20 @@ declaration_visitor::result_type declaration_visitor::operator()(if_decl const& 
     //});
     //GLOBAL_LOG_INFO() << "-----------------";
 
-    size_t scope_sz = ctx.append_result(el, er);
+    
+    ctx.append_result(el, er);
     
     if (er.is_const_result) { // constexpr result
-        if (scope_sz) {
-            ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)scope_sz });
-        }
         entity_identifier v = er.value();
         BOOST_ASSERT(v == env().get(builtin_eid::false_) || v == env().get(builtin_eid::true_));
         span<const statement> body = (v == env().get(builtin_eid::true_) ? stm.true_body : stm.false_body);
         ctx.push_scope();
-        SCOPE_EXIT([this] { ctx.pop_scope(); });
-        return apply(body);
-    } else {
-        if (scope_sz > 1) {
-            ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)(scope_sz - 1), .keep_back = 1 });
+        result_type result = apply(body);
+        if (result && *result == break_scope_kind::none) {
+            ctx.pop_scope();
         }
+        return result;
+    } else {
         return do_rt_if_decl(stm);
     }
 }
@@ -211,8 +221,7 @@ declaration_visitor::result_type declaration_visitor::operator()(if_decl const& 
 declaration_visitor::result_type declaration_visitor::operator()(for_statement const& fd) const
 {
     ctx.push_scope();
-    SCOPE_EXIT([this] { ctx.pop_scope(); });
-
+    
     semantic::managed_expression_list el{ env() };
 
     resource_location const& coll_expr_loc = fd.coll.location;
@@ -227,6 +236,18 @@ declaration_visitor::result_type declaration_visitor::operator()(for_statement c
             std::move(iterator_result.error())));
     }
     
+    ctx.append_result(el, *iterator_result); // append iterator creation result
+    // save iterator to local variable
+    //identifier iterator_var_name = env().new_identifier();
+    //
+    //ctx.push_scope_variable(
+    //    annotated_identifier{ iterator_var_name },
+    //    local_variable{
+    //        .type = iterator_result->type(),
+    //        .varid = env().new_variable_identifier(),
+    //        .is_weak = false
+    //    });
+
     // has_next(iterator)
     call_builder has_next_call{ coll_expr_loc };
     if (iterator_result->is_const_result) {
@@ -252,92 +273,79 @@ declaration_visitor::result_type declaration_visitor::operator()(for_statement c
     }
     BOOST_ASSERT(!has_next_result->is_const_result); // not implemented yet
 
-    size_t scsz = ctx.append_result(el, *iterator_result); // append iterator creation result
-    // save iterator to local variable
-    identifier iterator_var_name = env().new_identifier();
-    ctx.push_scope_variable(
-        annotated_identifier{ iterator_var_name },
-        local_variable{
-            .type = iterator_result->type(),
-            .varid = env().new_variable_identifier(),
-            .is_weak = false
-        });
     ctx.append_expression(std::move(semantic::loop_scope_t{}));
     semantic::loop_scope_t& ls = get<semantic::loop_scope_t>(ctx.expressions().back());
-    ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)scsz, .keep_back = 0 }); // remove iterator value
+    //ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)scsz, .keep_back = 0 }); // remove iterator value
 
     ctx.push_chain();
-    size_t has_next_sz = ctx.append_result(el, *has_next_result);
-    ctx.append_expression(semantic::conditional_t{});
-    semantic::conditional_t& cond = get<semantic::conditional_t>(ctx.expressions().back());
-    ctx.push_chain();
-    if (has_next_sz > 1) {
-        ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)(has_next_sz - 1), .keep_back = 0 }); // remove has_next result
-    }
-    // push iterator variable to stack
-    call_builder next_call{ coll_expr_loc };
-    if (iterator_result->is_const_result) {
-        next_call.emplace_back(coll_expr_loc, iterator_result->value());
-    } else {
-        next_call.emplace_back(coll_expr_loc, stack_value_reference_expression {
-            .name = env().new_identifier(),
-            .type = iterator_result->type(),
-            .offset = 0 // offset from the stack top
-        });
-    }
-    auto next_result = ctx.find_and_apply(builtin_qnid::next, next_call, el);
-    if (!next_result) {
-        return std::unexpected(append_cause( 
-            make_error<basic_general_error>(coll_expr_loc, "Cannot invoke next function for the iterator"sv),
-            std::move(next_result.error())));
-    }
-    size_t next_sz = ctx.append_result(el, *next_result);
+        ctx.append_result(el, *has_next_result);
+        ctx.append_expression(semantic::conditional_t{});
+        semantic::conditional_t& cond = get<semantic::conditional_t>(ctx.expressions().back());
+        ctx.push_chain();
+            // push iterator variable on stack
+            call_builder next_call{ coll_expr_loc };
+            if (iterator_result->is_const_result) {
+                next_call.emplace_back(coll_expr_loc, iterator_result->value());
+            } else {
+                next_call.emplace_back(coll_expr_loc, stack_value_reference_expression {
+                    .name = env().new_identifier(),
+                    .type = iterator_result->type(),
+                    .offset = 0 // offset from the stack top
+                });
+            }
+            auto next_result = ctx.find_and_apply(builtin_qnid::next, next_call, el);
+            if (!next_result) {
+                return std::unexpected(append_cause( 
+                    make_error<basic_general_error>(coll_expr_loc, "Cannot invoke next function for the iterator"sv),
+                    std::move(next_result.error())));
+            }
 
-    // assign next_result to fd.iter variable
-    
-    if (auto const* name_ref = get_if<name_reference_expression>(&fd.iter.value); name_ref) {
-        ctx.push_scope_variable(
-            annotated_identifier{ name_ref->name, fd.iter.location },
-            local_variable{ 
-                .type = next_result->type(), 
-                .varid = env().new_variable_identifier(), 
-                .is_weak = false 
-            });
-    } else if (auto const* qname_ref = get_if<qname_reference_expression>(&fd.iter.value); qname_ref) {
-        BOOST_ASSERT(qname_ref->name.is_relative() && qname_ref->name.size() == 1);
-        identifier var_name = *qname_ref->name.begin();
-        ctx.push_scope_variable(
-            annotated_identifier{ var_name, fd.iter.location },
-            local_variable{ 
-                .type = next_result->type(), 
-                .varid = env().new_variable_identifier(), 
-                .is_weak = false 
-            });
-    }
-    ctx.push_scope();
-    if (auto err = apply(fd.body); err) return err;
-    size_t cnt = ctx.pop_scope();
-    ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)(next_sz + cnt), .keep_back = 0 }); // remove next result
-    ctx.append_expression(semantic::loop_continuer{});
-    cond.true_branch = ctx.expressions();
-    ctx.pop_chain();
+            ctx.push_scope(); // 'next' will be in scope
+                // assign next_result to fd.iter variable
+                if (auto const* name_ref = get_if<name_reference_expression>(&fd.iter.value); name_ref) {
+                    ctx.append_result(el, *next_result, annotated_identifier{ name_ref->name, fd.iter.location });
+                    //ctx.push_scope_variable(
+                    //    annotated_identifier{ name_ref->name, fd.iter.location },
+                    //    local_variable{ 
+                    //        .type = next_result->type(), 
+                    //        .varid = env().new_variable_identifier(), 
+                    //        .is_weak = false 
+                    //    });
+                } else if (auto const* qname_ref = get_if<qname_reference_expression>(&fd.iter.value); qname_ref) {
+                    BOOST_ASSERT(qname_ref->name.is_relative() && qname_ref->name.size() == 1);
+                    identifier var_name = *qname_ref->name.begin();
+                    ctx.append_result(el, *next_result, annotated_identifier{ var_name, fd.iter.location });
+                    //ctx.push_scope_variable(
+                    //    annotated_identifier{ var_name, fd.iter.location },
+                    //    local_variable{ 
+                    //        .type = next_result->type(), 
+                    //        .varid = env().new_variable_identifier(), 
+                    //        .is_weak = false 
+                    //    });
+                }
+                if (auto err = apply(fd.body); err) return err;
+            ctx.pop_scope(); // free 'next' variable
+            
+            ctx.append_expression(semantic::loop_continuer{});
+            cond.true_branch = ctx.expressions();
+        ctx.pop_chain();
 
-    // False branch: break the loop
-    ctx.push_chain();
-    if (has_next_sz > 1) {
-        ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)(has_next_sz - 1), .keep_back = 0 }); // remove has_next result
-    }
-    ctx.append_expression(semantic::loop_breaker{});
-    cond.false_branch = ctx.expressions();
-    ctx.pop_chain();
+        // False branch: break the loop
+        ctx.push_chain();
+            ctx.append_expression(semantic::loop_breaker{});
+            cond.false_branch = ctx.expressions();
+        ctx.pop_chain();
 
-    ls.branch = ctx.expressions();
+        ls.branch = ctx.expressions();
     ctx.pop_chain();
     return break_scope_kind::none;
 }
 
 declaration_visitor::result_type declaration_visitor::operator()(while_decl const& wd) const
 {
+    (void)wd;
+    THROW_NOT_IMPLEMENTED_ERROR("declaration_visitor while_decl");
+#if 0
     ctx.push_scope();
     ctx.append_expression(std::move(semantic::loop_scope_t{}));
     semantic::loop_scope_t& ls = get<semantic::loop_scope_t>(ctx.expressions().back());
@@ -369,6 +377,7 @@ declaration_visitor::result_type declaration_visitor::operator()(while_decl cons
     size_t scope_sz = ctx.append_result(el, er);
     (void)scope_sz;
     THROW_NOT_IMPLEMENTED_ERROR("declaration_visitor while_decl condition");
+#endif
 #if 0
     if (auto const* ppv = get<semantic::push_value>(&ctx.expressions().back())) {
         auto* pb = get<bool>(&ppv->value);
@@ -446,6 +455,9 @@ declaration_visitor::result_type declaration_visitor::operator()(break_statement
 
 declaration_visitor::result_type declaration_visitor::operator()(yield_statement const& yst) const
 {
+    (void)yst;
+    THROW_NOT_IMPLEMENTED_ERROR("declaration_visitor yield_statement");
+#if 0
     semantic::managed_expression_list el{ env() };
     expected_result_t exp{ .type = ctx.result_type, .location = yst.location };
 
@@ -460,6 +472,7 @@ declaration_visitor::result_type declaration_visitor::operator()(yield_statement
     ctx.append_yield(return_expressions, scope_sz, er.value_or_type, er.is_const_result);
 
     return break_scope_kind::none;
+#endif
 }
 
 // extern function declaration
@@ -671,7 +684,7 @@ declaration_visitor::result_type declaration_visitor::operator()(let_statement c
         vartype = optvartype->first.value();
     }
 
-    small_vector<std::pair<identifier, syntax_expression_result>, 8> results;
+    small_vector<std::pair<identifier, syntax_expression_result>, 1> results;
 
     prepared_call pcall{ ctx, nullptr, {}, ld.location(), el };
     for (auto const& e : ld.expressions) {
@@ -689,20 +702,18 @@ declaration_visitor::result_type declaration_visitor::operator()(let_statement c
         results.emplace_back(name, std::move(ser));
     }
 
-    auto push_temporaries = [&el, this](auto& temporaries) {
-        for (auto& [varname, var, sp] : temporaries) {
-            if (!sp) {
-                semantic::expression_span reserve_expression;
-                env().push_back_expression(el, reserve_expression, semantic::push_value{ smart_blob{} });
-                ctx.append_expressions(el, reserve_expression);
-            } else {
-                ctx.append_expressions(el, sp);
-            }
-            ctx.push_scope_variable(
-                annotated_identifier{ varname },
-                var);
-        }
-    };
+    //auto push_temporaries = [&el, this](auto& temporaries) {
+    //    for (auto& [var, sp] : temporaries) {
+    //        if (!sp) {
+    //            semantic::expression_span reserve_expression;
+    //            env().push_back_expression(el, reserve_expression, semantic::push_value{ smart_blob{} });
+    //            ctx.append_expressions(el, reserve_expression);
+    //        } else {
+    //            ctx.append_expressions(el, sp);
+    //        }
+    //        ctx.push_scope_variable(var);
+    //    }
+    //};
 
     if (results.size() == 1) {
         auto& [id, er] = results.front();
@@ -713,8 +724,11 @@ declaration_visitor::result_type declaration_visitor::operator()(let_statement c
             pelemsig = &env().make_basic_signatured_entity(std::move(element_sig));
         }
         if (er.is_const_result) {
-            ctx.new_constant(ld.aname, pelemsig ? pelemsig->id : er.value());
+            ctx.push_scope_constant(ld.aname, pelemsig ? pelemsig->id : er.value());
         } else {
+            if (pelemsig) er.value_or_type = pelemsig->id;
+            ctx.append_result(el, er, ld.aname);
+            /*
             ctx.push_scope();
             push_temporaries(er.temporaries);
             ctx.append_expressions(el, er.expressions);
@@ -727,6 +741,7 @@ declaration_visitor::result_type declaration_visitor::operator()(let_statement c
             if (scope_sz) {
                 ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)scope_sz, .keep_back = (uint16_t)(er.is_const_result ? 0 : 1u) });
             }
+            */
         }
         return break_scope_kind::none;
     }
@@ -737,24 +752,26 @@ declaration_visitor::result_type declaration_visitor::operator()(let_statement c
         if (er.is_const_result) {
             result_sig.emplace_back(id, er.value(), true);
         } else {
-            ctx.push_scope();
-            push_temporaries(er.temporaries);
-            ctx.append_expressions(el, er.expressions);
-            ctx.append_stored_expressions(el, er.branches_expressions);
-            size_t scope_sz = ctx.current_scope_binding().variables_count();
-            ctx.pop_scope();
+            //ctx.push_scope();
             identifier unnamedid = env().new_identifier();
-            ctx.push_scope_variable(
-                annotated_identifier{ unnamedid },
-                local_variable{ .type = er.type(), .varid = env().new_variable_identifier(), .is_weak = ld.weakness });
-            if (scope_sz) {
-                ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)scope_sz, .keep_back = (uint16_t)(er.is_const_result ? 0 : 1u) });
-            }
+            ctx.append_result(el, er, annotated_identifier{ unnamedid });
+            //push_temporaries(er.temporaries);
+            //ctx.append_expressions(el, er.expressions);
+            //ctx.append_stored_expressions(el, er.branches_expressions);
+            //size_t scope_sz = ctx.current_scope_binding().variables_count();
+            //ctx.pop_scope();
+            //
+            //ctx.push_scope_variable(
+            //    annotated_identifier{ unnamedid },
+            //    local_variable{ .type = er.type(), .varid = env().new_variable_identifier(), .is_weak = ld.weakness });
+            //if (scope_sz) {
+            //    ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)scope_sz, .keep_back = (uint16_t)(er.is_const_result ? 0 : 1u) });
+            //}
             result_sig.emplace_back(id, env().make_qname_entity(qname{ unnamedid, false }).id, true);
         }
     }
     entity const& result_tuple_type = env().make_basic_signatured_entity(std::move(result_sig));
-    ctx.new_constant(ld.aname, env().make_empty_entity(result_tuple_type.id).id);
+    ctx.push_scope_constant(ld.aname, env().make_empty_entity(result_tuple_type.id).id);
     return break_scope_kind::none;
 #if 0
 

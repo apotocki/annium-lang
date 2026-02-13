@@ -74,7 +74,7 @@ union_apply_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
 
     // if union has only which field?
     bool enum_union = true;
-    // to do: optimize, check in reverse order
+    // TODO: optimize, check in reverse order
     for (field_descriptor const& fd : union_sig->fields()) {
         if (!fd.is_const()) {
             enum_union = false;
@@ -90,7 +90,7 @@ union_apply_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
         visitor_arg_expr.emplace(visitor_arg_loc, visitor_arg_er.value());
     } else {
         pmd->visitor_var = local_variable{ .type = visitor_arg_er.type(), .varid = env.new_variable_identifier() };
-        visitor_arg_expr.emplace(visitor_arg_loc, local_variable_expression{ pmd->visitor_var });
+        visitor_arg_expr.emplace(visitor_arg_loc, local_variable_expression::from_var(pmd->visitor_var));
     }
     
     // Collect results
@@ -112,7 +112,7 @@ union_apply_pattern::try_match(fn_compiler_context& ctx, prepared_call const& ca
                 pmd->union_value_var.type = union_field.entity_id();
             }
             
-            visitor_call_builder.emplace_back(visitor_arg_loc, local_variable_expression{ pmd->union_value_var });
+            visitor_call_builder.emplace_back(visitor_arg_loc, local_variable_expression::from_var(pmd->union_value_var));
         } else {
             // Provide a constant typed argument
             visitor_call_builder.emplace_back(visitor_arg_loc, union_field.entity_id());
@@ -194,7 +194,7 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
         semantic::expression_span vis_expr = std::move(visitor_er.expressions);
         visitor_er.expressions = {};
         append_semantic_result(el, visitor_er, result);
-        result.temporaries.emplace_back(identifier{}, apply_md.visitor_var, std::move(vis_expr));
+        result.temporaries.emplace_back(apply_md.visitor_var, std::move(vis_expr));
     }
     
     // Prepare union value expression
@@ -203,10 +203,11 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
         env.push_back_expression(el, result.expressions, semantic::invoke_function{ env.get(builtin_eid::unfold) });
         
         BOOST_ASSERT(apply_md.union_value_var.type);
-        result.temporaries.emplace_back(identifier{}, apply_md.union_value_var, semantic::expression_span{});
+        result.temporaries.emplace_back(apply_md.union_value_var, semantic::expression_span{});
         env.push_back_expression(el, result.expressions, semantic::push_by_offset{ .offset = 1, .base = semantic::push_by_base::stack_top });
-        env.push_back_expression(el, result.expressions, semantic::set_local_variable{ apply_md.union_value_var });
-        env.push_back_expression(el, result.expressions, semantic::truncate_values{ .count = 1, .keep_back = 0 });
+        env.push_back_expression(el, result.expressions, semantic::set_local_variable{ apply_md.union_value_var }); // copy union value from stack to local variable for later use in branches
+        env.push_back_expression(el, result.expressions, semantic::truncate_values{ .count = 1, .keep_back = 0 }); // remove copy of union value from stack
+        env.push_back_expression(el, result.expressions, semantic::truncate_values{ .count = 1, .keep_back = 1 }); // remove original union value from stack
     } // else enum value is the pure 'which' field => no unfold is needed
     
     // 'which' is on top of stack now
@@ -237,7 +238,8 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
                 append_branch_semantic_result(el, branch_er, result);
             }
         }
-        // the result value is on top of stack now, remove apply's arguments under it
+        // the result value is on top of stack now, remove 'which' under it
+        env.push_back_expression(el, result.expressions, semantic::truncate_values{ .count = 1, .keep_back = 1 });
         //env.push_back_expression(el, result.expressions, semantic::truncate_values{ .count = uint16_t(apply_vars_cnt), .keep_back = 1 });
         result.value_or_type = apply_md.expected_result.type;
         return result;
@@ -273,199 +275,17 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
         sw.branches.emplace_back(branch_er.expressions);
         append_branch_semantic_result(el, branch_er, result);
     }
+    
     // fold union result
     if (!is_result_enum_union) {
         env.push_back_expression(el, result.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(2) } });
         env.push_back_expression(el, result.expressions, semantic::invoke_function(env.get(builtin_eid::arrayify)));
     }
-    // the result value is on top of stack now, remove apply's arguments under it
+    // the result value is on top of stack now, remove 'which' under it
+    env.push_back_expression(el, result.expressions, semantic::truncate_values{ .count = 1, .keep_back = 1 });
     //env.push_back_expression(el, result.expressions, semantic::truncate_values{ .count = uint16_t(apply_vars_cnt), .keep_back = 1 });
     result.value_or_type = env.make_basic_signatured_entity(std::move(usig)).id;
     return result;
-
-#if 0
-
-            // need to cast constant value to union type
-            call_builder cast_call{ visitor_loc };
-            cast_call.emplace_back(syntax_expression{ visitor_loc, entity_identifier{ branch_er.value() } });
-            auto res = ctx.find_and_apply(builtin_qnid::implicit_cast, cast_call, el, expected_result_t{
-                .type = entity_identifier{ usig },
-                .location = md.call_location,
-                .modifier = value_modifier_t::runtime_value
-            });
-            if (!res) {
-                std::ostringstream errss;
-                env.print_to(env.print_to(errss << "error casting branch constant result `"sv, branch_er.value()) << "` to union type `"sv, entity_identifier{ usig }) << '`';
-                return std::unexpected(append_cause(make_error<basic_general_error>(visitor_loc, errss.str()), std::move(res.error())));
-            }
-            append_semantic_result_to_branch(el, *res, result, sw.branches.back());
-        }
-        else {
-    for (syntax_expression_result& branch_er : apply_md.branch_results) {
-        sw.branches.emplace_back();
-        call_builder cast_call{ visitor_loc };
-        if (branch_er.is_const_result) {
-            cast_call.emplace_back(syntax_expression{ visitor_loc, entity_identifier{ branch_er.value() } });
-        } else {
-            cast_call.emplace_back(syntax_expression{ visitor_loc, entity_identifier{ branch_er.type() } });
-        }
-    }
-
-            // all branches are constant results
-            apply_md.stable_result_types_set = std::move(apply_md.stable_result_types_set);
-            std::sort(apply_md.stable_result_types_set.begin(), apply_md.stable_result_types_set.end());
-            apply_md.stable_result_types_set.erase(std::unique(apply_md.stable_result_types_set.begin(), apply_md.stable_result_types_set.end()), apply_md.stable_result_types_set.end());
-        }
-        // some branches could have constexpr results, we need cast them to runtime values
-
-        }
-        for (size_t i = 0; i < apply_md.branch_results.size(); ++i) {
-            syntax_expression_result& branch_er = apply_md.branch_results[i];
-            env.push_back_expression(el, branch_er.expressions, semantic::truncate_values{ .count = uint16_t(apply_md.enum_union ? 1 : 2), .keep_back = 1 }); // remove unfold union value and 'which' value from stack
-            sw.branches.emplace_back();
-            append_semantic_result_to_branch(el, branch_er, result, sw.branches.back());
-        }
-    }
-    optional<syntax_expression> visitor_arg_descr;
-    if (visitor_er.is_const_result) {
-        visitor_arg_descr.emplace(visitor_loc, visitor_er.value());
-    } else {
-        identifier visitor_var_name = fn_scope.push_scope_variable(visitor_er.type()).first;
-        visitor_arg_descr.emplace(visitor_loc, name_reference_expression{ visitor_var_name });
-        append_semantic_result(el, visitor_er, result);
-        //identifier visitor_var_name = env.new_identifier();
-        //visitor_var = &fn_scope.new_temporary(visitor_var_name, visitor_er.type());
-        //append_semantic_result(el, result, visitor_er);
-        //env.push_back_expression(el, result.expressions, semantic::set_local_variable{ *visitor_var });
-        //env.push_back_expression(el, result.expressions, semantic::truncate_values{ .count = 1, .keep_back = 0 }); // remove visitor value from stack
-    }
-
-    // Prepare union value expression
-    append_semantic_result(el, union_er, result);
-
-    entity_signature const& union_sig = *apply_md.union_entity_type.signature();
-    
-    //fn_scope.skip_scope_variables(); // we don't need to keep union argument temporary variables
-    if (!enum_union) {
-        env.push_back_expression(el, result.expressions, semantic::invoke_function{ env.get(builtin_eid::unfold) });
-    } // enum value is the pure 'which' field => no unfold is needed
-
-    // 'which' is on top of stack now
-    env.push_back_expression(el, result.expressions, semantic::switch_t{}); // doesn't 'eat' the 'which' value
-    semantic::switch_t& sw = get<semantic::switch_t>(result.expressions.back());
-
-    //env.push_back_expression(el, result.expressions, semantic::truncate_values{ .count = 1, .keep_back = 0 }); // keep only the unfolded union value on stack
-    //auto union_value_var_pair = fn_scope.push_scope_variable(entity_identifier{}); // yet unknown type
-    //auto which_var_pair = fn_scope.push_scope_variable(env.get(builtin_eid::integer));
-    
-    // Collect results
-#if 0
-    boost::container::small_flat_set<entity_identifier, 8> result_elements;
-    
-    // generate branches for each union type
-    small_vector<field_descriptor, 4> branch_results;
-    branch_results.reserve(union_sig.field_count());
-    for (size_t i = 0; i < union_sig.field_count(); ++i) {
-        field_descriptor const& union_field = union_sig.field(i);
-        fn_compiler_context_scope fn_scope_inner{ ctx };
-
-        call_builder visitor_call_builder{ visitor_loc };
-        if (!union_field.is_const()) {
-            // set union_value_var_pair type for this branch
-            std::pair<identifier, local_variable> union_value_var_pair = fn_scope_inner.push_scope_variable(union_field.entity_id());
-            // scope variable look at union field value
-            visitor_call_builder.emplace_back(visitor_loc, name_reference_expression{ union_value_var_pair.first });
-        } else {
-            visitor_call_builder.emplace_back(visitor_loc, union_field.entity_id());
-        }
-        syntax_expression visitor_call_expr{ visitor_loc, function_call{ &*visitor_arg_descr, visitor_call_builder.arguments } };
-        auto res = base_expression_visitor::visit(ctx, el, visitor_call_expr);
-
-        if (!res) {
-            return std::unexpected(append_cause(
-                make_error<basic_general_error>(visitor_call_builder.location, ("error calling visitor for union type index %1% (%2%)"_fmt % i % env.print(union_field.entity_id())).str()),
-                std::move(res.error())));
-        }
-
-        syntax_expression_result& branch = res->first; // visitor call result
-        branch_results.emplace_back(branch.value_or_type, branch.is_const_result);
-        env.push_back_expression(el, branch.expressions, semantic::truncate_values{ .count = uint16_t(enum_union ? 1 : 2), .keep_back = uint16_t(branch.is_const_result ? 0 : 1) }); // remove unfold union value and 'which' value from stack
-        sw.branches.emplace_back();
-        append_semantic_result_to_branch(el, branch, result, sw.branches.back());
-
-        // Collect result type for inference if needed
-        if (branch.is_const_result) {
-            if (result_elements.insert(branch.value()).second) {
-                stable_result_values_set.push_back(branch.value());
-            }
-        } else {
-            if (result_elements.insert(branch.type()).second) {
-                entity_signature const* psig = get_entity(env, branch.type()).signature();
-                if (psig && psig->name == env.get(builtin_qnid::union_)) {
-                    for (field_descriptor const& fd : psig->fields()) {
-                        if (result_elements.insert(fd.entity_id()).second) {
-                            if (fd.is_const()) {
-                                stable_result_values_set.push_back(fd.entity_id());
-                            } else {
-                                stable_result_types_set.push_back(fd.entity_id());
-                            }
-                        }
-                    }
-                } else {
-                    stable_result_types_set.push_back(branch.type());
-                }
-            }
-        }
-    }
-#endif
-
-    if (stable_result_types_set.size() == 1 && stable_result_values_set.empty()) {
-        // all branches returned the same runtime type
-        result.value_or_type = stable_result_types_set.front();
-        result.is_const_result = false;
-        return result;
-    }
-
-    // build union
-    entity_signature usig(env.get(builtin_qnid::union_), env.get(builtin_eid::typename_));
-    for (entity_identifier const& eid : stable_result_values_set) {
-        usig.push_back(field_descriptor{ eid, true });
-    }
-    for (entity_identifier const& eid : stable_result_types_set) {
-        usig.push_back(field_descriptor{ eid, false });
-    }
-
-    result.value_or_type = env.make_basic_signatured_entity(std::move(usig)).id;
-    result.is_const_result = false;
-
-    // append casts to result union type
-    for (size_t i = 0; i < union_sig.field_count(); ++i) {
-        field_descriptor const& br = branch_results[i];
-        
-        call_builder cast_call{ visitor_loc };
-        if (!br.is_const()) {
-            if (br.entity_id() == result.value_or_type) continue;
-            cast_call.emplace_back(syntax_expression{ visitor_loc, stack_value_reference_expression{ .type = br.entity_id(), .offset = 0 } });
-        } else {
-            cast_call.emplace_back(syntax_expression{ visitor_loc, entity_identifier{ br.entity_id() } });
-        }
-
-        auto res = ctx.find_and_apply(builtin_qnid::implicit_cast, cast_call, el, expected_result_t{
-            .type = result.value_or_type,
-            .location = md.call_location,
-            .modifier = value_modifier_t::runtime_value
-        });
-        if (!res) {
-            THROW_INTERNAL_ERROR("unexpected error during union apply cast: %1%"_fmt % env.print(*res.error()));
-        }
-        append_semantic_result_to_branch(el, *res, result, sw.branches[i]);
-        if (!br.is_const()) {
-            env.push_back_expression(el, sw.branches[i], semantic::truncate_values{ .count = 1, .keep_back = 1 }); // remove casted value
-        }
-    }
-
-    return result;
-#endif
 }
 
 } // namespace annium

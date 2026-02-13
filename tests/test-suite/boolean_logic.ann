@@ -26,3 +26,5 @@ print(flag0 && "flag is true" || "flag is false");
 print(flag1 && "flag is true" || "flag is false");
 print(flag2 && "flag is true" || "flag is false");
 print(flag3 && "flag is true" || "flag is false");
+
+assert_equal(__get_frame_stack_height(), 3);

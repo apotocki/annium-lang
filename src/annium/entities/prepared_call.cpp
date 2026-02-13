@@ -60,7 +60,7 @@ void prepared_call::export_auxiliaries(syntax_expression_result& ser)
 {
     ser.expressions = expressions.concat(ser.expressions, arguments_auxiliary_expressions);
     for(auto& [name, plv, el] : temporaries) {
-        ser.temporaries.emplace_back(name, std::move(plv), el);
+        ser.temporaries.emplace_back(/*name,*/ std::move(plv), el);
     }
 }
 
