@@ -58,3 +58,11 @@ assert_equal(strings2[0], "1");
 assert_equal(strings2[1], "2");
 assert_equal(strings2[2], "3.1");
 assert_equal(__get_frame_stack_height(), 8);
+
+let vv0 = [runtime_cast(1), runtime_cast(2), runtime_cast(3)];
+let vv1 : decimal[3] = vv0;
+assert_equal(__get_frame_stack_height(), 10);
+
+let vv2 = [runtime_cast(1)];
+let vv3 : decimal[1] = vv2;
+assert_equal(__get_frame_stack_height(), 12);

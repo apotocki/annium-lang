@@ -55,7 +55,7 @@ std::expected<syntax_expression_result, error_storage> array_from_iterator_make_
     identifier iterator_var_name = env.new_identifier();
     local_variable iterator_var = fn_scope.new_temporary(iterator_var_name, er.type());
     
-    env.push_back_expression(el, result.expressions, semantic::set_local_variable(iterator_var));
+    env.push_back_expression(el, result.expressions, semantic::set_local_variable::create(iterator_var));
     env.push_back_expression(el, result.expressions, semantic::truncate_values{ .count = 1, .keep_back = 0 });
 
     identifier stack_size_var_name = env.new_identifier();
@@ -64,7 +64,7 @@ std::expected<syntax_expression_result, error_storage> array_from_iterator_make_
 
     // put current stack size on top of the stack to track number of elements added
     env.push_back_expression(el, result.expressions, semantic::push_special_value{ semantic::push_special_value::kind_type::stack_size });
-    env.push_back_expression(el, result.expressions, semantic::set_local_variable(stack_size_var));
+    env.push_back_expression(el, result.expressions, semantic::set_local_variable::create(stack_size_var));
     env.push_back_expression(el, result.expressions, semantic::truncate_values{ .count = 1, .keep_back = 0 });
     // Start loop to collect elements
     env.push_back_expression(el, result.expressions, semantic::loop_scope_t{});

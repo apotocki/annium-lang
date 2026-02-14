@@ -166,15 +166,22 @@ base_expression_visitor::result_type base_expression_visitor::operator()(local_v
     return apply_cast(syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = lv.type, .is_const_result = false });
 }
 
+base_expression_visitor::result_type base_expression_visitor::operator()(top_stack_value_expression const& tsv) const
+{
+    syntax_expression_result result{
+        .value_or_type = tsv.type,
+        .is_const_result = false
+    };
+    return apply_cast(std::move(result));
+}
+
 base_expression_visitor::result_type base_expression_visitor::operator()(stack_value_reference_expression const& svr) const
 {
     syntax_expression_result result{
         .value_or_type = svr.type,
         .is_const_result = false
     };
-    if (svr.offset) {
-        env().push_back_expression(expressions, result.expressions, semantic::push_by_offset{ svr.offset });
-    }
+    env().push_back_expression(expressions, result.expressions, semantic::push_by_offset{ svr.offset });
     return apply_cast(std::move(result));
 }
 
@@ -820,7 +827,7 @@ base_expression_visitor::result_type base_expression_visitor::make_function_call
             identifier fn_address_var_name = env().new_identifier();
             local_variable fn_address_var = fn_scope.new_temporary(fn_address_var_name, env().get(builtin_eid::integer));
         
-            env().push_back_expression(expressions, ftor.expressions, semantic::set_local_variable(fn_address_var));
+            env().push_back_expression(expressions, ftor.expressions, semantic::set_local_variable::create(fn_address_var));
             env().push_back_expression(expressions, ftor.expressions, semantic::truncate_values{ .count = 1, .keep_back = 0 });
         
             auto err = make_function_call_arguments(proc, args_span, ftor);

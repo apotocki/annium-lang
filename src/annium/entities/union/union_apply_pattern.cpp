@@ -205,7 +205,7 @@ union_apply_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
         BOOST_ASSERT(apply_md.union_value_var.type);
         result.temporaries.emplace_back(apply_md.union_value_var, semantic::expression_span{});
         env.push_back_expression(el, result.expressions, semantic::push_by_offset{ .offset = 1, .base = semantic::push_by_base::stack_top });
-        env.push_back_expression(el, result.expressions, semantic::set_local_variable{ apply_md.union_value_var }); // copy union value from stack to local variable for later use in branches
+        env.push_back_expression(el, result.expressions, semantic::set_local_variable::create(apply_md.union_value_var)); // copy union value from stack to local variable for later use in branches
         env.push_back_expression(el, result.expressions, semantic::truncate_values{ .count = 1, .keep_back = 0 }); // remove copy of union value from stack
         env.push_back_expression(el, result.expressions, semantic::truncate_values{ .count = 1, .keep_back = 1 }); // remove original union value from stack
     } // else enum value is the pure 'which' field => no unfold is needed

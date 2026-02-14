@@ -155,7 +155,7 @@ error_storage prepared_call::prepare()
             e.push_back_expression(expressions, reserve_expression, semantic::push_value{ smart_blob{} });
             local_variable tuple_object_var = new_temporary(e, tuple_name, ser.type(), reserve_expression);
             arguments_auxiliary_expressions = expressions.concat(arguments_auxiliary_expressions, ser.expressions);
-            e.push_back_expression(expressions, arguments_auxiliary_expressions, semantic::set_local_variable{ tuple_object_var });
+            e.push_back_expression(expressions, arguments_auxiliary_expressions, semantic::set_local_variable::create(tuple_object_var));
             e.push_back_expression(expressions, arguments_auxiliary_expressions, semantic::truncate_values{ 1, 0 });
         }
         size_t argpos = 0;

@@ -29,7 +29,7 @@ void layered_binding_set::emplace_back(uint32_t layer, annotated_identifier id, 
     }
     if (local_variable* pvar = get_if<local_variable>(&value); pvar) {
 #ifdef SONIA_LANG_DEBUG
-        pvar->debug_name = id;
+        pvar->varid.debug_name = id.value.debug_name;
 #endif
         BOOST_ASSERT(pvar->type);
         ++bound_variables_count_;

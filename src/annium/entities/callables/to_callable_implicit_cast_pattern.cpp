@@ -24,14 +24,13 @@ class to_callable_implicit_cast_match_descriptor : public functional_match_descr
 {
 public:
     inline to_callable_implicit_cast_match_descriptor(prepared_call const& pcall, entity_signature const& fs, value_modifier_t mod) noexcept
-        : functional_match_descriptor{ pcall } // pcall.caller_ctx.env().get(builtin_qnid::callable), pcall.location }
+        : functional_match_descriptor{ pcall }
         , function_signature{ fs }
         , result_modifier{ mod }
     {}
 
     entity_signature const& function_signature;
-    //syntax_expression_result code;
-    //size_t callable_arg_count;
+
     value_modifier_t result_modifier;
 
     internal_function_entity const* pfne = nullptr;
@@ -81,7 +80,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> to_callable_implic
             function_result_fd);
     }));
 
-    fibers::mutex fne_build_mutex;
+    
     if (!fne.is_built()) {
         lock_guard guard(fne_build_mutex);
         small_vector<opt_named_expression_t, 8> ftor_args;

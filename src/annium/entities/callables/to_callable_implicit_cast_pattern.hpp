@@ -22,6 +22,8 @@ public:
 
 private:
     shared_ptr<internal_function_entity> build(fn_compiler_context&, semantic::expression_list_t& el, to_callable_implicit_cast_match_descriptor&) const;
+
+    mutable fibers::mutex fne_build_mutex;
 };
 
 }

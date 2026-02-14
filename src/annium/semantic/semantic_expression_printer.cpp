@@ -124,7 +124,7 @@ void expression_printer_visitor::operator()(push_local_variable const& lv) const
     do_indent();
     ss << "push VAR("sv << lv.varid.value;
 #ifdef SONIA_LANG_DEBUG
-    e_.print_to(ss << ") "sv, lv.debug_name) << '\n';
+    e_.print_to(ss << ") "sv, lv.varid.debug_name) << '\n';
 #else
     ss << ")\n"sv;
 #endif
@@ -153,7 +153,7 @@ void expression_printer_visitor::operator()(set_local_variable const& lv) const
     do_indent();
     ss << "set VAR("sv << lv.varid.value;
 #ifdef SONIA_LANG_DEBUG
-    e_.print_to(ss << ") "sv, lv.debug_name) << '\n';
+    e_.print_to(ss << ") "sv, lv.varid.debug_name) << '\n';
 #else
     ss << ")\n"sv;
 #endif

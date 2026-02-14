@@ -359,19 +359,11 @@ struct push_value
 };
 struct push_local_variable
 {
-#ifdef SONIA_LANG_DEBUG
-    identifier debug_name;
-#endif
     variable_identifier varid;
 
     inline static push_local_variable create(local_variable const& v) noexcept
     {
-        return push_local_variable{
-#ifdef SONIA_LANG_DEBUG
-            .debug_name = v.debug_name.value,
-#endif
-            .varid = v.varid
-        };
+        return push_local_variable{ .varid = v.varid };
     }
 };
 
@@ -387,17 +379,11 @@ struct push_special_value
 
 struct set_local_variable
 {
-#ifdef SONIA_LANG_DEBUG
-    identifier debug_name;
-#endif
     variable_identifier varid;
 
-    inline explicit set_local_variable(local_variable const& v) noexcept
-        : varid{ v.varid }
+    inline static set_local_variable create(local_variable const& v) noexcept
     {
-#ifdef SONIA_LANG_DEBUG
-        debug_name = v.debug_name.value;
-#endif
+        return set_local_variable{ .varid = v.varid };
     }
 };
 

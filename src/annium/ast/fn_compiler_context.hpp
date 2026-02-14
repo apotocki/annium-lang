@@ -117,19 +117,6 @@ class fn_compiler_context
     sonia::lang::compiler_worker_id worker_id_;
     small_vector<functional_binding const*, 4> bindings_;
 
-    /*
-    struct scope_locals_descriptor
-    {
-        layered_binding_set named_set;
-        size_t unnamed_count = 0;
-
-        inline size_t total_variables_count() const noexcept { return named_set.variables_count() + unnamed_count; }
-    };
-
-    std::list<scope_locals_descriptor> scoped_locals_; // scope named set and unnamed count
-    */
-    //int64_t scope_offset_; // = -(number of runtime arguments + number of captured runtime variables)
-
     struct scope_locals_stack_item
     {
         annotated_identifier name;

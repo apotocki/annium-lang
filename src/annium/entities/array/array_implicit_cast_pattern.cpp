@@ -100,7 +100,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_implicit_cas
             call_builder cast_call{ call.location };
             semantic::managed_expression_list temp_expressions{ env };
             // fake stack value reference for the array element
-            cast_call.emplace_back(argloc, stack_value_reference_expression{ .type = arg_element_type_eid, .offset = 0 });
+            cast_call.emplace_back(argloc, top_stack_value_expression{ .type = arg_element_type_eid });
             auto match = ctx.find(builtin_qnid::implicit_cast, cast_call, temp_expressions,
                 expected_result_t{ .type = result_arr_element_type_eid, .location = exp.location, .modifier = value_modifier_t::runtime_value });
             if (!match) {

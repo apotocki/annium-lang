@@ -88,7 +88,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> to_union_implicit_
             cast_call.emplace_back(arg_loc, er.value());
         } else {
             // fake stack reference
-            cast_call.emplace_back(arg_loc, stack_value_reference_expression{ .type = er_type, .offset = 0 });
+            cast_call.emplace_back(arg_loc, top_stack_value_expression{ .type = er_type });
         }
 
         for (size_t i = 0; i < pusig->field_count(); ++i) {

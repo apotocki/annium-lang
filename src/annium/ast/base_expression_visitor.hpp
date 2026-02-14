@@ -41,6 +41,7 @@ public:
     result_type operator()(local_variable_expression const&) const;
     result_type operator()(name_reference_expression const&) const;
     result_type operator()(qname_reference_expression const&) const;
+    result_type operator()(top_stack_value_expression const&) const;
     result_type operator()(stack_value_reference_expression const&) const;
     result_type operator()(stack_frame_value_reference_expression const&) const;
 

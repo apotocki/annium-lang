@@ -253,10 +253,9 @@ declaration_visitor::result_type declaration_visitor::operator()(for_statement c
     if (iterator_result->is_const_result) {
         has_next_call.emplace_back(coll_expr_loc, iterator_result->value());
     } else {
-        has_next_call.emplace_back(coll_expr_loc, stack_value_reference_expression{
-            .name = env().new_identifier(),
-            .type = iterator_result->type(),
-            .offset = 0 // offset from the stack top
+        has_next_call.emplace_back(coll_expr_loc, top_stack_value_expression{
+            //.name = env().new_identifier(),
+            .type = iterator_result->type()
         });
     }
     auto has_next_result = ctx.find_and_apply(builtin_qnid::has_next, has_next_call, el,
@@ -287,10 +286,9 @@ declaration_visitor::result_type declaration_visitor::operator()(for_statement c
             if (iterator_result->is_const_result) {
                 next_call.emplace_back(coll_expr_loc, iterator_result->value());
             } else {
-                next_call.emplace_back(coll_expr_loc, stack_value_reference_expression {
-                    .name = env().new_identifier(),
-                    .type = iterator_result->type(),
-                    .offset = 0 // offset from the stack top
+                next_call.emplace_back(coll_expr_loc, top_stack_value_expression{
+                    //.name = env().new_identifier(),
+                    .type = iterator_result->type()
                 });
             }
             auto next_result = ctx.find_and_apply(builtin_qnid::next, next_call, el);

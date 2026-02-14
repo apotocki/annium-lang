@@ -390,11 +390,16 @@ struct local_variable_expression
 struct name_reference_expression { identifier name; }; // e.g. for identifiers started with $ or #, e.g.: $0, $$, #call_location
 struct qname_reference_expression { qname_view name; };
 
+struct top_stack_value_expression
+{
+    entity_identifier type;
+};
+
 struct stack_value_reference_expression
 {
     identifier name;
     entity_identifier type;
-    intptr_t offset; // offset from the stack top
+    intptr_t offset = 0; // offset from the stack top
 };
 struct stack_frame_value_reference_expression
 {
@@ -427,6 +432,7 @@ struct syntax_expression
         local_variable_expression, name_reference_expression, qname_reference_expression,
         
         // on stack reference
+        top_stack_value_expression,
         stack_value_reference_expression,
         stack_frame_value_reference_expression,
 

@@ -1039,10 +1039,9 @@ std::expected<std::tuple<entity_identifier, bool, bool>, error_storage> fn_compi
         if (is_const_result) {
             cast_call.emplace_back(syntax_expression{ loc, entity_identifier{ value_or_type } });
         } else {
-            cast_call.emplace_back(loc, stack_value_reference_expression{
-                .name = env().new_identifier(),
-                .type = value_or_type,
-                .offset = 0 // offset from the stack top
+            cast_call.emplace_back(loc, top_stack_value_expression{
+                //.name = env().new_identifier(),
+                .type = value_or_type
             });
         }
         auto res = find_and_apply(builtin_qnid::implicit_cast, cast_call, expression_store_, expected_result);

@@ -142,10 +142,6 @@ class entity_visitor_adapter : public entity_visitor
 class local_variable
 {
 public:
-#ifdef SONIA_LANG_DEBUG
-    annotated_identifier debug_name;
-#endif
-    //annotated_identifier name;
     entity_identifier type;
     variable_identifier varid;
     bool is_weak = false;

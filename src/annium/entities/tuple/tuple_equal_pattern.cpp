@@ -275,7 +275,7 @@ tuple_equal_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
         result.temporaries.emplace_back(/*rhs_tuple_var_name, */ std::move(*rhs_tuple_var), reserve_expression);
 
         // Store the rhs tuple variable as a temp local variable
-        env.push_back_expression(el, rhs_er.expressions, semantic::set_local_variable{ *rhs_tuple_var });
+        env.push_back_expression(el, rhs_er.expressions, semantic::set_local_variable::create(*rhs_tuple_var));
         env.push_back_expression(el, rhs_er.expressions, semantic::truncate_values{ 1, false });
         result.expressions = el.concat(rhs_er.expressions, result.expressions);
     }
@@ -287,7 +287,7 @@ tuple_equal_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t
         result.temporaries.emplace_back(/*lhs_tuple_var_name,*/ std::move(*lhs_tuple_var), reserve_expression);
 
         // Store the lhs tuple variable as a temp local variable
-        env.push_back_expression(el, lhs_er.expressions, semantic::set_local_variable{ *lhs_tuple_var });
+        env.push_back_expression(el, lhs_er.expressions, semantic::set_local_variable::create(*lhs_tuple_var));
         env.push_back_expression(el, lhs_er.expressions, semantic::truncate_values{ 1, false });
         result.expressions = el.concat(lhs_er.expressions, result.expressions);
     }
