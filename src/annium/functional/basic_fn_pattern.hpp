@@ -13,18 +13,126 @@ class internal_function_entity;
 class basic_fn_pattern : public functional::pattern
 {
     friend class parameter_matcher;
-    friend class parameter_matcher2;
 
 public:
-    struct parameter_descriptor
+    class parameter_descriptor
+    {
+        identifier ename_or_alias_;
+        identifier iname_;
+        resource_location ename_or_alias_loc_;
+        resource_location iname_loc_;
+        union {
+            syntax_expression const* expression_constraint_;
+            syntax_pattern const* pattern_constraint_;
+        };
+        syntax_expression const* default_value_;
+        uint8_t has_ename_ : 1;
+        uint8_t has_expression_constraint_ : 1;
+        uint8_t is_required_value_ : 1; // otherwise default_value or optional
+
+        parameter_constraint_modifier_t modifier_;
+
+    public:
+        inline parameter_descriptor(
+            annotated_identifier ename,
+            annotated_identifier iname,
+            std::variant<syntax_expression const*, syntax_pattern const*> const& constraint,
+            std::variant<required_t, optional_t, syntax_expression const*> const& default_value,
+            parameter_constraint_modifier_t m) noexcept
+            : ename_or_alias_{ ename.value }, iname_{ iname.value }
+            , has_ename_{ 0 }, has_expression_constraint_{ 0 }, is_required_value_{ 1 }
+            , modifier_{ m }
+        {
+            if (ename) {
+                ename_or_alias_loc_ = std::move(ename.location);
+                has_ename_ = 1;
+            }
+            if (iname) {
+                iname_loc_ = std::move(iname.location);
+            }
+            std::visit([this](auto const* pc) {
+                if constexpr (std::is_same_v<decltype(pc), syntax_expression const*>) {
+                    expression_constraint_ = pc;
+                    has_expression_constraint_ = 1;
+                } else {
+                    pattern_constraint_ = pc;
+                    has_expression_constraint_ = 0;
+                }
+            }, constraint);
+            std::visit([this](auto pc) {
+                if constexpr (std::is_same_v<decltype(pc), required_t>) {
+                    is_required_value_ = 1;
+                    default_value_ = nullptr;
+                } else if constexpr (std::is_same_v<decltype(pc), optional_t>) {
+                    is_required_value_ = 0;
+                    default_value_ = nullptr;
+                } else {
+                    is_required_value_ = 0;
+                    default_value_ = pc;
+                }
+            }, default_value);
+        }
+
+        inline void set_alias(annotated_identifier alias_name) noexcept
+        {
+            BOOST_ASSERT(!has_ename_);
+            ename_or_alias_ = alias_name;
+            ename_or_alias_loc_ = alias_name.location;
+        }
+
+        inline annotated_identifier ename() const noexcept
+        {
+            if (has_ename_) {
+                return annotated_identifier{ ename_or_alias_, ename_or_alias_loc_ };
+            } else {
+                return annotated_identifier{};
+            }
+        }
+
+        inline annotated_identifier iname() const noexcept
+        {
+            return annotated_identifier{ iname_, iname_loc_ };
+        }
+
+        inline annotated_identifier name() const noexcept
+        {
+            if (iname_) {
+                return annotated_identifier{ iname_, iname_loc_ };
+            } else {
+                BOOST_ASSERT(has_ename_);
+                return annotated_identifier{ ename_or_alias_, ename_or_alias_loc_ };
+            }
+        }
+
+        inline annotated_identifier alias_name() const noexcept
+        {
+            if (!has_ename_) {
+                return annotated_identifier{ ename_or_alias_, ename_or_alias_loc_ };
+            } else {
+                return annotated_identifier{};
+            }
+        }
+
+        inline bool has_expression_constraint() const noexcept { return has_expression_constraint_; }
+        inline bool has_pattern_constraint() const noexcept { return !has_expression_constraint_; }
+        inline syntax_expression const* expression_constraint() const noexcept { BOOST_ASSERT(has_expression_constraint_); return expression_constraint_; }
+        inline syntax_pattern const* pattern_constraint() const noexcept { BOOST_ASSERT(!has_expression_constraint_); return pattern_constraint_; }
+        inline syntax_expression const* default_value() const noexcept { return default_value_; }
+        inline bool is_required_value() const noexcept { return is_required_value_; }
+        inline parameter_constraint_modifier_t modifier() const noexcept { return modifier_; }
+    };
+    
+    struct parameter_descriptor_obs
     {
         annotated_identifier ename;
         small_vector<annotated_identifier, 2> inames;
         std::variant<syntax_expression const*, syntax_pattern const*> constraint;
         std::variant<required_t, optional_t, syntax_expression const*> default_value;
         parameter_constraint_modifier_t modifier;
-    };
 
+        inline annotated_identifier name() const noexcept { return inames.front(); }
+    };
+    
 protected:
     // in the order of declaration (fn_pure)
     using parameters_t = small_vector<parameter_descriptor, 8>;

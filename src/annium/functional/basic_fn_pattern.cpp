@@ -44,10 +44,9 @@ error_storage basic_fn_pattern::init(fn_compiler_context& ctx, fn_pure const& fn
 
     parameters_.reserve(fnd.parameters.size());
 
-    boost::container::small_flat_map<identifier, resource_location, 8> parameter_ext_names_; // all external names of parameters
     boost::container::small_flat_map<identifier, resource_location, 8> parameter_names_; // all parameters to bind during the call
 
-    auto insert_param_name = [&](auto& map, annotated_identifier const& name) -> error_storage {
+    auto check_param_name = [&](auto& map, annotated_identifier const& name) -> error_storage {
         if (auto pair = map.emplace(name.value, name.location); !pair.second) {
             // If the external name is already used, return the error
             return make_error<basic_general_error>(
@@ -64,46 +63,47 @@ error_storage basic_fn_pattern::init(fn_compiler_context& ctx, fn_pure const& fn
 
     for (auto& param : fnd.parameters) {
         auto [external_name, internal_name] = visit(param_name_retriever{}, param.name);
-        parameters_.emplace_back(
-            external_name ? *external_name : annotated_identifier{},
-            std::initializer_list<annotated_identifier>{},
-            param.constraint,
-            param.default_value,
-            param.modifier);
 
-        parameter_descriptor& pd = parameters_.back();
-        pd.constraint = param.constraint;
+        annotated_identifier iname;
+        annotated_identifier alias_name;
 
         if (!external_name) {
             bool reversed = false;
             char* epos = numetron::to_string(span{ &argindex, 1 }, argname.data() + 1, reversed);
             if (reversed) std::reverse(argname.data() + 1, epos);
-            identifier nid = ctx.env().slregistry().resolve(string_view{ argname.data(), epos });
-            
-            if (internal_name) {
-                if (auto err = insert_param_name(parameter_names_, *internal_name); err) return err;
-                pd.inames.emplace_back(*internal_name);
-            }
-
-            if (!internal_name || internal_name->value != nid) {
-                auto loc = visit([](auto && f) -> resource_location {
-                    if constexpr (std::is_same_v<std::decay_t<decltype(f)>, syntax_expression const*>) {
-                        return f->location;
-                    } else {
-                        return get_start_location(*f);
-                    }
-                }, param.constraint);
-                if (auto err = insert_param_name(parameter_names_, annotated_identifier{ nid, loc }); err) return err;
-                pd.inames.emplace_back(annotated_identifier{ nid, loc });
-            }
-            
+            identifier alias_id = ctx.env().slregistry().resolve(string_view{ argname.data(), epos });
             ++argindex;
+            auto loc = visit([](auto && f) -> resource_location {
+                if constexpr (std::is_same_v<std::decay_t<decltype(f)>, syntax_expression const*>) {
+                    return f->location;
+                } else {
+                    return get_start_location(*f);
+                }
+            }, param.constraint);
+            if (!internal_name) {
+                iname = annotated_identifier{ alias_id, loc };
+            } else {
+                if (auto err = check_param_name(parameter_names_, *internal_name); err) return err;
+                if (internal_name->value != alias_id) {
+                    alias_name = annotated_identifier{ alias_id, loc }; 
+                } // else no need to bind the same name twice
+            }
         } else {
-            if (auto err = insert_param_name(parameter_ext_names_, *external_name); err) return err;
+            if (auto err = check_param_name(parameter_names_, *external_name); err) return err;
+            if (internal_name) {
+                if (auto err = check_param_name(parameter_names_, *internal_name); err) return err;
+            }
+        }
 
-            annotated_identifier const& iname = internal_name ? *internal_name : *external_name;
-            if (auto err = insert_param_name(parameter_names_, iname); err) return err;
-            pd.inames.emplace_back(internal_name ? *internal_name : *external_name);
+        parameters_.emplace_back(
+            external_name ? *external_name : annotated_identifier{},
+            internal_name ? *internal_name : iname,
+            param.constraint,
+            param.default_value,
+            param.modifier);
+
+        if (alias_name) {
+            parameters_.back().set_alias(alias_name);
         }
     }
     return {};
@@ -217,10 +217,10 @@ void basic_fn_pattern::build_scope(environment& e, basic_functional_binding&& md
 {
     // bind variables (rt arguments)
     for (parameter_descriptor const& pd : parameters_) {
-        functional_binding::value_type const* bsp = mdbindings.lookup(pd.inames.front().value);
+        functional_binding::value_type const* bsp = mdbindings.lookup(pd.name().value);
         BOOST_ASSERT(bsp);
 
-        if (!has(pd.modifier, parameter_constraint_modifier_t::variadic)) {
+        if (!has(pd.modifier(), parameter_constraint_modifier_t::variadic)) {
             if (local_variable const* plv = get_if<local_variable>(bsp); plv) {
                 fent.context().push_scope_variable(*plv);
             } // else arg is constant
@@ -313,30 +313,31 @@ std::ostream& basic_fn_pattern::print(environment const& e, std::ostream& ss) co
         else ss << ", "sv;
 
         bool first_id = true;
-        if (pd.ename) {
-            e.print_to(ss, pd.ename.value);
+        if (annotated_identifier ename = pd.ename()) {
+            e.print_to(ss, ename.value);
             first_id = false;
         }
-        for (auto const& iname : pd.inames) {
-            if (!pd.ename || iname != pd.ename) {
-                if (!first_id) ss << ' ';
-                e.print_to(ss, iname.value);
-                first_id = false;
-            }
+        if (annotated_identifier iname = pd.iname()) {
+            if (!first_id) ss << ' ';
+            e.print_to(ss, iname.value);
+            first_id = false;
         }
-        
-        visit([&e, &ss](auto const* m) {
-            if constexpr (std::is_same_v<syntax_pattern const*, std::decay_t<decltype(m)>>) {
-                e.print_to(ss << ":~ "sv, *m);
-            } else if constexpr (std::is_same_v<syntax_expression const*, std::decay_t<decltype(m)>>) {
-                e.print_to(ss << ": "sv, *m);
-            } else {
-                static_assert(false);
-            }
-        }, pd.constraint);
-        if (has(pd.modifier, parameter_constraint_modifier_t::variadic)) {
+        if (identifier alias_name = pd.alias_name()) {
+            if (!first_id) ss << ' ';
+            e.print_to(ss, alias_name);
+        }
+
+        if (pd.has_expression_constraint()) {
+            e.print_to(ss << ": "sv, *pd.expression_constraint());
+        } else if (pd.has_pattern_constraint()) {
+            e.print_to(ss << ":~ "sv, *pd.pattern_constraint());
+        }
+        if (has(pd.modifier(), parameter_constraint_modifier_t::variadic)) {
             ss << "... "sv;
         } 
+        if (syntax_expression const* default_value = pd.default_value()) {
+            e.print_to(ss << " = "sv, *default_value);
+        }
     }
     
     visit([&ss, &e](auto&& v) {

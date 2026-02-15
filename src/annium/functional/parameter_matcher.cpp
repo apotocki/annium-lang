@@ -40,7 +40,6 @@ struct constraint_matcher
     fn_compiler_context& callee_ctx;
 
     basic_fn_pattern::parameter_descriptor const& pd;
-    annotated_identifier const& param_name;
     expected_result_t argexp;
     syntax_expression_result arg_er;
     prepared_call::argument_descriptor_t arg_descr;
@@ -51,16 +50,14 @@ struct constraint_matcher
         : pmatcher{ pmatcher_val }
         , callee_ctx{ callee_ctx_val }
         , pd{ pd_val }
-        , param_name{ pd_val.ename.self_or(pd_val.inames.front()) }
-        , argexp{ .modifier = to_value_modifier(pd.modifier) }
-    {
-    }
+        , argexp{ .modifier = to_value_modifier(pd.modifier()) }
+    {}
 
     std::expected<bool, error_storage> do_retrieve_next_argument()
     {
-        if (pd.ename) {
-            return pmatcher.call_session.use_named_argument(pd.ename.value, argexp, &arg_descr);
-        } else if (!has(pd.modifier, parameter_constraint_modifier_t::variadic)) {
+        if (annotated_identifier ename = pd.ename()) {
+            return pmatcher.call_session.use_named_argument(ename.value, argexp, &arg_descr);
+        } else if (!has(pd.modifier(), parameter_constraint_modifier_t::variadic)) {
             return pmatcher.call_session.use_next_positioned_argument(argexp, &arg_descr);
         } else { // unnamed ellipsis eats any next argument
             return pmatcher.call_session.use_next_argument(argexp, &arg_descr);
@@ -79,7 +76,7 @@ struct constraint_matcher
 
     std::expected<match_penalty, error_storage> operator()(syntax_expression const* constraint) const
     {
-        if (has(pd.modifier, parameter_constraint_modifier_t::constexpr_value)) {
+        if (has(pd.modifier(), parameter_constraint_modifier_t::constexpr_value)) {
             BOOST_ASSERT(pconstraint_value_eid); // shuld be set by resolve_expression_expected_result call
             if (arg_er.value() != pconstraint_value_eid) {
                 return std::unexpected(make_error<value_mismatch_error>(arg_descr.expression->location, arg_er.value(), pconstraint_value_eid, constraint->location));
@@ -98,7 +95,7 @@ struct constraint_matcher
         entity_identifier type_to_match;
         if (arg_er.is_const_result) {
             entity const& arg_res_entity = get_entity(env, arg_er.value());
-            if (has(pd.modifier, parameter_constraint_modifier_t::typename_value)) { // typename as constexpr value matching
+            if (has(pd.modifier(), parameter_constraint_modifier_t::typename_value)) { // typename as constexpr value matching
                 if (arg_res_entity.get_type() != env.get(builtin_eid::typename_)) {
                     return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, arg_er.value(), "a typename"sv));
                 }
@@ -113,6 +110,7 @@ struct constraint_matcher
         error_storage err = pattern_matcher{ callee_ctx, pmatcher.md.bindings, pmatcher.call.expressions, pattern_penalty }
             .match(*constraint, annotated_entity_identifier{ type_to_match, arg_descr.expression->location });
         if (err) {
+            annotated_identifier param_name = pd.name();
             return std::unexpected(append_cause(
                 make_error<basic_general_error>(param_name.location, "cannot match argument pattern"sv, param_name.value),
                 std::move(err)
@@ -139,11 +137,13 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
 
     while (param_it != param_end) {
         constraint_matcher cmatcher{ *this, callee_ctx, *param_it };
+        annotated_identifier param_name = param_it->name();
         //entity_identifier pconstraint_value_eid; // empty means no constraint value (any value is allowed)
         
         // resolve the parameter constraint value if it is specified
-        if (syntax_expression const* const* param_expr = get_if<syntax_expression const*>(&param_it->constraint)) {
-            auto argexp_res = resolve_expression_expected_result(callee_ctx, cmatcher.param_name, param_it->modifier, **param_expr, cmatcher.pconstraint_value_eid);
+        if (param_it->has_expression_constraint()) {
+            syntax_expression const* param_expr = param_it->expression_constraint(); // get_if<syntax_expression const*>(&param_it->constraint)) {
+            auto argexp_res = resolve_expression_expected_result(callee_ctx, param_name, param_it->modifier(), *param_expr, cmatcher.pconstraint_value_eid);
             if (!argexp_res) {
                 match_errors.alternatives.emplace_back(std::move(argexp_res.error()));
                 if (try_backtrack(callee_ctx)) continue;
@@ -152,7 +152,7 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
             cmatcher.argexp = std::move(*argexp_res);
         }
 
-        bool is_variadic_param = has(param_it->modifier, parameter_constraint_modifier_t::variadic);
+        bool is_variadic_param = has(param_it->modifier(), parameter_constraint_modifier_t::variadic);
         if (is_variadic_param && (star_stack.empty() || star_stack.back().param_it != param_it)) {
             star_stack.emplace_back(param_it, entity_signature{ env.get(builtin_qnid::tuple), env.get(builtin_eid::typename_) });
         }
@@ -163,19 +163,19 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
             if (!is_variadic_param) {
                 if (res.error()) {
                     match_errors.alternatives.emplace_back(append_cause(
-                        make_error<basic_general_error>(cmatcher.param_name.location, "cannot match argument"sv, cmatcher.param_name.value, cmatcher.arg_descr.expression->location),
+                        make_error<basic_general_error>(param_name.location, "cannot match argument"sv, param_name.value, cmatcher.arg_descr.expression->location),
                         std::move(res.error())
                     ));
                     if (param_it != param_bit) --param_it;
                     if (try_backtrack(callee_ctx)) continue;
                     return result_error();
                 // no more arguments
-                } else if (syntax_expression const* const* default_expr = get_if<syntax_expression const*>(&param_it->default_value); default_expr) {
+                } else if (syntax_expression const* default_expr =  param_it->default_value(); default_expr) {
                     // try default value
-                    res = base_expression_visitor::visit(callee_ctx, call.expressions, cmatcher.argexp, **default_expr);
+                    res = base_expression_visitor::visit(callee_ctx, call.expressions, cmatcher.argexp, *default_expr);
                     if (!res) {
                         match_errors.alternatives.emplace_back(append_cause(
-                            make_error<basic_general_error>(cmatcher.param_name.location, "cannot evaluate default value for argument"sv, cmatcher.param_name.value),
+                            make_error<basic_general_error>(param_name.location, "cannot evaluate default value for argument"sv, param_name.value),
                             std::move(res.error())
                         ));
                         if (param_it != param_bit) --param_it;
@@ -185,8 +185,8 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
                     cmatcher.arg_er = std::move(res->first);
                     cmatcher.has_cast = res->second;
                     argindex = argindex_for_default--;
-                } else if (holds_alternative<required_t>(param_it->default_value)) {
-                    match_errors.alternatives.emplace_back(make_error<basic_general_error>(cmatcher.param_name.location, "missing required argument"sv, cmatcher.param_name.value));
+                } else if (param_it->is_required_value()) {
+                    match_errors.alternatives.emplace_back(make_error<basic_general_error>(param_name.location, "missing required argument"sv, param_name.value));
                     if (param_it != param_bit) --param_it;
                     if (try_backtrack(callee_ctx)) continue;
                     return result_error();
@@ -212,7 +212,15 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
         BOOST_ASSERT(res);
         handled_arguments_stack.push_back({.index = argindex});
         md.bindings.set_current_layer(argindex);
-        auto penalty = visit(cmatcher, param_it->constraint);
+        auto penalty = [&cmatcher](parameter_descriptor const& pd) {
+            if (pd.has_expression_constraint()) {
+                return cmatcher(pd.expression_constraint());
+            } else if (pd.has_pattern_constraint()) {
+                return cmatcher(pd.pattern_constraint());
+            } else {
+                THROW_INTERNAL_ERROR("unknown parameter constraint type");
+            }
+        }(*param_it);
             
         if (!penalty) {
             if (!is_variadic_param) {
@@ -276,15 +284,19 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
             //    cmatcher.arg_er);
         } else {
             if (cmatcher.arg_er.is_const_result) {
-                for (auto const& iname : param_it->inames) {
-                    md.bindings.emplace_back(
-                        annotated_identifier{ iname.value, iname.location }, cmatcher.arg_er.value()
-                    );
+                if (annotated_identifier name = param_it->name()) {
+                    md.bindings.emplace_back(argindex, name, cmatcher.arg_er.value());
+                }
+                if (annotated_identifier alias_name = param_it->alias_name()) {
+                    md.bindings.emplace_back(argindex, alias_name, cmatcher.arg_er.value());
                 }
             } else {
                 local_variable var{ .type = cmatcher.arg_er.type(), .varid = env.new_variable_identifier(), .is_weak = false };
-                for (auto const& iname : param_it->inames) {
-                    md.bindings.emplace_back(argindex, annotated_identifier{ iname.value, iname.location }, var);
+                if (annotated_identifier name = param_it->name()) {
+                    md.bindings.emplace_back(argindex, name, var);
+                }
+                if (annotated_identifier alias_name = param_it->alias_name()) {
+                    md.bindings.emplace_back(argindex, alias_name, var);
                 }
             }
             ++param_it;
@@ -400,15 +412,12 @@ void parameter_matcher::finalize_variadic(fn_compiler_context& callee_ctx)
     entity_identifier ellipsis_type_unit_eid = env.make_empty_entity(ellipsis_type).id;
 
     uint32_t argindex = handled_arguments_stack.empty() ? (std::numeric_limits<uint32_t>::max)() : handled_arguments_stack.back().index;
-    for (auto const& iname : sf.param_it->inames) {
-        md.bindings.emplace_back(argindex, iname, ellipsis_type_unit_eid);
+    if (annotated_identifier name = param_it->name()) {
+        md.bindings.emplace_back(argindex, name, ellipsis_type_unit_eid);
     }
-
-    //if (sf.param_it->ename) {
-    //    md.signature.emplace_back(sf.param_it->ename.value, ellipsis_type_unit_eid, true);
-    //} else {
-    //    md.signature.emplace_back(ellipsis_type_unit_eid, true);
-    //}
+    if (annotated_identifier alias_name = param_it->alias_name()) {
+        md.bindings.emplace_back(argindex, alias_name, ellipsis_type_unit_eid);
+    }
 }
 
 }
