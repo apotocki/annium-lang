@@ -110,8 +110,7 @@ struct call_builder
 class fn_compiler_context
 {
     environment& environment_;
-    internal_function_entity& fent_;
-    fn_compiler_context* parent_;
+    internal_function_entity* fent_;
     qname ns_;
     size_t base_ns_size_;
     sonia::lang::compiler_worker_id worker_id_;
@@ -140,9 +139,10 @@ class fn_compiler_context
     std::vector<stash_state> stash_states_;
 
 public:
+    fn_compiler_context(environment& e, qname ns_val);
     fn_compiler_context(environment& e, internal_function_entity&);
 
-    fn_compiler_context(fn_compiler_context& parent, qname_view nested);
+    //fn_compiler_context(fn_compiler_context& parent, qname_view nested);
 
     fn_compiler_context(fn_compiler_context const&) = delete;
     fn_compiler_context& operator=(fn_compiler_context const&) = delete;
@@ -177,6 +177,7 @@ public:
     void push_scope_variable(entity_identifier vartype); // unnamed variable, just for scope tracking
     void push_scope_variable(annotated_identifier name, entity_identifier vartype);
     void push_scope_variable(local_variable);
+    void push_scope_variable(annotated_identifier name, local_variable);
     void push_scope_constant(annotated_identifier, entity_identifier);
     void pop_scope_variable();
     void pop_scope(bool move_top_to_parent = false);

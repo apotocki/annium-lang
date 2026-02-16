@@ -277,20 +277,18 @@ struct parameter_visitor : static_visitor<std::expected<pattern_expression_t, er
 
 fn_compiler_context::fn_compiler_context(environment& e, internal_function_entity& fent)
     : environment_{ e }
-    , fent_{ fent }
-    , parent_{ nullptr }
+    , fent_{ &fent }
     , ns_{ fent.name() }
     , expression_store_{ e }
 {
     init();
 }
 
-fn_compiler_context::fn_compiler_context(fn_compiler_context& parent, qname_view nested)
-    : environment_{ parent.environment_ }
-    , fent_{ parent.fent_ }
-    , parent_{ nested.has_prefix(parent.ns()) ? &parent : nullptr }
-    , ns_{ parent.ns() / nested }
-    , expression_store_{ parent.environment_ }
+fn_compiler_context::fn_compiler_context(environment& e, qname ns_val)
+    : environment_{ e }
+    , fent_{ nullptr }
+    , ns_{ std::move(ns_val) }
+    , expression_store_{ e }
 {
     init();
 }
@@ -377,7 +375,8 @@ void fn_compiler_context::append_result(semantic::expression_list_t& el, syntax_
         local_variable& lv = get<local_variable>(scoped_locals_.back().value);
         BOOST_ASSERT(!lv.varid);
         lv.varid = environment_.new_variable_identifier();
-        fent_.push_variable(lv.varid, scope_states_.back().next_variable_index - 1);
+        BOOST_ASSERT(fent_);
+        fent_->push_variable(lv.varid, scope_states_.back().next_variable_index - 1);
     }
 
     //if (er.temporaries.empty()) {
@@ -528,13 +527,26 @@ void fn_compiler_context::pop_all_scopes(semantic::expression_list_t& el, semant
     }
 }
 
+void fn_compiler_context::push_scope_variable(annotated_identifier name, local_variable var)
+{
+    variable_identifier varid = var.varid;
+    BOOST_ASSERT(varid);
+    if (name) {
+        check_scope_name_conflict(name);
+    }
+    scoped_locals_.emplace_back(std::move(name), std::move(var));
+    uint32_t& next_variable_index = scope_states_.back().next_variable_index;
+    if (fent_) fent_->push_variable(varid, next_variable_index);
+    ++next_variable_index;
+}
+
 void fn_compiler_context::push_scope_variable(local_variable var)
 {
     variable_identifier varid = var.varid;
     BOOST_ASSERT(varid);
     scoped_locals_.emplace_back(annotated_identifier{}, std::move(var));
     uint32_t& next_variable_index = scope_states_.back().next_variable_index;
-    fent_.push_variable(varid, next_variable_index);
+    if (fent_) fent_->push_variable(varid, next_variable_index);
     ++next_variable_index;
 }
 
@@ -543,7 +555,7 @@ void fn_compiler_context::push_scope_variable(entity_identifier vartype)
     variable_identifier varid = environment_.new_variable_identifier();
     scoped_locals_.emplace_back(annotated_identifier{}, local_variable{ .type = std::move(vartype), .varid = varid, .is_weak = false });
     uint32_t& next_variable_index = scope_states_.back().next_variable_index;
-    fent_.push_variable(varid, next_variable_index);
+    if (fent_) fent_->push_variable(varid, next_variable_index);
     ++next_variable_index;
 
     //scoped_locals_.emplace_back(annotated_identifier{}, std::move(lv));
@@ -585,7 +597,7 @@ void fn_compiler_context::push_scope_variable(annotated_identifier name, entity_
     }
     scoped_locals_.emplace_back(std::move(name), local_variable{ .type = std::move(type), .varid = varid, .is_weak = false });
     uint32_t& next_variable_index = scope_states_.back().next_variable_index;
-    if (varid) fent_.push_variable(varid, next_variable_index);
+    if (varid && fent_) fent_->push_variable(varid, next_variable_index);
     ++next_variable_index;
 }
 

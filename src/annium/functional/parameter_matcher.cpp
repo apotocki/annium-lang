@@ -258,13 +258,6 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
                     variadic_type_sig.emplace_back(cmatcher.arg_er.value(), true);
                 }
             } else {
-                //std::array<char, 16> argname = { '#' };
-                //bool reversed = false;
-                //char* epos = numetron::to_string(span{ &argindex, 1 }, argname.data() + 1, reversed);
-                //if (reversed) std::reverse(argname.data() + 1, epos);
-                //identifier unnamedid = env.slregistry().resolve(string_view{ argname.data(), epos });
-                //entity_identifier unnamedid_entid = env.make_qname_entity(qname{ nid, false }).id;
-
                 identifier unnamedid = env.new_identifier(); // it's not a part of signature
                 entity_identifier unnamedid_entid = env.make_qname_entity(qname{ unnamedid, false }).id;
 
@@ -276,12 +269,6 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
                 local_variable var{ .type = cmatcher.arg_er.type(), .varid = env.new_variable_identifier(), .is_weak = false };
                 md.bindings.emplace_back(argindex, annotated_identifier{ unnamedid, cmatcher.arg_descr.expression->location }, var);
             }
-
-            //star_stack.back().consumed_argument_results.emplace_back(
-            //    param_it->ename ? identifier{} : cmatcher.arg_descr.name.value,
-            //    cmatcher.arg_descr.expression->location,
-            //    static_cast<uint32_t>(argindex),
-            //    cmatcher.arg_er);
         } else {
             if (cmatcher.arg_er.is_const_result) {
                 if (annotated_identifier name = param_it->name()) {

@@ -84,9 +84,8 @@ error_storage basic_fn_pattern::init(fn_compiler_context& ctx, fn_pure const& fn
                 iname = annotated_identifier{ alias_id, loc };
             } else {
                 if (auto err = check_param_name(parameter_names_, *internal_name); err) return err;
-                if (internal_name->value != alias_id) {
-                    alias_name = annotated_identifier{ alias_id, loc }; 
-                } // else no need to bind the same name twice
+                BOOST_ASSERT(internal_name->value != alias_id); // alias_id is a reserved name, it cannot be used as an internal name
+                alias_name = annotated_identifier{ alias_id, loc }; 
             }
         } else {
             if (auto err = check_param_name(parameter_names_, *external_name); err) return err;
@@ -117,18 +116,26 @@ std::expected<functional_match_descriptor_ptr, error_storage> basic_fn_pattern::
         return std::unexpected(make_error<basic_general_error>(call.location, "Cannot match pattern without expected result"sv, nullptr, get_start_location(*rpattern)));
     }
 
-    environment& e = caller_ctx.env();
+    environment& env = caller_ctx.env();
 
+    shared_ptr<fn_compiler_context> callee_ctx = make_shared<fn_compiler_context>(env, caller_ctx.ns() / call.functional_name());
     // prepare binding
+#if 1
     layered_binding_set ct_call_binding; // binding for builtin call constants, e.g. #call_location
     ct_call_binding.emplace_back(
-        annotated_identifier{ e.get(builtin_id::call_location) },
-        e.make_string_entity(e.print(call.location)).id
+        annotated_identifier{ env.get(builtin_id::call_location) },
+        env.make_string_entity(env.print(call.location)).id
     );
-    fn_compiler_context callee_ctx{ caller_ctx, call.functional_name() };
+    callee_ctx->push_binding(ct_call_binding);
+#else
+    callee_ctx->push_scope_constant(
+        annotated_identifier{ env.get(builtin_id::call_location) },
+        env.make_string_entity(env.print(call.location)).id);
+#endif
+
     auto pmd = make_shared<functional_match_descriptor>(call);
-    callee_ctx.push_binding(ct_call_binding);
-    callee_ctx.push_binding(pmd->bindings);
+    
+    callee_ctx->push_binding(pmd->bindings);
     //SCOPE_EXIT([&ctx] { ctx.pop_binding(); }); // no need, temporary context
     
     entity_signature& call_sig = pmd->signature;
@@ -136,7 +143,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> basic_fn_pattern::
     // If the result is a pattern, we should handle it first.
     if (rpattern) {
         BOOST_ASSERT(exp);
-        error_storage err = pattern_matcher{ callee_ctx, pmd->bindings, call.expressions, pmd->penalty }.match(*rpattern, annotated_entity_identifier{ exp.type, exp.location });
+        error_storage err = pattern_matcher{ *callee_ctx, pmd->bindings, call.expressions, pmd->penalty }.match(*rpattern, annotated_entity_identifier{ exp.type, exp.location });
         if (err) {
             return std::unexpected(append_cause(
                 make_error<basic_general_error>(call.location, "Cannot match result pattern"sv, nullptr, get_start_location(*rpattern)),
@@ -145,21 +152,21 @@ std::expected<functional_match_descriptor_ptr, error_storage> basic_fn_pattern::
         }
         //pmd->weight -= static_cast<int>(pmd->bindings.size());
         // to do: not only void_type can produce only constexpr result
-        if (exp.type == e.get(builtin_eid::void_type)) {
-            call_sig.result.emplace(e.get(builtin_eid::void_), true);
+        if (exp.type == env.get(builtin_eid::void_type)) {
+            call_sig.result.emplace(env.get(builtin_eid::void_), true);
         } else {
             call_sig.result.emplace(exp.type, false);
         }
     }
 
     parameter_matcher pmatcher{ caller_ctx, call, parameters_, *pmd };
-    auto err = pmatcher.match(callee_ctx);
+    auto err = pmatcher.match(*callee_ctx);
     if (err) {
         return std::unexpected(std::move(err));
     }
 
     if (syntax_expression const* rexpr = get_if<syntax_expression>(&result_)) {
-        auto res = base_expression_visitor::visit(callee_ctx, call.expressions, expected_result_t{ .modifier = value_modifier_t::constexpr_value }, *rexpr);
+        auto res = base_expression_visitor::visit(*callee_ctx, call.expressions, expected_result_t{ .modifier = value_modifier_t::constexpr_value }, *rexpr);
         if (!res) {
             return std::unexpected(append_cause(
                 make_error<basic_general_error>(call.location, "Cannot evaluate result expression"sv, nullptr, rexpr->location),
@@ -167,8 +174,8 @@ std::expected<functional_match_descriptor_ptr, error_storage> basic_fn_pattern::
             ));
         }
         syntax_expression_result& res_er = res->first;
-        entity const& res_ent = get_entity(e, res_er.value());
-        call_sig.result.emplace(res_er.value(), res_ent.get_type() != e.get(builtin_eid::typename_));
+        entity const& res_ent = get_entity(env, res_er.value());
+        call_sig.result.emplace(res_er.value(), res_ent.get_type() != env.get(builtin_eid::typename_));
     }
 
     return pmd;
@@ -217,12 +224,13 @@ void basic_fn_pattern::build_scope(environment& e, basic_functional_binding&& md
 {
     // bind variables (rt arguments)
     for (parameter_descriptor const& pd : parameters_) {
-        functional_binding::value_type const* bsp = mdbindings.lookup(pd.name().value);
+        annotated_identifier param_name = pd.name();
+        functional_binding::value_type const* bsp = mdbindings.lookup(param_name.value);
         BOOST_ASSERT(bsp);
 
         if (!has(pd.modifier(), parameter_constraint_modifier_t::variadic)) {
             if (local_variable const* plv = get_if<local_variable>(bsp); plv) {
-                fent.context().push_scope_variable(*plv);
+                fent.context().push_scope_variable(param_name, *plv);
             } // else arg is constant
             continue;
         }
@@ -237,6 +245,7 @@ void basic_fn_pattern::build_scope(environment& e, basic_functional_binding&& md
         entity const& ellipsis_unit_type = get_entity(e, ellipsis_unit_type_id);
         entity_signature const* pellipsis_sig = ellipsis_unit_type.signature();
         BOOST_ASSERT(pellipsis_sig && pellipsis_sig->name == e.get(builtin_qnid::tuple));
+        fent.context().push_scope_constant(param_name, *peid);
         for (field_descriptor const& fd : pellipsis_sig->fields()) {
             BOOST_ASSERT(fd.is_const());
             entity const& fd_ent = get_entity(e, fd.entity_id());
@@ -248,7 +257,7 @@ void basic_fn_pattern::build_scope(environment& e, basic_functional_binding&& md
                 BOOST_ASSERT(bvar);
                 local_variable const* plv = get_if<local_variable>(bvar);
                 BOOST_ASSERT(plv);
-                fent.context().push_scope_variable(*plv);
+                fent.context().push_scope_variable(annotated_identifier{ varname, param_name.location }, *plv);
             }
         }
     }

@@ -533,7 +533,8 @@ void compiler_visitor_base::operator()(semantic::invoke_function const& invf) co
     if (auto fe = dynamic_cast<internal_function_entity const*>(&e); fe) {
         BOOST_ASSERT(!fe->is_provision()); // provision functions cannot be called
         BOOST_ASSERT(fe->is_built()); // should be built already
-        if (!fe->is_empty()) {
+        // do not ignore empty functions if they have runtime arguments, because they have to be freed by callee
+        if (!fe->is_empty() || fe->arg_count()) {
             if (fe->is_inline()) {
                 // to do: circular dependency check?
                 //GLOBAL_LOG_INFO() << "entering inline function: " << environment_.print(invf.fn);

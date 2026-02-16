@@ -35,7 +35,7 @@ error_storage struct_entity::build(fn_compiler_context& extctx, semantic::expres
     if (built_.load() == build_state::underlying_tuple_built) return {}; // double check
 
     // prepare context
-    fn_compiler_context ctx{ extctx, name_ };
+    fn_compiler_context ctx(extctx.env(), extctx.ns() / name_);
     if (!context_bindings_.empty()) {
         ctx.push_binding(context_bindings_);
     }

@@ -241,15 +241,6 @@ error_storage prepared_call::prepare()
         argbit <<= 1;
     }
 
-    //    if (name) {
-    //        named_argument_caches_.emplace_back(name->value, argument_cache{ expr });
-    //    }
-    //    else {
-    //        position_argument_caches_.emplace_back(expr);
-    //    }
-    //}
-    //// sort named arguments
-    //std::ranges::sort(named_argument_caches_, {}, [](auto const& pair) { return get<0>(pair).value; });
     return {};
 }
 
