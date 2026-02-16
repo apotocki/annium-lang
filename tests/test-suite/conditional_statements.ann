@@ -24,3 +24,17 @@ if runtime_cast(false) {
 assert_equal(chain2, "else");
 
 assert_equal(__get_frame_stack_height(), 3);
+
+fn on_change($eventName: string) {
+    if $eventName == "event0" {
+        let ports_field: string = runtime_cast("just example string");
+    } else {
+        let ports_field: string = runtime_cast("just example string");
+    }
+    let ports_field: string = runtime_cast("just example string");
+    assert_equal(__get_frame_stack_height(), 1);
+}
+on_change(runtime_cast("event0"));
+on_change(runtime_cast("event1"));
+
+assert_equal(__get_frame_stack_height(), 3);

@@ -139,16 +139,16 @@ declaration_visitor::result_type declaration_visitor::do_rt_if_decl(if_decl cons
         ctx.push_chain();
         auto res = apply(stm.true_body);
         if (!res) return res;
-        cond.true_branch = ctx.expressions();
-        ctx.pop_chain();
         break_result_value = *res;
-
-        if (!stm.false_body.empty()) {
-            cond.true_branch_finished = all_paths_return(cond.true_branch);
-        }
         if (break_result_value == break_scope_kind::none) {
             ctx.pop_scope();
         } // else the scope has been popped by break/continue/return statement, so do not pop it again
+        cond.true_branch = ctx.expressions();
+        ctx.pop_chain();
+        
+        if (!stm.false_body.empty()) {
+            cond.true_branch_finished = all_paths_return(cond.true_branch);
+        }
     }
 
     if (break_result_value != break_scope_kind::none) { // scope locals destroyed by break/continue/return statement, we need to restore it
@@ -162,6 +162,9 @@ declaration_visitor::result_type declaration_visitor::do_rt_if_decl(if_decl cons
         ctx.push_chain();
         auto res = apply(stm.false_body);
         if (!res) return res;
+        if (*res == break_scope_kind::none) {
+            ctx.pop_scope();
+        }
         cond.false_branch = ctx.expressions();
         ctx.pop_chain();
         //cond.false_branch_finished = all_paths_return(cond.false_branch); // actually not used
@@ -170,7 +173,6 @@ declaration_visitor::result_type declaration_visitor::do_rt_if_decl(if_decl cons
             break_result_value = *res;
         }
         if (*res == break_scope_kind::none) {
-            ctx.pop_scope();
             ctx.pop_dismiss_scopes_from_stash();
         } else if (break_result_value == break_scope_kind::none) {
             ctx.pop_scopes_from_stash();
