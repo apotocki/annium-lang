@@ -140,7 +140,7 @@ set (LIBRARY_SOURCES
 
 add_library(${LIBRARY_NAME} STATIC ${LIBRARY_SOURCES})
 
-if(EXISTS ${PROJECT_HOME}/vcpkg_installed)
+if(NOT DO_NOT_LINK_BOOST_HEADERS)
 target_link_libraries(${LIBRARY_NAME} PRIVATE Boost::headers)
 endif()
 
