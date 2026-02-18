@@ -366,7 +366,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <PrecompiledHeaderOutputFile />
       <AdditionalIncludeDirectories>$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include\;$(SolutionDir)tpls\sonia-prime;$(SolutionDir)tpls\lexertl14\include;$(SolutionDir)tpls\dataforge\include;$(SolutionDir)tpls\numetron\include;$(ProjectDir)..\..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Zc:__cplusplus /Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -389,7 +389,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <PrecompiledHeaderOutputFile />
       <AdditionalIncludeDirectories>$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include\;$(SolutionDir)tpls\sonia-prime;$(SolutionDir)tpls\lexertl14\include;$(SolutionDir)tpls\dataforge\include;$(SolutionDir)tpls\numetron\include;$(ProjectDir)..\..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Zc:__cplusplus /Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -410,7 +410,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <PrecompiledHeaderOutputFile />
       <AdditionalIncludeDirectories>$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include\;$(SolutionDir)tpls\sonia-prime;$(SolutionDir)tpls\lexertl14\include;$(SolutionDir)tpls\dataforge\include;$(SolutionDir)tpls\numetron\include;$(ProjectDir)..\..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Zc:__cplusplus /Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -433,7 +433,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <PrecompiledHeaderOutputFile />
       <AdditionalIncludeDirectories>$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include\;$(SolutionDir)tpls\sonia-prime;$(SolutionDir)tpls\lexertl14\include;$(SolutionDir)tpls\dataforge\include;$(SolutionDir)tpls\numetron\include;$(ProjectDir)..\..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Zc:__cplusplus /Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
       <BufferSecurityCheck>false</BufferSecurityCheck>
     </ClCompile>
     <Link>

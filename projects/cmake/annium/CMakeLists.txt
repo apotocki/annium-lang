@@ -1,9 +1,10 @@
+include (${COMMON_INCLUDE})
 
-include_directories(${PROJECT_HOME}/src)
-include_directories(${TPLS}/sonia-prime)
+include_directories(${ANNIUM_HOME}/src)
+include_directories(${NUMETRON_HOME}/include)
+include_directories(${DATAFORGE_HOME}/include)
+include_directories(${SONIA_HOME})
 include_directories(${TPLS}/lexertl14/include)
-include_directories(${TPLS}/dataforge/include)
-include_directories(${TPLS}/numetron/include)
 
 # Debug/Release specific definitions
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -11,7 +12,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 
 set (LIBRARY_NAME annium)
-set (LIBRARY_HOME ${PROJECT_HOME}/src)
+set (LIBRARY_HOME ${ANNIUM_HOME}/src)
 
 set (LIBRARY_SOURCES
     ${LIBRARY_HOME}/annium/annium.cpp
@@ -137,7 +138,10 @@ set (LIBRARY_SOURCES
 
 add_library(${LIBRARY_NAME} STATIC ${LIBRARY_SOURCES})
 
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed)
 target_link_libraries(${LIBRARY_NAME} PRIVATE Boost::headers)
+else()
+endif()
 
 if(MSVC)
     target_compile_options(${LIBRARY_NAME} PRIVATE /W3 /MP)
@@ -145,6 +149,6 @@ if(MSVC)
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     target_compile_options(${LIBRARY_NAME} PRIVATE -Wall -Wextra -pedantic -Wno-missing-field-initializers)
 
-    set_property(SOURCE ${LIBRARY_HOME}/annium/annium.tab.cpp APPEND PROPERTY COMPILE_OPTIONS "-Wno-missing-field-initializers")
+    set_property(SOURCE ${LIBRARY_HOME}/annium/annium.tab.cpp APPEND PROPERTY COMPILE_OPTIONS "-Wno-missing-field-initializers" "-Wno-unused-but-set-variable")
     set_property(SOURCE ${LIBRARY_HOME}/annium/annium.yy.cpp APPEND PROPERTY COMPILE_OPTIONS "-Wno-unused-function")
 endif()

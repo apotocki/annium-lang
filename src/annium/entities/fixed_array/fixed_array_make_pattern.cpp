@@ -68,7 +68,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_make_p
     pmd->all_runtime = true;
     expected_result_t exp_element_res{ .type = pmd->element_type, .modifier = exp.modifier };
     // Get all positioned arguments (the array elements)
-    for (size_t arg_num = 0;; ++arg_num) {
+    for (;;) {
         prepared_call::argument_descriptor_t elem_descr;
         auto elem_res = call_session.use_next_positioned_argument(exp_element_res, &elem_descr);
         if (!elem_res) {

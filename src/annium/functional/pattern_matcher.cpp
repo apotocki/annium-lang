@@ -115,7 +115,7 @@ error_storage pattern_matcher::do_match(syntax_pattern::signature_descriptor con
             }
         }
         if (field.ellipsis) {
-            err = visit([this, psig, &smplfields, &type](auto const& field_name) -> error_storage {
+            err = visit([this, &smplfields](auto const& field_name) -> error_storage {
                 if constexpr (std::is_same_v<nullptr_t, std::decay_t<decltype(field_name)>> || std::is_same_v<placeholder, std::decay_t<decltype(field_name)>>) {
                     return do_match_positioned_ellipsis_field(fld_it->bound_variable, smplfields);
                 //} else if constexpr (std::is_same_v<context_identifier, std::decay_t<decltype(field_name)>>) {
@@ -128,7 +128,7 @@ error_storage pattern_matcher::do_match(syntax_pattern::signature_descriptor con
             }, field.name);
             if (err) return err;
         } else {
-            err = visit([this, &field, psig, &smplfields, &type](auto const& field_name) -> error_storage {
+            err = visit([this, &field, &smplfields, &type](auto const& field_name) -> error_storage {
                 if constexpr (std::is_same_v<nullptr_t, std::decay_t<decltype(field_name)>>) {
                     if (smplfields.empty()) {
                         return make_error<basic_general_error>(resource_location{}, "Cannot match unnamed field in signature"sv, nullptr, type.location);
@@ -227,7 +227,7 @@ error_storage pattern_matcher::do_match_positioned_ellipsis_field(annotated_iden
         }
     };
 
-    fields_t::const_iterator next_field_it = fld_it;
+    auto next_field_it = fld_it;
     for (++next_field_it;; ++next_field_it) {
         if (next_field_it == fld_end) {
             --next_field_it;

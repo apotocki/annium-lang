@@ -21,7 +21,7 @@ union_bit_or_pattern::try_match(fn_compiler_context& ctx, prepared_call const& c
 
     auto pmd = make_shared<functional_match_descriptor>(call);
 
-    for (size_t argnum = 0;; ++argnum) {
+    for (;;) {
         prepared_call::argument_descriptor_t arg_descr;
         auto arg = call_session.use_next_positioned_argument(expected_result_t{ .modifier = value_modifier_t::constexpr_value }, &arg_descr);
         if (!arg) {

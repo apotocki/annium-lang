@@ -20,7 +20,7 @@ class pattern_matcher
 
     using fields_t = span<const syntax_pattern::field>;
 
-    mutable fields_t::const_iterator fld_bit, fld_it, fld_end;
+    mutable fields_t::iterator fld_bit, fld_it, fld_end;
 
     match_penalty & penalty;
     mutable size_t hierarchy_level;
