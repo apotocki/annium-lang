@@ -1,4 +1,6 @@
-include (${COMMON_INCLUDE})
+if (DEFINED COMMON_INCLUDE)
+    include (${COMMON_INCLUDE})
+endif()
 
 include_directories(${ANNIUM_HOME}/src)
 include_directories(${NUMETRON_HOME}/include)
@@ -138,9 +140,8 @@ set (LIBRARY_SOURCES
 
 add_library(${LIBRARY_NAME} STATIC ${LIBRARY_SOURCES})
 
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed)
+if(EXISTS ${PROJECT_HOME}/vcpkg_installed)
 target_link_libraries(${LIBRARY_NAME} PRIVATE Boost::headers)
-else()
 endif()
 
 if(MSVC)

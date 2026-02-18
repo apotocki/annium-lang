@@ -105,6 +105,12 @@ if(WIN32)
     add_definitions(-DBOOST_NO_USER_CONFIG -DBOOST_ALL_DYN_LINK -DBOOST_STACKTRACE_LINK)
 endif()
 
+set (COMMON_INCLUDE)
+set (NUMETRON_HOME ${CMAKE_CURRENT_SOURCE_DIR}/tpls/numetron)
+set (DATAFORGE_HOME ${CMAKE_CURRENT_SOURCE_DIR}/tpls/dataforge)
+set (SONIA_HOME ${CMAKE_CURRENT_SOURCE_DIR}/tpls/sonia-prime)
+set (ANNIUM_HOME ${CMAKE_CURRENT_SOURCE_DIR})
+
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/projects/cmake/annium)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/tpls/numetron/lib)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/projects/cmake/annium_tests)
