@@ -249,7 +249,7 @@ base_expression_visitor::result_type base_expression_visitor::operator()(entity_
 
 base_expression_visitor::result_type base_expression_visitor::operator()(bracket_expression const& bv) const
 {
-    // Bracket Expression — an expression enclosed in square brackets.The semantics of a bracket expression are determined by the type of the inner expression :
+    // Bracket Expression - an expression enclosed in square brackets.The semantics of a bracket expression are determined by the type of the inner expression :
     //
     // If the inner expression represents a type, the bracket expression defines an array type whose element type is the inner expression.
     // If the inner expression represents a value, the bracket expression creates an array containing a single element with that value.

@@ -164,6 +164,7 @@ public:
         inline explicit pattern(numetron::decimal w) noexcept : weight{ std::move(w) } {}
 
     public:
+        virtual ~pattern() = default;
         virtual std::expected<functional_match_descriptor_ptr, error_storage> try_match(fn_compiler_context&, prepared_call const&, expected_result_t const&) const = 0;
         virtual std::expected<syntax_expression_result, error_storage> apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const = 0;
 

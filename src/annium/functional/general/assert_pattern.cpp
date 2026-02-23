@@ -30,9 +30,8 @@ std::expected<functional_match_descriptor_ptr, error_storage> assert_pattern::tr
     auto first_arg_descr = call_session.get_next_positioned_argument(bool_exp);
     if (!first_arg_descr) return std::unexpected(first_arg_descr.error());
     auto pmd = make_shared<assert_match_descriptor>(call);
-    size_t argnum = 0;
 
-    auto append_arg = [&pmd, &argnum, &first_arg_descr](environment& e, prepared_call::argument_descriptor_t& arg_descr) {
+    auto append_arg = [&pmd, &first_arg_descr](environment& e, prepared_call::argument_descriptor_t& arg_descr) {
         pmd->append_arg(arg_descr.result, arg_descr.expression->location);
         if (arg_descr.result.is_const_result && arg_descr.result.value() == e.get(builtin_eid::true_)) {
             pmd->reserved_errors.emplace_back(); // just dummy, no error doesn't need details

@@ -11,13 +11,10 @@ class external_function_entity;
 
 class external_fn_pattern : public basic_fn_pattern
 {
-    size_t extfnid_;
     shared_ptr<external_function_entity> ent_;
 
 public:
-    inline explicit external_fn_pattern(size_t extfnid) noexcept
-        : extfnid_{ extfnid }
-    {}
+    external_fn_pattern() = default;
 
     void set_result_entity(shared_ptr<external_function_entity> e) { ent_ = std::move(e); }
         

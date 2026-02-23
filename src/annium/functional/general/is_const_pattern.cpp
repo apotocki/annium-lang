@@ -20,7 +20,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> is_const_pattern::
     // Accept a single unnamed argument
     
     auto arg_descr = call_session.get_next_positioned_argument();
-    if (!arg_descr) return std::unexpected(move(arg_descr.error()));
+    if (!arg_descr) return std::unexpected(std::move(arg_descr.error()));
 
     // Verify no more arguments
     if (auto argterm = call_session.unused_argument(); argterm) {

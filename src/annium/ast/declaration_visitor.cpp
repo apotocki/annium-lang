@@ -274,7 +274,7 @@ declaration_visitor::result_type declaration_visitor::operator()(for_statement c
     }
     BOOST_ASSERT(!has_next_result->is_const_result); // not implemented yet
 
-    ctx.append_expression(std::move(semantic::loop_scope_t{}));
+    ctx.append_expression(semantic::loop_scope_t{});
     semantic::loop_scope_t& ls = get<semantic::loop_scope_t>(ctx.expressions().back());
     //ctx.append_expression(semantic::truncate_values{ .count = (uint16_t)scsz, .keep_back = 0 }); // remove iterator value
 

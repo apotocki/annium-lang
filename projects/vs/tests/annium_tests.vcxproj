@@ -244,7 +244,7 @@
       <PrecompiledHeaderOutputFile />
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\src;$(SolutionDir)tpls\sonia-prime;$(SolutionDir)tpls\lexertl14\include;$(SolutionDir)tpls\dataforge\include;$(SolutionDir)tpls\numetron\include;$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Zc:__cplusplus /Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -265,7 +265,7 @@
       <PrecompiledHeaderOutputFile />
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\src;$(SolutionDir)tpls\sonia-prime;$(SolutionDir)tpls\lexertl14\include;$(SolutionDir)tpls\dataforge\include;$(SolutionDir)tpls\numetron\include;$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Zc:__cplusplus /Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -283,7 +283,7 @@
       <PrecompiledHeaderOutputFile />
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\src;$(SolutionDir)tpls\sonia-prime;$(SolutionDir)tpls\lexertl14\include;$(SolutionDir)tpls\dataforge\include;$(SolutionDir)tpls\numetron\include;$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Zc:__cplusplus /Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp23</LanguageStandard>
     </ClCompile>
     <Link>
@@ -306,7 +306,7 @@
       <PrecompiledHeaderOutputFile />
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\src;$(SolutionDir)tpls\sonia-prime;$(SolutionDir)tpls\lexertl14\include;$(SolutionDir)tpls\dataforge\include;$(SolutionDir)tpls\numetron\include;$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Zc:__cplusplus /Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

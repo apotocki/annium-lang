@@ -544,7 +544,7 @@ void compiler_visitor_base::operator()(semantic::invoke_function const& invf) co
                 if (fe->need_framepointer()) {
                     fnbuilder_.append_pushfp();
                 }
-                fe->body.for_each([this, &ivis](semantic::expression const& e) {
+                fe->body.for_each([&ivis](semantic::expression const& e) {
                     //GLOBAL_LOG_INFO() << environment_.print(e);
                     visit(ivis, e);
                 });

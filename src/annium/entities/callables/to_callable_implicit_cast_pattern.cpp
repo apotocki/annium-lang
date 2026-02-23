@@ -69,7 +69,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> to_callable_implic
 
     indirect_internal_function_entity smpl{ pmd->signature, call.location };
 
-    internal_function_entity& fne = static_cast<internal_function_entity&>(env.eregistry_find_or_create(smpl, [this, &env, &ctx, &call, &tmd = *pmd]() {
+    internal_function_entity& fne = static_cast<internal_function_entity&>(env.eregistry_find_or_create(smpl, [&env, &tmd = *pmd]() {
         qname_view fnqn = env.fregistry_resolve(tmd.signature.name).name();
         field_descriptor function_result_fd = tmd.function_signature.fields().back();
         return make_shared<internal_function_entity>(

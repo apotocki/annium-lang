@@ -474,7 +474,9 @@ private:
         }
 
         bool operator() (string_view const& l, shared_ptr<ast_resource> const& r) const noexcept;
+        inline bool operator() (shared_ptr<ast_resource> const& l, string_view const& r) const noexcept { return operator()(r, l); }
         bool operator() (fs::path const& l, shared_ptr<ast_resource> const& r) const noexcept;
+        inline bool operator() (shared_ptr<ast_resource> const& l, fs::path const& r) const noexcept { return operator()(r, l); }
     };
 
     mutable fibers::mutex resources_mutex_;

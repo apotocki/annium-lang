@@ -91,6 +91,12 @@
 namespace annium { using asm_builder_t = vmasm::builder<vm::context>; }
 #include "annium/vm/compiler_visitor.hpp"
 
+#ifdef SONIA_LANG_DEBUG
+#   define LANG_DEBUG_THIS this
+#else
+#   define LANG_DEBUG_THIS
+#endif
+
 namespace annium {
 
 class file_resource : public ast_resource
@@ -278,7 +284,7 @@ entity_identifier environment::set_builtin_extern(string_view signature, void(*p
 {
     arena a;
     auto [pf, fndecl] = parse_extern_fn(signature, a);
-    auto ptrn = make_shared<PT>(fn_identifier_counter_);
+    auto ptrn = make_shared<PT>();
     internal_function_entity default_fentity{ *this, qname{}, entity_signature{}, resource_location{}, field_descriptor{} };
     if (auto err = ptrn->init(default_fentity.context(), fndecl); err) {
         throw exception(print(*err));
@@ -1231,7 +1237,8 @@ functional& environment::fregistry_resolve(qname_identifier qnid)
 
 functional& environment::fregistry_resolve(qname_view qn)
 {
-    return functional_registry_.resolve(qn, [this](qname_identifier qid, qname_view qnv) {
+
+    return functional_registry_.resolve(qn, [LANG_DEBUG_THIS](qname_identifier qid, qname_view qnv) {
 #ifdef SONIA_LANG_DEBUG
         qid.debug_name = as_string(qnv);
 #endif
@@ -1589,7 +1596,7 @@ environment::environment()
     string_concat_fnl.push(make_shared<string_concat_pattern>());
 
     functional& init_fnl = fregistry_resolve(get(builtin_qnid::init));
-    init_fnl.push(std::move(make_shared<struct_init_pattern>()));
+    init_fnl.push(make_shared<struct_init_pattern>());
 
     // TRAITS/CONCEPTS
     functional& is_struct_fnl = fregistry_resolve(get(builtin_qnid::is_struct));

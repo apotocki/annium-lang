@@ -310,7 +310,7 @@ void annium_logical_not(vm::context& ctx)
     val = blob_type_selector(val, [](auto ident, blob_result const& b) {
         using type = typename decltype(ident)::type;
         if (!is_array(b)) {
-            if constexpr (std::is_same_v<type, bool>) { return bool_blob_result(!b.bp.i8value); }
+            if constexpr (std::is_same_v<type, bool>) { return bool_blob_result(!b.data.bp.i8value); }
             else if constexpr (std::is_integral_v<type> || numetron::is_basic_integer_view_v<type>) { return bool_blob_result(!as<type>(b)); }
             else {
                 throw exception("Logical not operation cannot be applied to the provided argument: %1%"_fmt % b);

@@ -4,6 +4,8 @@
 #include "sonia/config.hpp"
 #include "match_penalty.hpp"
 
+#include <algorithm>
+
 namespace annium {
 
 bool operator==(match_penalty const& lhs, match_penalty const& rhs) noexcept
@@ -37,7 +39,7 @@ std::strong_ordering operator<=>(match_penalty const& lhs, match_penalty const& 
 
 match_penalty& match_penalty::operator+=(match_penalty const& other) noexcept
 {
-    size_t max_placeholders = std::max(placeholders.size(), other.placeholders.size());
+    size_t max_placeholders = (std::max)(placeholders.size(), other.placeholders.size());
     placeholders.resize(max_placeholders, 0);
     for (size_t i = 0; i < other.placeholders.size(); ++i) {
         placeholders[i] += other.placeholders[i];

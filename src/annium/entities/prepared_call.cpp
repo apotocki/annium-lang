@@ -68,7 +68,7 @@ std::expected<syntax_expression, error_storage> deref(fn_compiler_context& ctx, 
 {
     auto optent = ctx.lookup_entity(aqn.value);
     using result_t = std::expected<syntax_expression, error_storage>;
-    return visit([&ctx, &aqn](auto& eid_or_var) -> result_t {
+    return visit([&aqn](auto& eid_or_var) -> result_t {
         if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, entity_identifier>) {
             if (!eid_or_var) return std::unexpected(make_error<undeclared_identifier_error>(std::move(aqn)));
             return syntax_expression{ aqn.location, eid_or_var };
