@@ -442,6 +442,9 @@ void annium_set_object_property(vm::context& ctx)
 {
     using namespace sonia::invocation;
     shared_ptr<invocable> obj = ctx.stack_back(2).as<wrapper_object<shared_ptr<invocable>>>().value;
+    if (!obj) {
+        throw exception("annium_set_object_property error: object is null");
+    }
     string_view prop_name = ctx.stack_back(1).as<string_view>();
     obj->set_property(ctx.camel2kebab(prop_name), *ctx.stack_back());
     ctx.stack_pop(2);
