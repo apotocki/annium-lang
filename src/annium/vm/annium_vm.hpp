@@ -7,6 +7,8 @@
 
 #include "sonia/variant.hpp"
 #include "sonia/shared_ptr.hpp"
+#include "sonia/span.hpp"
+
 #include "sonia/utility/invocation/invocation.hpp"
 #include "sonia/utility/lang/vm.hpp"
 
@@ -268,10 +270,6 @@ class virtual_stack_machine : public sonia::vm::virtual_stack_machine<vm::contex
 public:
     virtual_stack_machine();
 
-    size_t add_pooled_const(smart_blob&& value);
-    void set_const(size_t index, smart_blob&& value);
-    void append_push_pooled_const(smart_blob&& value);
-
     enum class builtin_fn
     {
         is_nil = 0,
@@ -290,11 +288,8 @@ public:
     string_view describe_address(size_t address) const noexcept;
     void set_address_description(size_t address, std::string description);
 
-protected:
-
 private:
     std::unordered_map<size_t, std::string> call_descriptions_;
-    std::unordered_map<blob_result, size_t, sonia::hash<blob_result>> literals_;
 };
 
 }
