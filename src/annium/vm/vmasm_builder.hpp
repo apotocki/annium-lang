@@ -215,7 +215,7 @@ public:
     inline instruction_entry& new_entry() { return *entries_.new_object(); }
     inline void free_entry(instruction_entry& e) noexcept { entries_.delete_object(&e); }
 
-    inline size_t allocate_constant_index() { return vm_.add_const(smart_blob{}); }
+    inline size_t allocate_constant_index() { return vm_.push_const(smart_blob{}); }
 
     inline vm_t& get_vm() noexcept { return vm_; }
 
@@ -226,7 +226,7 @@ private:
 
     object_pool<instruction_entry, spin_mutex> entries_;
 
-    std::unordered_map<blob_result, size_t, hasher> literals_;
+    std::unordered_map<blob_result, size_t, hasher, blob_result_strict_equal_to> literals_;
 };
 
 template <typename ContextT>
@@ -262,7 +262,7 @@ size_t builder<ContextT>::add_pooled_const(variable_type&& value)
 {
     auto it = literals_.find(*value);
     if (it == literals_.end()) {
-        size_t index = vm_.add_const(std::move(value));
+        size_t index = vm_.push_const(std::move(value));
         it = literals_.emplace_hint(it, *vm_.consts()[index], index);
         //GLOBAL_LOG_DEBUG() << "new const value: " << vm_.consts()[index] << " -> C["sv << index << "]"sv;
     } else {
