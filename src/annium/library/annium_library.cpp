@@ -93,11 +93,35 @@ void annium_arrayify(vm::context& ctx)
         for (auto& e : elements) blob_result_unpin(&e);
     });
 
+    bool mixed_types = false;
+    
     for (size_t i = argcount; i > 0; --i) {
-        elements.emplace_back(*ctx.stack_back(i));
+        auto& elem = ctx.stack_back(i);
+        elements.emplace_back(*elem);
         blob_result_pin(&elements.back());
+        if (elements.front().type != elem->type) { mixed_types = true; }
     }
-    smart_blob r{ array_blob_result(span{ elements.data(), elements.size() }) };
+    
+    smart_blob r;
+    if (!mixed_types && argcount) {
+        r = blob_type_selector(elements.front(), [&elements](auto ident, blob_result const&)->blob_result {
+            using type = typename decltype(ident)::type;
+            if constexpr (std::is_integral_v<type> || std::is_floating_point_v<type> || std::is_same_v<type, bool>) {
+                using fstype = std::conditional_t<std::is_same_v<type, bool>, uint8_t, type>;
+                small_vector<fstype, 4> exact_elements;
+                exact_elements.reserve(elements.size());
+                for (auto& e : elements) {
+                    exact_elements.push_back(as<fstype>(e));
+                }
+                return array_blob_result(span{ exact_elements.data(), exact_elements.size() });
+            } else {
+                return array_blob_result(span{ elements.data(), elements.size() });
+            }
+        });
+    } else {
+        r = array_blob_result(span{ elements.data(), elements.size() });
+    }
+
     r.allocate();
     elements.clear();
     ctx.stack_pop(argcount + 1);
