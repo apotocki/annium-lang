@@ -208,7 +208,7 @@ void annium_array_at(vm::context& ctx)
     smart_blob result;
     blob_type_selector(arr, [idx, &result](auto ident, blob_result b) {
         using type = typename decltype(ident)::type;
-        if constexpr (std::is_same_v<type, std::nullptr_t> || std::is_void_v<type>) {
+        if constexpr (std::is_same_v<type, std::nullptr_t> || std::is_void_v<type> || std::is_same_v<type, sonia::invocation::object>) {
             THROW_INTERNAL_ERROR("unexpected array element type");
         } else {
             using fstype = std::conditional_t<std::is_same_v<type, bool>, uint8_t, type>;
@@ -274,6 +274,8 @@ void annium_array_tail(vm::context& ctx)
             THROW_NOT_IMPLEMENTED_ERROR("decimal tail");
         } else if constexpr (std::is_same_v<type, sonia::basic_string_view<char>>) {
             THROW_NOT_IMPLEMENTED_ERROR("string tail");
+        } else if constexpr (std::is_same_v<type, sonia::invocation::object>) {
+            THROW_NOT_IMPLEMENTED_ERROR("object tail");
         } else {
             using fstype = std::conditional_t<std::is_same_v<type, bool>, uint8_t, type>;
             size_t argcount = array_size_of<fstype>(b);
@@ -551,6 +553,9 @@ void annium_set_object_property(vm::context& ctx)
 {
     using namespace sonia::invocation;
     shared_ptr<invocable> obj = ctx.stack_back(2).as<wrapper_object<shared_ptr<invocable>>>().value;
+    if (!obj) {
+        throw exception("annium_set_object_property error: object is null");
+    }
     string_view prop_name = ctx.stack_back(1).as<string_view>();
     obj->set_property(ctx.camel2kebab(prop_name), *ctx.stack_back());
     ctx.stack_pop(2);
