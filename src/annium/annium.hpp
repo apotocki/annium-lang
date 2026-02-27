@@ -27,6 +27,8 @@ public:
     void load(fs::path const& srcfile, span<string_view> args = {});
     void load(string_view code, span<string_view> args = {});
 
+    smart_blob invoke(blob_result& ftor, span<const blob_result> args) noexcept;
+
     smart_blob call(string_view name, span<const std::pair<string_view, const blob_result>> namedargs = {}, span<const blob_result> args = {});
 
 private:

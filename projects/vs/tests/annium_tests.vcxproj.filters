@@ -222,9 +222,6 @@
     <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\parsers\json\parser.hpp">
       <Filter>sonia\utility\parsers\json</Filter>
     </ClInclude>
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\invocation\functor_object.hpp">
-      <Filter>sonia\utility\invocation</Filter>
-    </ClInclude>
     <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\invocation\invocation.hpp">
       <Filter>sonia\utility\invocation</Filter>
     </ClInclude>

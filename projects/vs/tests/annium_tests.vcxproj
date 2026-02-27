@@ -120,7 +120,6 @@
     <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\scheduler.hpp" />
     <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\segmented_stack.hpp" />
     <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\type.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\invocation\functor_object.hpp" />
     <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\invocation\invocable_registry.hpp" />
     <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\invocation\invocation.hpp" />
     <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\invocation\serialization.hpp" />
