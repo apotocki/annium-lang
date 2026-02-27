@@ -9,8 +9,6 @@
 #include "sonia/utility/scope_exit.hpp"
 #include "numetron/integer_view.hpp" 
 
-#include "sonia/utility/invocation/functor_object.hpp"
-
 namespace annium {
 
 #if 0

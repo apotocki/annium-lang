@@ -9,7 +9,6 @@
 #include "sonia/span.hpp"
 #include "sonia/function.hpp"
 #include "sonia/utility/invocation/invocation.hpp"
-#include "sonia/utility/invocation/callback_invoker.hpp"
 
 namespace annium {
 
@@ -17,7 +16,7 @@ using namespace sonia;
 
 namespace detail { class annium_impl; }
 
-class language : public invocation::callback_invoker
+class language
 {
 public:
     language();
@@ -27,8 +26,6 @@ public:
     void set_environment(invocation::invocable*);
     void load(fs::path const& srcfile, span<string_view> args = {});
     void load(string_view code, span<string_view> args = {});
-
-    smart_blob invoke(blob_result& ftor, span<const blob_result> args) noexcept override;
 
     smart_blob call(string_view name, span<const std::pair<string_view, const blob_result>> namedargs = {}, span<const blob_result> args = {});
 
