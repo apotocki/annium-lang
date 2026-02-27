@@ -13,6 +13,7 @@
 
 namespace annium {
 
+#if 0
 class function_invoker : public sonia::invocation::functor_object
 {
     uint64_t address_ : 30;
@@ -82,6 +83,7 @@ public:
         }
     }
 };
+#endif
 
 vm::context::context(environment& e, invocation::invocable* penv)
     : environment_{ e }, vm_{ e.bvm() }, penv_{ penv }
@@ -152,6 +154,7 @@ size_t vm::context::callp(size_t ret_address)
         stack_pop();
         return address;
     }
+#if 0
     decltype(auto) ftor = p.as<invocation::functor_object>();
     int64_t sigdescr = stack_back(1).as<int64_t>(); // (the number of args + 1) [ * (-1) if no result ]
     stack_pop(2);
@@ -167,6 +170,8 @@ size_t vm::context::callp(size_t ret_address)
     if (sigdescr > 0) {
         stack_push(std::move(result));
     }
+#endif
+    THROW_INTERNAL_ERROR("callp: unsupported functor type on stack: %1%"_fmt % (int)p->type);
     return ret_address;
 }
 
@@ -178,11 +183,15 @@ std::string vm::context::callp_describe() const
         string_view address_descr = describe_address(address);
         return ("0x%1$x ; %2%"_fmt % address % address_descr).str();
     }
+#if 0
     decltype(auto) ftor = p.as<invocation::functor_object>();
     //int64_t sigdescr = stack_back(1).as<int64_t>();
     if (auto* pfinv = dynamic_cast<function_invoker*>(&ftor); pfinv) {
         return ("`%1%` at 0x%2$x"_fmt % pfinv->name() % pfinv->address(*this)).str();
     }
+#endif
+    THROW_INTERNAL_ERROR("callp_describe: unsupported functor type on stack: %1%"_fmt % (int)p->type);
+
     return std::string{ "external functor"sv };
 }
 
@@ -207,7 +216,7 @@ std::string vm::context::ecall_describe(size_t fn_index) const
     case builtin_fn::referify: return "referify";
     case builtin_fn::weak_create: return "weak_create";
     case builtin_fn::weak_lock: return "weak_lock";
-    case builtin_fn::function_constructor: return "function_constructor";
+    //case builtin_fn::function_constructor: return "function_constructor";
     //case builtin_fn::extern_object_create: return "extern_object_create";
     //case builtin_fn::extern_object_set_property: return "extern_object_set_property";
     case builtin_fn::extern_object_get_property: return "extern_object_get_property";
@@ -380,6 +389,7 @@ void vm::context::extern_object_get_property()
 //    stack_pop();
 //}
 
+#if 0
 void vm::context::construct_function()
 {
     int64_t sigdescr = stack_back().as<int64_t>();
@@ -393,6 +403,7 @@ void vm::context::construct_function()
     stack_pop(5);
     stack_push(std::move(res));
 }
+#endif
 
 void vm::context::is_nil()
 {
@@ -460,6 +471,7 @@ void vm::context::weak_lock()
     THROW_NOT_IMPLEMENTED_ERROR();
 }
 
+#if 0
 void vm::context::call_function_object()
 {
     int64_t sigdescr = stack_back().as<int64_t>(); // (the number of args + 1) [ * (-1) if no result ]
@@ -472,6 +484,7 @@ void vm::context::call_function_object()
         stack_push(std::move(result));
     }
 }
+#endif
 
 virtual_stack_machine::virtual_stack_machine()
 {
@@ -484,7 +497,7 @@ virtual_stack_machine::virtual_stack_machine()
     set_efn((size_t)builtin_fn::referify, [](vm::context& ctx) { ctx.referify(); });
     set_efn((size_t)builtin_fn::weak_create, [](vm::context& ctx) { ctx.weak_create(); });
     set_efn((size_t)builtin_fn::weak_lock, [](vm::context& ctx) { ctx.weak_lock(); });
-    set_efn((size_t)builtin_fn::function_constructor, [](vm::context& ctx) { ctx.construct_function(); });
+    //set_efn((size_t)builtin_fn::function_constructor, [](vm::context& ctx) { ctx.construct_function(); });
     //set_efn((size_t)builtin_fn::extern_object_create, [](vm::context& ctx) { ctx.extern_object_create(); });
     //set_efn((size_t)builtin_fn::extern_object_set_property, [](vm::context& ctx) { ctx.extern_object_set_property(); });
     set_efn((size_t)builtin_fn::extern_object_get_property, [](vm::context& ctx) { ctx.extern_object_get_property(); });

@@ -467,6 +467,9 @@
     <None Include="..\..\..\tests\test-suite\conditional_statements.ann">
       <Filter>test-suite</Filter>
     </None>
+    <None Include="..\..\..\tests\test-suite\callables.ann">
+      <Filter>test-suite</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\..\..\tpls\sonia-prime\projects\vs\sonia.natvis">

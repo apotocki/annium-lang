@@ -474,7 +474,7 @@ functional::match::apply(fn_compiler_context& ctx)
         if (!pre_ser.temporaries.empty()) {
             r->temporaries.insert(r->temporaries.begin(), pre_ser.temporaries.begin(), pre_ser.temporaries.end());
         }
-        if (!r->is_const_result && pre_ser.expressions) {
+        if (r->expressions && pre_ser.expressions) {
             r->expressions = expressions.concat(pre_ser.expressions, r->expressions);
         }
     }

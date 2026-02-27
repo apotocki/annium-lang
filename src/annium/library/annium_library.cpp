@@ -8,6 +8,7 @@
 #include "numetron/basic_integer.hpp"
 #include "numetron/basic_decimal.hpp"
 
+
 #include <sstream>
 
 namespace annium {
@@ -444,6 +445,90 @@ void annium_int2flt(vm::context& ctx)
     ctx.stack_back().replace(smart_blob{ f32_blob_result((float)ival) });
 }
 
+class annium_callable : public invocation::callable
+{
+    smart_blob fn_blob_;
+    size_t arg_count_;
+    weak_ptr<environment> environment_;
+    std::variant<invocation::invocable*, weak_ptr<invocation::invocable> > scope_;
+
+public:
+    annium_callable(smart_blob fn_blob, size_t arg_count, weak_ptr<environment> env, invocation::invocable* scope)
+        : fn_blob_{ std::move(fn_blob) }
+        , arg_count_{ arg_count }
+        , environment_{ std::move(env) }
+        , scope_{ nullptr }
+    {
+        if (scope) {
+            auto shared = scope->self_as_invocable_shared();
+            if (shared) {
+                scope_ = std::move(shared);
+            } else {
+                scope_ = scope;
+            }
+        }
+    }
+
+    smart_blob invoke(span<const blob_result> args) noexcept override
+    {
+        shared_ptr<environment> env = environment_.lock();
+        if (!env) {
+            return smart_blob{ error_blob_result("annium_callable error: environment is no longer available") };
+        }
+        shared_ptr<invocation::invocable> scope_holder;
+        invocation::invocable* ps =  std::visit([&scope_holder]<typename T>(T arg) -> invocation::invocable* {
+            if constexpr (std::is_same_v<T, invocation::invocable*>) {
+                return arg;
+            } else {
+                scope_holder = arg.lock();
+                if (!scope_holder) {
+                    throw exception{ "annium_callable error: invocable environment is no longer available" };
+                }
+                return scope_holder.get();
+            }}, scope_);
+
+        if (args.size() != arg_count_) {
+            return smart_blob{ error_blob_result(("annium_callable error: expected %1% arguments, got %2%"_fmt % arg_count_ % args.size()).str()) };
+        }
+        try {
+            vm::context ctx{ *env, ps };
+            size_t init_stack_sz = ctx.stack_size();
+            ctx.stack_push(fn_blob_);
+            annium_unfold(ctx);
+            size_t cindex = ctx.stack_back().as<size_t>();
+            size_t address = ctx.const_at(cindex).as<size_t>();
+            ctx.stack_pop();
+            for (auto const& arg : args) {
+                ctx.stack_push(smart_blob(arg));
+            }
+            env->bvm().run(ctx, address);
+            
+            size_t final_stack_sz = ctx.stack_size();
+            smart_blob result;
+            if (final_stack_sz > init_stack_sz) {
+                BOOST_ASSERT(final_stack_sz == init_stack_sz + 1);
+                return std::move(ctx.stack_back());
+            }
+            return smart_blob{ nil_blob_result() };
+        } catch (...) {
+            return smart_blob{ error_blob_result(boost::current_exception_diagnostic_information()) };
+        }
+    }
+};
+
+void annium_create_callable(vm::context& ctx)
+{
+    using namespace sonia::invocation;
+
+    size_t arg_count = ctx.stack_back().as<size_t>();
+    smart_blob fn = std::move(ctx.stack_back(1));
+
+    shared_ptr<callable> cl = std::make_shared<annium_callable>(std::move(fn), arg_count, ctx.get_environment().shared_from_this(), ctx.scope());
+    smart_blob callable_object{ object_blob_result<wrapper_object<shared_ptr<callable>>>(std::move(cl)) };
+    ctx.stack_pop();
+    ctx.stack_back().replace(std::move(callable_object));
+}
+
 void annium_create_extern_object(vm::context& ctx)
 {
     string_view name = ctx.stack_back().as<string_view>();
@@ -491,6 +576,27 @@ void annium_invoke_void(vm::context& ctx)
 {
     annium_invoke(ctx);
     ctx.stack_pop();
+}
+
+void annium_invoke_callable(vm::context& ctx)
+{
+    // we have on stack here: [callable_object, arg1, arg2, ..., argN, N]
+    using namespace sonia::invocation;
+    size_t argcount = ctx.stack_back().as<size_t>();
+    shared_ptr<callable> pcallable = std::move(ctx.stack_back(argcount + 1).as<wrapper_object<shared_ptr<callable>>>().value);
+
+    small_vector<blob_result, 16> args;
+    args.reserve(argcount);
+    for (size_t i = argcount; i > 0; --i) {
+        args.emplace_back(*ctx.stack_back(i));
+    }
+
+    smart_blob res = pcallable->invoke(args);
+    if (res.is_error()) {
+        throw exception(res.as<std::string>());
+    }
+    ctx.stack_pop(argcount + 1);
+    ctx.stack_back().replace(std::move(res));
 }
 
 }

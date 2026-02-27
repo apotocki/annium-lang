@@ -39,6 +39,7 @@
 #include "annium/entities/literals/string/string_empty_pattern.hpp"
 
 #include "annium/entities/callables/to_callable_implicit_cast_pattern.hpp"
+#include "annium/entities/callables/to_external_callable_implicit_cast_pattern.hpp"
 
 #include "annium/entities/union/union_bit_or_pattern.hpp"
 #include "annium/entities/union/union_apply_pattern.hpp"
@@ -1456,6 +1457,7 @@ environment::environment()
     builtin_eids_[(size_t)builtin_eid::false_] = make_bool_entity(false).id;
         
     setup_type(builtin_qnid::object, builtin_eid::object);
+    setup_type(builtin_qnid::callable, builtin_eid::callable);
     setup_type(builtin_qnid::identifier, builtin_eid::identifier);
     setup_type(builtin_qnid::qname, builtin_eid::qname);
     //setup_type(builtin_qnid::metaobject, builtin_eid::metaobject);
@@ -1523,6 +1525,7 @@ environment::environment()
     implicit_cast_fnl.push(make_shared<numeric_literal_implicit_cast_pattern>());
     implicit_cast_fnl.push(make_shared<string_implicit_cast_pattern>());
     implicit_cast_fnl.push(make_shared<to_callable_implicit_cast_pattern>());
+    implicit_cast_fnl.push(make_shared<to_external_callable_implicit_cast_pattern>());
     implicit_cast_fnl.push(make_shared<void_implicit_cast_pattern>());
     implicit_cast_fnl.push(make_shared<any_implicit_cast_pattern>());
 
@@ -1610,6 +1613,9 @@ environment::environment()
     //eq_qname_identifier_ = make_qname_identifier("==");
     //functional& eq_fnl = fregistry_resolve(eq_qname_identifier_);
     //eq_fnl.push(make_shared<eq_pattern>());
+
+    builtin_eids_[(size_t)builtin_eid::create_callable] = set_builtin_extern("__make_callable(_, runtime u32, runtime bool)->callable"sv, &annium_create_callable);
+    builtin_eids_[(size_t)builtin_eid::annium_invoke_callable] = set_builtin_extern("__annium_invoke_callable(runtime callable, runtime any ..., runtime integer)-> any"sv, &annium_invoke_callable);
 
     builtin_eids_[(size_t)builtin_eid::arrayify] = set_builtin_extern("__arrayify(..., runtime integer)->tuple($0...)"sv, &annium_arrayify);
     builtin_eids_[(size_t)builtin_eid::unfold] = set_builtin_extern("__unfold(~runtime array(...))"sv, &annium_unfold);

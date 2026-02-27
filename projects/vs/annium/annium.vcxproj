@@ -22,13 +22,8 @@
     <ClCompile Include="..\..\..\src\annium\ast\ast_resource.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\array\array_from_iterator_make_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\array\array_implicit_cast_pattern.cpp" />
-    <ClCompile Include="..\..\..\src\annium\entities\callables\callable_entity.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\callables\to_callable_implicit_cast_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\entities\callables\to_external_callable_implicit_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\enum\enum_equal_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\enum\enum_get_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\enum\enum_implicit_runtime_cast_pattern.cpp" />
@@ -164,8 +159,8 @@
     <ClInclude Include="..\..\..\src\annium\ast\base_expression_visitor.ipp" />
     <ClInclude Include="..\..\..\src\annium\entities\array\array_from_iterator_make_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\array\array_implicit_cast_pattern.hpp" />
-    <ClInclude Include="..\..\..\src\annium\entities\callables\callable_entity.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\callables\to_callable_implicit_cast_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\callables\to_external_callable_implicit_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\enum\enum_equal_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\enum\enum_get_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\enum\enum_implicit_runtime_cast_pattern.hpp" />

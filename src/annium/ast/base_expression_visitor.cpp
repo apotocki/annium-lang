@@ -823,19 +823,36 @@ base_expression_visitor::result_type base_expression_visitor::make_function_call
         env().push_back_expression(expressions, ftor.expressions, semantic::invoke_function{ env().get(builtin_eid::unfold) });
         auto args_span = fn_ent_sig->fields().first(fn_ent_sig->fields().size() - 1);
         if (!args_span.empty()) {
-            fn_compiler_context_scope fn_scope{ ctx };
-            identifier fn_address_var_name = env().new_identifier();
-            local_variable fn_address_var = fn_scope.new_temporary(fn_address_var_name, env().get(builtin_eid::integer));
-        
+            local_variable fn_address_var{ .type = env().get(builtin_eid::integer), .varid = env().new_variable_identifier(), .is_weak = false };
+
             env().push_back_expression(expressions, ftor.expressions, semantic::set_local_variable::create(fn_address_var));
             env().push_back_expression(expressions, ftor.expressions, semantic::truncate_values{ .count = 1, .keep_back = 0 });
         
             auto err = make_function_call_arguments(proc, args_span, ftor);
             if (err) return std::unexpected(std::move(err));
             env().push_back_expression(expressions, ftor.expressions, semantic::push_local_variable::create(fn_address_var));
-            ftor.temporaries.emplace_back(/*fn_address_var_name,*/ std::move(fn_address_var), semantic::expression_span{});
+            ftor.temporaries.emplace_back(std::move(fn_address_var), semantic::expression_span{});
         }
         env().push_back_expression(expressions, ftor.expressions, semantic::invoke_context_function{ });
+        return apply_cast(std::move(ftor));
+    }
+    if (ftor.type() == env().get(builtin_eid::callable)) {
+        // callable is an opaque runtime object, arguments are untyped
+        // stack layout expected by annium_invoke_callable: [callable_object, arg1, ..., argN, N]
+        prepared_call pcall{ ctx, nullptr, proc.args, context_expression_.location, expressions };
+        pcall.prepare();
+
+        for (opt_named_expression_t const& arg : pcall.args) {
+            auto [pname, expr] = *arg;
+            auto arg_res = base_expression_visitor::visit(ctx, expressions, expected_result_t{ .modifier = value_modifier_t::runtime_value }, expr);
+            if (!arg_res) return std::unexpected(std::move(arg_res.error()));
+            syntax_expression_result& arg_er = arg_res->first;
+            append_semantic_result(expressions, arg_er, ftor);
+        }
+        env().push_back_expression(expressions, ftor.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(pcall.args.size()) } });
+        env().push_back_expression(expressions, ftor.expressions, semantic::invoke_function(env().get(builtin_eid::annium_invoke_callable)));
+        ftor.value_or_type = env().get(builtin_eid::any);
+        ftor.is_const_result = false;
         return apply_cast(std::move(ftor));
     }
     if (!fn_ent_sig || fn_ent_sig->name != env().get(builtin_qnid::functor)) {
@@ -1174,7 +1191,7 @@ base_expression_visitor::result_type base_expression_visitor::operator()(lambda 
     functional_identifier_entity const& lambda_ent = env().make_functional_identifier_entity(fnl.id());
 
     // deal with lambda captures
-    while (!l.captures.empty()) { // not a loop, just to break
+    if (!l.captures.empty()) {
         prepared_call pcall{ ctx, nullptr, l.captures, context_expression_.location, expressions };
         pcall.prepare();
 
@@ -1219,15 +1236,16 @@ base_expression_visitor::result_type base_expression_visitor::operator()(lambda 
             
             sig.emplace_back(name, ser.value_or_type, ser.is_const_result);
         }
-        if (!rt_capture_size) break; // nothing to capture
-        if (rt_capture_size > 1) {
-            env().push_back_expression(expressions, capture_res.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(rt_capture_size) } });
-            env().push_back_expression(expressions, capture_res.expressions, semantic::invoke_function(env().get(builtin_eid::arrayify)));
+        if (rt_capture_size) { // else nothing to capture
+            if (rt_capture_size > 1) {
+                env().push_back_expression(expressions, capture_res.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(rt_capture_size) } });
+                env().push_back_expression(expressions, capture_res.expressions, semantic::invoke_function(env().get(builtin_eid::arrayify)));
+            }
+            basic_signatured_entity const& capture_sig_ent = env().make_basic_signatured_entity(std::move(sig));
+            fnptrn->set_captures(capture_sig_ent);
+            capture_res.value_or_type = capture_sig_ent.id;
+            return apply_cast(std::move(capture_res));
         }
-        basic_signatured_entity const& capture_sig_ent = env().make_basic_signatured_entity(std::move(sig));
-        fnptrn->set_captures(capture_sig_ent);
-        capture_res.value_or_type = capture_sig_ent.id;
-        return apply_cast(std::move(capture_res));
     }
     
     return apply_cast(lambda_ent);

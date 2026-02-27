@@ -58,6 +58,7 @@ set (LIBRARY_SOURCES
     ${LIBRARY_HOME}/annium/entities/functions/internal_function_entity.cpp
     
     ${LIBRARY_HOME}/annium/entities/callables/to_callable_implicit_cast_pattern.cpp
+    ${LIBRARY_HOME}/annium/entities/callables/to_external_callable_implicit_cast_pattern.cpp
     
     ${LIBRARY_HOME}/annium/entities/literals/numeric_implicit_cast_pattern.cpp
     ${LIBRARY_HOME}/annium/entities/literals/numeric_literal_equal_pattern.cpp

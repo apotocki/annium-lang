@@ -366,9 +366,6 @@
     <ClCompile Include="..\..\..\src\annium\ast\ast_resource.cpp">
       <Filter>annium\ast</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\callables\callable_entity.cpp">
-      <Filter>annium\entities\callables</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\callables\to_callable_implicit_cast_pattern.cpp">
       <Filter>annium\entities\callables</Filter>
     </ClCompile>
@@ -404,6 +401,9 @@
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\functional\general\any_implicit_cast_pattern.cpp">
       <Filter>annium\functional\general</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\callables\to_external_callable_implicit_cast_pattern.cpp">
+      <Filter>annium\entities\callables</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -758,9 +758,6 @@
     <ClInclude Include="..\..\..\src\annium\ast\ast_resource.hpp">
       <Filter>annium\ast</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\callables\callable_entity.hpp">
-      <Filter>annium\entities\callables</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\callables\to_callable_implicit_cast_pattern.hpp">
       <Filter>annium\entities\callables</Filter>
     </ClInclude>
@@ -802,6 +799,9 @@
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\functional\general\any_implicit_cast_pattern.hpp">
       <Filter>annium\functional\general</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\callables\to_external_callable_implicit_cast_pattern.hpp">
+      <Filter>annium\entities\callables</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

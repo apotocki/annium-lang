@@ -1,0 +1,49 @@
+fn my_print0()->() {
+    print("0");
+}
+fn my_print0(string)->() {
+    print($0);
+}
+
+fn my_print0(string, string)->() {
+    print($0 .. $1);
+}
+
+fn my_print0(string, string, string)->() {
+    print($0 .. $1 .. $2);
+}
+
+let ftor0 : ()->() = my_print0;
+let c0: callable = ftor0;
+c0(); // should print "0"
+assert_equal(__get_frame_stack_height(), 1); // on stack: c0
+
+let ftor1 : string->() = my_print0;
+let c1: callable = ftor1;
+c1("Hello!"); // should print "Hello!"
+assert_equal(__get_frame_stack_height(), 2); // on stack: c0, c1
+
+let ftor2 : (string, string)->() = my_print0;
+let c2: callable = ftor2;
+c2("Hello,", " World!"); // should print "Hello, World!"
+assert_equal(__get_frame_stack_height(), 3); // on stack: c0, c1, c2
+
+let lambda : ()->() = fn() => my_print0();
+let c3: callable = lambda;
+c3(); // should print "0"
+assert_equal(__get_frame_stack_height(), 4); // on stack: c0, c1, c2, c3
+
+// runtime functors with captured values
+fn builder(runtime string, runtime string)->(string)->() {
+    return fn[value: $0, value1: $1](string) => my_print0($0, value, value1);
+}
+
+//builder("Alice", " and Bob!")("Hi, ");
+
+let lambda2 : (string)->() = builder("Alice", " and Bob!");
+assert_equal(__get_frame_stack_height(), 5); // on stack: c0, c1, c2, c3, lambda2
+
+let c4: callable = lambda2;
+c4("Hi, "); // should print "Hi, Alice and Bob!"
+assert_equal(__get_frame_stack_height(), 6); // on stack: c0, c1, c2, c3, lambda2, c4
+

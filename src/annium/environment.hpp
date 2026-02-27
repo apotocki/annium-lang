@@ -77,6 +77,7 @@ class arena;
     ((identifier, "__identifier"sv))       \
     ((qname, "__qname"sv))                 \
     ((object, "object"sv))                 \
+    ((callable, "callable"sv))             \
     ((string, "string"sv))                 \
     ((f16, "f16"sv))                       \
     ((f32, "f32"sv))                       \
@@ -172,9 +173,11 @@ enum class builtin_eid : entity_identifier::value_type
     BOOST_PP_SEQ_FOR_EACH(ANNIUM_PRINT_BUILTINTYPE_ENUM, _, ANNIUM_BUILTIN_TYPES_SEQ)
     void_type, // empty tuple type: tuple()
     void_, // constexpr literal of empty tuple type
-    object,
+    object, callable,
     true_, false_, identifier, qname,
     get_frame_stack_height, // builtin ::__get_frame_stack_height(level)-> integer
+    create_callable, // builtin ::__create_callable(@callable, $argcount: u64, $is_void: bool)-> callable
+    annium_invoke_callable, // builtin ::__annium_invoke_callable(runtime @callable, runtime any ..., $argcount: runtime integer)-> any
     arrayify, // builtin ::arrayify(...)->array
     unfold, // builtin ::unfold(:array(...))
     array_tail, // builtin ::array_tail(array)-> array
@@ -197,7 +200,7 @@ enum class builtin_eid : entity_identifier::value_type
 
 #undef ANNIUM_PRINT_BUILTINTYPE_ENUM
 
-class environment
+class environment : public enable_shared_from_this<environment>
 {
     using identifier_builder_t = sonia::lang::identifier_builder<identifier>;
     //using entity_identifier_builder_t = identifier_builder<entity_identifier>;

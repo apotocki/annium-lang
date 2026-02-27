@@ -147,9 +147,9 @@ public:
     //void extern_object_set_property();
     void extern_object_get_property();
     void extern_function_call();
-    void construct_function();
+    //void construct_function();
 
-    void call_function_object();
+    //void call_function_object();
 
     static small_string camel2kebab(string_view cc);
 
@@ -244,6 +244,7 @@ public:
 
     small_string generate_object_id() const;
 
+    inline invocation::invocable* scope() const noexcept { return penv_; }
     inline invocation::invocable& env() const
     {
         if (!penv_) {
@@ -275,7 +276,7 @@ public:
         is_nil = 0,
         /*arrayify,*/ unpack,
         referify, weak_create, weak_lock,
-        function_constructor,
+        //function_constructor,
         /*extern_object_create, extern_object_set_property,*/ extern_object_get_property,
         extern_variable_get, extern_variable_set,
         extern_function_call,

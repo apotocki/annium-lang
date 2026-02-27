@@ -36,7 +36,7 @@ public:
     annium_impl& operator=(annium_impl const&) = delete;
     ~annium_impl();
 
-    void set_cout_writer(function<void(string_view)> writer) { environment_.set_cout_writer(std::move(writer)); }
+    void set_cout_writer(function<void(string_view)> writer) { environment_->set_cout_writer(std::move(writer)); }
     void set_environment(invocation::invocable* penv) { penv_ = penv; }
     void load(fs::path const& srcfile, span<string_view> args = {});
     void load(string_view code, span<string_view> args = {});
@@ -51,7 +51,7 @@ protected:
     void bootstrap();
 
 private:
-    environment environment_;
+    shared_ptr<environment> environment_ = make_shared<environment>();
     //optional<fn_compiler_context> default_ctx_;
     optional<internal_function_entity> main_function_;
     invocation::invocable* penv_ = nullptr;
@@ -224,19 +224,19 @@ annium_impl::~annium_impl()
 void annium_impl::bootstrap()
 {
     if (bootstrapped_) return;
-    parser_context parser{ environment_ };
+    parser_context parser{ *environment_ };
     auto decls = parser.parse_string(string_view{ annium_bootstrap_code });
     if (!decls.has_value()) throw exception(decls.error());
     
-    internal_function_entity dummy{ environment_, qname{}, entity_signature{}, resource_location{}, field_descriptor{} };
+    internal_function_entity dummy{ *environment_, qname{}, entity_signature{}, resource_location{}, field_descriptor{} };
     dummy.set_body(*decls);
     
     declaration_visitor dvis{ dummy.context() };
     if (auto res = dvis.apply(*decls); !res)
-        throw exception(environment_.print(*res.error()));
+        throw exception(environment_->print(*res.error()));
     auto res = dummy.context().finish_frame(dummy);
     if (!res) {
-        throw exception(environment_.print(*res.error()));
+        throw exception(environment_->print(*res.error()));
     }
 
     bootstrapped_ = true;
@@ -246,12 +246,12 @@ void annium_impl::load(fs::path const& f, span<string_view> args)
 {
     try {
         bootstrap();
-        parser_context parser{ environment_ };
+        parser_context parser{ *environment_ };
         auto decls = parser.parse(f);
         if (!decls.has_value()) throw exception(decls.error());
         compile(std::move(*decls), args);
     } catch (error const& e) {
-        throw exception(environment_.print(e));
+        throw exception(environment_->print(e));
     }
 }
 
@@ -259,23 +259,23 @@ void annium_impl::load(string_view code, span<string_view> args)
 {
     try {
         bootstrap();
-        parser_context parser{ environment_ };
+        parser_context parser{ *environment_ };
         auto decls = parser.parse_string(code);
         if (!decls.has_value()) throw exception(decls.error());
         compile(std::move(*decls), args);
     } catch (error const& e) {
-        throw exception(environment_.print(e));
+        throw exception(environment_->print(e));
     }
 }
 
 void annium_impl::compile(span<const statement> decls, span<string_view> args)
 {
-    //identifier main_id = environment_.new_identifier();
+    //identifier main_id = environment_->new_identifier();
     entity_signature main_sig{};
-    auto main_fn_ent = make_shared<internal_function_entity>(environment_, qname{}, std::move(main_sig), resource_location{}, field_descriptor{});
+    auto main_fn_ent = make_shared<internal_function_entity>(*environment_, qname{}, std::move(main_sig), resource_location{}, field_descriptor{});
     main_fn_ent->set_body(decls);
     //fn_compiler_context ctx{ environment_, qname{ main_id } };
-    fn_compiler_context ctx{ environment_, *main_fn_ent };
+    fn_compiler_context ctx{ *environment_, *main_fn_ent };
     size_t argindex = 0;
     std::array<char, 16> argname = { '$' };
     for (string_view arg : args) {
@@ -283,18 +283,18 @@ void annium_impl::compile(span<const statement> decls, span<string_view> args)
         char * epos = numetron::to_string(span{ &argindex, 1 }, argname.data() + 1, reversed);
         if (reversed) std::reverse(argname.data() + 1, epos);
 
-        entity const& argent = environment_.make_string_entity(arg);
-        identifier argid = environment_.slregistry().resolve(string_view{ argname.data(), epos });
-        functional& arg_fnl = environment_.fregistry_resolve(ctx.ns() / argid);
+        entity const& argent = environment_->make_string_entity(arg);
+        identifier argid = environment_->slregistry().resolve(string_view{ argname.data(), epos });
+        functional& arg_fnl = environment_->fregistry_resolve(ctx.ns() / argid);
         arg_fnl.set_default_entity(annotated_entity_identifier{ argent.id, {} });
             
         //ctx.new_const_entity(string_view{ argname.data(), epos }, std::move(ent));
         ++argindex;
     }
     argname[1] = '$';
-    entity const& argent = environment_.make_integer_entity(argindex);
-    identifier argid = environment_.slregistry().resolve(string_view{ argname.data(), 2 });
-    functional& arg_fnl = environment_.fregistry_resolve(ctx.ns() / argid);
+    entity const& argent = environment_->make_integer_entity(argindex);
+    identifier argid = environment_->slregistry().resolve(string_view{ argname.data(), 2 });
+    functional& arg_fnl = environment_->fregistry_resolve(ctx.ns() / argid);
     arg_fnl.set_default_entity(annotated_entity_identifier{ argent.id, {} });
         
 
@@ -318,7 +318,7 @@ void annium_impl::compile(span<const statement> decls, span<string_view> args)
 
 
     //declaration_visitor dvis{ ctx };
-    //if (auto err = dvis.apply(decls); err) throw exception(environment_.print(*err));
+    //if (auto err = dvis.apply(decls); err) throw exception(environment_->print(*err));
     //ctx.finish_frame();
 
 
@@ -340,17 +340,17 @@ void annium_impl::compile(span<const statement> decls, span<string_view> args)
     
     auto err = main_fn_ent->build(ctx);
     if (err) {
-        throw exception(environment_.print(*err));
+        throw exception(environment_->print(*err));
     }
 
     // at first built all functions, then compile them
     std::vector<internal_function_entity*> fns;
-    environment_.eregistry_traverse([this, &fns](entity& e) {
-        //GLOBAL_LOG_INFO() << environment_.print(e);
+    environment_->eregistry_traverse([this, &fns](entity& e) {
+        //GLOBAL_LOG_INFO() << environment_->print(e);
         if (auto* fe = dynamic_cast<internal_function_entity*>(&e); fe && !fe->is_provision()) {
             if (!fe->is_built()) {
                 if (auto err = fe->build()) {
-                    throw exception("function '%1%' build error:\n%2%"_fmt % environment_.print(fe->id) % environment_.print(*err));
+                    throw exception("function '%1%' build error:\n%2%"_fmt % environment_->print(fe->id) % environment_->print(*err));
                 }
             }
             fns.push_back(fe);
@@ -358,22 +358,22 @@ void annium_impl::compile(span<const statement> decls, span<string_view> args)
         return true;
     });
     for (internal_function_entity* fe : fns) {
-        //GLOBAL_LOG_INFO() << environment_.print(*fe);
+        //GLOBAL_LOG_INFO() << environment_->print(*fe);
         do_compile(*fe);
     }
 
     // all arguments referenced as constants => no fp prolog/epilog code
-    size_t address = environment_.compile(*main_fn_ent);
+    size_t address = environment_->compile(*main_fn_ent);
 #if 0
     asm_builder_t::function_descriptor& fd = vmasm_.resolve_function(vmasm::fn_identity<identifier>{ main_id });
     asm_builder_t::function_builder fb{ vmasm_, fd }; // = vmasm_.create_function(sonia::vmasm::fn_identity<identifier>{ main_id });
     vm::compiler_visitor vmcvis{ environment_, fb, main_fn_ent };
-    //auto& bvm = environment_.bvm();
+    //auto& bvm = environment_->bvm();
     //size_t main_address = bvm.get_ip();
     
     //std::ostringstream fn_code_str;
     //main_fn_ent.body.for_each([this, &fn_code_str](semantic::expression const& e) {
-    //    fn_code_str << environment_.print(e);
+    //    fn_code_str << environment_->print(e);
     //});
     //GLOBAL_LOG_INFO() << "body expression:\n"sv << fn_code_str.str();
 
@@ -385,39 +385,39 @@ void annium_impl::compile(span<const statement> decls, span<string_view> args)
     fb.materialize();
 #endif
     // run
-    vm::context vmctx{ environment_, penv_ };
-    environment_.bvm().run(vmctx, address);
+    vm::context vmctx{ *environment_, penv_ };
+    environment_->bvm().run(vmctx, address);
 
     //function_signature main_sig{ };
     //main_sig.position_parameters().emplace_back(annium_vector_t{ annium_string_t{} });
-    //main_function_.emplace(entity_identifier{}, environment_.make_qname_identifier("main"sv), std::move(main_sig));
+    //main_function_.emplace(entity_identifier{}, environment_->make_qname_identifier("main"sv), std::move(main_sig));
     //main_function_->body = std::move(ctx.expressions());
     //do_compile(vmcvis, *main_function_);
 }
 
 void annium_impl::do_compile(internal_function_entity const& fe)
 {
-    //GLOBAL_LOG_INFO() << "compiling function: " << environment_.print(fe.name());
+    //GLOBAL_LOG_INFO() << "compiling function: " << environment_->print(fe.name());
     //fe.body.for_each([this](semantic::expression const& e) {
-    //    GLOBAL_LOG_INFO() << environment_.print(e); // << "\n"sv
+    //    GLOBAL_LOG_INFO() << environment_->print(e); // << "\n"sv
     //});
 
     if (!fe.is_built()) {
         auto err = const_cast<internal_function_entity&>(fe).build();
         if (err) {
-            throw exception(environment_.print(*err));
+            throw exception(environment_->print(*err));
         }
     }
     
     if (fe.is_inline() || fe.is_empty())
         return;
 
-    environment_.compile(fe);
+    environment_->compile(fe);
 }
 
 void annium_impl::run(span<string_view> args)
 {
-    vm::context ctx{ environment_, penv_ };
+    vm::context ctx{ *environment_, penv_ };
     for (string_view arg : args) {
         smart_blob argblob{ string_blob_result(arg) };
         argblob.allocate();
@@ -431,25 +431,25 @@ void annium_impl::run(span<string_view> args)
     }
     THROW_NOT_IMPLEMENTED_ERROR("annium_impl::run");
 #if 0
-    environment_.bvm().run(ctx, main_function_->get_address());
+    environment_->bvm().run(ctx, main_function_->get_address());
 #endif
 }
 
 smart_blob annium_impl::call(string_view /*fnsig*/, span<const std::pair<string_view, const blob_result>> /*namedargs*/, span<const blob_result> args)
 {
     smart_blob result;
-    vm::context ctx{ environment_, penv_ };
+    vm::context ctx{ *environment_, penv_ };
     for (blob_result const& arg : args) {
         ctx.stack_push(smart_blob(arg));
     }
-    //qname_identifier qid = environment_.get_function_entity_identifier(fnsig);
+    //qname_identifier qid = environment_->get_function_entity_identifier(fnsig);
     //span<qname_identifier> fnsig{};
-    //identifier mandled_sig_id = environment_.piregistry().resolve(fnsig);
-    //qname fnqn = qname{environment_.slregistry().resolve(name)} + mandled_sig_id;
-    //qname_identifier qid = environment_.qnregistry().resolve(fnqn);
+    //identifier mandled_sig_id = environment_->piregistry().resolve(fnsig);
+    //qname fnqn = qname{environment_->slregistry().resolve(name)} + mandled_sig_id;
+    //qname_identifier qid = environment_->qnregistry().resolve(fnqn);
     THROW_NOT_IMPLEMENTED_ERROR("annium_impl::call");
 #if 0
-    auto ent = environment_.eregistry().find(qid);
+    auto ent = environment_->eregistry().find(qid);
     auto fnent = dynamic_pointer_cast<function_entity>(ent);
     if (!fnent) {
         throw exception("function '%1%' is not found"_fmt % fnsig);
@@ -458,7 +458,7 @@ smart_blob annium_impl::call(string_view /*fnsig*/, span<const std::pair<string_
         throw exception("function '%1%' error: wrong number of arguments, expected: %2%, provided: %3%"_fmt % fnsig %
             fnent->signature().parameters_count() % (args.size() + namedargs.size()));
     }
-    environment_.bvm().run(ctx, fnent->get_address());
+    environment_->bvm().run(ctx, fnent->get_address());
     if (fnent->signature().fn_type.result != annium_tuple_t()) {
         result.replace(std::move(ctx.stack_back()));
         ctx.stack_pop();
@@ -470,7 +470,7 @@ smart_blob annium_impl::call(string_view /*fnsig*/, span<const std::pair<string_
 smart_blob annium_impl::invoke(blob_result & ftor, span<const blob_result> args) noexcept
 {
     try {
-        vm::context ctx{ environment_, penv_ };
+        vm::context ctx{ *environment_, penv_ };
         size_t init_stack_sz = ctx.stack_size();
         ctx.stack_push(smart_blob{ftor});
         annium_unfold(ctx);
@@ -480,7 +480,7 @@ smart_blob annium_impl::invoke(blob_result & ftor, span<const blob_result> args)
         for (auto const& arg : args) {
             ctx.stack_push(smart_blob(arg));
         }
-        environment_.bvm().run(ctx, address);
+        environment_->bvm().run(ctx, address);
         size_t final_stack_sz = ctx.stack_size();
         smart_blob result;
         if (final_stack_sz > init_stack_sz) {
@@ -498,7 +498,7 @@ smart_blob annium_impl::invoke(blob_result & ftor, span<const blob_result> args)
 
 //void annium_impl::set_cout_writer(function<void(string_view)> writer)
 //{
-//    environment_.set_cout_writer(std::move(writer));
+//    environment_->set_cout_writer(std::move(writer));
 //}
 
 }
