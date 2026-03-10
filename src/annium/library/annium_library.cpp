@@ -573,9 +573,9 @@ void annium_invoke(vm::context& ctx)
     smart_blob resobj = ctx.env().invoke(name, span{ args });
     if (resobj.is_error()) {
         // auto tstr = (std::ostringstream{} << resobj).str();
+        // GLOBAL_LOG_ERROR() << "Error invoking '%1%': %2%"_fmt % name % tstr;
         throw exception(resobj.as<std::string>());
     }
-    
     ctx.stack_pop(argcount + 1);
     ctx.stack_back().replace(std::move(resobj));
 }
