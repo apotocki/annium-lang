@@ -107,23 +107,22 @@ void annium_arrayify(vm::context& ctx)
     if (!mixed_types && argcount) {
         r = blob_type_selector(elements.front(), [&elements](auto ident, blob_result const&)->blob_result {
             using type = typename decltype(ident)::type;
-            if constexpr (std::is_integral_v<type> || std::is_floating_point_v<type> || std::is_same_v<type, bool>) {
+            if constexpr (std::is_integral_v<type> || std::is_floating_point_v<type> || std::is_same_v<type, bool> || std::is_same_v<type, numetron::float16>) {
                 using fstype = std::conditional_t<std::is_same_v<type, bool>, uint8_t, type>;
                 small_vector<fstype, 4> exact_elements;
                 exact_elements.reserve(elements.size());
                 for (auto& e : elements) {
                     exact_elements.push_back(as<fstype>(e));
                 }
-                return array_blob_result(span{ exact_elements.data(), exact_elements.size() });
+                return array_blob_result(span{ exact_elements.data(), exact_elements.size() }, true);
             } else {
-                return array_blob_result(span{ elements.data(), elements.size() });
+                return array_blob_result(span{ elements.data(), elements.size() }, true);
             }
         });
     } else {
-        r = array_blob_result(span{ elements.data(), elements.size() });
+        r = array_blob_result(span{ elements.data(), elements.size() }, true);
     }
-
-    r.allocate();
+    
     elements.clear();
     ctx.stack_pop(argcount + 1);
     ctx.stack_push(std::move(r));
@@ -572,7 +571,11 @@ void annium_invoke(vm::context& ctx)
     
     string_view name = ctx.stack_back(argcount + 1).as<string_view>();
     smart_blob resobj = ctx.env().invoke(name, span{ args });
-    auto tstr = (std::ostringstream{} << resobj).str();
+    if (resobj.is_error()) {
+        // auto tstr = (std::ostringstream{} << resobj).str();
+        throw exception(resobj.as<std::string>());
+    }
+    
     ctx.stack_pop(argcount + 1);
     ctx.stack_back().replace(std::move(resobj));
 }
