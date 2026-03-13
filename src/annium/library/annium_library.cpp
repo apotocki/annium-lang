@@ -512,6 +512,7 @@ public:
             }
             return smart_blob{ nil_blob_result() };
         } catch (...) {
+            GLOBAL_LOG_ERROR() << "Exception in annium_callable: %1%"_fmt % boost::current_exception_diagnostic_information();
             return smart_blob{ error_blob_result(boost::current_exception_diagnostic_information()) };
         }
     }
