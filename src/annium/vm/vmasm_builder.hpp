@@ -484,21 +484,27 @@ void builder<ContextT>::function_builder::materialize()
                 for (size_t i = block_index + 1; i < blocks.size(); ++i) {
                     block_offsets[i] += delta;
                 }
+                b.op_supposed_size = b.op_applied_size;
+
                 // invalidate dependent blocks
                 if (!b.dependent_block_indices.empty()) {
                     for (int dbidx : b.dependent_block_indices) {
                         blocks[dbidx].need_recalculation = 1;
                     }
-                    b.op_supposed_size = b.op_applied_size;
                     
                     // if jmp_block_index > block_index, we need also to invalidate current block too
                     if (jmp_block_index > block_index) {
                         b.need_recalculation = 1;
                         block_index = (std::min)(block_index, (size_t)b.dependent_block_indices.front());
                     } else {
+                        BOOST_ASSERT(block_index > b.dependent_block_indices.front());
                         block_index = b.dependent_block_indices.front();
                     }
-                    
+                    continue;
+                } else if (delta > 0) {
+                    // block offsets after current block have been changed, but there are no dependent blocks to invalidate
+                    // so we need to recalculate current block to update its jump offset
+                    b.need_recalculation = 1;
                     continue;
                 }
             }
