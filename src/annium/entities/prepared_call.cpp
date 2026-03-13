@@ -218,13 +218,13 @@ error_storage prepared_call::prepare()
 
     // initialize caches
     argument_caches_.reserve(args.size());
-    size_t arg_cnt = argument_caches_.size();
-    if (arg_cnt > std::numeric_limits<uint64_t>::digits - 1) {
-        THROW_NOT_IMPLEMENTED_ERROR("Too many arguments in prepared call");
-    }
 
-    named_map_ = positioned_map_ = 0;
-    uint64_t argbit = 1;
+    named_map_.clear();
+    positioned_map_.clear();
+    named_map_.resize(args.size(), false);
+    positioned_map_.resize(args.size(), false);
+
+    size_t argindex = 0;
     for (auto const& arg : args) {
         auto [name, expr] = *arg;
         if (name) {
@@ -234,11 +234,11 @@ error_storage prepared_call::prepare()
         }
 
         if (name) {
-            named_map_ |= argbit;
+            named_map_.set(argindex);
         } else {
-            positioned_map_ |= argbit;
+            positioned_map_.set(argindex);
         }
-        argbit <<= 1;
+        ++argindex;
     }
 
     return {};
@@ -285,16 +285,16 @@ void prepared_call::session::reuse_argument(size_t argindex)
 {
     if (get<0>(call.argument_caches_[argindex])) {
         // if the argument is named, add it back to the named usage map
-        named_usage_map_ |= (1ull << argindex);
+        named_usage_map_.set(argindex);
     } else {
         // if the argument is positioned, add it back to the positioned usage map
-        positioned_usage_map_ |= (1ull << argindex);
+        positioned_usage_map_.set(argindex);
     }
 }
 
 bool prepared_call::session::has_more_positioned_arguments() const noexcept
 {
-    return positioned_usage_map_ != 0;
+    return positioned_usage_map_.any();
 }
 
 std::expected<bool, error_storage> prepared_call::session::use_next_positioned_argument(argument_descriptor_t* pe)
@@ -304,30 +304,27 @@ std::expected<bool, error_storage> prepared_call::session::use_next_positioned_a
 
 std::expected<bool, error_storage> prepared_call::session::use_next_positioned_argument(expected_result_t const& exp, argument_descriptor_t* pe)
 {
-    while (positioned_usage_map_) {
-        // get next unused argument index
-        uint64_t pow2_argindex = positioned_usage_map_ - ((positioned_usage_map_ - 1) & positioned_usage_map_);
-        uint8_t argindex = sonia::sal::log2(pow2_argindex);
-        positioned_usage_map_ -= pow2_argindex; // remove the argument from the usage map
-
-        // find the argument cache
-        auto& [name, loc, arg_cache] = call.argument_caches_[argindex];
-        BOOST_ASSERT(!name);
-
-        auto res = do_resolve(arg_cache, exp);
-        pe->name = {};
-        pe->expression = &arg_cache.expression;
-        pe->arg_index = argindex;
-        if (res) {
-            pe->result = std::move(res->first);
-            pe->has_been_casted = res->second;
-            return true;
-        }
-        return std::unexpected(std::move(res.error()));
+    size_t argindex = positioned_usage_map_.find_first();
+    if (argindex == boost::dynamic_bitset<>::npos) {
+        // no more positioned unused arguments
+        return false;
     }
+    positioned_usage_map_.reset(argindex);
 
-    // no more positioned unused arguments
-    return false;
+    // find the argument cache
+    auto& [name, loc, arg_cache] = call.argument_caches_[argindex];
+    BOOST_ASSERT(!name);
+
+    auto res = do_resolve(arg_cache, exp);
+    pe->name = {};
+    pe->expression = &arg_cache.expression;
+    pe->arg_index = argindex;
+    if (res) {
+        pe->result = std::move(res->first);
+        pe->has_been_casted = res->second;
+        return true;
+    }
+    return std::unexpected(std::move(res.error()));
 }
 
 std::expected<prepared_call::argument_descriptor_t, error_storage>
@@ -405,19 +402,14 @@ std::expected<prepared_call::argument_descriptor_t, error_storage> prepared_call
 std::expected<bool, error_storage>
 prepared_call::session::use_named_argument(identifier name, expected_result_t const& exp, argument_descriptor_t* pe)
 {
-    for (auto tmp_map = named_usage_map_; tmp_map;) {
-        // get next unused argument index
-        uint64_t pow2_argindex = tmp_map - ((tmp_map - 1) & tmp_map);
-        uint8_t argindex = sonia::sal::log2(pow2_argindex);
-        tmp_map -= pow2_argindex; // remove the argument from the usage map
-
+    for (size_t argindex = named_usage_map_.find_first(); argindex != boost::dynamic_bitset<>::npos; argindex = named_usage_map_.find_next(argindex)) {
         // find the argument cache
         auto& [argname, loc, arg_cache] = call.argument_caches_[argindex];
         BOOST_ASSERT(argname);
 
         if (name != argname) continue; // not the argument we are looking for
-        
-        named_usage_map_ -= pow2_argindex;
+
+        named_usage_map_.reset(argindex);
 
         auto res = do_resolve(arg_cache, exp);
 
@@ -429,7 +421,7 @@ prepared_call::session::use_named_argument(identifier name, expected_result_t co
             pe->has_been_casted = res->second;
             return true;
         }
-        
+
         return std::unexpected(std::move(res.error()));
     }
     // no more named unused arguments
@@ -438,43 +430,39 @@ prepared_call::session::use_named_argument(identifier name, expected_result_t co
 
 std::expected<bool, error_storage> prepared_call::session::use_next_argument(expected_result_t const& exp, argument_descriptor_t* pe)
 {
-    for (auto tmp_map = named_usage_map_ | positioned_usage_map_; tmp_map;) {
-        uint64_t pow2_argindex = tmp_map - ((tmp_map - 1) & tmp_map);
-        uint8_t argindex = sonia::sal::log2(pow2_argindex);
-
-        named_usage_map_ &= ~pow2_argindex; // remove the argument from the named usage map
-        positioned_usage_map_ &= ~pow2_argindex; // remove the argument from the positioned usage map
-
-        // find the argument cache
-        auto& [argname, loc, arg_cache] = call.argument_caches_[argindex];
-
-        auto res = do_resolve(arg_cache, exp);
-        pe->name = { argname, loc };
-        pe->expression = &arg_cache.expression;
-        pe->arg_index = argindex;
-        if (res) {
-            pe->result = std::move(res->first);
-            pe->has_been_casted = res->second;
-            return true;
-        }
-        return std::unexpected(std::move(res.error()));
+    auto tmp_map = named_usage_map_ | positioned_usage_map_;
+    size_t argindex = tmp_map.find_first();
+    if (argindex == boost::dynamic_bitset<>::npos) {
+        // no more unused arguments
+        return false;
     }
 
-    // no more named unused arguments
-    return false;
+    named_usage_map_.reset(argindex);
+    positioned_usage_map_.reset(argindex);
+
+    // find the argument cache
+    auto& [argname, loc, arg_cache] = call.argument_caches_[argindex];
+
+    auto res = do_resolve(arg_cache, exp);
+    pe->name = { argname, loc };
+    pe->expression = &arg_cache.expression;
+    pe->arg_index = argindex;
+    if (res) {
+        pe->result = std::move(res->first);
+        pe->has_been_casted = res->second;
+        return true;
+    }
+    return std::unexpected(std::move(res.error()));
 }
 
 opt_named_expression_t prepared_call::session::unused_argument()
 {
-    for (auto tmp_map = named_usage_map_ | positioned_usage_map_; tmp_map;) {
-        uint64_t pow2_argindex = tmp_map - ((tmp_map - 1) & tmp_map);
-        uint8_t argindex = sonia::sal::log2(pow2_argindex);
+    auto tmp_map = named_usage_map_ | positioned_usage_map_;
+    size_t argindex = tmp_map.find_first();
+    if (argindex == boost::dynamic_bitset<>::npos) return {};
 
-        auto& [argname, loc, arg_cache] = call.argument_caches_[argindex];
-        return argname ? opt_named_expression_t{ annotated_identifier{ argname, loc }, arg_cache.expression } : opt_named_expression_t{ arg_cache.expression };
-    }
-
-    return {};
+    auto& [argname, loc, arg_cache] = call.argument_caches_[argindex];
+    return argname ? opt_named_expression_t{ annotated_identifier{ argname, loc }, arg_cache.expression } : opt_named_expression_t{ arg_cache.expression };
 }
 
 }

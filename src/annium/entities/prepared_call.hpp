@@ -7,6 +7,7 @@
 #include "annium/errors.hpp"
 
 #include <boost/container/flat_map.hpp>
+#include <boost/dynamic_bitset.hpp>
 
 #include "annium/functional/functional.hpp"
 
@@ -48,7 +49,8 @@ public:
     //using argument_caches_type = small_vector<std::tuple<identifier, resource_location, argument_cache>, 8>;
     using argument_caches_type = std::vector<std::tuple<identifier, resource_location, argument_cache>>;
     mutable argument_caches_type argument_caches_;
-    uint64_t named_map_, positioned_map_; // bitmasks of named and positional arguments
+    using arg_mask_type = boost::dynamic_bitset<uint64_t, small_vector<uint64_t, 1>>;
+    arg_mask_type named_map_, positioned_map_; // bitmasks of named and positional arguments
 
     prepared_call(fn_compiler_context&, functional const*, span<const opt_named_expression_t>, resource_location call_loc, semantic::expression_list_t&);
     prepared_call(prepared_call const&) = delete;
@@ -88,7 +90,7 @@ public:
         fn_compiler_context& ctx;
         
         prepared_call const& call;
-        uint64_t named_usage_map_, positioned_usage_map_; // bitmasks of unused named and positional arguments
+        arg_mask_type named_usage_map_, positioned_usage_map_; // bitmasks of unused named and positional arguments
 
         session(fn_compiler_context&, prepared_call const&);
 
