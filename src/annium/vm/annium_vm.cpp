@@ -169,7 +169,7 @@ size_t vm::context::callp(size_t ret_address)
         stack_push(std::move(result));
     }
 #endif
-    THROW_INTERNAL_ERROR("callp: unsupported functor type on stack: %1%"_fmt % (int)p->type);
+    THROW_INTERNAL_ERROR("callp: unsupported functor on stack: %1%"_fmt % p);
     return ret_address;
 }
 

@@ -1684,6 +1684,7 @@ size_t environment::compile(internal_function_entity const& fn_ent)
 
     asm_builder_t& asm_builder = static_cast<asm_builder_t&>(*asm_builder_);
     asm_builder_t::function_descriptor& fd = asm_builder.resolve_function(vmasm::fn_identity<entity_identifier>{ fn_ent.id });
+    
     if (!fd.address) {
         asm_builder_t::function_builder fb{ asm_builder, fd };
 
@@ -1698,7 +1699,7 @@ size_t environment::compile(internal_function_entity const& fn_ent)
         }
         bvm().set_address_description(*fd.address, print(fn_ent));
     }
-    
+
     return *fd.address;
 }
 

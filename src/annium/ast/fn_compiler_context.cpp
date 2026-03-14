@@ -10,8 +10,9 @@
 
 #include "annium/functional/functional.hpp"
 #include "annium/entities/functions/internal_function_entity.hpp"
-
+#include "annium/entities/functions/external_function_entity.hpp"
 #include "annium/ast/base_expression_visitor.hpp"
+
 
 #include "annium/errors/identifier_redefinition_error.hpp"
 #include "annium/auxiliary.hpp"
@@ -20,46 +21,67 @@ namespace annium {
 
 namespace {
 
-bool has_procedures(semantic::expression_span span);
+bool has_procedures(environment const&, semantic::expression_span span);
 
 struct procedures_lookup_visitor
 {
+    environment const& env_;
+
+    inline explicit procedures_lookup_visitor(environment const& env) noexcept : env_(env) {}
+
     bool operator()(semantic::expression_span nested) const
     {
-        return has_procedures(nested);
+        return has_procedures(env_, nested);
     }
 
     bool operator()(semantic::return_statement const& rst) const noexcept
     { 
-        return has_procedures(rst.scope_deconstruction);
+        return has_procedures(env_, rst.scope_deconstruction);
     }
 
     bool operator()(semantic::conditional_t const& cond) const
     {
-        return has_procedures(cond.true_branch) || has_procedures(cond.false_branch);
+        return has_procedures(env_, cond.true_branch) || has_procedures(env_, cond.false_branch);
     }
 
     bool operator()(semantic::switch_t const& sw) const
     {
         for (auto const& branch : sw.branches) {
-            if (has_procedures(branch)) return true;
+            if (has_procedures(env_, branch)) return true;
         }
         return false;
     }
 
     bool operator()(semantic::not_empty_condition_t const& nec) const
     {
-        return has_procedures(nec.branch);
+        return has_procedures(env_, nec.branch);
     }
 
     bool operator()(semantic::loop_scope_t const& loop) const
     {
-        return has_procedures(loop.branch) || has_procedures(loop.continue_branch);
+        return has_procedures(env_, loop.branch) || has_procedures(env_, loop.continue_branch);
     }
 
     bool operator()(semantic::invoke_function const& ifn) const
     {
-        (void)ifn;
+        entity const& ent = get_entity(env_, ifn.fn);
+        if (dynamic_cast<external_function_entity const*>(&ent)) return true;
+        if (internal_function_entity const* ifent = dynamic_cast<internal_function_entity const*>(&ent)) {
+            if (!ifent->is_built()) {
+                auto err = const_cast<internal_function_entity*>(ifent)->build();
+                if (err) {
+                    throw exception(env_.print(*err));
+                }
+            }
+            return !ifent->is_empty();
+        }
+        
+        return true;
+    }
+
+    bool operator()(semantic::set_variable const& sv) const
+    {
+        (void)sv;
         return true;
     }
 
@@ -71,10 +93,10 @@ struct procedures_lookup_visitor
     }
 };
 
-bool has_procedures(semantic::expression_span span)
+bool has_procedures(environment const& env, semantic::expression_span span)
 {
     while (span) {
-        if (visit(procedures_lookup_visitor{}, span.front())) {
+        if (visit(procedures_lookup_visitor{env}, span.front())) {
             return true;
         }
         span.pop_front();
@@ -1012,7 +1034,7 @@ std::expected<std::tuple<entity_identifier, bool, bool>, error_storage> fn_compi
 
     if (const_value_result) {
         //bool is_empty_function = fent.arg_count() == 0 && !has_procedures(expressions());
-        bool is_empty_function = !has_procedures(expressions());
+        bool is_empty_function = !has_procedures(env(), expressions());
         //if (!is_empty_function) {
         //    // e.g. to handle: return print( <something> );
         //    for (auto& [rts, el, er, loc] : return_statements_) {
