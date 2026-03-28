@@ -366,103 +366,104 @@ declaration_visitor::result_type declaration_visitor::operator()(for_statement c
 
 declaration_visitor::result_type declaration_visitor::operator()(while_decl const& wd) const
 {
-    (void)wd;
-    THROW_NOT_IMPLEMENTED_ERROR("declaration_visitor while_decl");
-#if 0
     ctx.push_scope();
-    ctx.append_expression(std::move(semantic::loop_scope_t{}));
+    ctx.append_expression(semantic::loop_scope_t{});
     semantic::loop_scope_t& ls = get<semantic::loop_scope_t>(ctx.expressions().back());
-    
+
     semantic::managed_expression_list el{ env() };
 
-    if (wd.continue_expression) {
-        auto res = base_expression_visitor::visit(ctx, el, *wd.continue_expression);
-        if (!res) return std::unexpected(std::move(res.error()));
-        syntax_expression_result& er = res->first;
-
+    // Handle the optional continue statement (executed before condition check on subsequent iterations)
+    if (wd.continue_statement) {
         ctx.push_chain();
-        size_t scope_sz = ctx.append_result(el, er);
-        (void)scope_sz;
-
-        if (!er.is_const_result && er.value_or_type != env().get(builtin_eid::void_)) {
-            ctx.append_expression(semantic::truncate_values(1, false));
+        auto res = apply(span<const statement>{ wd.continue_statement, 1 });
+        if (!res) {
+            ctx.pop_chain();
+            ctx.pop_scope();
+            return res;
         }
-        ls.continue_branch = ctx.expressions(); // store continue branch
+        ls.continue_branch = ctx.expressions();
         ctx.pop_chain();
     }
 
+    // Main loop body chain: condition check + conditional branch
     ctx.push_chain();
-    
-    auto res = base_expression_visitor::visit(ctx, el, { env().get(builtin_eid::boolean), wd.condition.location }, wd.condition);
-    if (!res) return std::unexpected(std::move(res.error()));
-    syntax_expression_result& er = res->first;
-    
-    size_t scope_sz = ctx.append_result(el, er);
-    (void)scope_sz;
-    THROW_NOT_IMPLEMENTED_ERROR("declaration_visitor while_decl condition");
-#endif
-#if 0
-    if (auto const* ppv = get<semantic::push_value>(&ctx.expressions().back())) {
-        auto* pb = get<bool>(&ppv->value);
-        if (!pb) THROW_INTERNAL_ERROR("a bool value is expected");
-        if (!*pb) { // while(false) => skip the loop
-            ctx.pop_scope(); // restore ns
-            ctx.pop_chain(); // loop_scope_t chain
-            ctx.expressions().pop_back(); // semantic::loop_scope_t{}
+
+    auto cond_res = base_expression_visitor::visit(ctx, el, { env().get(builtin_eid::boolean), wd.condition.location }, wd.condition);
+    if (!cond_res) {
+        ctx.pop_chain();
+        ctx.pop_scope();
+        return std::unexpected(std::move(cond_res.error()));
+    }
+    syntax_expression_result& er = cond_res->first;
+
+    if (er.is_const_result) {
+        entity_identifier v = er.value();
+        BOOST_ASSERT(v == env().get(builtin_eid::false_) || v == env().get(builtin_eid::true_));
+        if (v == env().get(builtin_eid::false_)) {
+            // while(false) — skip the loop entirely
+            ctx.pop_chain();
+            ctx.pop_scope();
             return break_scope_kind::none;
         }
-        ctx.expressions().pop_back(); // push_value(true)
-        if (auto err = apply(wd.body); err) {
-            return std::move(err);
+        // while(true) — infinite loop, body always runs, no conditional needed
+        ctx.push_scope();
+        auto body_res = apply(wd.body);
+        if (!body_res) {
+            ctx.pop_chain();
+            ctx.pop_scope();
+            return body_res;
         }
-        //for (auto const& d : wd.body) {
-        //    apply_visitor(*this, d);
-        //}
-        
+        if (*body_res == break_scope_kind::none) {
+            ctx.pop_scope();
+        }
         ctx.append_expression(semantic::loop_continuer{});
-        ls.branch = ctx.store_semantic_expressions(std::move(branch));
-        ctx.pop_scope(); // restore ns
-        ctx.pop_chain(); // loop_scope_t chain
+        ls.branch = ctx.expressions();
+        ctx.pop_chain();
+        ctx.pop_scope();
         return break_scope_kind::none;
     }
+
+    ctx.append_result(el, er);
     ctx.append_expression(semantic::conditional_t{});
     semantic::conditional_t& cond = get<semantic::conditional_t>(ctx.expressions().back());
+    ctx.pop_scope_variable(); // condition value consumed by conditional jump
 
-    auto bst = ctx.expressions_branch(); // store branch
-
-    semantic::managed_expression_list true_branch{ env() };
-    ctx.push_chain(true_branch);
-
-    if (auto err = apply(wd.body); err) {
-        return std::move(err);
+    // True branch: execute body then continue
+    ctx.push_scopes_to_stash();
+    ctx.push_chain();
+    {
+        ctx.push_scope();
+        auto body_res = apply(wd.body);
+        if (!body_res) {
+            ctx.pop_chain();
+            ctx.pop_dismiss_scopes_from_stash();
+            ctx.pop_scope();
+            return body_res;
+        }
+        if (*body_res == break_scope_kind::none) {
+            ctx.pop_scope();
+        }
+        ctx.append_expression(semantic::loop_continuer{});
+        cond.true_branch = ctx.expressions();
     }
-    //for (auto const& d : wd.body) {
-    //    apply_visitor(*this, d);
-    //}
-    
-    ctx.append_expression(semantic::loop_continuer{});
-    cond.true_branch = ctx.store_semantic_expressions(std::move(true_branch));
-    cond.true_branch_finished = 1;
-    ctx.collapse_chains(bst);
+    ctx.pop_chain();
+    ctx.pop_dismiss_scopes_from_stash();
 
-    semantic::managed_expression_list false_branch{ env() };
-    ctx.push_chain(false_branch);
+    // False branch: break the loop
+    ctx.push_chain();
     ctx.append_expression(semantic::loop_breaker{});
-    cond.false_branch = ctx.store_semantic_expressions(std::move(false_branch));
-    cond.false_branch_finished = 1;
-    ctx.collapse_chains(bst);
+    cond.false_branch = ctx.expressions();
+    ctx.pop_chain();
 
-    ls.branch = ctx.store_semantic_expressions(std::move(branch));
+    ls.branch = ctx.expressions();
     ctx.pop_chain();
     ctx.pop_scope();
-
     return break_scope_kind::none;
-#endif
 }
 
 declaration_visitor::result_type declaration_visitor::operator()(continue_statement const&) const
 {
-    // to do: check the existance of enclisong loop
+    // to do: check the existence of enclosing loop
     //THROW_NOT_IMPLEMENTED_ERROR("declaration_visitor continue_statement_t");
     ctx.append_expression(semantic::loop_continuer{});
     return break_scope_kind::loop;
@@ -470,7 +471,7 @@ declaration_visitor::result_type declaration_visitor::operator()(continue_statem
 
 declaration_visitor::result_type declaration_visitor::operator()(break_statement const&) const
 {
-    // to do: check the existance of enclisong loop (or switch)
+    // to do: check the existence of enclosing loop (or switch)
     //THROW_NOT_IMPLEMENTED_ERROR("declaration_visitor break_statement_t");
     ctx.append_expression(semantic::loop_breaker{});
     return break_scope_kind::loop;

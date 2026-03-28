@@ -1,0 +1,37 @@
+let n = runtime_cast(0);
+while true; n = n + 1 {
+    print(to_string(n));
+    if n != 5 { continue }
+    n = n + 1;
+    break
+}
+while n != 11 {
+    print(to_string(n));
+    n = n + 1
+}
+while n != 13; n = n + 1 {
+    print(to_string(n));
+}
+while false { n = n + 1; break }
+while true {
+    print(to_string(n));
+    n = n + 1;
+    if n == 16 { break }
+}
+while true {
+    print(to_string(n));
+    n = n + 1;
+    if n != 18 { continue }
+    break
+}
+while true {
+    if n != 22 {
+        print(to_string(n));
+        n = n + 1;
+        continue
+    } else {
+        break
+    }
+}
+assert(n == 22);
+assert_equal(__get_frame_stack_height(), 1);

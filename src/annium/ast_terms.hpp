@@ -730,7 +730,7 @@ struct while_decl
 {
     syntax_expression condition;
     span<const statement> body;
-    optional<syntax_expression> continue_expression; // called before condition starting with second condition check (like c/c++ for expression)
+    statement const* continue_statement = nullptr; // called before condition starting with second condition check (like c/c++ for expression)
 };
 
 struct reference_expression

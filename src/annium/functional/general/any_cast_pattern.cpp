@@ -43,7 +43,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> any_cast_pattern::
     return pmd;
 }
 
-std::expected<syntax_expression_result, error_storage> any_cast_pattern::apply(fn_compiler_context& ctx, semantic::expression_list_t&, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> any_cast_pattern::apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor& md) const
 {
     auto [_, ser, loc] = md.matches.front();
     ser.value_or_type = md.signature.result->entity_id();

@@ -13,6 +13,10 @@
         "output": ""
     },
     {
+        "src": "whiles.ann",
+        "output": "0123456789101112131415161718192021"
+    },
+    {
         "src": "basic_tuple.ann",
         "arguments": [ "Hello", "from", "Annium!" ],
         "output": ""
@@ -53,7 +57,6 @@
         "src": "boolean_logic.ann",
         "output": "flag is falseflag is trueflag is falseflag is true"
     }
-    
 
     /*
     
@@ -63,7 +66,7 @@
     },
     {
         "src": "file3.ann",
-        "output": "0123456789101112131415161718192021"
+        "output": ""
     }
     {
         "src": "file4.ann",

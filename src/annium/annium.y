@@ -238,6 +238,7 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 %type <statement> statement infunction-statement
 %type <statement> finished-statement
 %type <statement> generic-statement
+%type <statement> expression-statement
 
 %type <statement_list_t> statement_any finished-statement-any
 %type <statement_list_t> infunction-statement-any finished-infunction-statement-any infunction-statement-set braced-statements function-body
@@ -447,8 +448,8 @@ braced-statements:
 finished-statement:
       WHILE syntax-expression[condition] braced-statements[body]
         { $$ = statement{ while_decl{ std::move($condition), ctx.make_array<statement>($body) } }; }
-    | WHILE syntax-expression[condition] END_STATEMENT syntax-expression[continue] braced-statements[body]
-        { $$ = statement{ while_decl{ std::move($condition), ctx.make_array<statement>($body), std::move($continue) } }; }
+    | WHILE syntax-expression[condition] END_STATEMENT expression-statement[continue] braced-statements[body]
+        { $$ = statement{ while_decl{ std::move($condition), ctx.make_array<statement>($body), ctx.make<statement>(std::move($continue)) } }; }
     | FOR reference-expression[iter] IN_ syntax-expression[coll] braced-statements[body]
         { $$ = statement{ for_statement{ .iter = std::move($iter), .coll = std::move($coll), .body = ctx.make_array<statement>($body) } }; }
     | IF syntax-expression[cond] braced-statements[body]
@@ -481,6 +482,16 @@ infunction-statement-set:
     | finished-infunction-statement-any
     ;
 
+expression-statement:
+      compound-expression[expr]
+        { $$ = statement{ expression_statement{ std::move($expr) } }; }
+    | syntax-expression[lexpr] ASSIGN syntax-expression[rexpr]
+        { 
+            $$ = statement{ expression_statement{ syntax_expression{ std::move($ASSIGN),
+                binary_expression{ binary_operator_type::ASSIGN, ctx.make_span_for_args<opt_named_expression_t>(std::move($lexpr), std::move($rexpr)) } } } };
+        }
+    ;
+
 generic-statement:
       LET let-decl[let]
         { $$ = statement{ std::move($let) }; }
@@ -495,13 +506,7 @@ generic-statement:
         }
     | USING using-decl[alias]
         { $$ = statement{ std::move($alias) }; }
-    | compound-expression[expr]
-        { $$ = statement{ expression_statement{ std::move($expr) } }; }
-    | syntax-expression[lexpr] ASSIGN syntax-expression[rexpr]
-        { 
-            $$ = statement{ expression_statement{ syntax_expression{ std::move($ASSIGN),
-                binary_expression{ binary_operator_type::ASSIGN, ctx.make_span_for_args<opt_named_expression_t>(std::move($lexpr), std::move($rexpr)) } } } };
-        }
+    | expression-statement
     ;
 
 infunction-statement:
