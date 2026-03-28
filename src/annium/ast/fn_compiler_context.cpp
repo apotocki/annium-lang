@@ -1033,7 +1033,7 @@ std::expected<std::tuple<entity_identifier, bool, bool>, error_storage> fn_compi
     }
 
     if (const_value_result) {
-        bool is_empty_function = fent.arg_count() != 0 && !has_procedures(env(), expressions());
+        bool is_empty_function = fent.arg_count() == 0 && !has_procedures(env(), expressions());
         //if (!is_empty_function) {
         //    // e.g. to handle: return print( <something> );
         //    for (auto& [rts, el, er, loc] : return_statements_) {

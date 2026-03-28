@@ -18,7 +18,8 @@ std::expected<entity_identifier, error_storage> expression_resolver::const_resol
     semantic::managed_expression_list el{ ctx.env() };
     auto res = base_expression_visitor::visit(ctx, el, expected_result_t{ .modifier = value_modifier_t::constexpr_value }, expression_);
     if (!res) return std::unexpected(res.error());
-    if (res->first.expressions) THROW_NOT_IMPLEMENTED_ERROR("expression_resolver::const_resolve");
+    if (res->first.expressions)
+        THROW_NOT_IMPLEMENTED_ERROR("expression_resolver::const_resolve");
     return res->first.value();
     //THROW_NOT_IMPLEMENTED_ERROR("expression_resolver::resolve");
 }
