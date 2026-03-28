@@ -145,6 +145,9 @@ error_storage internal_function_entity::build(fn_compiler_context& fnctx)
         fnctx.result_type = get_entity_type(fnctx.env(), result);
     }
 
+    forward_declaration_visitor fdvis{ fnctx };
+    if (auto res = fdvis.apply(sts_); !res) return res.error();
+
     declaration_visitor dvis{ fnctx };
     if (auto res = dvis.apply(sts_); !res) return res.error();
 

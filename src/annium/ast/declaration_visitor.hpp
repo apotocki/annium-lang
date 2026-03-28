@@ -13,8 +13,9 @@ namespace annium {
 class functional;
 class internal_function_entity;
 
-class declaration_visitor
+class declaration_visitor_base
 {
+protected:
     fn_compiler_context& ctx;
     mutable small_vector<span<const statement>, 4> decl_stack_;
 
@@ -28,16 +29,44 @@ class declaration_visitor
     using result_type = std::expected<break_scope_kind, error_storage>;
 
 public:
-    inline explicit declaration_visitor(fn_compiler_context& c) noexcept
+
+    inline explicit declaration_visitor_base(fn_compiler_context& c) noexcept
         : ctx{ c }
     {}
 
+    template <std::derived_from<declaration_visitor_base> VisitorT>
     [[nodiscard]] result_type apply(span<const statement>) const;
 
-    //void operator()(empty_t const&) const {}
+protected:
+    environment& env() const noexcept;
+};
+
+class forward_declaration_visitor : public declaration_visitor_base
+{
+public:
+    using declaration_visitor_base::declaration_visitor_base;
+
+    [[nodiscard]] result_type apply(span<const statement>) const;
 
     [[nodiscard]] result_type operator()(include_decl const&) const;
+    [[nodiscard]] result_type operator()(fn_decl const&) const;
 
+    // skipping non-forward declarations
+    template <typename T> result_type operator()(T const&) const { return break_scope_kind::none; }
+};
+
+class declaration_visitor : public declaration_visitor_base
+{
+public:
+    using declaration_visitor_base::declaration_visitor_base;
+
+    [[nodiscard]] result_type apply(span<const statement>) const;
+
+    // skipping forwarded
+    [[nodiscard]] result_type operator()(include_decl const&) const { return break_scope_kind::none; }
+    [[nodiscard]] result_type operator()(fn_decl const&) const { return break_scope_kind::none; }
+
+    // main declarations
     [[nodiscard]] result_type operator()(extern_var const&) const;
 
     [[nodiscard]] result_type operator()(using_decl const&) const;
@@ -48,7 +77,7 @@ public:
     // extern function declaration
     [[nodiscard]] result_type operator()(fn_pure const&) const;
 
-    [[nodiscard]] result_type operator()(fn_decl const&) const;
+    
     [[nodiscard]] result_type operator()(typefn_decl const&) const;
 
     [[nodiscard]] result_type operator()(if_decl const&) const;
@@ -74,11 +103,8 @@ public:
     //function_entity& append_fnent(fn_pure&, function_signature& sig, span<infunction_declaration_t>) const;
 
     //void operator()(type_decl const&) const { THROW_INTERNAL_ERROR(); }
-    //void operator()(include_decl const&) const { THROW_INTERNAL_ERROR(); }
 
 private:
-    environment& env() const noexcept;
-
     // for the case when condition is a runtime evaluated expression
     [[nodiscard]] result_type do_rt_if_decl(if_decl const&) const;
 };

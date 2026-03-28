@@ -211,6 +211,7 @@ inline fn foldr($f, $z) => $z;
 inline fn foldr($f, $z, $elements ...) => $f(head($elements)..., foldr($f, $z, tail($elements)...));
 
 inline fn ::set(self: runtime object, property: constexpr __identifier, $value: runtime) => set(self: self, property: to_string(property), $value);
+inline fn ::get(self: runtime object, property: constexpr __identifier) -> any => get(self: self, property: to_string(property));
 )#";
 
 annium_impl::annium_impl()
@@ -231,6 +232,10 @@ void annium_impl::bootstrap()
     internal_function_entity dummy{ *environment_, qname{}, entity_signature{}, resource_location{}, field_descriptor{} };
     dummy.set_body(*decls);
     
+    forward_declaration_visitor fdvis{ dummy.context() };
+    if (auto res = fdvis.apply(*decls); !res)
+        throw exception(environment_->print(*res.error()));
+
     declaration_visitor dvis{ dummy.context() };
     if (auto res = dvis.apply(*decls); !res)
         throw exception(environment_->print(*res.error()));
@@ -272,9 +277,8 @@ void annium_impl::compile(span<const statement> decls, span<string_view> args)
 {
     //identifier main_id = environment_->new_identifier();
     entity_signature main_sig{};
-    auto main_fn_ent = make_shared<internal_function_entity>(*environment_, qname{}, std::move(main_sig), resource_location{}, field_descriptor{});
+    auto main_fn_ent = make_shared<internal_function_entity>(*environment_, qname{/*main_id*/}, std::move(main_sig), resource_location{}, field_descriptor{});
     main_fn_ent->set_body(decls);
-    //fn_compiler_context ctx{ environment_, qname{ main_id } };
     fn_compiler_context ctx{ *environment_, *main_fn_ent };
     size_t argindex = 0;
     std::array<char, 16> argname = { '$' };
@@ -309,33 +313,6 @@ void annium_impl::compile(span<const statement> decls, span<string_view> args)
     //    apply_visitor(fdvis, d);
     //}
 
-    // treat types
-    //for (type_entity* pte : fdvis.types) {
-    //    pte->treat(ctx);
-    //}
-
-    
-
-
-    //declaration_visitor dvis{ ctx };
-    //if (auto err = dvis.apply(decls); err) throw exception(environment_->print(*err));
-    //ctx.finish_frame();
-
-
-    ////    for (string_view arg : args) {
-    ////        auto&& ve = main_ctx_->new_position_parameter(0, annium_string_t{});
-    ////    }
-    ////    // main argument: [string]
-    ////    auto&& ve = main_ctx_->new_position_parameter(0, annium_vector_t{ annium_string_t{} });
-    ////    ve.set_index(-1); // first parameter
-    ////} else if (main_function_) {
-    ////    main_ctx_->expressions() = std::move(main_function_->body);
-    ////}
-    //
-    ////fn_compiler_context & ctx = *main_ctx_;
-
-    // expression tree to vm script
-    
     // main
     
     auto err = main_fn_ent->build(ctx);

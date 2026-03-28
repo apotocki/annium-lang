@@ -254,10 +254,11 @@ void basic_fn_pattern::build_scope(environment& e, basic_functional_binding&& md
                 BOOST_ASSERT(qn.size() == 1);
                 identifier varname = qn.parts().front();
                 functional_binding::value_type const* bvar = mdbindings.lookup(varname);
-                BOOST_ASSERT(bvar);
-                local_variable const* plv = get_if<local_variable>(bvar);
-                BOOST_ASSERT(plv);
-                fent.context().push_scope_variable(annotated_identifier{ varname, param_name.location }, *plv);
+                if (bvar) { // else it's a outer scope constant, we don't need to bind it as a variable
+                    local_variable const* plv = get_if<local_variable>(bvar);
+                    BOOST_ASSERT(plv);
+                    fent.context().push_scope_variable(annotated_identifier{ varname, param_name.location }, *plv);
+                }
             }
         }
     }

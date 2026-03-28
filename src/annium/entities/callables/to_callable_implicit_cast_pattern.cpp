@@ -82,7 +82,11 @@ std::expected<functional_match_descriptor_ptr, error_storage> to_callable_implic
 
     
     if (!fne.is_built()) {
-        lock_guard guard(fne_build_mutex);
+        sonia::lang::compiler_task_tracer::task_guard tg = ctx.try_lock_task(entity_task_id{ fne });
+        if (!tg) return std::unexpected(
+            make_error<circular_dependency_error>(make_error<basic_general_error>(location, "function build failed"sv, fne.id))
+        );
+
         small_vector<opt_named_expression_t, 8> ftor_args;
 
         auto args_span = psig->fields().first(psig->fields().size() - 1);

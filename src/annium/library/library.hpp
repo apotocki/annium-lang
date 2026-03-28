@@ -29,6 +29,7 @@ void annium_string_size(vm::context&);
 void annium_create_callable(vm::context&);
 void annium_create_extern_object(vm::context&);
 void annium_set_object_property(vm::context&);
+void annium_get_object_property(vm::context&);
 void annium_invoke(vm::context&);
 void annium_invoke_void(vm::context&);
 void annium_invoke_callable(vm::context&);

@@ -30,9 +30,10 @@
 
 namespace annium {
 
-inline environment& declaration_visitor::env() const noexcept { return ctx.env(); }
+inline environment& declaration_visitor_base::env() const noexcept { return ctx.env(); }
 
-declaration_visitor::result_type declaration_visitor::apply(span<const statement> initial_decls) const
+template <std::derived_from<declaration_visitor_base> VisitorT>
+declaration_visitor_base::result_type declaration_visitor_base::apply(span<const statement> initial_decls) const
 {
     size_t initial_stack_size = decl_stack_.size();
     decl_stack_.emplace_back(initial_decls);
@@ -42,7 +43,7 @@ declaration_visitor::result_type declaration_visitor::apply(span<const statement
             continue;
         }
         size_t index = decl_stack_.size() - 1;
-        auto res = visit(*this, decl_stack_.back().front().value);
+        auto res = visit(static_cast<VisitorT const&>(*this), decl_stack_.back().front().value);
         if (!res || *res != break_scope_kind::none) {
             decl_stack_.resize(initial_stack_size);
             return res;
@@ -52,7 +53,12 @@ declaration_visitor::result_type declaration_visitor::apply(span<const statement
     return break_scope_kind::none;
 }
 
-declaration_visitor::result_type declaration_visitor::operator()(include_decl const& d) const
+declaration_visitor_base::result_type forward_declaration_visitor::apply(span<const statement> sts) const
+{
+    return declaration_visitor_base::apply<forward_declaration_visitor>(sts);
+}
+
+forward_declaration_visitor::result_type forward_declaration_visitor::operator()(include_decl const& d) const
 {
     fs::path fpath{ u8string_view{reinterpret_cast<char8_t const*>(d.path.value.data()), d.path.value.size() } };
 
@@ -63,6 +69,23 @@ declaration_visitor::result_type declaration_visitor::operator()(include_decl co
     }
     decl_stack_.emplace_back(*exp_decls);
     return break_scope_kind::none;
+}
+
+forward_declaration_visitor::result_type forward_declaration_visitor::operator()(fn_decl const& fnd) const
+{
+    qname fn_qname = ctx.ns() / fnd.name;
+    functional& fnl = env().resolve_functional(fn_qname);
+
+    auto fnptrn = make_shared<internal_fn_pattern>();
+    error_storage err = fnptrn->init(ctx, fnd);
+    if (err) return std::unexpected(std::move(err));
+    fnl.push(std::move(fnptrn));
+    return break_scope_kind::none;
+}
+
+declaration_visitor::result_type declaration_visitor::apply(span<const statement> sts) const
+{
+    return declaration_visitor_base::apply<declaration_visitor>(sts);
 }
 
 declaration_visitor::result_type declaration_visitor::operator()(extern_var const& d) const
@@ -588,17 +611,7 @@ declaration_visitor::result_type declaration_visitor::operator()(typefn_decl con
     return break_scope_kind::none;
 }
 
-declaration_visitor::result_type declaration_visitor::operator()(fn_decl const& fnd) const
-{
-    qname fn_qname = ctx.ns() / fnd.name;
-    functional& fnl = env().resolve_functional(fn_qname);
 
-    auto fnptrn = make_shared<internal_fn_pattern>();
-    error_storage err = fnptrn->init(ctx, fnd);
-    if (err) return std::unexpected(std::move(err));
-    fnl.push(std::move(fnptrn));
-    return break_scope_kind::none;
-}
 
 declaration_visitor::result_type declaration_visitor::operator()(enum_decl const& ed) const
 {

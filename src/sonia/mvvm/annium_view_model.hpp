@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 
 #include "sonia/utility/mvvm/view_model.hpp"
 #include "sonia/utility/invocation/invocable_registry.hpp"
@@ -33,7 +33,7 @@ protected:
     static void do_registration(registrar_type& mr);
 
 private:
-    boost::unordered_map<std::string, std::string, hasher, string_equal_to> inplace_fns_;
+    std::unordered_map<std::string, std::string, hasher, string_equal_to> inplace_fns_;
 };
 
 }

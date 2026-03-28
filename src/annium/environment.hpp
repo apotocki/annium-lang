@@ -115,6 +115,7 @@ class arena;
     ((logical_or, "__or"))                 \
     ((implicit_cast, "implicit_cast"sv))   \
     ((runtime_cast, "runtime_cast"sv))     \
+    ((any_cast, "any_cast"sv))             \
     ((get, "get"sv))                       \
     ((set, "set"sv))                       \
     ((head, "head"sv))                     \

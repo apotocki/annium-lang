@@ -197,10 +197,17 @@ base_expression_visitor::result_type base_expression_visitor::operator()(stack_f
 
 base_expression_visitor::result_type base_expression_visitor::operator()(nil_expression const&) const
 {
-    return std::pair{
-        syntax_expression_result{ .value_or_type = env().make_nil_entity(expected_result.type).id, .is_const_result = true },
+    std::pair result{
+        syntax_expression_result{ .is_const_result = can_be_constexpr(expected_result.modifier) },
         false
     };
+    if (result.first.is_const_result) {
+        result.first.value_or_type = env().make_nil_entity(expected_result.type).id;
+    } else {
+        result.first.value_or_type = expected_result.type;
+        env().push_back_expression(expressions, result.first.expressions, semantic::push_value{ smart_blob{} });
+    }
+    return result;
 }
 
 base_expression_visitor::result_type base_expression_visitor::operator()(bool bv) const

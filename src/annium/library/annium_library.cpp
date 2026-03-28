@@ -488,7 +488,7 @@ public:
                 return scope_holder.get();
             }}, scope_);
 
-        if (args.size() != arg_count_) {
+        if (args.size() < arg_count_) {
             return smart_blob{ error_blob_result(("annium_callable error: expected %1% arguments, got %2%"_fmt % arg_count_ % args.size()).str()) };
         }
         try {
@@ -499,8 +499,8 @@ public:
             size_t cindex = ctx.stack_back().as<size_t>();
             size_t address = ctx.const_at(cindex).as<size_t>();
             ctx.stack_pop();
-            for (auto const& arg : args) {
-                ctx.stack_push(smart_blob(arg));
+            for (size_t argidx = 0; argidx < arg_count_; ++argidx) {
+                ctx.stack_push(smart_blob{ args[argidx] });
             }
             env->bvm().run(ctx, address);
             
@@ -559,6 +559,23 @@ void annium_set_object_property(vm::context& ctx)
     string_view prop_name = ctx.stack_back(1).as<string_view>();
     obj->set_property(ctx.camel2kebab(prop_name), *ctx.stack_back());
     ctx.stack_pop(2);
+}
+
+// (obj, propName) -> value
+void annium_get_object_property(vm::context& ctx)
+{
+    using namespace sonia::invocation;
+    shared_ptr<invocable> obj = ctx.stack_back(1).as<wrapper_object<shared_ptr<invocable>>>().value;
+    if (!obj) {
+        throw exception("annium_get_object_property error: object is null");
+    }
+    string_view prop_name = ctx.stack_back().as<string_view>();
+    smart_blob res = obj->get_property(ctx.camel2kebab(prop_name));
+    if (res.is_error()) {
+        throw exception(res.as<std::string>());
+    }
+    ctx.stack_pop();
+    ctx.stack_back().replace(std::move(res));
 }
 
 void annium_invoke(vm::context& ctx)

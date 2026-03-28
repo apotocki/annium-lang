@@ -42,7 +42,7 @@ void annium_view_model::load_file(string_view pathstr)
 
 smart_blob annium_view_model::eval(string_view code, bool no_return)
 {
-    auto it = inplace_fns_.find(code, hasher{}, string_equal_to{});
+    auto it = inplace_fns_.find(code);
     if (it == inplace_fns_.end()) {
         std::ostringstream fnnamess;
         fnnamess << "inplace_"sv << inplace_fns_.size() << "()"sv;
