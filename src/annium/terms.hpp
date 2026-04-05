@@ -9,6 +9,7 @@
 #include "sonia/utility/lang/qname.hpp"
 
 #include "sonia/string.hpp"
+#include "sonia/cstdint.hpp"
 #include "numetron/basic_decimal.hpp"
 
 namespace annium {
