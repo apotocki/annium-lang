@@ -14,8 +14,10 @@
 
 namespace annium::vm {
 
-class compiler_visitor_base : public static_visitor<void>
+class compiler_visitor_base
 {
+    using result_type = void;
+
 protected:
     environment& environment_;
     internal_function_entity const* fn_context_;

@@ -11,10 +11,12 @@
 
 namespace annium {
 
-class base_expression_visitor : public static_visitor<std::expected<std::pair<syntax_expression_result, bool>, error_storage>>
+class base_expression_visitor
 {
-    friend struct array_expression_processor;
+    using result_type = std::expected<std::pair<syntax_expression_result, bool>, error_storage>;
 
+    friend struct array_expression_processor;
+   
 protected:
     fn_compiler_context& ctx;
     syntax_expression const& context_expression_;

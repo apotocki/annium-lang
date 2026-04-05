@@ -17,7 +17,7 @@ general_error::string_t cast_error::description(environment const& e) const noex
     ss << "' to '"sv;
     e.print_to(ss, dest_);
     ss << "'"sv;
-    if (string_view d = apply_visitor(string_resolver_visitor{}, description_); !d.empty()) {
+    if (string_view d = std::visit(string_resolver_visitor{}, description_); !d.empty()) {
         ss << " "sv << d;
     }
     return ss.str();

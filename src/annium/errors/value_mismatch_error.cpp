@@ -11,14 +11,14 @@ general_error::string_t value_mismatch_error::description(environment const& e) 
 {
     std::ostringstream ss;
     ss << "value mismatch error, expected: ";
-    apply_visitor(make_functional_visitor<void>([&e, &ss](auto const& val) {
+    std::visit([&e, &ss](auto const& val) {
         if constexpr (std::is_same_v<std::decay_t<decltype(val)>, std::string> || 
             std::is_same_v<std::decay_t<decltype(val)>, string_view>) {
             ss << val;
         } else {
             ss << e.print(val);
         }
-    }), expected_);
+    }, expected_);
     return ss.str();
 }
 

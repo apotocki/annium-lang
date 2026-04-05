@@ -9,8 +9,10 @@ namespace annium { class unit; }
 
 namespace annium::semantic {
 
-class value_printer_visitor : public static_visitor<void>
+class value_printer_visitor
 {
+    using result_type = void;
+
     environment const& e_;
     std::ostream& ss;
 
@@ -47,8 +49,10 @@ public:
     }
 };
 
-class expression_printer_visitor : public static_visitor<void>
+class expression_printer_visitor
 {
+    using result_type = void;
+
     environment const& e_;
     std::ostream& ss;
     string_view indent;

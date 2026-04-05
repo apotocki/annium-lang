@@ -9,7 +9,7 @@ namespace annium {
 
 general_error::string_t identifier_redefinition_error::object(environment const& e) const noexcept
 {
-    return apply_visitor(printer_resolver_visitor{ e }, name_);
+    return std::visit(printer_resolver_visitor{ e }, name_);
 }
 
 }

@@ -96,7 +96,7 @@ std::expected<syntax_expression_result, error_storage> ellipsis_pattern::apply(f
 
     ellipsis_match_descriptor& nsmd = static_cast<ellipsis_match_descriptor&>(md);
     using result_t = std::expected<syntax_expression_result, error_storage>;
-    return apply_visitor(make_functional_visitor<result_t>([&ctx, &nsmd, &el](auto const* pe) -> result_t {
+    return std::visit([&ctx, &nsmd, &el](auto const* pe) -> result_t {
         environment& e = ctx.env();
         
         semantic::expression_span l;
@@ -138,7 +138,7 @@ std::expected<syntax_expression_result, error_storage> ellipsis_pattern::apply(f
                 .is_const_result = !argcount
             };
         }
-    }), nsmd.argument());
+    }, nsmd.argument());
 }
 
 }

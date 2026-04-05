@@ -85,7 +85,7 @@ std::string ambiguity_error::object(environment const& e) const noexcept
 std::ostream& error_printer_visitor::print_general(error::location_t const& loc, string_view errstr, string_view object, resource_location const* optseeloc)
 {
     bool need_indent = true;
-    apply_visitor(make_functional_visitor<void>([this, &need_indent](auto const& l) {
+    std::visit([this, &need_indent](auto const& l) {
         if constexpr (std::is_same_v<resource_location, std::decay_t<decltype(l)>>) {
             if (!l) return;
             e_.print_to(s_, l, indent());
@@ -93,7 +93,7 @@ std::ostream& error_printer_visitor::print_general(error::location_t const& loc,
             s_ << indent() << l;
         }
         need_indent = false;
-    }), loc);
+    }, loc);
 
     if (!object.empty()) {
         if (need_indent) {
@@ -116,8 +116,8 @@ void error_printer_visitor::operator()(general_error const& err)
 {
     print_general(
         err.location(),
-        apply_visitor(string_resolver_visitor{}, err.description(e_)),
-        apply_visitor(string_resolver_visitor{}, err.object(e_)),
+        std::visit(string_resolver_visitor{}, err.description(e_)),
+        std::visit(string_resolver_visitor{}, err.object(e_)),
         err.ref_location()
     );
     
@@ -135,12 +135,12 @@ void error_printer_visitor::operator()(binary_relation_error const& err)
         e_.print_to(s_, err.location(), indent()) << ": "sv;
     }
     s_ << '`' <<
-        apply_visitor(string_resolver_visitor{}, err.left_object(e_)) <<
+        std::visit(string_resolver_visitor{}, err.left_object(e_)) <<
         "` and `"sv <<
-        apply_visitor(string_resolver_visitor{}, err.right_object(e_)) <<
+        std::visit(string_resolver_visitor{}, err.right_object(e_)) <<
         "` : "sv;
     
-    s_ << apply_visitor(string_resolver_visitor{}, err.description(e_));
+    s_ << std::visit(string_resolver_visitor{}, err.description(e_));
     if (auto* ploc = err.ref_location()) {
         e_.print_to(s_ << ", see declaration at "sv, *ploc, indent());
     }

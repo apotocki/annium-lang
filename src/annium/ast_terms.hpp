@@ -70,8 +70,10 @@ struct unnamed_parameter_name
 
 using parameter_name = std::variant<named_parameter_name, unnamed_parameter_name>;
 
-struct param_name_retriever : static_visitor<std::tuple<annotated_identifier const*, annotated_identifier const*>>
+struct param_name_retriever
 {
+    using result_type = std::tuple<annotated_identifier const*, annotated_identifier const*>;
+
     param_name_retriever() = default;
 
     inline result_type operator()(named_parameter_name const& np) const

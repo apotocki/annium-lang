@@ -223,7 +223,7 @@ qname_identifier environment::make_qname_identifier(string_view sv)
 
 std::string environment::describe_efn(size_t fn_index) const
 {
-    using sonia::get;
+    using std::get;
     auto pair = bvm_->efns().at(fn_index);
     if (get<1>(pair).empty()) {
         return ("#%1% at 0x%2$x"_fmt % fn_index % (uintptr_t)get<0>(pair)).str();
@@ -686,8 +686,9 @@ std::ostream& environment::print_to(std::ostream& os, resource_location const& l
     //return os << ("%1%(%2%,%3%)"_fmt % loc.resource % loc.line % loc.column).str();
 }
 
-struct type_printer_visitor : static_visitor<void>
+struct type_printer_visitor
 {
+    using result_type = void;
     environment const& e_;
     std::ostringstream & ss;
     explicit type_printer_visitor(environment const& e, std::ostringstream& s) : e_{e}, ss{s} {}
@@ -877,8 +878,10 @@ struct type_printer_visitor : static_visitor<void>
 //}
 
 
-struct expr_printer_visitor : static_visitor<void>
+struct expr_printer_visitor
 {
+    using result_type = void;
+
     environment const& e_;
     std::ostream& ss;
     explicit expr_printer_visitor(environment const& e, std::ostream& s) noexcept

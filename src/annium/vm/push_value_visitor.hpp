@@ -81,8 +81,10 @@ public:
 };
 #endif
 
-class push_value_visitor : public static_visitor<void>, public entity_visitor
+class push_value_visitor : public entity_visitor
 {
+    using result_type = void;
+
     environment& environment_;
     asm_builder_t::function_builder& fnbuilder_;
 

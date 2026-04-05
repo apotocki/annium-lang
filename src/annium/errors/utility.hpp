@@ -7,8 +7,10 @@
 
 namespace annium {
 
-struct printer_resolver_visitor : static_visitor<std::string>
+struct printer_resolver_visitor
 {
+    using result_type = std::string;
+
     environment const& e_;
     explicit printer_resolver_visitor(environment const& e) : e_{ e } {}
 
@@ -22,8 +24,10 @@ struct printer_resolver_visitor : static_visitor<std::string>
     }
 };
 
-struct string_resolver_visitor : static_visitor<string_view>
+struct string_resolver_visitor
 {
+    using result_type = string_view;
+
     string_resolver_visitor() = default;
 
     inline result_type operator()(std::string const& str) const { return str; }

@@ -30,8 +30,10 @@ struct expression_analysis_result
 };
 
 // returns true if pattern is clarified, false otherwise (expression)
-class expression_property_visitor : public static_visitor<expression_analysis_result>
+class expression_property_visitor
 {
+    using result_type = expression_analysis_result;
+
 protected:
     fn_compiler_context& ctx;
     span<const identifier> parameters; // sorted
