@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+        <PreprocessorDefinitions>BOOST_LIB_TOOLSET="vc145";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+</Project>
