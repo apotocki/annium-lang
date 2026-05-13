@@ -148,6 +148,8 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\library\annium_library.cpp" />
+    <ClCompile Include="..\..\..\src\annium\library\annium_chained_host.cpp" />
+    <ClCompile Include="..\..\..\src\annium\library\annium_std.cpp" />
     <ClCompile Include="..\..\..\src\annium\semantic\semantic_expression_printer.cpp" />
     <ClCompile Include="..\..\..\src\annium\vm\annium_vm.cpp" />
     <ClCompile Include="..\..\..\src\sonia\mvvm\annium_view_model.cpp" />
@@ -271,6 +273,8 @@
     <ClInclude Include="..\..\..\src\annium\functional\value_match_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\value_type_match_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\library\library.hpp" />
+    <ClInclude Include="..\..\..\src\annium\library\chained_host.hpp" />
+    <ClInclude Include="..\..\..\src\annium\library\std.hpp" />
     <ClInclude Include="..\..\..\src\annium\location.hh" />
     <ClInclude Include="..\..\..\src\annium\parser.hpp" />
     <ClInclude Include="..\..\..\src\annium\semantic.hpp" />

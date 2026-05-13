@@ -134,6 +134,8 @@ set (LIBRARY_SOURCES
     ${LIBRARY_HOME}/annium/semantic/semantic_expression_printer.cpp
 
     ${LIBRARY_HOME}/annium/library/annium_library.cpp
+    ${LIBRARY_HOME}/annium/library/annium_std.cpp
+    ${LIBRARY_HOME}/annium/library/annium_chained_host.cpp
     ${LIBRARY_HOME}/annium/vm/annium_vm.cpp
     ${LIBRARY_HOME}/sonia/mvvm/annium_view_model.cpp
     ${LIBRARY_HOME}/sonia/mvvm/builder_view_model.cpp

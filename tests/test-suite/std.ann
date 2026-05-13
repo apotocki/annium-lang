@@ -1,0 +1,8 @@
+let match = regex_search(target: "folder/subfolder/file.txt", re: "[^/]+$");
+assert_equal(size(match), 1);
+assert_equal(match[0], "file.txt");
+
+let re = new regex_object("[^/]+$");
+let match2 = regex_search(target: "folder/subfolder/file.txt", re: re);
+assert_equal(size(match2), 1);
+assert_equal(match2[0], "file.txt");

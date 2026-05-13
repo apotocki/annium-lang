@@ -408,6 +408,12 @@
     <ClCompile Include="..\..\..\src\annium\functional\general\any_cast_pattern.cpp">
       <Filter>annium\functional\general</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\library\annium_chained_host.cpp">
+      <Filter>annium\library</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\library\annium_std.cpp">
+      <Filter>annium\library</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\annium\location.hh">
@@ -808,6 +814,12 @@
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\functional\general\any_cast_pattern.hpp">
       <Filter>annium\functional\general</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\library\chained_host.hpp">
+      <Filter>annium\library</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\library\std.hpp">
+      <Filter>annium\library</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

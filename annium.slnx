@@ -1,0 +1,11 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/tpls/">
+    <Project Path="tpls/numetron/msvc/numetron.vcxproj" Id="b3da4b02-589c-4f86-b8be-4cccd9faa17b" />
+  </Folder>
+  <Project Path="projects/vs/annium/annium.vcxproj" Id="3ddb116f-4c58-4e9b-9ae2-5590b2c3d562" />
+  <Project Path="projects/vs/tests/annium_tests.vcxproj" Id="70fc1bb7-7fc5-45fa-af6d-930318b229ba" />
+</Solution>

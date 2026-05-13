@@ -1,4 +1,4 @@
-//  Annium programming language (c) 2025 by Alexander Pototskiy
+//  Annium programming language (c) by Alexander Pototskiy
 //  Annium is licensed under the terms of the MIT License.
 
 #include "sonia/config.hpp"
@@ -7,7 +7,6 @@
 #include "sonia/utility/scope_exit.hpp"
 #include "numetron/basic_integer.hpp"
 #include "numetron/basic_decimal.hpp"
-
 
 #include <sstream>
 
@@ -602,6 +601,28 @@ void annium_invoke_void(vm::context& ctx)
 {
     annium_invoke(ctx);
     ctx.stack_pop();
+}
+
+void annium_invoke_object(vm::context& ctx)
+{
+    // we have on stack here: [object, method, arg1, arg2, ..., argN, N]
+    using namespace sonia::invocation;
+    size_t argcount = ctx.stack_back().as<size_t>();
+    string_view method = ctx.stack_back(argcount + 1).as<string_view>();
+    shared_ptr<invocable> pinvocable = std::move(ctx.stack_back(argcount + 2).as<wrapper_object<shared_ptr<invocable>>>().value);
+
+    small_vector<blob_result, 16> args;
+    args.reserve(argcount);
+    for (size_t i = argcount; i > 0; --i) {
+        args.emplace_back(*ctx.stack_back(i));
+    }
+
+    smart_blob res = pinvocable->invoke(method, args);
+    if (res.is_error()) {
+        throw exception(res.as<std::string>());
+    }
+    ctx.stack_pop(argcount + 2);
+    ctx.stack_back().replace(std::move(res));
 }
 
 void annium_invoke_callable(vm::context& ctx)

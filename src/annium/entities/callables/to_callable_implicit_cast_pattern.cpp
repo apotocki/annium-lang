@@ -125,7 +125,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> to_callable_implic
 
 
         fne.set_argument_variables();
-        auto res = vis.make_function_call(arg_er_ref, arg_loc, pure_call{ ftor_args });
+        auto res = vis.make_function_call(arg_er_ref, arg_loc, ftor_args);
         if (!res) {
             return std::unexpected(append_cause(
                 make_error<basic_general_error>(arg_loc, "can't convert argument to callable"sv),

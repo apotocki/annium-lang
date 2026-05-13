@@ -192,6 +192,17 @@ struct function_call : pure_call
     {}
 };
 
+struct member_call : pure_call
+{
+    syntax_expression const* object;
+    syntax_expression const* member; // e.g. for .memberName(args), member_name is "memberName"
+    inline member_call(syntax_expression const* obj, syntax_expression const* mb, span<const opt_named_expression_t> args = {}) noexcept
+        : pure_call{ std::move(args) }
+        , object{ obj }
+        , member{ mb }
+    {}
+};
+
 struct unary_expression : pure_call
 {
     unary_operator_type op;
@@ -464,7 +475,7 @@ struct syntax_expression
         //assign_expression<>, logic_and_expression<>, logic_or_expression<>, concat_expression<>,
         //expression_vector<recursive_variant_>,
 
-        function_call
+        function_call, member_call
         
         //, opt_named_term_list<recursive_variant_>
         //, chained_expression<recursive_variant_>

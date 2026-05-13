@@ -23,7 +23,7 @@ public:
     virtual ~language();
 
     void set_cout_writer(function<void(string_view)>);
-    void set_environment(invocation::invocable*);
+    void set_host(invocation::invocable*);
     void load(fs::path const& srcfile, span<string_view> args = {});
     void load(string_view code, span<string_view> args = {});
 

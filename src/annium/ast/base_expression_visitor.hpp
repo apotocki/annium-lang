@@ -61,6 +61,7 @@ public:
     result_type operator()(unary_expression const& be) const;
 
     result_type operator()(function_call const&) const;
+    result_type operator()(member_call const&) const;
 
     result_type operator()(new_expression const&) const;
 
@@ -70,8 +71,8 @@ public:
 
     result_type operator()(lambda const&) const;
 
-    template <typename FnIdT, std::derived_from<pure_call> ExprT>
-    result_type operator()(FnIdT&& fnid, ExprT const& call) const;
+    template <typename FnIdT>
+    result_type operator()(FnIdT&& fnid, span<const opt_named_expression_t>) const;
 
     result_type operator()(annium_fn_type const&) const;
     result_type operator()(not_empty_expression const&) const;
@@ -82,8 +83,8 @@ public:
         THROW_NOT_IMPLEMENTED_ERROR("base_expression_visitor not implemented expression");
     }
 
-    error_storage make_function_call_arguments(pure_call const&, span<const field_descriptor> args, syntax_expression_result& result) const;
-    result_type make_function_call(syntax_expression_result ftor, resource_location ftor_loc, pure_call const& proc, qname_identifier* pout_qnameid = nullptr) const;
+    error_storage make_function_call_arguments(span<const opt_named_expression_t> call_args, span<const field_descriptor> args, syntax_expression_result& result) const;
+    result_type make_function_call(syntax_expression_result ftor, resource_location ftor_loc, span<const opt_named_expression_t> proc_args, qname_identifier* pout_qnameid = nullptr) const;
 
 protected:
     environment& env() const noexcept;

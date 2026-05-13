@@ -6,8 +6,8 @@
 #include "sonia/variant.hpp"
 #include "fn_compiler_context.hpp"
 
-#include "../semantic.hpp"
-#include "../entities/functional_entity.hpp"
+#include "annium/semantic.hpp"
+#include "annium/entities/functional_entity.hpp"
 #include "annium/errors.hpp"
 
 namespace annium {
@@ -15,7 +15,7 @@ namespace annium {
 struct expression_fn_visitor : static_visitor<error_storage>
 {
     fn_compiler_context& ctx;
-    functional_entity const& fn;
+    functional_entity const& fn; 
     context_locator_t cl_;
 
     expression_fn_visitor(fn_compiler_context& c, functional_entity const& f, context_locator_t const& cl)

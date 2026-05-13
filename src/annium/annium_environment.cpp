@@ -1623,7 +1623,7 @@ environment::environment()
     //eq_fnl.push(make_shared<eq_pattern>());
 
     builtin_eids_[(size_t)builtin_eid::create_callable] = set_builtin_extern("__make_callable(_, runtime u32)->callable"sv, &annium_create_callable);
-    builtin_eids_[(size_t)builtin_eid::annium_invoke_callable] = set_builtin_extern("__annium_invoke_callable(runtime callable, runtime any ..., runtime integer)-> any"sv, &annium_invoke_callable);
+    builtin_eids_[(size_t)builtin_eid::invoke_callable] = set_builtin_extern("__invoke_callable(runtime callable, runtime any ..., runtime u32)-> any"sv, &annium_invoke_callable);
 
     builtin_eids_[(size_t)builtin_eid::arrayify] = set_builtin_extern("__arrayify(..., runtime integer)->tuple($0...)"sv, &annium_arrayify);
     builtin_eids_[(size_t)builtin_eid::unfold] = set_builtin_extern("__unfold(~runtime array(...))"sv, &annium_unfold);
@@ -1653,12 +1653,13 @@ environment::environment()
     builtin_eids_[(size_t)builtin_eid::int2dec] = set_builtin_extern("__int2dec(runtime)->decimal"sv, &annium_int2dec);
     //set_extern<external_fn_pattern>("implicit_cast(mut integer)->float"sv, &annium_int2flt);
     set_builtin_extern("create_extern_object(runtime string)->object"sv, &annium_create_extern_object);
-    set_builtin_extern("__extern_invoke(runtime string, runtime ..., runtime integer)~>$R"sv, &annium_invoke);
-    set_builtin_extern("__extern_invoke(runtime string, runtime ..., runtime integer)~>()"sv, &annium_invoke_void);
+    set_builtin_extern("__extern_invoke(runtime string, runtime ..., runtime u32)~>$R"sv, &annium_invoke);
+    set_builtin_extern("__extern_invoke(runtime string, runtime ..., runtime u32)~>()"sv, &annium_invoke_void);
     //set_extern<external_fn_pattern>("set(self: object, property: const __identifier, any)"sv, &annium_set_object_property);
 
-    set_builtin_extern("set(self: runtime object, property: runtime string, runtime)->object"sv, &annium_set_object_property);
-    set_builtin_extern("get(self: runtime object, property: runtime string)->any"sv, &annium_get_object_property);
+    set_builtin_extern("__set(runtime object, runtime string, runtime)->object"sv, &annium_set_object_property);
+    set_builtin_extern("__get(runtime object, runtime string)->any"sv, &annium_get_object_property);
+    set_builtin_extern("__invoke(runtime object, runtime string, runtime any ..., runtime u32)->any"sv, &annium_invoke_object);
     //set_extern("string(any)->string"sv, &annium_tostring);
     //set_extern<external_fn_pattern>("assert(bool)"sv, &annium_assert);
 

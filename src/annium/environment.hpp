@@ -178,7 +178,7 @@ enum class builtin_eid : entity_identifier::value_type
     true_, false_, identifier, qname,
     get_frame_stack_height, // builtin ::__get_frame_stack_height(level)-> integer
     create_callable, // builtin ::__create_callable(@callable, $argcount: u64, $is_void: bool)-> callable
-    annium_invoke_callable, // builtin ::__annium_invoke_callable(runtime @callable, runtime any ..., $argcount: runtime integer)-> any
+    invoke_callable, // builtin ::__invoke_callable(runtime @callable, runtime any ..., $argcount: runtime integer)-> any
     arrayify, // builtin ::arrayify(...)->array
     unfold, // builtin ::unfold(:array(...))
     array_tail, // builtin ::array_tail(array)-> array

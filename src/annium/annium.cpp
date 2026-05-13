@@ -9,6 +9,7 @@
 
 #include "vm/annium_vm.hpp"
 #include "library/library.hpp"
+#include "library/chained_host.hpp"
 
 #include "ast/fn_compiler_context.hpp"
 #include "ast/declaration_visitor.hpp"
@@ -37,7 +38,7 @@ public:
     ~annium_impl();
 
     void set_cout_writer(function<void(string_view)> writer) { environment_->set_cout_writer(std::move(writer)); }
-    void set_environment(invocation::invocable* penv) { penv_ = penv; }
+    void set_host(chained_host::parent_ref phost) { chained_host_->extend(std::move(phost)); }
     void load(fs::path const& srcfile, span<string_view> args = {});
     void load(string_view code, span<string_view> args = {});
 
@@ -52,9 +53,10 @@ protected:
 
 private:
     shared_ptr<environment> environment_ = make_shared<environment>();
+    shared_ptr<chained_host> chained_host_ = make_shared<chained_host>();
     //optional<fn_compiler_context> default_ctx_;
     optional<internal_function_entity> main_function_;
-    invocation::invocable* penv_ = nullptr;
+    
     //asm_builder_t vmasm_;
     bool bootstrapped_ = false;
 };
@@ -79,9 +81,9 @@ void language::set_cout_writer(function<void(string_view)> writer)
     impl_->set_cout_writer(std::move(writer));
 }
 
-void language::set_environment(invocation::invocable* penv)
+void language::set_host(invocation::invocable* phost)
 {
-    impl_->set_environment(penv);
+    impl_->set_host(phost);
 }
 
 void language::load(fs::path const& srcfile, span<string_view> args)
@@ -196,7 +198,7 @@ inline fn make_transform_iterator(from_iterator: runtime, functor: constexpr) ->
     => init(iterator: from_iterator);
 
 inline fn has_next(~transform_iterator(...)) => has_next($0.iterator);
-inline fn next(~transform_iterator(...)) => $0.functor(next($0.iterator));
+inline fn next(~transform_iterator(...)) => ($0.functor)(next($0.iterator));
 
 // UTILITY
 inline fn print(string ...) => __print($0 ..., size($0));
@@ -210,8 +212,21 @@ inline fn foldl($f, $z, $elements ...) => foldl($f, $f($z, head($elements)...), 
 inline fn foldr($f, $z) => $z;
 inline fn foldr($f, $z, $elements ...) => $f(head($elements)..., foldr($f, $z, tail($elements)...));
 
-inline fn ::set(self: runtime object, property: constexpr __identifier, $value: runtime) => set(self: self, property: to_string(property), $value);
-inline fn ::get(self: runtime object, property: constexpr __identifier) -> any => get(self: self, property: to_string(property));
+inline fn ::set(self: runtime object, property: constexpr __identifier, $value: runtime) => __set(self, to_string(property), $value);
+inline fn ::get(self: runtime object, property: constexpr __identifier) -> any => __get(self, to_string(property));
+inline fn ::invoke(self: runtime object, method: constexpr __identifier, runtime any ...) -> any => __invoke(self, to_string(method), $0 ..., size($0));
+
+extern var std: object;
+struct regex_object => (cookie: any);
+inline fn init(runtime string) ~> regex_object {
+    return init(cookie: invoke(self: std, method: .regex_object, $0));
+}
+inline fn regex_search(target: runtime string, re: runtime string) -> [string] {
+	return any_cast(std.invoke(method: .regex_search, target, re));
+}
+inline fn regex_search(target: runtime string, re: regex_object) -> [string] {
+	return any_cast(std.invoke(method: .regex_search, target, re));
+}
 )#";
 
 annium_impl::annium_impl()
@@ -362,7 +377,7 @@ void annium_impl::compile(span<const statement> decls, span<string_view> args)
     fb.materialize();
 #endif
     // run
-    vm::context vmctx{ *environment_, penv_ };
+    vm::context vmctx{ *environment_, chained_host_.get() };
     environment_->bvm().run(vmctx, address);
 
     //function_signature main_sig{ };
@@ -394,7 +409,7 @@ void annium_impl::do_compile(internal_function_entity const& fe)
 
 void annium_impl::run(span<string_view> args)
 {
-    vm::context ctx{ *environment_, penv_ };
+    vm::context ctx{ *environment_, chained_host_.get() };
     for (string_view arg : args) {
         smart_blob argblob{ string_blob_result(arg) };
         argblob.allocate();
@@ -415,7 +430,7 @@ void annium_impl::run(span<string_view> args)
 smart_blob annium_impl::call(string_view /*fnsig*/, span<const std::pair<string_view, const blob_result>> /*namedargs*/, span<const blob_result> args)
 {
     smart_blob result;
-    vm::context ctx{ *environment_, penv_ };
+    vm::context ctx{ *environment_, chained_host_.get() };
     for (blob_result const& arg : args) {
         ctx.stack_push(smart_blob(arg));
     }
@@ -447,7 +462,7 @@ smart_blob annium_impl::call(string_view /*fnsig*/, span<const std::pair<string_
 smart_blob annium_impl::invoke(blob_result & ftor, span<const blob_result> args) noexcept
 {
     try {
-        vm::context ctx{ *environment_, penv_ };
+        vm::context ctx{ *environment_, chained_host_.get() };
         size_t init_stack_sz = ctx.stack_size();
         ctx.stack_push(smart_blob{ftor});
         annium_unfold(ctx);

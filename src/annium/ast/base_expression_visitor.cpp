@@ -708,6 +708,23 @@ base_expression_visitor::result_type base_expression_visitor::operator()(member_
     return apply_cast(match->apply(ctx));
 }
 
+base_expression_visitor::result_type base_expression_visitor::operator()(member_call const& mc) const
+{
+    auto fn_member_id = base_expression_visitor::visit(ctx,
+        expressions,
+        expected_result_t{ .type = env().get(builtin_eid::qname), .modifier = value_modifier_t::constexpr_value },
+        *mc.member);
+    if (!fn_member_id) return std::unexpected(std::move(fn_member_id.error()));
+
+    call_builder memebr_call{ context_expression_.location };
+    memebr_call.emplace_back(annotated_identifier{ env().get(builtin_id::self), mc.object->location }, *mc.object);
+    for (const opt_named_expression_t& arg : mc.args) {
+        memebr_call.arguments.emplace_back(arg);
+    }
+
+    return make_function_call(fn_member_id->first, context_expression_.location, memebr_call);
+}
+
 #if 0
 base_expression_visitor::result_type base_expression_visitor::operator()(named_syntax_expression_list_t const& nel) const
 {
@@ -732,13 +749,13 @@ base_expression_visitor::result_type base_expression_visitor::operator()(unary_e
 {
     switch (ue.op) {
     case unary_operator_type::MINUS:
-        return this->operator()(builtin_qnid::minus, ue);
+        return this->operator()(builtin_qnid::minus, ue.args);
     case unary_operator_type::NEGATE:
-        return this->operator()(builtin_qnid::logical_not, ue);
+        return this->operator()(builtin_qnid::logical_not, ue.args);
     case unary_operator_type::DEREF:
-        return this->operator()(builtin_qnid::deref, ue);
+        return this->operator()(builtin_qnid::deref, ue.args);
     case unary_operator_type::ELLIPSIS:
-        return this->operator()(builtin_qnid::ellipsis, ue);
+        return this->operator()(builtin_qnid::ellipsis, ue.args);
     }
     THROW_NOT_IMPLEMENTED_ERROR("base_expression_visitor unary_expression_t");
 }
@@ -747,17 +764,17 @@ base_expression_visitor::result_type base_expression_visitor::operator()(functio
 {
     if (!proc.fn_object) {
         // no object => make tuple
-        return (*this)(env().get(builtin_qnid::make_tuple), proc);
+        return (*this)(env().get(builtin_qnid::make_tuple), proc.args);
     }
     auto fn_ent_id = base_expression_visitor::visit(ctx, expressions, *proc.fn_object);
     if (!fn_ent_id) return std::unexpected(std::move(fn_ent_id.error()));
 
-    return make_function_call(fn_ent_id->first, proc.fn_object->location, proc);
+    return make_function_call(fn_ent_id->first, proc.fn_object->location, proc.args);
 }
 
-error_storage base_expression_visitor::make_function_call_arguments(pure_call const& proc, span<const field_descriptor> args, syntax_expression_result& result) const
+error_storage base_expression_visitor::make_function_call_arguments(span<const opt_named_expression_t> call_args, span<const field_descriptor> args, syntax_expression_result& result) const
 {
-    prepared_call pcall{ ctx, nullptr, proc.args, context_expression_.location, expressions };
+    prepared_call pcall{ ctx, nullptr, call_args, context_expression_.location, expressions };
     pcall.prepare();
     auto call_session = pcall.new_session(ctx);
     for (field_descriptor const& fd : args) {
@@ -776,18 +793,18 @@ error_storage base_expression_visitor::make_function_call_arguments(pure_call co
     return {};
 }
 
-base_expression_visitor::result_type base_expression_visitor::make_function_call(syntax_expression_result ftor, resource_location ftor_loc, pure_call const& proc, qname_identifier * pout_qnameid) const
+base_expression_visitor::result_type base_expression_visitor::make_function_call(syntax_expression_result ftor, resource_location ftor_loc, span<const opt_named_expression_t> proc_args, qname_identifier * pout_qnameid) const
 {
     if (ftor.is_const_result) {
         entity const& ent = get_entity(env(), ftor.value());
         if (ent.get_type() == env().get(builtin_eid::qname)) {
             if (functional_identifier_entity const* pqnent = dynamic_cast<functional_identifier_entity const*>(&ent); pqnent) {
                 if (pout_qnameid) *pout_qnameid = pqnent->value();
-                return (*this)(pqnent->value(), proc);
+                return (*this)(pqnent->value(), proc_args);
             } else if (qname_entity const* pqnent = dynamic_cast<qname_entity const*>(&ent); pqnent) {
                 //if (!pqnent->value()) {
                 //    // no name => make tuple
-                //    return (*this)(env().get(builtin_qnid::make_tuple), proc);
+                //    return (*this)(env().get(builtin_qnid::make_tuple), proc_args);
                 //}
                 auto optqnid = ctx.lookup_qname(annotated_qname_view{ pqnent->value(), ftor_loc });
                 if (!optqnid) {
@@ -797,7 +814,7 @@ base_expression_visitor::result_type base_expression_visitor::make_function_call
                     ));
                 }
                 if (pout_qnameid) *pout_qnameid = *optqnid;
-                return (*this)(*optqnid, proc);
+                return (*this)(*optqnid, proc_args);
             }
         }
         
@@ -815,7 +832,7 @@ base_expression_visitor::result_type base_expression_visitor::make_function_call
         field_descriptor const& function_result_fd = pfunction_type_sig->fields().back();
         syntax_expression_result result{ .value_or_type = function_result_fd.entity_id(), .is_const_result = function_result_fd.is_const() };
 
-        auto err = make_function_call_arguments(proc, args_span, result);
+        auto err = make_function_call_arguments(proc_args, args_span, result);
         if (err) return std::unexpected(std::move(err));
 
         env().push_back_expression(expressions, result.expressions, semantic::invoke_function(fn_ent->id));
@@ -835,7 +852,7 @@ base_expression_visitor::result_type base_expression_visitor::make_function_call
             env().push_back_expression(expressions, ftor.expressions, semantic::set_local_variable::create(fn_address_var));
             env().push_back_expression(expressions, ftor.expressions, semantic::truncate_values{ .count = 1, .keep_back = 0 });
         
-            auto err = make_function_call_arguments(proc, args_span, ftor);
+            auto err = make_function_call_arguments(proc_args, args_span, ftor);
             if (err) return std::unexpected(std::move(err));
             env().push_back_expression(expressions, ftor.expressions, semantic::push_local_variable::create(fn_address_var));
             ftor.temporaries.emplace_back(std::move(fn_address_var), semantic::expression_span{});
@@ -846,7 +863,7 @@ base_expression_visitor::result_type base_expression_visitor::make_function_call
     if (ftor.type() == env().get(builtin_eid::callable)) {
         // callable is an opaque runtime object, arguments are untyped
         // stack layout expected by annium_invoke_callable: [callable_object, arg1, ..., argN, N]
-        prepared_call pcall{ ctx, nullptr, proc.args, context_expression_.location, expressions };
+        prepared_call pcall{ ctx, nullptr, proc_args, context_expression_.location, expressions };
         pcall.prepare();
 
         for (opt_named_expression_t const& arg : pcall.args) {
@@ -857,7 +874,7 @@ base_expression_visitor::result_type base_expression_visitor::make_function_call
             append_semantic_result(expressions, arg_er, ftor);
         }
         env().push_back_expression(expressions, ftor.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(pcall.args.size()) } });
-        env().push_back_expression(expressions, ftor.expressions, semantic::invoke_function(env().get(builtin_eid::annium_invoke_callable)));
+        env().push_back_expression(expressions, ftor.expressions, semantic::invoke_function(env().get(builtin_eid::invoke_callable)));
         ftor.value_or_type = env().get(builtin_eid::any);
         ftor.is_const_result = false;
         return apply_cast(std::move(ftor));
@@ -881,17 +898,11 @@ base_expression_visitor::result_type base_expression_visitor::make_function_call
     }
 
     functional const& fn = env().fregistry_resolve(pqnent->value());
-    auto match = fn.find(ctx, &ftor, context_expression_.location, proc.args, expressions, expected_result);
+    auto match = fn.find(ctx, &ftor, context_expression_.location, proc_args, expressions, expected_result);
     if (!match) return std::unexpected(match.error());
     return apply_cast(match->apply(ctx));
 
     //THROW_NOT_IMPLEMENTED_ERROR("base_expression_visitor function_call_t");
-
-    //if (qname_identifier_entity const* pqnent = dynamic_cast<qname_identifier_entity const*>(&ent); pqnent) {
-    //    return (*this)(pqnent->value(), proc);
-    //} else {
-    //    return std::unexpected(make_error<basic_general_error>(get_start_location(proc.fn_object), "functional object is expected"sv, proc.fn_object));
-    //}
 }
 
 base_expression_visitor::result_type base_expression_visitor::operator()(new_expression const& ne) const
@@ -957,25 +968,25 @@ base_expression_visitor::result_type base_expression_visitor::operator()(binary_
 {
     switch (be.op) {
     case binary_operator_type::EQ:
-        return this->operator()(builtin_qnid::eq, be);
+        return this->operator()(builtin_qnid::eq, be.args);
     case binary_operator_type::NE:
-        return this->operator()(builtin_qnid::ne, be);
+        return this->operator()(builtin_qnid::ne, be.args);
     case binary_operator_type::PLUS:
-        return this->operator()(builtin_qnid::plus, be);
+        return this->operator()(builtin_qnid::plus, be.args);
     case binary_operator_type::MINUS:
-        return this->operator()(builtin_qnid::minus, be);
+        return this->operator()(builtin_qnid::minus, be.args);
     case binary_operator_type::BIT_OR:
-        return this->operator()(builtin_qnid::bit_or, be);
+        return this->operator()(builtin_qnid::bit_or, be.args);
     case binary_operator_type::BIT_AND:
-        return this->operator()(builtin_qnid::bit_and, be);
+        return this->operator()(builtin_qnid::bit_and, be.args);
     case binary_operator_type::CONCAT:
-        return this->operator()(builtin_qnid::string_concat, be);
+        return this->operator()(builtin_qnid::string_concat, be.args);
     case binary_operator_type::LOGIC_AND:
-        return this->operator()(builtin_qnid::logical_and, be);
+        return this->operator()(builtin_qnid::logical_and, be.args);
         //return do_logic_and(be);
     case binary_operator_type::LOGIC_OR:
         //return do_logic_or(be);
-        return this->operator()(builtin_qnid::logical_or, be);
+        return this->operator()(builtin_qnid::logical_or, be.args);
     case binary_operator_type::ASSIGN:
         return do_assign(be);
     default:

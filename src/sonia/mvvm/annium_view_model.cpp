@@ -26,7 +26,7 @@ void annium_view_model::do_registration(registrar_type& mr)
 annium_view_model::annium_view_model(int32_t idval)
     : view_model{ idval }
 {
-    set_environment(this);
+    set_host(this);
 }
 
 void annium_view_model::load_code(string_view code)

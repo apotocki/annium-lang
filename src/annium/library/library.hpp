@@ -1,4 +1,4 @@
-//  Annium programming language (c) 2025 by Alexander Pototskiy
+//  Annium programming language (c) by Alexander Pototskiy
 //  Annium is licensed under the terms of the MIT License.
 
 #pragma once
@@ -32,6 +32,7 @@ void annium_set_object_property(vm::context&);
 void annium_get_object_property(vm::context&);
 void annium_invoke(vm::context&);
 void annium_invoke_void(vm::context&);
+void annium_invoke_object(vm::context&);
 void annium_invoke_callable(vm::context&);
 
 void annium_logical_not(vm::context&);
