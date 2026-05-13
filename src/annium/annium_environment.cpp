@@ -1020,6 +1020,15 @@ struct expr_printer_visitor
         ss << ")(args)"sv;
     }
 
+    void operator()(member_call const& f) const
+    {
+        ss << "MEMBER_CALL("sv;
+        visit(*this, f.object->value);
+        ss << ")("sv;
+        visit(*this, f.member->value);
+        ss << ")(args)"sv;
+    }
+
     //template <typename T>
     //requires(is_unary_expression<T>::value)
     //void operator()(T const& ue) const
