@@ -7,6 +7,8 @@
 
 namespace annium {
 
+using sonia::invocation::invocable;
+
 void chained_host::do_registration(registrar_type& mr)
 {
     mr.register_readonly_property("std", [](chained_host const& self) -> blob_result {
@@ -28,15 +30,15 @@ template <typename FunctorT>
 inline bool use_parent(chained_host::parent_ref const& b, FunctorT&& ftor)
 {
     return visit(match(
-        [&ftor](shared_ptr<invocation::invocable> const& p) { return ftor(*p); },
-        [&ftor](weak_ptr<invocation::invocable> const& p) { if (auto sp = p.lock()) return ftor(*sp); else return false; },
-        [&ftor](invocation::invocable* p) { return p ? ftor(*p) : false; }
+        [&ftor](shared_ptr<invocable> const& p) { return ftor(*p); },
+        [&ftor](weak_ptr<invocable> const& p) { if (auto sp = p.lock()) return ftor(*sp); else return false; },
+        [&ftor](invocable* p) { return p ? ftor(*p) : false; }
     ), b);
 }
 
 bool chained_host::has_method(string_view methodname) const
 {
-    if (invocation::invocable::has_method(methodname)) return true;
+    if (invocable::has_method(methodname)) return true;
     for (auto const& p : parents_) {
         if (use_parent(p, [methodname](auto& parent) { return parent.has_method(methodname); })) return true;
     }
@@ -45,7 +47,7 @@ bool chained_host::has_method(string_view methodname) const
 
 bool chained_host::try_invoke(string_view methodname, span<const blob_result> args, smart_blob& result) noexcept
 {
-    if (invocation::invocable::try_invoke(methodname, args, result)) return true;
+    if (invocable::try_invoke(methodname, args, result)) return true;
     for (auto const& p : parents_) {
         if (use_parent(p, [&](auto& parent) { return parent.try_invoke(methodname, args, result); })) return true;
     }
@@ -54,7 +56,7 @@ bool chained_host::try_invoke(string_view methodname, span<const blob_result> ar
 
 bool chained_host::try_get_property(string_view propname, smart_blob& result) const
 {
-    if (invocation::invocable::try_get_property(propname, result)) return true;
+    if (invocable::try_get_property(propname, result)) return true;
     for (auto const& p : parents_) {
         if (use_parent(p, [&](auto& parent) { return parent.try_get_property(propname, result); })) return true;
     }
@@ -63,7 +65,7 @@ bool chained_host::try_get_property(string_view propname, smart_blob& result) co
 
 bool chained_host::try_set_property(string_view propname, blob_result const& val)
 {
-    if (invocation::invocable::try_set_property(propname, val)) return true;
+    if (invocable::try_set_property(propname, val)) return true;
     for (auto const& p : parents_) {
         if (use_parent(p, [&](auto& parent) { return parent.try_set_property(propname, val); })) return true;
     }
