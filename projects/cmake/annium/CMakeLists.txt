@@ -16,6 +16,20 @@ endif()
 set (LIBRARY_NAME annium)
 set (LIBRARY_HOME ${ANNIUM_HOME}/src)
 
+# Generate bootstrap_code.generated.hpp from bootstrap.ann
+set(BOOTSTRAP_ANN ${LIBRARY_HOME}/annium/bootstrap.ann)
+set(BOOTSTRAP_HPP ${LIBRARY_HOME}/annium/bootstrap_code.generated.hpp)
+
+add_custom_command(
+    OUTPUT ${BOOTSTRAP_HPP}
+    COMMAND ${CMAKE_COMMAND}
+        -DINPUT_FILE=${BOOTSTRAP_ANN}
+        -DOUTPUT_FILE=${BOOTSTRAP_HPP}
+        -P ${ANNIUM_HOME}/projects/cmake/annium/generate_bootstrap.cmake
+    DEPENDS ${BOOTSTRAP_ANN}
+    COMMENT "Generating bootstrap_code.generated.hpp from bootstrap.ann"
+)
+
 set (LIBRARY_SOURCES
     ${LIBRARY_HOME}/annium/annium.cpp
     ${LIBRARY_HOME}/annium/annium.tab.cpp
@@ -118,6 +132,7 @@ set (LIBRARY_SOURCES
     ${LIBRARY_HOME}/annium/functional/general/typeof_pattern.cpp
     ${LIBRARY_HOME}/annium/functional/general/void_implicit_cast_pattern.cpp
     ${LIBRARY_HOME}/annium/functional/general/any_implicit_cast_pattern.cpp
+    ${LIBRARY_HOME}/annium/functional/general/qname_implicit_cast_pattern.cpp
     ${LIBRARY_HOME}/annium/functional/general/any_cast_pattern.cpp
     
     ${LIBRARY_HOME}/annium/errors/assign_error.cpp
@@ -143,6 +158,7 @@ set (LIBRARY_SOURCES
 )
 
 add_library(${LIBRARY_NAME} STATIC ${LIBRARY_SOURCES})
+target_sources(${LIBRARY_NAME} PRIVATE ${BOOTSTRAP_HPP})
 
 if(NOT DO_NOT_LINK_BOOST_HEADERS)
 target_link_libraries(${LIBRARY_NAME} PRIVATE Boost::headers)

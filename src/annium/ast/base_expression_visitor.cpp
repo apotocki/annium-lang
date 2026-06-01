@@ -636,6 +636,7 @@ base_expression_visitor::result_type base_expression_visitor::operator()(array_e
 
 base_expression_visitor::result_type base_expression_visitor::operator()(name_reference_expression const& var) const
 {
+    //return apply_cast(env().make_identifier_entity(var.name));
     return this->operator()(ctx.lookup_entity(var.name), qname{ std::move(var.name), false });
 }
 
@@ -646,23 +647,24 @@ base_expression_visitor::result_type base_expression_visitor::operator()(qname_r
 
 base_expression_visitor::result_type base_expression_visitor::operator()(fn_compiler_context::lookup_entity_result_t const& ler, qname const& qn) const
 {
-    return std::visit([this, &qn](auto && entid_or_var)->result_type {
-        if constexpr (std::is_same_v<std::decay_t<decltype(entid_or_var)>, entity_identifier>) {
-            if (entid_or_var) {
-                return apply_cast(entid_or_var);
+    return std::visit(match(
+        [this, &qn](entity_identifier const& entid) -> result_type {
+            if (entid) {
+                return apply_cast(entid);
             }
             return std::unexpected(make_error<undeclared_identifier_error>(context_expression_.location, qn));
-        } else if constexpr (std::is_same_v<std::decay_t<decltype(entid_or_var)>, local_variable>) {
+        },
+        [this](local_variable const& lvar) -> result_type {
             semantic::expression_span exprs_span;
-            env().push_back_expression(expressions, exprs_span, semantic::push_local_variable::create(entid_or_var));
-            return apply_cast(syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = entid_or_var.type, .is_const_result = false });
-        } else {
-            static_assert(std::is_same_v<std::decay_t<decltype(entid_or_var)>, functional_variable>);
+            env().push_back_expression(expressions, exprs_span, semantic::push_local_variable::create(lvar));
+            return apply_cast(syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = lvar.type, .is_const_result = false });
+        },
+        [this](functional_variable const& fvar) -> result_type {
             semantic::expression_span exprs_span;
-            env().push_back_expression(expressions, exprs_span, semantic::push_variable{ entid_or_var });
-            return apply_cast(syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = entid_or_var.type, .is_const_result = false });
+            env().push_back_expression(expressions, exprs_span, semantic::push_variable{ fvar });
+            return apply_cast(syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = fvar.type, .is_const_result = false });
         }
-    }, ler);
+    ), ler);
 }
 
 //base_expression_visitor::result_type base_expression_visitor::operator()(qname_reference_expression const& var) const
@@ -710,10 +712,54 @@ base_expression_visitor::result_type base_expression_visitor::operator()(member_
 
 base_expression_visitor::result_type base_expression_visitor::operator()(member_call const& mc) const
 {
+    // ? proirity 
+    //  ::invoke(self: mc.object, property: mc.member, args: mc.args) instead of member call
+    // vs
+    // mc.member(self: mc.object, args: mc.args)
+
+    call_builder invoke_call{ context_expression_.location };
+    invoke_call.emplace_back(annotated_identifier{ env().get(builtin_id::self), mc.object->location }, *mc.object);
+    invoke_call.emplace_back(annotated_identifier{ env().get(builtin_id::method), mc.member->location }, *mc.member);
+    for (const opt_named_expression_t& arg : mc.args) {
+        invoke_call.arguments.emplace_back(arg);
+    }
+    auto match = ctx.find(builtin_qnid::invoke, invoke_call, expressions, expected_result);
+    if (match) {
+        return apply_cast(match->apply(ctx));
+    }
+
     auto fn_member_id = base_expression_visitor::visit(ctx,
         expressions,
-        expected_result_t{ .type = env().get(builtin_eid::qname), .modifier = value_modifier_t::constexpr_value },
+        expected_result_t{.type = env().get(builtin_eid::qname), .modifier = value_modifier_t::constexpr_value },
         *mc.member);
+    if (!fn_member_id) return std::unexpected(std::move(fn_member_id.error()));
+
+    call_builder member_call{ context_expression_.location };
+    member_call.emplace_back(annotated_identifier{ env().get(builtin_id::self), mc.object->location }, *mc.object);
+    for (const opt_named_expression_t& arg : mc.args) {
+        member_call.arguments.emplace_back(arg);
+    }
+    return make_function_call(fn_member_id->first, context_expression_.location, member_call);
+
+#if 0
+    auto member_id = base_expression_visitor::visit(ctx,
+        expressions,
+        expected_result_t{ .type = env().get(builtin_eid::identifier), .modifier = value_modifier_t::constexpr_value },
+        *mc.member);
+
+    if (!member_id) return std::unexpected(std::move(member_id.error()));
+    identifier_entity const& id_ent = static_cast<identifier_entity const&>(get_entity(env(), member_id->first.value()));
+
+    auto refent = ctx.lookup_entity(id_ent.value());
+    if (entity_identifier const* entid = get_if<entity_identifier>(&refent); entid && !*entid) { // if name is not found
+        // emulate invoke call: ::invoke(self: mc.object, property: id_ent.value(), args: mc.args)
+        THROW_NOT_IMPLEMENTED_ERROR("base_expression_visitor member_call with unresolved member");
+    }
+
+    auto fn_member_id = base_expression_visitor{
+        ctx, expressions,
+        expected_result_t{.type = env().get(builtin_eid::qname), .modifier = value_modifier_t::constexpr_value },
+        *mc.member }(refent, qname{ id_ent.value(), false });
     if (!fn_member_id) return std::unexpected(std::move(fn_member_id.error()));
 
     call_builder memebr_call{ context_expression_.location };
@@ -721,8 +767,8 @@ base_expression_visitor::result_type base_expression_visitor::operator()(member_
     for (const opt_named_expression_t& arg : mc.args) {
         memebr_call.arguments.emplace_back(arg);
     }
-
     return make_function_call(fn_member_id->first, context_expression_.location, memebr_call);
+#endif
 }
 
 #if 0
@@ -816,6 +862,8 @@ base_expression_visitor::result_type base_expression_visitor::make_function_call
                 if (pout_qnameid) *pout_qnameid = *optqnid;
                 return (*this)(*optqnid, proc_args);
             }
+        } else if (ent.get_type() == env().get(builtin_eid::identifier)) {
+            // 
         }
         
         // is the entity type a function?

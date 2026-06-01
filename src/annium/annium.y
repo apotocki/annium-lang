@@ -1177,7 +1177,7 @@ call-expression:
         { $$ = syntax_expression{ $object.location, member_expression{ ctx.make<syntax_expression>($object), ctx.make<syntax_expression>($property.location, std::move($property.value)) } }; IGNORE_TERM($POINT); }
     | any-reference-expression[object] POINT identifier[member] OPEN_PARENTHESIS pack-expression-opt[arguments] CLOSE_PARENTHESIS
         {
-            syntax_expression mb{ std::move($member.location), name_reference_expression{ std::move($member.value) } };
+            syntax_expression mb{ std::move($member.location), std::move($member.value) };
             $$ = syntax_expression{ std::move($POINT), member_call{ ctx.make<syntax_expression>(std::move($object)), ctx.make<syntax_expression>(std::move(mb)), ctx.make_array<opt_named_expression_t>($arguments) } }; IGNORE_TERM($OPEN_PARENTHESIS);
         }
     | call-expression[nameExpr] OPEN_PARENTHESIS pack-expression[arguments] CLOSE_PARENTHESIS
@@ -1186,7 +1186,7 @@ call-expression:
         { $$ = syntax_expression{ $object.location, member_expression{ ctx.make<syntax_expression>($object), ctx.make<syntax_expression>($property.location, std::move($property.value)) } }; IGNORE_TERM($POINT); }
     | call-expression[object] POINT identifier[member] OPEN_PARENTHESIS pack-expression-opt[arguments] CLOSE_PARENTHESIS
         {
-            syntax_expression mb{ std::move($member.location), name_reference_expression{ std::move($member.value) } };
+            syntax_expression mb{ std::move($member.location), std::move($member.value) };
             $$ = syntax_expression{ std::move($POINT), member_call{ ctx.make<syntax_expression>(std::move($object)), ctx.make<syntax_expression>(std::move(mb)), ctx.make_array<opt_named_expression_t>($arguments) } }; IGNORE_TERM($OPEN_PARENTHESIS);
         }
     | grouped-expression[expr] OPEN_PARENTHESIS[start] pack-expression-opt[arguments] CLOSE_PARENTHESIS

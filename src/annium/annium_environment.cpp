@@ -21,6 +21,7 @@
 #include "annium/functional/general/any_implicit_cast_pattern.hpp"
 #include "annium/functional/general/any_cast_pattern.hpp"
 #include "annium/functional/general/runtime_cast_pattern.hpp"
+#include "annium/functional/general/qname_implicit_cast_pattern.hpp"
 #include "annium/functional/general/deref_pattern.hpp"
 #include "annium/functional/general/equal_pattern.hpp"
 #include "annium/functional/general/typeof_pattern.hpp"
@@ -1545,6 +1546,7 @@ environment::environment()
     implicit_cast_fnl.push(make_shared<to_external_callable_implicit_cast_pattern>());
     implicit_cast_fnl.push(make_shared<void_implicit_cast_pattern>());
     implicit_cast_fnl.push(make_shared<any_implicit_cast_pattern>());
+    implicit_cast_fnl.push(make_shared<qname_implicit_cast_pattern>());
 
     auto union_pattern = make_shared<union_bit_or_pattern>();
     functional& bit_or_fnl = fregistry_resolve(get(builtin_qnid::bit_or));

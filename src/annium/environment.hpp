@@ -54,6 +54,7 @@ class arena;
     ((of, "of"sv))                         \
     ((from_iterator, "from_iterator"sv))   \
     ((property, "property"sv))             \
+    ((method, "method"sv))                 \
     ((object, "object"sv))                 \
     ((mask, "mask"sv))                     \
     ((visitor, "visitor"sv))               \
@@ -118,6 +119,7 @@ class arena;
     ((any_cast, "any_cast"sv))             \
     ((get, "get"sv))                       \
     ((set, "set"sv))                       \
+    ((invoke, "invoke"sv))                 \
     ((head, "head"sv))                     \
     ((tail, "tail"sv))                     \
     ((to_string, "to_string"sv))           \
