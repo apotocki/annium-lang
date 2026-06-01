@@ -162,7 +162,7 @@
     <ClInclude Include="..\..\..\src\annium\ast\ast_resource.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\base_expression_visitor.ipp" />
     <CustomBuild Include="..\..\..\src\annium\bootstrap.ann">
-      <Command>powershell -NoProfile -NonInteractive -File "$(SolutionDir)src\annium\generate_bootstrap.ps1"</Command>
+      <Command>powershell -NoProfile -NonInteractive -File "..\..\..\src\annium\generate_bootstrap.ps1"</Command>
       <Outputs>..\..\..\src\annium\bootstrap_code.generated.hpp</Outputs>
       <Message>Generating bootstrap_code.generated.hpp from bootstrap.ann</Message>
     </CustomBuild>
