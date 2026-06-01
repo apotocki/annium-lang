@@ -414,6 +414,9 @@
     <ClCompile Include="..\..\..\src\annium\library\annium_std.cpp">
       <Filter>annium\library</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\general\qname_implicit_cast_pattern.cpp">
+      <Filter>annium\functional\general</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\annium\location.hh">
@@ -821,6 +824,12 @@
     <ClInclude Include="..\..\..\src\annium\library\std.hpp">
       <Filter>annium\library</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\bootstrap_code.generated.hpp">
+      <Filter>annium</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\general\qname_implicit_cast_pattern.hpp">
+      <Filter>annium\functional\general</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\src\annium\annium.l">
@@ -829,5 +838,11 @@
     <None Include="..\..\..\src\annium\annium.y">
       <Filter>annium</Filter>
     </None>
+    <None Include="..\..\..\src\annium\generate_bootstrap.ps1">
+      <Filter>annium</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\..\..\src\annium\bootstrap.ann" />
   </ItemGroup>
 </Project>

@@ -4444,7 +4444,7 @@ namespace annium_lang {
   case 224: // call-expression: any-reference-expression "`.`" identifier "`(`" pack-expression-opt "`)`"
 #line 1179 "annium.y"
         {
-            syntax_expression mb{ std::move(yystack_[3].value.as < annotated_identifier > ().location), name_reference_expression{ std::move(yystack_[3].value.as < annotated_identifier > ().value) } };
+            syntax_expression mb{ std::move(yystack_[3].value.as < annotated_identifier > ().location), std::move(yystack_[3].value.as < annotated_identifier > ().value) };
             yylhs.value.as < syntax_expression > () = syntax_expression{ std::move(yystack_[4].value.as < resource_location > ()), member_call{ ctx.make<syntax_expression>(std::move(yystack_[5].value.as < syntax_expression > ())), ctx.make<syntax_expression>(std::move(mb)), ctx.make_array<opt_named_expression_t>(yystack_[1].value.as < opt_named_expression_list_t > ()) } }; IGNORE_TERM(yystack_[2].value.as < resource_location > ());
         }
 #line 4451 "annium.tab.cpp"
@@ -4465,7 +4465,7 @@ namespace annium_lang {
   case 227: // call-expression: call-expression "`.`" identifier "`(`" pack-expression-opt "`)`"
 #line 1188 "annium.y"
         {
-            syntax_expression mb{ std::move(yystack_[3].value.as < annotated_identifier > ().location), name_reference_expression{ std::move(yystack_[3].value.as < annotated_identifier > ().value) } };
+            syntax_expression mb{ std::move(yystack_[3].value.as < annotated_identifier > ().location), std::move(yystack_[3].value.as < annotated_identifier > ().value) };
             yylhs.value.as < syntax_expression > () = syntax_expression{ std::move(yystack_[4].value.as < resource_location > ()), member_call{ ctx.make<syntax_expression>(std::move(yystack_[5].value.as < syntax_expression > ())), ctx.make<syntax_expression>(std::move(mb)), ctx.make_array<opt_named_expression_t>(yystack_[1].value.as < opt_named_expression_list_t > ()) } }; IGNORE_TERM(yystack_[2].value.as < resource_location > ());
         }
 #line 4472 "annium.tab.cpp"

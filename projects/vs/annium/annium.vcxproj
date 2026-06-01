@@ -120,6 +120,7 @@
     <ClCompile Include="..\..\..\src\annium\functional\general\error_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\is_const_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\logical_not_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\functional\general\qname_implicit_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\runtime_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\to_string_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\typeof_pattern.cpp" />
@@ -160,6 +161,12 @@
     <ClInclude Include="..\..\..\src\annium\ast\arena.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\ast_resource.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\base_expression_visitor.ipp" />
+    <CustomBuild Include="..\..\..\src\annium\bootstrap.ann">
+      <Command>powershell -NoProfile -NonInteractive -File "$(SolutionDir)src\annium\generate_bootstrap.ps1"</Command>
+      <Outputs>..\..\..\src\annium\bootstrap_code.generated.hpp</Outputs>
+      <Message>Generating bootstrap_code.generated.hpp from bootstrap.ann</Message>
+    </CustomBuild>
+    <ClInclude Include="..\..\..\src\annium\bootstrap_code.generated.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\array\array_from_iterator_make_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\array\array_implicit_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\callables\to_callable_implicit_cast_pattern.hpp" />
@@ -259,6 +266,7 @@
     <ClInclude Include="..\..\..\src\annium\functional\general\error_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\is_const_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\logical_not_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\functional\general\qname_implicit_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\runtime_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\to_string_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\typeof_pattern.hpp" />
@@ -296,6 +304,7 @@
   <ItemGroup>
     <None Include="..\..\..\src\annium\annium.l" />
     <None Include="..\..\..\src\annium\annium.y" />
+    <None Include="..\..\..\src\annium\generate_bootstrap.ps1" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
