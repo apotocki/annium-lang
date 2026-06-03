@@ -1061,7 +1061,8 @@ struct expr_printer_visitor
     void operator()(lambda const& f) const
     {
         (void)f; // suppress unused warning
-        THROW_NOT_IMPLEMENTED_ERROR();
+        ss << "lambda"sv;
+        //THROW_NOT_IMPLEMENTED_ERROR();
     }
 
     void operator()(annotated_entity_identifier const& f) const

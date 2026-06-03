@@ -727,7 +727,12 @@ base_expression_visitor::result_type base_expression_visitor::operator()(member_
     if (match) {
         return apply_cast(match->apply(ctx));
     }
-
+    try {
+    GLOBAL_LOG_ERROR() << env().print(*match.error());
+    }
+    catch (...) {
+        GLOBAL_LOG_ERROR() << boost::current_exception_diagnostic_information();
+    }
     auto fn_member_id = base_expression_visitor::visit(ctx,
         expressions,
         expected_result_t{.type = env().get(builtin_eid::qname), .modifier = value_modifier_t::constexpr_value },

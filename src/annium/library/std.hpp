@@ -24,6 +24,8 @@ public:
 
     blob_result regex_object(string_view pattern);
     blob_result regex_search(string_view target, smart_blob re);
+
+    blob_result clone_value(blob_result val);
 };
 
 }

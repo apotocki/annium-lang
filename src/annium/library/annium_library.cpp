@@ -487,9 +487,9 @@ public:
                 return scope_holder.get();
             }}, scope_);
 
-        if (args.size() < arg_count_) {
-            return smart_blob{ error_blob_result(("annium_callable error: expected %1% arguments, got %2%"_fmt % arg_count_ % args.size()).str()) };
-        }
+        //if (args.size() < arg_count_) {
+        //    return smart_blob{ error_blob_result(("annium_callable error: expected %1% arguments, got %2%"_fmt % arg_count_ % args.size()).str()) };
+        //}
         try {
             vm::context ctx{ *env, ps };
             size_t init_stack_sz = ctx.stack_size();
@@ -498,8 +498,12 @@ public:
             size_t cindex = ctx.stack_back().as<size_t>();
             size_t address = ctx.const_at(cindex).as<size_t>();
             ctx.stack_pop();
-            for (size_t argidx = 0; argidx < arg_count_; ++argidx) {
+            size_t argidx = 0;
+            for (; argidx < (std::min)(args.size(), arg_count_); ++argidx) {
                 ctx.stack_push(smart_blob{ args[argidx] });
+            }
+            for (; argidx < arg_count_; ++argidx) {
+                ctx.stack_push(smart_blob{ });
             }
             env->bvm().run(ctx, address);
             

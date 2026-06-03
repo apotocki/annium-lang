@@ -843,6 +843,8 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\..\..\src\annium\bootstrap.ann" />
+    <CustomBuild Include="..\..\..\src\annium\bootstrap.ann">
+      <Filter>annium</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

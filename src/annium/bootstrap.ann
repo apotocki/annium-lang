@@ -1,3 +1,5 @@
+extern var std: object;
+
 // CONTROL
 inline fn assert_equal(_, _, location: string = __call_location) -> () {
 	if $0 == $1 { return; }
@@ -42,6 +44,7 @@ inline fn __and($LHS: bool, $RHS) {
 
 // STRINGS
 inline fn implicit_cast(string) ~> bool => !empty($0);
+inline fn clone(string) -> string => any_cast(std.clone($0));
 
 // UNIONS
 inline fn equal($l: ~union(...), $r) => apply(to: $l, visitor: fn[$r]($value) => $value == $r);
@@ -100,7 +103,7 @@ inline fn ::set(self: runtime object, property: constexpr __identifier, $value: 
 inline fn ::get(self: runtime object, property: constexpr __identifier) -> any => __get(self, to_string(property));
 inline fn ::invoke(self: runtime object, method: constexpr __identifier, runtime any ...) -> any => __invoke(self, to_string(method), $0 ..., size($0));
 
-extern var std: object;
+
 struct regex_object => (cookie: any);
 inline fn init(runtime string) ~> regex_object {
 	return init(cookie: invoke(self: std, method: .regex_object, $0));

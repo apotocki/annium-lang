@@ -15,6 +15,17 @@ void std_object::do_registration(registrar_type& mr)
     //});
     mr.register_method<&std_object::regex_object>("regex_object"sv);
     mr.register_method<&std_object::regex_search>("regex_search"sv);
+    mr.register_method<&std_object::clone_value>("clone"sv);
+}
+
+blob_result std_object::clone_value(blob_result val)
+{
+    if (val.type == blob_type::string) {
+        blob_result_allocate(&val);
+        return val;
+        //if (!val.inplace_size && !val.need_unpin) // it's a reference, we need to return a new blob_result
+    }
+    return error_blob_result("Cannot clone the given value"sv);
 }
 
 class regex_object : public invocation::object
