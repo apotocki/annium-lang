@@ -97,6 +97,7 @@ protected:
     result_type do_logic_and(binary_expression const&) const;
     result_type do_logic_or(binary_expression const&) const;
     result_type do_assign(binary_expression const&) const;
+    result_type do_cast(binary_expression const& be) const;
 
     result_type apply_cast(entity const&, syntax_expression_result) const;
     result_type apply_cast(syntax_expression_result) const;

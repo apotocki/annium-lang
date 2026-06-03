@@ -2,7 +2,7 @@
 //  Annium is licensed under the terms of the MIT License.
 
 #include "sonia/config.hpp"
-#include "any_cast_pattern.hpp"
+#include "reinterpret_any_pattern.hpp"
 
 #include "annium/ast/fn_compiler_context.hpp"
 
@@ -15,7 +15,7 @@
 
 namespace annium {
 
-std::expected<functional_match_descriptor_ptr, error_storage> any_cast_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
+std::expected<functional_match_descriptor_ptr, error_storage> reinterpret_any_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
 {
     if (!exp.type || !can_be_runtime(exp.modifier)) {
         if (exp.type) {
@@ -43,7 +43,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> any_cast_pattern::
     return pmd;
 }
 
-std::expected<syntax_expression_result, error_storage> any_cast_pattern::apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor& md) const
+std::expected<syntax_expression_result, error_storage> reinterpret_any_pattern::apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor& md) const
 {
     auto [_, ser, loc] = md.matches.front();
     ser.value_or_type = md.signature.result->entity_id();

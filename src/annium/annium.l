@@ -116,6 +116,7 @@ FN						 "fn"
 TYPEFN					 "typefn"
 LET						 "let"
 VAR						 "var"
+AS						 "as"
 ENUM					 "enum"
 STRUCT					 "struct"
 REQUIRES                 "requires"
@@ -309,6 +310,7 @@ HASHTAG					"#"
 	{TYPEFN} { variant_emplace(location); return (annium_lang::parser::token::TYPEFN); }
 	{LET} { return (annium_lang::parser::token::LET); }
 	{VAR} { return (annium_lang::parser::token::VAR); }
+	{AS} { variant_emplace(location); return (annium_lang::parser::token::AS); }
 	{ENUM} { return (annium_lang::parser::token::ENUM); }
 	{STRUCT} { return (annium_lang::parser::token::STRUCT); }
 	{REQUIRES} { return (annium_lang::parser::token::REQUIRES); }

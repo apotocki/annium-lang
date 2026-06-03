@@ -125,6 +125,7 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 
 %token LET
 %token VAR
+%token <resource_location> AS   "`as`"
 %token EXTERN
 
 %token <resource_location> NEW        "`new`"
@@ -195,6 +196,7 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 
 // 15 priority
 %right ASSIGN
+%left AS
 
 // 14 priority
 %left LOGIC_OR
@@ -1128,7 +1130,9 @@ syntax-expression-base:
             } // else void args
             $$ = syntax_expression{ $lexpr.location, std::move(fnt) }; 
         }
-    
+//////////////////////////// 15 priority
+    | syntax-expression[lexpr] AS type-expr[rexpr]
+        { $$ = syntax_expression{ std::move($AS), binary_expression{ binary_operator_type::CAST, ctx.make_span_for_args<opt_named_expression_t>(std::move($lexpr), std::move($rexpr)) } }; }
     ;
 
 /*

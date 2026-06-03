@@ -405,7 +405,7 @@
     <ClCompile Include="..\..\..\src\annium\entities\callables\to_external_callable_implicit_cast_pattern.cpp">
       <Filter>annium\entities\callables</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\functional\general\any_cast_pattern.cpp">
+    <ClCompile Include="..\..\..\src\annium\functional\general\reinterpret_any_pattern.cpp">
       <Filter>annium\functional\general</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\library\annium_chained_host.cpp">
@@ -815,7 +815,7 @@
     <ClInclude Include="..\..\..\src\annium\entities\callables\to_external_callable_implicit_cast_pattern.hpp">
       <Filter>annium\entities\callables</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\functional\general\any_cast_pattern.hpp">
+    <ClInclude Include="..\..\..\src\annium\functional\general\reinterpret_any_pattern.hpp">
       <Filter>annium\functional\general</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\library\chained_host.hpp">
