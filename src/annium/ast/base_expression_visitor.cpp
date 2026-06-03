@@ -1253,7 +1253,7 @@ base_expression_visitor::result_type base_expression_visitor::do_cast(binary_exp
     result_type res = base_expression_visitor::visit(
         ctx,
         expressions,
-        expected_result_t{ .type = tp_res->first.value(), .location = context_expression_.location, .modifier = value_modifier_t::constexpr_value },
+        expected_result_t{ .type = tp_res->first.value(), .location = context_expression_.location, .modifier = value_modifier_t::constexpr_or_runtime_value },
         be.args[0].value()
     );
     if (!res) return res;
