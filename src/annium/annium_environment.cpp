@@ -19,7 +19,7 @@
 #include "annium/functional/general/assert_pattern.hpp"
 #include "annium/functional/general/void_implicit_cast_pattern.hpp"
 #include "annium/functional/general/any_implicit_cast_pattern.hpp"
-#include "annium/functional/general/any_cast_pattern.hpp"
+#include "annium/functional/general/reinterpret_any_pattern.hpp"
 #include "annium/functional/general/runtime_cast_pattern.hpp"
 #include "annium/functional/general/qname_implicit_cast_pattern.hpp"
 #include "annium/functional/general/deref_pattern.hpp"
@@ -1482,9 +1482,9 @@ environment::environment()
     functional& runtime_cast_fnl = fregistry_resolve(get(builtin_qnid::runtime_cast));
     runtime_cast_fnl.push(make_shared<runtime_cast_pattern>());
 
-    // any_cast(runtime any) ~> _
-    functional& any_cast_fnl = fregistry_resolve(get(builtin_qnid::any_cast));
-    any_cast_fnl.push(make_shared<any_cast_pattern>());
+    // reinterpret(runtime any) ~> _
+    functional& reinterpret_any_fnl = fregistry_resolve(get(builtin_qnid::reinterpret));
+    reinterpret_any_fnl.push(make_shared<reinterpret_any_pattern>());
 
     // operator*(type: typename)
     functional& deref_fnl = fregistry_resolve(get(builtin_qnid::deref));

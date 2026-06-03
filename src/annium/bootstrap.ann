@@ -109,8 +109,8 @@ inline fn init(runtime string) ~> regex_object {
 	return init(cookie: invoke(self: std, method: .regex_object, $0));
 }
 inline fn regex_search(target: runtime string, re: runtime string) -> [string] {
-	return any_cast(std.regex_search(target, re));
+	return reinterpret(std.regex_search(target, re));
 }
 inline fn regex_search(target: runtime string, re: regex_object) -> [string] {
-	return any_cast(std.regex_search(target, re.cookie));
+	return reinterpret(std.regex_search(target, re.cookie));
 }

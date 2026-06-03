@@ -1,0 +1,4 @@
+let v0 = 123;
+let v1 = v0 as i32;
+let v2 = v0 as i32 as i64;
+print(to_string(typeof(v0)) .. " " .. to_string(typeof(v1)) .. " " .. to_string(typeof(v2)));

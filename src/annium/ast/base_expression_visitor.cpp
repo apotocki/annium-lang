@@ -1042,6 +1042,8 @@ base_expression_visitor::result_type base_expression_visitor::operator()(binary_
         return this->operator()(builtin_qnid::logical_or, be.args);
     case binary_operator_type::ASSIGN:
         return do_assign(be);
+    case binary_operator_type::CAST:
+        return do_cast(be);
     default:
         break;
     }
@@ -1237,6 +1239,25 @@ base_expression_visitor::result_type base_expression_visitor::do_assign(binary_e
 
     //ctx.context_type = ctx.env().get(builtin_eid::void_);
     //return std::pair{ semantic::managed_expression_list{ ctx.env() }, false };
+}
+
+base_expression_visitor::result_type base_expression_visitor::do_cast(binary_expression const& be) const
+{
+    result_type tp_res = base_expression_visitor::visit(
+        ctx,
+        expressions,
+        expected_result_t{ .type = env().get(builtin_eid::typename_), .modifier = value_modifier_t::constexpr_value },
+        be.args[1].value()
+    );
+    if (!tp_res) return tp_res;
+    result_type res = base_expression_visitor::visit(
+        ctx,
+        expressions,
+        expected_result_t{ .type = tp_res->first.value(), .location = context_expression_.location, .modifier = value_modifier_t::constexpr_value },
+        be.args[0].value()
+    );
+    if (!res) return res;
+    return apply_cast(std::move(res->first));
 }
 
 base_expression_visitor::result_type base_expression_visitor::operator()(lambda const& l) const
