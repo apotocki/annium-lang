@@ -114,3 +114,7 @@ inline fn regex_search(target: runtime string, re: runtime string) -> [string] {
 inline fn regex_search(target: runtime string, re: regex_object) -> [string] {
 	return reinterpret(std.regex_search(target, re.cookie));
 }
+
+inline fn to_integer(runtime string) -> integer {
+    return reinterpret(std.to_integer($0));
+}

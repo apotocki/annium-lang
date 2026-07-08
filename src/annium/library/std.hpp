@@ -22,6 +22,10 @@ class std_object
 public:
     std_object() = default;
 
+    // numers
+    blob_result to_integer(string_view);
+
+    // regex
     blob_result regex_object(string_view pattern);
     blob_result regex_search(string_view target, smart_blob re);
 

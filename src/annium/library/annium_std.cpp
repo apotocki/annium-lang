@@ -6,6 +6,8 @@
 
 #include <regex>
 
+#include <numetron/basic_integer.hpp>
+
 namespace annium {
 
 void std_object::do_registration(registrar_type& mr)
@@ -13,9 +15,18 @@ void std_object::do_registration(registrar_type& mr)
     //mr.register_readonly_property("std", [](std_object const& self) -> blob_result {
     //    return smart_blob{ }.detach();
     //});
+    mr.register_method<&std_object::to_integer>("to_integer"sv);
+
     mr.register_method<&std_object::regex_object>("regex_object"sv);
     mr.register_method<&std_object::regex_search>("regex_search"sv);
     mr.register_method<&std_object::clone_value>("clone"sv);
+}
+
+blob_result std_object::to_integer(string_view str)
+{
+    numetron::integer value{ str };
+    smart_blob result = bigint_blob_result(value);
+    return result.detach();
 }
 
 blob_result std_object::clone_value(blob_result val)
