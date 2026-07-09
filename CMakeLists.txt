@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.16)
 
 project(annium-lang VERSION 0.1.0 LANGUAGES CXX ASM)
 
-set (PROJECT_HOME ${CMAKE_CURRENT_SOURCE_DIR})
+if (NOT DEFINED PROJECT_HOME)
+    set (PROJECT_HOME ${CMAKE_CURRENT_SOURCE_DIR})
+endif()
 set (TPLS ${CMAKE_CURRENT_SOURCE_DIR}/tpls)
 
 # Set C++ standard
@@ -15,13 +17,39 @@ option(ENABLE_DEBUG_INFO "Enable debug information for GCC builds" OFF)
 
 option(VALGRIND_BUILD "Build with Valgrind compatibility" OFF)
 
-# Set output directories
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+# Set output directories. Skip this for the iOS toolchain (projects/ios/ios.toolchain.cmake
+# sets BUILD_IOS): Xcode is a multi-config generator there that already splits products by
+# $(CONFIGURATION)-$(EFFECTIVE_PLATFORM_NAME) (e.g. Release-iphoneos vs
+# Release-iphonesimulator); pinning a fixed path here collapses that and device/simulator
+# builds silently overwrite each other's .a in the same directory. Other (e.g. plain macOS)
+# builds still want the fixed path, so don't gate this on APPLE in general.
+if (NOT BUILD_IOS)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+endif()
 
 # Find required packages
-find_package(Boost REQUIRED COMPONENTS headers context log log_setup program_options thread unit_test_framework)
+if (DEFINED ENV{BOOST_INCLUDE})
+    # ENV{BOOST_INCLUDE} points at a vendored Boost checkout (e.g. the iOS pods build) that has
+    # no compiled libraries for the components below and no BoostConfig.cmake - go straight to
+    # the headers instead of find_package(), which would otherwise fail (or warn) trying to
+    # locate them.
+    set(Boost_INCLUDE_DIR "$ENV{BOOST_INCLUDE}")
+    set(Boost_INCLUDE_DIRS "$ENV{BOOST_INCLUDE}")
+    set(Boost_FOUND TRUE)
+    # find_package(Boost) would normally create these Boost::<component> imported targets;
+    # since it never runs here, stub them out as header-only INTERFACE targets so
+    # target_link_libraries(... Boost::xxx ...) in annium/annium_tests/tests still resolves.
+    foreach (_annium_boost_comp headers context log log_setup program_options thread unit_test_framework system filesystem)
+        if (NOT TARGET Boost::${_annium_boost_comp})
+            add_library(Boost::${_annium_boost_comp} INTERFACE IMPORTED)
+            target_include_directories(Boost::${_annium_boost_comp} INTERFACE "$ENV{BOOST_INCLUDE}")
+        endif()
+    endforeach()
+else()
+    find_package(Boost REQUIRED COMPONENTS headers context log log_setup program_options thread unit_test_framework)
+endif()
 #find_package(PkgConfig REQUIRED)
 
 # vcpkg integration - try to find vcpkg installed dependencies
@@ -106,13 +134,13 @@ if(WIN32)
 endif()
 
 set (COMMON_INCLUDE)
-set (NUMETRON_HOME ${CMAKE_CURRENT_SOURCE_DIR}/tpls/numetron)
-set (DATAFORGE_HOME ${CMAKE_CURRENT_SOURCE_DIR}/tpls/dataforge)
-set (SONIA_HOME ${CMAKE_CURRENT_SOURCE_DIR}/tpls/sonia-prime)
+set (NUMETRON_HOME ${PROJECT_HOME}/tpls/numetron)
+set (DATAFORGE_HOME ${PROJECT_HOME}/tpls/dataforge)
+set (SONIA_HOME ${PROJECT_HOME}/tpls/sonia-prime)
 set (ANNIUM_HOME ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/projects/cmake/annium)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/tpls/numetron/lib)
+add_subdirectory(${PROJECT_HOME}/tpls/numetron/lib "${CMAKE_CURRENT_BINARY_DIR}/numetron-lib")
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/projects/cmake/annium_tests)
 
 
