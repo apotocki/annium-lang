@@ -17,11 +17,7 @@ jobs:
             submodules: false
 
       - name: Force checkout all submodules (including update=none)
-        run: |
-          git -c submodule."tpls/dataforge".update=checkout \
-              -c submodule."tpls/numetron".update=checkout \
-              -c submodule."tpls/sonia-prime".update=checkout \
-              submodule update --init --recursive
+        run: git -c submodule."tpls/dataforge".update=checkout -c submodule."tpls/numetron".update=checkout -c submodule."tpls/sonia-prime".update=checkout submodule update --init --recursive
       
       - name: Clone vcpkg
         run: git clone https://github.com/microsoft/vcpkg.git vcpkg
