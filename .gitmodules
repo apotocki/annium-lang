@@ -1,12 +1,12 @@
 [submodule "tpls/sonia-prime"]
-	path = tpls/sonia-prime
+	path = modules/sonia-prime
 	url = https://github.com/apotocki/sonia-prime
     update = none
 [submodule "tpls/dataforge"]
-	path = tpls/dataforge
+	path = modules/dataforge
 	url = https://github.com/apotocki/dataforge
     update = none
 [submodule "tpls/numetron"]
-	path = tpls/numetron
+	path = modules/numetron
 	url = https://github.com/apotocki/numetron
     update = none
