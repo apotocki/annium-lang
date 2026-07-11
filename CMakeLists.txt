@@ -5,7 +5,8 @@ project(annium-lang VERSION 0.1.0 LANGUAGES CXX ASM)
 if (NOT DEFINED PROJECT_HOME)
     set (PROJECT_HOME ${CMAKE_CURRENT_SOURCE_DIR})
 endif()
-set (TPLS ${CMAKE_CURRENT_SOURCE_DIR}/tpls)
+set (MODULES ${CMAKE_CURRENT_SOURCE_DIR}/modules)
+set (THIRD_PARTY ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 23)
@@ -134,13 +135,13 @@ if(WIN32)
 endif()
 
 set (COMMON_INCLUDE)
-set (NUMETRON_HOME ${PROJECT_HOME}/tpls/numetron)
-set (DATAFORGE_HOME ${PROJECT_HOME}/tpls/dataforge)
-set (SONIA_HOME ${PROJECT_HOME}/tpls/sonia-prime)
+set (NUMETRON_HOME ${PROJECT_HOME}/modules/numetron)
+set (DATAFORGE_HOME ${PROJECT_HOME}/modules/dataforge)
+set (SONIA_HOME ${PROJECT_HOME}/modules/sonia-prime)
 set (ANNIUM_HOME ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/projects/cmake/annium)
-add_subdirectory(${PROJECT_HOME}/tpls/numetron/lib "${CMAKE_CURRENT_BINARY_DIR}/numetron-lib")
+add_subdirectory(${PROJECT_HOME}/modules/numetron/lib "${CMAKE_CURRENT_BINARY_DIR}/numetron-lib")
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/projects/cmake/annium_tests)
 
 

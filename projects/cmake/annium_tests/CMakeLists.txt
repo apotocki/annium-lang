@@ -1,11 +1,10 @@
-set (BUNDLE_HOME ${CMAKE_CURRENT_LIST_DIR}/../../..)
+set (MODULE_HOME ${CMAKE_CURRENT_LIST_DIR}/../../..)
 
-include_directories(${BUNDLE_HOME}/src)
-include_directories(${TPLS}/sonia-prime)
-include_directories(${TPLS}/lexertl14/include)
-include_directories(${TPLS}/dataforge/include)
-include_directories(${TPLS}/numetron/include)
-
+include_directories(${MODULE_HOME}/src)
+include_directories(${MODULES}/sonia-prime)
+include_directories(${MODULES}/dataforge/include)
+include_directories(${MODULES}/numetron/include)
+include_directories(${THIRD_PARTY}/lexertl14/include)
 # Debug/Release specific definitions
 
 add_definitions(-DAUTO_TEST_REGISTRATION -DSONIA_NO_PRIME_BUNDLE -DSONIA_PRIME_STATIC -DSONIA_NO_NET -DSONIA_NO_BOOKKEEPER -DSONIA_NO_TENGER)
@@ -13,52 +12,53 @@ add_definitions(-DAUTO_TEST_REGISTRATION -DSONIA_NO_PRIME_BUNDLE -DSONIA_PRIME_S
 set (MODULE_NAME annium_tests)
 
 set (ANNIUM_TESTS_SOURCES
-    ${BUNDLE_HOME}/tpls/sonia-prime/applied/scoped_services.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/applied/tests_external.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/applied/tests_main.cpp
+    ${MODULES}/sonia-prime/applied/scoped_services.cpp
+    ${MODULES}/sonia-prime/applied/tests_external.cpp
+    ${MODULES}/sonia-prime/applied/tests_main.cpp
     
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/fibers/algo/algorithm.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/fibers/algo/round_robin.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/fibers/barrier.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/fibers/condition_variable.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/fibers/context.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/fibers/context_shared.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/fibers/default_stack.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/fibers/fiber.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/fibers/future.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/fibers/mutex.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/fibers/postponer.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/fibers/scheduler.cpp
+    ${MODULES}/sonia-prime/sonia/fibers/algo/algorithm.cpp
+    ${MODULES}/sonia-prime/sonia/fibers/algo/round_robin.cpp
+    ${MODULES}/sonia-prime/sonia/fibers/barrier.cpp
+    ${MODULES}/sonia-prime/sonia/fibers/condition_variable.cpp
+    ${MODULES}/sonia-prime/sonia/fibers/context.cpp
+    ${MODULES}/sonia-prime/sonia/fibers/context_shared.cpp
+    ${MODULES}/sonia-prime/sonia/fibers/default_stack.cpp
+    ${MODULES}/sonia-prime/sonia/fibers/fiber.cpp
+    ${MODULES}/sonia-prime/sonia/fibers/future.cpp
+    ${MODULES}/sonia-prime/sonia/fibers/mutex.cpp
+    ${MODULES}/sonia-prime/sonia/fibers/postponer.cpp
+    ${MODULES}/sonia-prime/sonia/fibers/scheduler.cpp
     
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/logger/logger.cpp
+    ${MODULES}/sonia-prime/sonia/logger/logger.cpp
     
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/utility/invocation/invocable.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/utility/invocation/invocation.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/utility/json/json_value.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/utility/parsers/json/json_model.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/utility/mvvm/view_model.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/utility/file_persister.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/utility/iterators/file_region_iterator.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/utility/assert_handler.cpp
+    ${MODULES}/sonia-prime/sonia/utility/invocation/invocable.cpp
+    ${MODULES}/sonia-prime/sonia/utility/invocation/invocation.cpp
+    ${MODULES}/sonia-prime/sonia/utility/json/json_value.cpp
+    ${MODULES}/sonia-prime/sonia/utility/parsers/json/json_model.cpp
+    ${MODULES}/sonia-prime/sonia/utility/mvvm/view_model.cpp
+    ${MODULES}/sonia-prime/sonia/utility/file_persister.cpp
+    ${MODULES}/sonia-prime/sonia/utility/iterators/file_region_iterator.cpp
+    ${MODULES}/sonia-prime/sonia/utility/assert_handler.cpp
     
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/services/service_locator.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/services/services.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/services/services_host.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/services/singleton_locator.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/services/durable_type_registry.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/services/environment.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/services/basic_service_factory.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/services/local_service_registry.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/services/local_type_registry.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/services/multimethod_registry.cpp
-    #${BUNDLE_HOME}/tpls/sonia-prime/sonia/services/prime_bundle.cpp
+    ${MODULES}/sonia-prime/sonia/services/service_locator.cpp
+    ${MODULES}/sonia-prime/sonia/services/services.cpp
+    ${MODULES}/sonia-prime/sonia/services/services_host.cpp
+    ${MODULES}/sonia-prime/sonia/services/singleton_locator.cpp
+    ${MODULES}/sonia-prime/sonia/services/durable_type_registry.cpp
+    ${MODULES}/sonia-prime/sonia/services/environment.cpp
+    ${MODULES}/sonia-prime/sonia/services/basic_service_factory.cpp
+    ${MODULES}/sonia-prime/sonia/services/local_service_registry.cpp
+    ${MODULES}/sonia-prime/sonia/services/local_type_registry.cpp
+    ${MODULES}/sonia-prime/sonia/services/multimethod_registry.cpp
+    #${MODULES}/sonia-prime/sonia/services/prime_bundle.cpp
     
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/sal/posix_sal.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/sys/posix/posix.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/sys/linux/signals.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/sys/linux/linux_timer.cpp
-    ${BUNDLE_HOME}/tpls/sonia-prime/sonia/sys/linux/signals_api.cpp
-    ${BUNDLE_HOME}/tests/annium_test.cpp
+    ${MODULES}/sonia-prime/sonia/sal/posix_sal.cpp
+    ${MODULES}/sonia-prime/sonia/sys/posix/posix.cpp
+    ${MODULES}/sonia-prime/sonia/sys/linux/signals.cpp
+    ${MODULES}/sonia-prime/sonia/sys/linux/linux_timer.cpp
+    ${MODULES}/sonia-prime/sonia/sys/linux/signals_api.cpp
+    
+    ${MODULE_HOME}/tests/annium_test.cpp
 )
 
 add_executable(${MODULE_NAME} ${ANNIUM_TESTS_SOURCES})
@@ -87,5 +87,5 @@ if(MSVC)
     target_compile_options(${MODULE_NAME} PRIVATE /Zc:__cplusplus)
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     target_compile_options(${MODULE_NAME} PRIVATE -Wall -Wextra -pedantic -Wno-missing-field-initializers)
-    set_property(SOURCE ${BUNDLE_HOME}/tpls/sonia-prime/sonia/sal/posix_sal.cpp APPEND PROPERTY COMPILE_OPTIONS "-Wno-maybe-uninitialized")
+    set_property(SOURCE ${MODULE_HOME}/modules/sonia-prime/sonia/sal/posix_sal.cpp APPEND PROPERTY COMPILE_OPTIONS "-Wno-maybe-uninitialized")
 endif()

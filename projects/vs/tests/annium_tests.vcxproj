@@ -20,139 +20,139 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\tests\annium_test.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\applied\scoped_services.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\applied\tests_external.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\applied\tests_main.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\algo\algorithm.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\algo\round_robin.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\barrier.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\condition_variable.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\context.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\fiber.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\future.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\mutex.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\postponer.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\scheduler.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\logger\logger.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\sal\windows_sal.cpp">
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\applied\scoped_services.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\applied\tests_external.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\applied\tests_main.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\algo\algorithm.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\algo\round_robin.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\barrier.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\condition_variable.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\context.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\fiber.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\future.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\mutex.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\postponer.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\scheduler.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\logger\logger.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\sal\windows_sal.cpp">
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">_SILENCE_CXX23_ALIGNED_STORAGE_DEPRECATION_WARNING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">_SILENCE_CXX23_ALIGNED_STORAGE_DEPRECATION_WARNING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\services\basic_service_factory.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\services\bundle.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\services\durable_type_registry.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\services\environment.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\services\local_service_registry.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\services\local_type_registry.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\services\multimethod_registry.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\services\prime_bundle.cpp">
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\services\basic_service_factory.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\services\bundle.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\services\durable_type_registry.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\services\environment.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\services\local_service_registry.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\services\local_type_registry.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\services\multimethod_registry.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\services\prime_bundle.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\services\services.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\services\services_host.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\services\service_locator.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\services\singleton_locator.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\sys\windows\thread_pool.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\sys\windows\thread_pool_api.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\sys\windows\windows.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\assert_handler.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\file_persister.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\invocation\invocable.cpp">
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\services\services.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\services\services_host.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\services\service_locator.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\services\singleton_locator.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\sys\windows\thread_pool.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\sys\windows\thread_pool_api.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\sys\windows\windows.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\utility\assert_handler.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\utility\file_persister.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\utility\invocation\invocable.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\invocation\invocation.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\invocation\value_decoder.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\invocation\value_encoder.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\iterators\file_region_iterator.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\json\json_value.cpp" />
-    <ClCompile Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\parsers\json\json_model.cpp" />
-    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\fibers\context_shared.cpp" />
-    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\fibers\default_stack.cpp" />
-    <ClCompile Include="..\..\..\tpls\sonia-prime\sonia\utility\mvvm\view_model.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\utility\invocation\invocation.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\utility\invocation\value_decoder.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\utility\invocation\value_encoder.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\utility\iterators\file_region_iterator.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\utility\json\json_value.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\utility\parsers\json\json_model.cpp" />
+    <ClCompile Include="..\..\..\modules\sonia-prime\sonia\fibers\context_shared.cpp" />
+    <ClCompile Include="..\..\..\modules\sonia-prime\sonia\fibers\default_stack.cpp" />
+    <ClCompile Include="..\..\..\modules\sonia-prime\sonia\utility\mvvm\view_model.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\applied\tests_external.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\config.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\algo\algorithm.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\algo\round_robin.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\barrier.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\condition_variable.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\context.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\detail\config.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\detail\convert.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\detail\cpu_relax.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\detail\data.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\detail\decay_copy.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\detail\disable_overload.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\detail\fss.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\detail\futex.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\detail\spinlock.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\detail\spinlock_status.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\detail\spinlock_ttas.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\detail\spinlock_ttas_adaptive.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\detail\spinlock_ttas_adaptive_futex.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\detail\spinlock_ttas_futex.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\exceptions.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\fiber.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\fixedsize_stack.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\fss.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\future.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\future\async.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\future\detail\shared_state.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\future\detail\shared_state_object.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\future\detail\task_base.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\future\detail\task_object.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\future\future.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\future\future_status.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\future\packaged_task.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\future\promise.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\mutex.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\operations.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\policy.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\postponer.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\properties.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\scheduler.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\segmented_stack.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\fibers\type.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\invocation\invocable_registry.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\invocation\invocation.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\invocation\serialization.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\invocation\value_decoder.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\invocation\value_encoder.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\json\json_cast.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\json\value.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\lang\compiler.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\lang\entity.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\lang\entity_registry.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\lang\identifier_builder.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\lang\parameterized_identifier_registry.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\lang\qname.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\lang\qname_registry.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\lang\string_literal_registry.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\lang\utility.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\lang\vm.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\optimized\array.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\optimized\decimal.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\optimized\holder.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\optimized\integer.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\optimized\maybe_array.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\parsers\json\lexems.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\parsers\json\lexertl_lexer.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\parsers\json\model.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\parsers\json\parser.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\parsers\lexer.hpp" />
-    <ClInclude Include="$(SolutionDir)tpls\sonia-prime\sonia\utility\parsers\utility.hpp" />
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\mvvm\view_model.hpp" />
-    <ClInclude Include="..\..\..\tpls\sonia-prime\sonia\utility\mvvm\view_model.ipp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\applied\tests_external.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\config.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\algo\algorithm.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\algo\round_robin.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\barrier.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\condition_variable.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\context.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\detail\config.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\detail\convert.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\detail\cpu_relax.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\detail\data.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\detail\decay_copy.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\detail\disable_overload.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\detail\fss.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\detail\futex.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\detail\spinlock.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\detail\spinlock_status.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\detail\spinlock_ttas.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\detail\spinlock_ttas_adaptive.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\detail\spinlock_ttas_adaptive_futex.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\detail\spinlock_ttas_futex.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\exceptions.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\fiber.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\fixedsize_stack.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\fss.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\future.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\future\async.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\future\detail\shared_state.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\future\detail\shared_state_object.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\future\detail\task_base.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\future\detail\task_object.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\future\future.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\future\future_status.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\future\packaged_task.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\future\promise.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\mutex.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\operations.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\policy.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\postponer.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\properties.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\scheduler.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\segmented_stack.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\type.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\invocation\invocable_registry.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\invocation\invocation.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\invocation\serialization.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\invocation\value_decoder.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\invocation\value_encoder.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\json\json_cast.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\json\value.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\lang\compiler.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\lang\entity.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\lang\entity_registry.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\lang\identifier_builder.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\lang\parameterized_identifier_registry.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\lang\qname.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\lang\qname_registry.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\lang\string_literal_registry.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\lang\utility.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\lang\vm.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\optimized\array.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\optimized\decimal.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\optimized\holder.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\optimized\integer.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\optimized\maybe_array.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\parsers\json\lexems.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\parsers\json\lexertl_lexer.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\parsers\json\model.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\parsers\json\parser.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\parsers\lexer.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\parsers\utility.hpp" />
+    <ClInclude Include="..\..\..\modules\sonia-prime\sonia\utility\mvvm\view_model.hpp" />
+    <ClInclude Include="..\..\..\modules\sonia-prime\sonia\utility\mvvm\view_model.ipp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="$(SolutionDir)tpls\numetron\msvc\numetron.vcxproj">
+    <ProjectReference Include="..\..\..\modules\numetron\msvc\numetron.vcxproj">
       <Project>{b3da4b02-589c-4f86-b8be-4cccd9faa17b}</Project>
     </ProjectReference>
     <ProjectReference Include="..\annium\annium.vcxproj">
@@ -182,7 +182,7 @@
     <None Include="..\..\..\tests\test-suite\whiles.ann" />
   </ItemGroup>
   <ItemGroup>
-    <Natvis Include="..\..\..\tpls\sonia-prime\projects\vs\sonia.natvis" />
+    <Natvis Include="..\..\..\modules\sonia-prime\projects\vs\sonia.natvis" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
@@ -246,7 +246,7 @@
       <PrecompiledHeaderFile />
       <PrecompiledHeaderOutputFile />
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\src;$(SolutionDir)tpls\sonia-prime;$(SolutionDir)tpls\lexertl14\include;$(SolutionDir)tpls\dataforge\include;$(SolutionDir)tpls\numetron\include;$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\src;$(SolutionDir)modules\sonia-prime;$(SolutionDir)modules\dataforge\include;$(SolutionDir)modules\numetron\include;$(SolutionDir)third_party\lexertl14\include;$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:__cplusplus /Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -267,7 +267,7 @@
       <PrecompiledHeaderFile />
       <PrecompiledHeaderOutputFile />
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\src;$(SolutionDir)tpls\sonia-prime;$(SolutionDir)tpls\lexertl14\include;$(SolutionDir)tpls\dataforge\include;$(SolutionDir)tpls\numetron\include;$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\src;$(SolutionDir)modules\sonia-prime;$(SolutionDir)modules\dataforge\include;$(SolutionDir)modules\numetron\include;$(SolutionDir)third_party\lexertl14\include;$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:__cplusplus /Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -285,7 +285,7 @@
       <PrecompiledHeaderFile />
       <PrecompiledHeaderOutputFile />
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\src;$(SolutionDir)tpls\sonia-prime;$(SolutionDir)tpls\lexertl14\include;$(SolutionDir)tpls\dataforge\include;$(SolutionDir)tpls\numetron\include;$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\src;$(SolutionDir)modules\sonia-prime;$(SolutionDir)modules\dataforge\include;$(SolutionDir)modules\numetron\include;$(SolutionDir)third_party\lexertl14\include;$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:__cplusplus /Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp23</LanguageStandard>
     </ClCompile>
@@ -308,7 +308,7 @@
       <PrecompiledHeaderFile />
       <PrecompiledHeaderOutputFile />
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\src;$(SolutionDir)tpls\sonia-prime;$(SolutionDir)tpls\lexertl14\include;$(SolutionDir)tpls\dataforge\include;$(SolutionDir)tpls\numetron\include;$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\src;$(SolutionDir)modules\sonia-prime;$(SolutionDir)modules\dataforge\include;$(SolutionDir)modules\numetron\include;$(SolutionDir)third_party\lexertl14\include;$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:__cplusplus /Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
