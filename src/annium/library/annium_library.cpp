@@ -613,7 +613,7 @@ void annium_invoke_object(vm::context& ctx)
     using namespace sonia::invocation;
     size_t argcount = ctx.stack_back().as<size_t>();
     string_view method = ctx.stack_back(argcount + 1).as<string_view>();
-    shared_ptr<invocable> pinvocable = std::move(ctx.stack_back(argcount + 2).as<wrapper_object<shared_ptr<invocable>>>().value);
+    shared_ptr<invocable> pinvocable = ctx.stack_back(argcount + 2).as<wrapper_object<shared_ptr<invocable>>>().value;
 
     small_vector<blob_result, 16> args;
     args.reserve(argcount);
