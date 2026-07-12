@@ -57,7 +57,7 @@ jobs:
         uses: microsoft/setup-msbuild@v2
 
       - name: Build solution
-        run: msbuild annium.sln /p:Configuration=Release
+        run: msbuild annium.slnx /p:Configuration=Release
 
       - name: Copy log configuration
         run: Copy-Item "projects\vs\tests\log.conf" "x64\Release\log.conf"
