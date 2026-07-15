@@ -40,12 +40,12 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/tpls/dataforge/include)
 
 # Platform-specific definitions
 if(WIN32)
-    add_definitions(-DSONIA_PRIME_STATIC -DBOOST_NO_USER_CONFIG -DBOOST_ALL_DYN_LINK -DBOOST_STACKTRACE_LINK)
+    add_compile_definitions(SONIA_PRIME_STATIC BOOST_NO_USER_CONFIG BOOST_ALL_DYN_LINK BOOST_STACKTRACE_LINK)
 endif()
 
 # Debug/Release specific definitions
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    add_definitions(-DSONIA_LANG_DEBUG)
+    add_compile_definitions(SONIA_LANG_DEBUG)
 endif()
 
 # Collect source files for annium library

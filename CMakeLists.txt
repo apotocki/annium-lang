@@ -106,8 +106,8 @@ if(VALGRIND_BUILD AND UNIX AND NOT APPLE)
         message(STATUS "Valgrind found: ${VALGRIND_EXECUTABLE}")
         message(STATUS "Valgrind headers: ${VALGRIND_INCLUDE_DIR}")
     
-        add_definitions(-DBOOST_USE_VALGRIND)
-        add_definitions(-DBOOST_CONTEXT_USE_MAP_STACK)
+        add_compile_definitions(BOOST_USE_VALGRIND)
+        add_compile_definitions(BOOST_CONTEXT_USE_MAP_STACK)
         include_directories(${VALGRIND_INCLUDE_DIR})
     
         if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -127,11 +127,11 @@ elseif(VALGRIND_BUILD)
     message(FATAL_ERROR "Valgrind compatibility build is only supported on Linux")
 endif()
 
-add_definitions(-DSONIA_PRIME_STATIC -DSONIA_NO_PRIME_BUNDLE -DAUTO_TEST_REGISTRATION)
+add_compile_definitions(SONIA_PRIME_STATIC SONIA_NO_PRIME_BUNDLE AUTO_TEST_REGISTRATION)
 
 # Platform-specific definitions
 if(WIN32)
-    add_definitions(-DBOOST_NO_USER_CONFIG -DBOOST_ALL_DYN_LINK -DBOOST_STACKTRACE_LINK)
+    add_compile_definitions(BOOST_NO_USER_CONFIG BOOST_ALL_DYN_LINK BOOST_STACKTRACE_LINK)
 endif()
 
 set (COMMON_INCLUDE)

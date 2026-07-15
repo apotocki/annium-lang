@@ -9,7 +9,7 @@ include_directories(${SONIA_HOME})
 
 # Debug/Release specific definitions
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    add_definitions(-DSONIA_LANG_DEBUG)
+    add_compile_definitions(SONIA_LANG_DEBUG)
 endif()
 
 set (LIBRARY_NAME annium)

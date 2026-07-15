@@ -400,12 +400,12 @@ declaration_visitor::result_type declaration_visitor::operator()(while_decl cons
         entity_identifier v = er.value();
         BOOST_ASSERT(v == env().get(builtin_eid::false_) || v == env().get(builtin_eid::true_));
         if (v == env().get(builtin_eid::false_)) {
-            // while(false) — skip the loop entirely
+            // while(false) skip the loop entirely
             ctx.pop_chain();
             ctx.pop_scope();
             return break_scope_kind::none;
         }
-        // while(true) — infinite loop, body always runs, no conditional needed
+        // while(true) infinite loop, body always runs, no conditional needed
         ctx.push_scope();
         auto body_res = apply(wd.body);
         if (!body_res) {

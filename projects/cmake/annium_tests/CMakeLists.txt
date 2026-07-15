@@ -7,7 +7,7 @@ include_directories(${MODULES}/numetron/include)
 include_directories(${THIRD_PARTY}/lexertl14/include)
 # Debug/Release specific definitions
 
-add_definitions(-DAUTO_TEST_REGISTRATION -DSONIA_NO_PRIME_BUNDLE -DSONIA_PRIME_STATIC -DSONIA_NO_NET -DSONIA_NO_BOOKKEEPER -DSONIA_NO_TENGER)
+add_compile_definitions(AUTO_TEST_REGISTRATION SONIA_NO_PRIME_BUNDLE SONIA_PRIME_STATIC SONIA_NO_NET SONIA_NO_BOOKKEEPER SONIA_NO_TENGER)
 
 set (MODULE_NAME annium_tests)
 
