@@ -1,6 +1,8 @@
 <Project>
   <PropertyGroup>
+    <_ParentDirectoryBuildPropsFile>$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))</_ParentDirectoryBuildPropsFile>
   </PropertyGroup>
+  <Import Project="$(_ParentDirectoryBuildPropsFile)" Condition="'$(_ParentDirectoryBuildPropsFile)' != ''" />
   <ItemDefinitionGroup>
     <ClCompile>
         <PreprocessorDefinitions>BOOST_LIB_TOOLSET="vc145";%(PreprocessorDefinitions)</PreprocessorDefinitions>
