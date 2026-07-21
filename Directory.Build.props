@@ -6,4 +6,5 @@
         <PreprocessorDefinitions>BOOST_LIB_TOOLSET="vc145";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
+  <Import Project="Directory.Build.local.props" Condition="Exists('Directory.Build.local.props')" />
 </Project>

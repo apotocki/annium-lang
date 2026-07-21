@@ -8,3 +8,7 @@
 /build
 /logs
 /log.conf
+/Directory.Build.local.props
+*.md
+!README.md
+.github/*.md

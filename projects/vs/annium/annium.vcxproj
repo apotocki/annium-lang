@@ -302,8 +302,20 @@
     <ClInclude Include="..\..\..\src\sonia\mvvm\bunch_builder_view_model.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\src\annium\annium.l" />
-    <None Include="..\..\..\src\annium\annium.y" />
+    <CustomBuild Include="..\..\..\src\annium\annium.l" Condition="'$(GENERATE_PARSER)'=='1'">
+      <Command>cd /d $(ProjectDir)..\..\..\src\annium
+"$(ParserGeneratorPath)/flex" --nounistd annium.l</Command>
+      <Outputs>..\..\..\src\annium\annium.yy.cpp;..\..\..\src\annium\annium.yy.hpp</Outputs>
+      <Message>Generating annium.yy.cpp/annium.yy.hpp from annium.l via flex</Message>
+    </CustomBuild>
+    <None Include="..\..\..\src\annium\annium.l" Condition="'$(GENERATE_PARSER)'!='1'" />
+    <CustomBuild Include="..\..\..\src\annium\annium.y" Condition="'$(GENERATE_PARSER)'=='1'">
+      <Command>cd /d $(ProjectDir)..\..\..\src\annium
+"$(ParserGeneratorPath)/bison.exe" -d -v -Wother -Wcounterexamples --output=annium.tab.cpp annium.y</Command>
+      <Outputs>..\..\..\src\annium\annium.tab.cpp;..\..\..\src\annium\annium.tab.hpp</Outputs>
+      <Message>Generating annium.tab.cpp/annium.tab.hpp from annium.y via bison</Message>
+    </CustomBuild>
+    <None Include="..\..\..\src\annium\annium.y" Condition="'$(GENERATE_PARSER)'!='1'" />
     <None Include="..\..\..\src\annium\generate_bootstrap.ps1" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
