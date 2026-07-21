@@ -213,9 +213,9 @@ void parser_context::set_root_statements(statement_list_t&& sts)
     root_statements_ = make_array<statement>(sts);
 }
 
-std::expected<span<const statement>, std::string> parser_context::parse(fs::path const& f, fs::path const* base_path)
+std::expected<span<const statement>, std::string> parser_context::parse(fs::path const& f, resource_identifier context)
 {
-    resource_ = &environment_.get_resource(f, base_path);
+    resource_ = &environment_.get_resource(f, context);
     return parse(resource_->get_source());
 }
 

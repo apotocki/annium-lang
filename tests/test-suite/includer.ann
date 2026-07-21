@@ -1,0 +1,2 @@
+include "includee.ann"
+test();

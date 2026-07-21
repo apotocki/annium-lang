@@ -381,8 +381,6 @@ statement:
         { $$ = statement{ extern_var{ .name = std::move($identifier), .type = std::move($type) } }; }
     | EXTERN FN fn-decl[fn]
         { $$ = statement{ std::move($fn) }; IGNORE_TERM($FN); }
-    | INCLUDE STRING
-        { $$ = statement{ include_decl{ ctx.make_string_view(std::move($STRING)) } }; }
     | generic-statement[st]
         { $$ = std::move($st); }
     | STRUCT struct-decl[struct]
@@ -448,7 +446,9 @@ braced-statements:
     ;
 
 finished-statement:
-      WHILE syntax-expression[condition] braced-statements[body]
+      INCLUDE STRING
+        { $$ = statement{ include_decl{ ctx.make_string_view(std::move($STRING)) } }; }
+    | WHILE syntax-expression[condition] braced-statements[body]
         { $$ = statement{ while_decl{ std::move($condition), ctx.make_array<statement>($body) } }; }
     | WHILE syntax-expression[condition] END_STATEMENT expression-statement[continue] braced-statements[body]
         { $$ = statement{ while_decl{ std::move($condition), ctx.make_array<statement>($body), ctx.make<statement>(std::move($continue)) } }; }

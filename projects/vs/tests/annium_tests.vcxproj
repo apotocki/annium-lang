@@ -175,6 +175,8 @@
     <None Include="..\..\..\tests\test-suite\file5.ann" />
     <None Include="..\..\..\tests\test-suite\function_calls.ann" />
     <None Include="..\..\..\tests\test-suite\functors.ann" />
+    <None Include="..\..\..\tests\test-suite\includee.ann" />
+    <None Include="..\..\..\tests\test-suite\includer.ann" />
     <None Include="..\..\..\tests\test-suite\match_priority.ann" />
     <None Include="..\..\..\tests\test-suite\std.ann" />
     <None Include="..\..\..\tests\test-suite\tuple_operations.ann" />

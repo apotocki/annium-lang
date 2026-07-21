@@ -61,7 +61,7 @@ public:
 
     resource_identifier get_resource_id() const noexcept { return resource_ ? resource_->id : resource_identifier{}; }
 
-    std::expected<span<const statement>, std::string> parse(fs::path const& f, fs::path const* base_path = nullptr);
+    std::expected<span<const statement>, std::string> parse(fs::path const& f, resource_identifier context = resource_identifier{});
     std::expected<span<const statement>, std::string> parse_string(string_view);
 
     // factory methods for AST terms

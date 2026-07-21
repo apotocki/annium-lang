@@ -476,6 +476,12 @@
     <None Include="..\..\..\tests\test-suite\casts.ann">
       <Filter>test-suite</Filter>
     </None>
+    <None Include="..\..\..\tests\test-suite\includee.ann">
+      <Filter>test-suite</Filter>
+    </None>
+    <None Include="..\..\..\tests\test-suite\includer.ann">
+      <Filter>test-suite</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\..\..\modules\sonia-prime\projects\vs\sonia.natvis">

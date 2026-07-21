@@ -444,6 +444,22 @@ ast_resource const& environment::get_resource(string_view code)
     return **it;
 }
 
+ast_resource const& environment::get_resource(fs::path const& rpath, resource_identifier const& context)
+{
+    optional<fs::path> context_path;
+    if (context) {
+        lock_guard lg{ resources_mutex_ };
+        auto res = flat_resources_.at(context.value - 1);
+        if (!res) {
+            throw exception("resource %1% is not found"_fmt % context);
+        }
+        if (auto const* fr = dynamic_cast<file_resource const*>(res.get()); fr) {
+            context_path.emplace(fr->path());
+        }
+    }
+    return get_resource(rpath, context_path ? &*context_path : nullptr);
+}
+
 ast_resource const& environment::get_resource(fs::path const& rpath, fs::path const* context)
 {
     optional<fs::path> normalized_path;

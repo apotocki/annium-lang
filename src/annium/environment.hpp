@@ -369,7 +369,8 @@ public:
 
     ast_resource const& get_resource(resource_identifier const&) const;
     ast_resource const& get_resource(string_view code);
-    ast_resource const& get_resource(fs::path const& rpath, fs::path const* context = nullptr);
+    ast_resource const& get_resource(fs::path const& rpath, resource_identifier const& context);
+    ast_resource const& get_resource(fs::path const& rpath, fs::path const* context);
     
     functional& resolve_functional(qname_view);
 

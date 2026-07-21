@@ -63,7 +63,7 @@ forward_declaration_visitor::result_type forward_declaration_visitor::operator()
     fs::path fpath{ u8string_view{reinterpret_cast<char8_t const*>(d.path.value.data()), d.path.value.size() } };
 
     parser_context pctx{ env() };
-    auto exp_decls = pctx.parse(fpath);
+    auto exp_decls = pctx.parse(fpath, d.path.location.resource_id);
     if (!exp_decls.has_value()) {
         return std::unexpected(make_error<basic_general_error>(d.path.location, exp_decls.error()));
     }
