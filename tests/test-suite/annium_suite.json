@@ -9,7 +9,7 @@
   },
   {
     "src": "includer.ann",
-    "output": "includee"
+    "output": "includeeB"
   },
   {
     "src": "conditional_statements.ann",

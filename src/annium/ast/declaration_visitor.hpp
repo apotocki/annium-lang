@@ -63,7 +63,7 @@ public:
     [[nodiscard]] result_type apply(span<const statement>) const;
 
     // skipping forwarded
-    [[nodiscard]] result_type operator()(include_decl const&) const { return break_scope_kind::none; }
+    [[nodiscard]] result_type operator()(include_decl const&) const;
     [[nodiscard]] result_type operator()(fn_decl const&) const { return break_scope_kind::none; }
 
     // main declarations

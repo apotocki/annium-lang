@@ -1,2 +1,3 @@
 include "includee.ann"
 test();
+print(to_string(TestEnum.B));

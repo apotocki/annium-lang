@@ -67,6 +67,7 @@ forward_declaration_visitor::result_type forward_declaration_visitor::operator()
     if (!exp_decls.has_value()) {
         return std::unexpected(make_error<basic_general_error>(d.path.location, exp_decls.error()));
     }
+    d.body = *exp_decls;
     decl_stack_.emplace_back(*exp_decls);
     return break_scope_kind::none;
 }
@@ -86,6 +87,12 @@ forward_declaration_visitor::result_type forward_declaration_visitor::operator()
 declaration_visitor::result_type declaration_visitor::apply(span<const statement> sts) const
 {
     return declaration_visitor_base::apply<declaration_visitor>(sts);
+}
+
+declaration_visitor::result_type declaration_visitor::operator()(include_decl const& d) const
+{
+    decl_stack_.emplace_back(d.body);
+    return break_scope_kind::none;
 }
 
 declaration_visitor::result_type declaration_visitor::operator()(extern_var const& d) const

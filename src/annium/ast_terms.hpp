@@ -708,6 +708,7 @@ struct extern_var
 struct include_decl
 {
     annotated_string_view path;
+    mutable span<const statement> body;
 };
 
 struct let_statement
