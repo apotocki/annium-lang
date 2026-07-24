@@ -17,6 +17,7 @@ void annium_view_model::do_registration(registrar_type& mr)
     mr.register_method<&annium_view_model::load_code>("load_code"sv);
     mr.register_method<&annium_view_model::load_file>("load_file"sv);
     mr.register_method<&annium_view_model::eval>("eval"sv);
+    mr.register_method<&annium_view_model::set_invoker>("setInvoker"sv);
     //using load_annium_t = void(annium_view_model::*)(string_view);
     //using eval_annium_t = smart_blob(annium_view_model::*)(string_view);
     //mr.register_method<(eval_annium_t)&annium_view_model::eval_annium>("eval_annium"sv);
@@ -62,6 +63,33 @@ smart_blob annium_view_model::eval(string_view code, bool no_return)
 
     std::string const& fnname = it->second;
     return call(fnname);
+}
+
+void annium_view_model::set_invoker(smart_blob invoker)
+{
+    using wrapper_object_t = invocation::wrapper_object<shared_ptr<invocable>>;
+    invoker_ftor_ = invoker.as<wrapper_object_t>().value;
+}
+
+bool annium_view_model::try_invoke(string_view methodname, span<const blob_result> args, smart_blob& result) noexcept
+{
+    if (view_model::try_invoke(methodname, args, result)) return true;
+    if (!invoker_ftor_) return false;
+    return invoker_ftor_->try_invoke(methodname, args, result);
+}
+
+bool annium_view_model::try_get_property(string_view propname, smart_blob& result) const
+{
+    if (view_model::try_get_property(propname, result)) return true;
+    if (!invoker_ftor_) return false;
+    return invoker_ftor_->try_get_property(propname, result);
+}
+
+bool annium_view_model::try_set_property(string_view propname, blob_result const& val)
+{
+    if (view_model::try_set_property(propname, val)) return true;
+    if (!invoker_ftor_) return false;
+    return invoker_ftor_->try_set_property(propname, val);
 }
 
 }

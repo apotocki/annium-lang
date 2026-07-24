@@ -28,12 +28,19 @@ public:
     void load_file(string_view path);
     smart_blob eval(string_view code, bool no_return);
 
+    void set_invoker(smart_blob);
+
+    bool try_invoke(string_view methodname, span<const blob_result> args, smart_blob& result) noexcept override;
+    bool try_get_property(string_view propname, smart_blob& result) const override;
+    bool try_set_property(string_view propname, blob_result const& val) override;
+
 protected:
     // methods routine
     static void do_registration(registrar_type& mr);
 
 private:
     std::unordered_map<std::string, std::string, hasher, string_equal_to> inplace_fns_;
+    shared_ptr<invocable> invoker_ftor_;
 };
 
 }
