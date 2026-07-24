@@ -338,7 +338,8 @@ enum class fn_kind : int8_t
 {
     DEFAULT = 0,
     INLINE = 1,
-    VIABLE = 2
+    VIABLE = 2,
+    EXTERN = 5
 };
 
 inline fn_kind operator|(fn_kind l, fn_kind r) noexcept

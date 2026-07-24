@@ -3124,7 +3124,7 @@ namespace annium_lang {
 
   case 12: // statement: EXTERN "`fn`" fn-decl
 #line 383 "annium.y"
-        { yylhs.value.as < statement > () = statement{ std::move(yystack_[0].value.as < fn_pure > ()) }; IGNORE_TERM(yystack_[1].value.as < resource_location > ()); }
+        { yystack_[0].value.as < fn_pure > ().kind = fn_kind::EXTERN; yylhs.value.as < statement > () = statement{ std::move(yystack_[0].value.as < fn_pure > ()) }; IGNORE_TERM(yystack_[1].value.as < resource_location > ()); }
 #line 3129 "annium.tab.cpp"
     break;
 
