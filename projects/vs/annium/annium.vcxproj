@@ -109,7 +109,8 @@
     <ClCompile Include="..\..\..\src\annium\errors\value_mismatch_error.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\basic_fn_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\expression_property_visitor.cpp" />
-    <ClCompile Include="..\..\..\src\annium\functional\external_fn_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\functional\builtin_fn_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\functional\extern_fn_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\functional.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\reinterpret_any_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\any_implicit_cast_pattern.cpp" />
@@ -187,7 +188,6 @@
     <ClInclude Include="..\..\..\src\annium\ast\assign_expression_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\base_expression_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\declaration_visitor.hpp" />
-    <ClInclude Include="..\..\..\src\annium\ast\expression_fn_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\expression_implicit_cast_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\expression_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\fn_compiler_context.hpp" />
@@ -199,7 +199,7 @@
     <ClInclude Include="..\..\..\src\annium\entities\enum\enum_implicit_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\functional_binding.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\functions\expression_resolver.hpp" />
-    <ClInclude Include="..\..\..\src\annium\entities\functions\external_function_entity.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\functions\builtin_function_entity.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\functions\internal_function_entity.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\functions\parameter_type_expression_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\layered_binding_set.hpp" />
@@ -254,7 +254,8 @@
     <ClInclude Include="..\..\..\src\annium\errors\value_mismatch_error.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\basic_fn_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\expression_property_visitor.hpp" />
-    <ClInclude Include="..\..\..\src\annium\functional\external_fn_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\functional\builtin_fn_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\functional\extern_fn_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\functional.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\functional_registry.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\reinterpret_any_pattern.hpp" />

@@ -95,4 +95,8 @@ assert_equal(result, "Hello, external functor!22");
 
 __extern_invoke("iv_call", 23, 1);
 
+extern fn iv_call(runtime integer);
+extern fn eftor_call(runtime string)->string;
+iv_call(24);
+assert_equal(eftor_call("Bye,"), "Bye, external functor!22");
 /**/

@@ -7,17 +7,17 @@
 
 namespace annium {
 
-class external_function_entity;
+class builtin_function_entity;
 
-class external_fn_pattern : public basic_fn_pattern
+class builtin_fn_pattern : public basic_fn_pattern
 {
-    shared_ptr<external_function_entity> ent_;
+    shared_ptr<builtin_function_entity> ent_;
 
 public:
-    external_fn_pattern() = default;
+    builtin_fn_pattern() = default;
 
-    void set_result_entity(shared_ptr<external_function_entity> e) { ent_ = std::move(e); }
-        
+    void set_result_entity(shared_ptr<builtin_function_entity> e) { ent_ = std::move(e); }
+
     std::expected<functional_match_descriptor_ptr, error_storage> try_match(fn_compiler_context&, prepared_call const&, expected_result_t const&) const override;
 
     std::expected<syntax_expression_result, error_storage> apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const override;

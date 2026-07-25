@@ -279,7 +279,10 @@
     <ClCompile Include="..\..\..\src\annium\functional\basic_fn_pattern.cpp">
       <Filter>annium\functional</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\functional\external_fn_pattern.cpp">
+    <ClCompile Include="..\..\..\src\annium\functional\builtin_fn_pattern.cpp">
+      <Filter>annium\functional</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\extern_fn_pattern.cpp">
       <Filter>annium\functional</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\functional\internal_fn_pattern.cpp">
@@ -491,9 +494,6 @@
     <ClInclude Include="..\..\..\src\annium\ast\declaration_visitor.hpp">
       <Filter>annium\ast</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\ast\expression_fn_visitor.hpp">
-      <Filter>annium\ast</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\src\annium\ast\expression_implicit_cast_visitor.hpp">
       <Filter>annium\ast</Filter>
     </ClInclude>
@@ -671,7 +671,10 @@
     <ClInclude Include="..\..\..\src\annium\functional\basic_fn_pattern.hpp">
       <Filter>annium\functional</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\functional\external_fn_pattern.hpp">
+    <ClInclude Include="..\..\..\src\annium\functional\builtin_fn_pattern.hpp">
+      <Filter>annium\functional</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\extern_fn_pattern.hpp">
       <Filter>annium\functional</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\functional\internal_fn_pattern.hpp">
@@ -755,7 +758,7 @@
     <ClInclude Include="..\..\..\src\annium\entities\struct\tuple_of_pattern.hpp">
       <Filter>annium\entities\struct</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\functions\external_function_entity.hpp">
+    <ClInclude Include="..\..\..\src\annium\entities\functions\builtin_function_entity.hpp">
       <Filter>annium\entities\functions</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_unary_minus_pattern.hpp">
@@ -832,12 +835,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\src\annium\annium.l">
-      <Filter>annium</Filter>
-    </None>
-    <None Include="..\..\..\src\annium\annium.y">
-      <Filter>annium</Filter>
-    </None>
     <None Include="..\..\..\src\annium\generate_bootstrap.ps1">
       <Filter>annium</Filter>
     </None>
@@ -846,5 +843,7 @@
     <CustomBuild Include="..\..\..\src\annium\bootstrap.ann">
       <Filter>annium</Filter>
     </CustomBuild>
+    <CustomBuild Include="..\..\..\src\annium\annium.l" />
+    <CustomBuild Include="..\..\..\src\annium\annium.y" />
   </ItemGroup>
 </Project>

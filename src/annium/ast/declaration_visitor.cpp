@@ -19,6 +19,7 @@
 #include "annium/functional/basic_fn_pattern.hpp"
 #include "annium/functional/internal_fn_pattern.hpp"
 #include "annium/functional/typefn_pattern.hpp"
+#include "annium/functional/extern_fn_pattern.hpp"
 
 #include "annium/entities/literals/literal_entity.hpp"
 
@@ -507,44 +508,41 @@ declaration_visitor::result_type declaration_visitor::operator()(yield_statement
 }
 
 // extern function declaration
-declaration_visitor::result_type declaration_visitor::operator()(fn_pure const& /*fd*/) const
+declaration_visitor::result_type declaration_visitor::operator()(fn_pure const& fd) const
 {
-    THROW_NOT_IMPLEMENTED_ERROR("declaration_visitor fn_pure");
-#if 0
-    shared_ptr<functional_entity> fe;
-    function_signature& sig = append_fnsig(fd, fe);
-    auto fnm = ctx.env().qnregistry().concat(fe->name(), sig.mangled_id);
-    if (!ctx.env().eregistry().find(fnm)) { // external is not registered, will be trying to bind in runtime
-        // create the description for late binding
-        auto fnent = sonia::make_shared<function_entity>(fnm, function_signature{ sig });
-        fnent->set_inline();
-        
-        // signature
-        int64_t sigval = (sig.parameters_count() + 1) * (fnent->is_void() ? -1 : 1);
-        fnent->body.emplace_back(semantic::push_value{ mp::integer{ sigval }});
-        // name
-        small_string fnmangled = ctx.env().as_string(fnm);
-        fnent->body.emplace_back(semantic::push_value{ fnmangled });
-        // call itself
-        fnent->body.emplace_back(ctx.env().get_builtin_function(unit::builtin_fn::extern_function_call));
-
-        ctx.env().eregistry_insert(fnent);
-
-        // for not inline calls
-        fnent->set_index(ctx.allocate_local_variable_index());
-        ctx.append_expression(semantic::push_value{ function_value{ fnm } });
-        ctx.append_expression(semantic::set_variable{ fnent.get() });
+    if (fd.kind != fn_kind::EXTERN) {
+        THROW_INTERNAL_ERROR("declaration_visitor fn_pure: only extern functions are allowed here");
     }
-    /*
-    function_signature& sig = append_fnsig(fd);
-    if (fd.result) {
-        preliminary_type_visitor tqvis{ ctx };
-        sig.fn_type.result = apply_visitor(tqvis, *fd.result);
-    } else { // if result type isn't defined => void
-        sig.fn_type.result = annium_tuple_t{};
+
+    environment& e = env();
+    qname fn_qname = ctx.ns() / fd.name;
+    functional& fnl = e.resolve_functional(fn_qname);
+
+    BOOST_ASSERT(fd.result.index()); // grammar defaults an unspecified result to void (see EXTERN FN fn-decl in annium.y)
+
+    // extern function calls are always resolved by name at runtime,
+    // which requires every argument to actually be pushed onto the stack. A parameter that's allowed
+    // to resolve as constexpr could get skipped by apply_arguments for some call sites (e.g. a literal
+    // argument) and not others, desynchronizing the pushed argument count from the entity's
+    // precomputed signature descriptor -- so every parameter must be declared `runtime` explicitly.
+    for (parameter const& p : fd.parameters) {
+        if (!can_be_only_runtime(p.modifier)) {
+            resource_location ploc = visit([](auto&& c) -> resource_location {
+                using constraint_t = std::decay_t<decltype(c)>;
+                if constexpr (std::is_same_v<constraint_t, syntax_expression const*>) {
+                    return c->location;
+                } else {
+                    return get_start_location(*c);
+                }
+            }, p.constraint);
+            return std::unexpected(make_error<basic_general_error>(ploc, "extern function parameters must be declared `runtime`"sv));
+        }
     }
-    */
-#endif
+
+    auto ptrn = make_shared<extern_fn_pattern>();
+    if (error_storage err = ptrn->init(ctx, fd, fnl.id()); err) return std::unexpected(std::move(err));
+    fnl.push(std::move(ptrn));
+    return break_scope_kind::none;
 }
 
 #if 0

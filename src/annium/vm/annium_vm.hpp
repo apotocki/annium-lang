@@ -146,7 +146,6 @@ public:
     //void extern_object_create();
     //void extern_object_set_property();
     void extern_object_get_property();
-    void extern_function_call();
     //void construct_function();
 
     //void call_function_object();
@@ -279,7 +278,6 @@ public:
         //function_constructor,
         /*extern_object_create, extern_object_set_property,*/ extern_object_get_property,
         extern_variable_get, extern_variable_set,
-        extern_function_call,
         eof_type
     };
 

@@ -39,7 +39,7 @@ class virtual_stack_machine;
 
 namespace vm { class context; }
 
-class external_fn_pattern;
+class builtin_fn_pattern;
 
 class arena;
 
@@ -181,6 +181,8 @@ enum class builtin_eid : entity_identifier::value_type
     get_frame_stack_height, // builtin ::__get_frame_stack_height(level)-> integer
     create_callable, // builtin ::__create_callable(@callable, $argcount: u64, $is_void: bool)-> callable
     invoke_callable, // builtin ::__invoke_callable(runtime @callable, runtime any ..., $argcount: runtime integer)-> any
+    extern_invoke, // same builtin as __extern_invoke(runtime string, runtime ..., runtime u32)~>$R -- resolved by name in the hosting environment at runtime
+    extern_invoke_void, // same builtin as __extern_invoke(runtime string, runtime ..., runtime u32)~>() -- void counterpart of extern_invoke
     arrayify, // builtin ::arrayify(...)->array
     unfold, // builtin ::unfold(:array(...))
     array_tail, // builtin ::array_tail(array)-> array
@@ -253,7 +255,6 @@ public:
         extern_object_create,
         extern_object_set_property,
         extern_object_get_property,
-        extern_function_call,
         tostring, negate,
         eof_builtin_type
     };
@@ -454,13 +455,13 @@ protected:
 
     std::pair<functional*, fn_pure> parse_extern_fn(string_view signature, arena &);
 
-    //template <std::derived_from<external_fn_pattern> PT>
+    //template <std::derived_from<builtin_fn_pattern> PT>
     //void set_extern(string_view sign, void(*pfn)(vm::context&));
 
     //template <std::derived_from<functional::pattern> PT>
     //void set_const_extern(string_view sig);
 
-    template <std::derived_from<external_fn_pattern> PT = external_fn_pattern>
+    template <std::derived_from<builtin_fn_pattern> PT = builtin_fn_pattern>
     entity_identifier set_builtin_extern(string_view name, void(*pfn)(vm::context&));
 
 private:

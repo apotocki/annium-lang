@@ -380,7 +380,14 @@ statement:
       EXTERN VAR identifier COLON type-expr[type]
         { $$ = statement{ extern_var{ .name = std::move($identifier), .type = std::move($type) } }; }
     | EXTERN FN fn-decl[fn]
-        { $fn.kind = fn_kind::EXTERN; $$ = statement{ std::move($fn) }; IGNORE_TERM($FN); }
+        {
+            $fn.kind = fn_kind::EXTERN;
+            if (!$fn.result.index()) { // no declared result => implicitly void
+                $fn.result = ctx.make<syntax_expression>($fn.location, ctx.make_entity_identifier(builtin_eid::void_));
+            }
+            $$ = statement{ std::move($fn) };
+            IGNORE_TERM($FN);
+        }
     | generic-statement[st]
         { $$ = std::move($st); }
     | STRUCT struct-decl[struct]

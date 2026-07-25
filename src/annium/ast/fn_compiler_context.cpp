@@ -10,7 +10,7 @@
 
 #include "annium/functional/functional.hpp"
 #include "annium/entities/functions/internal_function_entity.hpp"
-#include "annium/entities/functions/external_function_entity.hpp"
+#include "annium/entities/functions/builtin_function_entity.hpp"
 #include "annium/ast/base_expression_visitor.hpp"
 
 
@@ -65,7 +65,7 @@ struct procedures_lookup_visitor
     bool operator()(semantic::invoke_function const& ifn) const
     {
         entity const& ent = get_entity(env_, ifn.fn);
-        if (dynamic_cast<external_function_entity const*>(&ent)) return true;
+        if (dynamic_cast<builtin_function_entity const*>(&ent)) return true;
         if (internal_function_entity const* ifent = dynamic_cast<internal_function_entity const*>(&ent)) {
             if (!ifent->is_built()) {
                 auto err = const_cast<internal_function_entity*>(ifent)->build();

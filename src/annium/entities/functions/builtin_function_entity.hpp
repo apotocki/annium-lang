@@ -13,14 +13,14 @@ namespace annium {
 
 class environment;
 
-// it's not a signatured entity becase an external function can have different signatures,
+// it's not a signatured entity becase a builtin function can have different signatures,
 // depending on the values of arguments
-class external_function_entity : public entity
+class builtin_function_entity : public entity
 {
     uint32_t extfnid_;
 
 public:
-    inline explicit external_function_entity(size_t fnid)
+    inline explicit builtin_function_entity(size_t fnid)
         : extfnid_{ static_cast<uint32_t>(fnid) }
     {
     }
@@ -36,7 +36,7 @@ public:
 
     inline bool equal(entity const& rhs) const noexcept override
     {
-        if (auto const* pent = dynamic_cast<external_function_entity const*>(&rhs)) {
+        if (auto const* pent = dynamic_cast<builtin_function_entity const*>(&rhs)) {
             return pent->extfnid_ == extfnid_;
         }
         return false;
@@ -44,7 +44,7 @@ public:
 
     inline std::ostream& print_to(std::ostream& os, environment const&) const override
     {
-        return os << "external fn(id: "sv << extfnid_ << ")"sv;
+        return os << "builtin fn(id: "sv << extfnid_ << ")"sv;
     }
 };
 

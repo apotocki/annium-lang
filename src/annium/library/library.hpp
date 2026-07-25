@@ -49,6 +49,4 @@ void annium_str2dec(vm::context&);
 void annium_int2dec(vm::context&);
 void annium_int2flt(vm::context&);
 
-void annium_create_callable(vm::context&);
-
 }

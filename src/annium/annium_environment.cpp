@@ -11,10 +11,10 @@
 #include "annium/ast/base_expression_visitor.hpp"
 
 #include "annium/entities/ellipsis/ellipsis_pattern.hpp"
-#include "annium/entities/functions/external_function_entity.hpp"
+#include "annium/entities/functions/builtin_function_entity.hpp"
 #include "annium/entities/functions/internal_function_entity.hpp"
 
-#include "annium/functional/external_fn_pattern.hpp"
+#include "annium/functional/builtin_fn_pattern.hpp"
 #include "annium/functional/general/error_pattern.hpp"
 #include "annium/functional/general/assert_pattern.hpp"
 #include "annium/functional/general/void_implicit_cast_pattern.hpp"
@@ -263,7 +263,7 @@ std::pair<functional*, fn_pure> environment::parse_extern_fn(string_view signatu
 //    pf->push(ptrn);
 //}
 
-//template <std::derived_from<external_fn_pattern> PT>
+//template <std::derived_from<builtin_fn_pattern> PT>
 //void environment::set_extern(string_view signature, void(*pfn)(vm::context&))
 //{
 //    auto [pf, fndecl] = parse_extern_fn(signature);
@@ -282,7 +282,7 @@ std::pair<functional*, fn_pure> environment::parse_extern_fn(string_view signatu
 //    bvm_->set_efn(fn_identifier_counter_++, pfn, small_string{ ss.str() });
 //}
 
-template <std::derived_from<external_fn_pattern> PT>
+template <std::derived_from<builtin_fn_pattern> PT>
 entity_identifier environment::set_builtin_extern(string_view signature, void(*pfn)(vm::context&))
 {
     arena a;
@@ -292,7 +292,7 @@ entity_identifier environment::set_builtin_extern(string_view signature, void(*p
     if (auto err = ptrn->init(default_fentity.context(), fndecl); err) {
         throw exception(print(*err));
     }
-    auto pent = make_shared<external_function_entity>(fn_identifier_counter_);
+    auto pent = make_shared<builtin_function_entity>(fn_identifier_counter_);
     //    *this, qname{ pf->name() }, entity_signature{}, fn_identifier_counter_);
 
     eregistry_insert(pent);
@@ -338,7 +338,7 @@ entity_identifier environment::set_builtin_extern(string_view signature, void(*p
     } else {
         sig.result.emplace(get(builtin_eid::void_), false);
     }
-    auto pent = make_shared<external_function_entity>(*this, qname{pf->name()}, std::move(sig), fn_identifier_counter_);
+    auto pent = make_shared<builtin_function_entity>(*this, qname{pf->name()}, std::move(sig), fn_identifier_counter_);
     eregistry_insert(pent);
     bvm_->set_efn(fn_identifier_counter_++, pfn, small_string{ signature });
     return pent->id;
@@ -352,7 +352,7 @@ entity_identifier environment::set_builtin_extern(string_view name, void(*pfn)(v
     qname_identifier qid = fregistry_resolve(qn).id();
     entity_signature sig{ qid };
     sig.result = field_descriptor{ get(builtin_eid::any), false };
-    auto pent = make_shared<external_function_entity>(*this, std::move(qn), std::move(sig), fn_identifier_counter_);
+    auto pent = make_shared<builtin_function_entity>(*this, std::move(qn), std::move(sig), fn_identifier_counter_);
     eregistry_insert(pent);
     bvm_->set_efn(fn_identifier_counter_++, pfn, small_string{ name });
     return pent->id;
@@ -1452,25 +1452,21 @@ environment::environment()
 #undef ANNIUM_PRINT_ENUM_ASSIGN
 
 #if 0
-    auto punpack = make_shared<external_function_entity>(new_qname_identifier(), (size_t)virtual_stack_machine::builtin_fn::unpack);
+    auto punpack = make_shared<builtin_function_entity>(new_qname_identifier(), (size_t)virtual_stack_machine::builtin_fn::unpack);
     eregistry_insert(punpack);
     set_efn(builtin_fn::unpack, punpack->name());
 
-    auto pweak_create = make_shared<external_function_entity>(new_qname_identifier(), (size_t)virtual_stack_machine::builtin_fn::weak_create);
+    auto pweak_create = make_shared<builtin_function_entity>(new_qname_identifier(), (size_t)virtual_stack_machine::builtin_fn::weak_create);
     eregistry_insert(pweak_create);
     set_efn(builtin_fn::weak_create, pweak_create->name());
 
-    auto pweak_lock = make_shared<external_function_entity>(new_qname_identifier(), (size_t)virtual_stack_machine::builtin_fn::weak_lock);
+    auto pweak_lock = make_shared<builtin_function_entity>(new_qname_identifier(), (size_t)virtual_stack_machine::builtin_fn::weak_lock);
     eregistry_insert(pweak_lock);
     set_efn(builtin_fn::weak_lock, pweak_lock->name());
 
-    auto peogp = make_shared<external_function_entity>(new_qname_identifier(), (size_t)virtual_stack_machine::builtin_fn::extern_object_get_property);
+    auto peogp = make_shared<builtin_function_entity>(new_qname_identifier(), (size_t)virtual_stack_machine::builtin_fn::extern_object_get_property);
     eregistry_insert(peogp);
     set_efn(builtin_fn::extern_object_get_property, peogp->name());
-
-    auto pefc = make_shared<external_function_entity>(new_qname_identifier(), (size_t)virtual_stack_machine::builtin_fn::extern_function_call);
-    eregistry_insert(pefc);
-    set_efn(builtin_fn::extern_function_call, pefc->name());
 
     set_extern("operator_plus(decimal,decimal)->decimal"sv, &annium_operator_plus_decimal);
     set_extern("decimal(text: string)->decimal|()"sv, &annium_to_decimal);
@@ -1671,29 +1667,29 @@ environment::environment()
     builtin_eids_[(size_t)builtin_eid::get_frame_stack_height] = set_builtin_extern("__get_frame_stack_height()->integer"sv, &annium_get_frame_stack_height);
     //set_const_extern<to_string_pattern>("size(const metaobjct))->integer"sv);
 
-    //set_extern<external_fn_pattern>("__error(mut string)"sv, &annium_error);
+    //set_extern<builtin_fn_pattern>("__error(mut string)"sv, &annium_error);
     set_builtin_extern("__print(runtime ..., runtime integer)"sv, &annium_print_string);
 
     //set_extern("implicit_cast(to: typename string, _)->string"sv, &annium_tostring);
     //set_const_extern<to_string_pattern>("to_string(const __identifier)->string"sv);
-    //set_extern<external_fn_pattern>("to_string(_)->string"sv, &annium_tostring);
+    //set_extern<builtin_fn_pattern>("to_string(_)->string"sv, &annium_tostring);
     builtin_eids_[(size_t)builtin_eid::to_integer] = set_builtin_extern("__to_integer(runtime)->integer"sv, &annium_to_integer);
     builtin_eids_[(size_t)builtin_eid::int2dec] = set_builtin_extern("__int2dec(runtime)->decimal"sv, &annium_int2dec);
-    //set_extern<external_fn_pattern>("implicit_cast(mut integer)->float"sv, &annium_int2flt);
+    //set_extern<builtin_fn_pattern>("implicit_cast(mut integer)->float"sv, &annium_int2flt);
     set_builtin_extern("create_extern_object(runtime string)->object"sv, &annium_create_extern_object);
-    set_builtin_extern("__extern_invoke(runtime string, runtime ..., runtime u32)~>$R"sv, &annium_invoke);
-    set_builtin_extern("__extern_invoke(runtime string, runtime ..., runtime u32)~>()"sv, &annium_invoke_void);
-    //set_extern<external_fn_pattern>("set(self: object, property: const __identifier, any)"sv, &annium_set_object_property);
+    builtin_eids_[(size_t)builtin_eid::extern_invoke] = set_builtin_extern("__extern_invoke(runtime string, runtime ..., runtime u32)~>$R"sv, &annium_invoke);
+    builtin_eids_[(size_t)builtin_eid::extern_invoke_void] = set_builtin_extern("__extern_invoke(runtime string, runtime ..., runtime u32)~>()"sv, &annium_invoke_void);
+    //set_extern<builtin_fn_pattern>("set(self: object, property: const __identifier, any)"sv, &annium_set_object_property);
 
     set_builtin_extern("__set(runtime object, runtime string, runtime)->object"sv, &annium_set_object_property);
     set_builtin_extern("__get(runtime object, runtime string)->any"sv, &annium_get_object_property);
     set_builtin_extern("__invoke(runtime object, runtime string, runtime any ..., runtime u32)->any"sv, &annium_invoke_object);
     //set_extern("string(any)->string"sv, &annium_tostring);
-    //set_extern<external_fn_pattern>("assert(bool)"sv, &annium_assert);
+    //set_extern<builtin_fn_pattern>("assert(bool)"sv, &annium_assert);
 
     // temporary
     
-    //set_extern<external_fn_pattern>("negate(mut _)->bool"sv, &annium_negate);
+    //set_extern<builtin_fn_pattern>("negate(mut _)->bool"sv, &annium_negate);
     set_builtin_extern("__plus(runtime integer, runtime integer)~>integer"sv, &annium_operator_plus_integer);
     set_builtin_extern("__plus(runtime decimal, runtime decimal)~>decimal"sv, &annium_operator_plus_decimal);
 

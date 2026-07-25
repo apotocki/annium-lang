@@ -9,7 +9,7 @@
 #include "annium/entities/prepared_call.hpp"
 #include "annium/entities/signatured_entity.hpp"
 #include "annium/entities/literals/literal_entity.hpp"
-#include "annium/entities/functions/external_function_entity.hpp"
+#include "annium/entities/functions/builtin_function_entity.hpp"
 #include "annium/entities/functions/internal_function_entity.hpp"
 #include "annium/auxiliary.hpp"
 
@@ -127,7 +127,7 @@ public:
         ent.print_to(oss_, e_);
     }
     
-    void operator()(const external_function_entity& ent) const override
+    void operator()(const builtin_function_entity& ent) const override
     {
         ent.print_to(oss_, e_);
     }

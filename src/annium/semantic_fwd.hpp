@@ -60,7 +60,7 @@ using empty_entity = literal_entity<void>;
 class enum_entity;
 //class functional_entity;
 class internal_function_entity;
-class external_function_entity;
+class builtin_function_entity;
 class type_entity;
 class extern_variable_entity;
 //class vector_type_entity;
@@ -79,7 +79,7 @@ public:
     virtual void operator()(empty_entity const&) const = 0;
 
     virtual void operator()(internal_function_entity const&) const = 0;
-    virtual void operator()(external_function_entity const&) const = 0;
+    virtual void operator()(builtin_function_entity const&) const = 0;
     virtual void operator()(extern_variable_entity const&) const = 0;
 
     //virtual void operator()(functional_entity const&) const = 0;
@@ -95,7 +95,7 @@ class entity_visitor_adapter : public entity_visitor
     void operator()(empty_entity const&) const override {}
     
     void operator()(internal_function_entity const&) const override {}
-    void operator()(external_function_entity const&) const override {}
+    void operator()(builtin_function_entity const&) const override {}
     void operator()(extern_variable_entity const&) const override {}
     //void operator()(functional_entity const&) const override {}
 };

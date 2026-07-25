@@ -130,7 +130,7 @@ public:
     //        }
     //        fnbuilder_.append_push_pooled_const(smart_blob{ ui64_blob_result(e.fields().size()) });
 
-    //        external_function_entity const& efent = dynamic_cast<external_function_entity const&>(environment_.eregistry_get(environment_.get(builtin_eid::arrayify)));
+    //        builtin_function_entity const& efent = dynamic_cast<builtin_function_entity const&>(environment_.eregistry_get(environment_.get(builtin_eid::arrayify)));
     //        fnbuilder_.append_ecall(efent.extfnid());
     //    } else if (et.name == environment_.get(builtin_qnid::union_)) {
     //        this->operator()(e.find_field(0)->entity_id());
@@ -198,7 +198,7 @@ public:
     //    THROW_NOT_IMPLEMENTED_ERROR();
     //}
 
-    void operator()(external_function_entity const&) const override
+    void operator()(builtin_function_entity const&) const override
     {
         THROW_NOT_IMPLEMENTED_ERROR();
     }

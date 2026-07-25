@@ -10,7 +10,7 @@
 #include "sonia/utility/scope_exit.hpp"
 
 #include "annium/semantic.hpp"
-#include "annium/entities/functions/external_function_entity.hpp"
+#include "annium/entities/functions/builtin_function_entity.hpp"
 
 namespace annium::vm {
 
@@ -560,8 +560,8 @@ void compiler_visitor_base::operator()(semantic::invoke_function const& invf) co
                 fnbuilder_.append_call(fnident);
             }
         } // else just noop, empty function
-    } else if (auto efe = dynamic_cast<external_function_entity const*>(&e); efe) {
-        fnbuilder_.append_ecall(efe->extfnid());
+    } else if (auto bfe = dynamic_cast<builtin_function_entity const*>(&e); bfe) {
+        fnbuilder_.append_ecall(bfe->extfnid());
     } else {
         THROW_NOT_IMPLEMENTED_ERROR("compiler_visitor invoke_function");
     }

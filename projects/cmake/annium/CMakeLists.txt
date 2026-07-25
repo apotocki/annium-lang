@@ -112,7 +112,8 @@ set (LIBRARY_SOURCES
     ${ANNIUM_SRC}/annium/functional/match_penalty.cpp
     ${ANNIUM_SRC}/annium/functional/functional.cpp
     ${ANNIUM_SRC}/annium/functional/basic_fn_pattern.cpp
-    ${ANNIUM_SRC}/annium/functional/external_fn_pattern.cpp
+    ${ANNIUM_SRC}/annium/functional/builtin_fn_pattern.cpp
+    ${ANNIUM_SRC}/annium/functional/extern_fn_pattern.cpp
     ${ANNIUM_SRC}/annium/functional/internal_fn_pattern.cpp
     ${ANNIUM_SRC}/annium/functional/typefn_pattern.cpp
     ${ANNIUM_SRC}/annium/functional/expression_property_visitor.cpp
