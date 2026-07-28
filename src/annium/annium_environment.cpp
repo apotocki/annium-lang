@@ -1676,6 +1676,14 @@ environment::environment()
     builtin_eids_[(size_t)builtin_eid::to_integer] = set_builtin_extern("__to_integer(runtime)->integer"sv, &annium_to_integer);
     builtin_eids_[(size_t)builtin_eid::int2dec] = set_builtin_extern("__int2dec(runtime)->decimal"sv, &annium_int2dec);
     //set_extern<builtin_fn_pattern>("implicit_cast(mut integer)->float"sv, &annium_int2flt);
+    set_builtin_extern("__to_i8(runtime)->i8"sv, &annium_numeric_to_i8);
+    set_builtin_extern("__to_u8(runtime)->u8"sv, &annium_numeric_to_ui8);
+    set_builtin_extern("__to_i16(runtime)->i16"sv, &annium_numeric_to_i16);
+    set_builtin_extern("__to_u16(runtime)->u16"sv, &annium_numeric_to_ui16);
+    set_builtin_extern("__to_i32(runtime)->i32"sv, &annium_numeric_to_i32);
+    set_builtin_extern("__to_u32(runtime)->u32"sv, &annium_numeric_to_ui32);
+    set_builtin_extern("__to_i64(runtime)->i64"sv, &annium_numeric_to_i64);
+    set_builtin_extern("__to_u64(runtime)->u64"sv, &annium_numeric_to_ui64);
     set_builtin_extern("create_extern_object(runtime string)->object"sv, &annium_create_extern_object);
     builtin_eids_[(size_t)builtin_eid::extern_invoke] = set_builtin_extern("__extern_invoke(runtime string, runtime ..., runtime u32)~>$R"sv, &annium_invoke);
     builtin_eids_[(size_t)builtin_eid::extern_invoke_void] = set_builtin_extern("__extern_invoke(runtime string, runtime ..., runtime u32)~>()"sv, &annium_invoke_void);

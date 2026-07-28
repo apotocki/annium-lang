@@ -49,4 +49,13 @@ void annium_str2dec(vm::context&);
 void annium_int2dec(vm::context&);
 void annium_int2flt(vm::context&);
 
+void annium_numeric_to_i8(vm::context&);
+void annium_numeric_to_ui8(vm::context&);
+void annium_numeric_to_i16(vm::context&);
+void annium_numeric_to_ui16(vm::context&);
+void annium_numeric_to_i32(vm::context&);
+void annium_numeric_to_ui32(vm::context&);
+void annium_numeric_to_i64(vm::context&);
+void annium_numeric_to_ui64(vm::context&);
+
 }

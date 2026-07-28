@@ -445,6 +445,73 @@ void annium_int2flt(vm::context& ctx)
     ctx.stack_back().replace(smart_blob{ f32_blob_result((float)ival) });
 }
 
+// static_cast-like narrowing/widening: bits of the source value are truncated to fit T,
+// exactly as numetron::basic_integer_view<T>::operator T() / basic_decimal_view<T>::operator T() do.
+template <typename T>
+static T annium_numeric_cast(smart_blob& arg)
+{
+    if (::is_floating_point(arg->type)) {
+        return static_cast<T>(arg.as<numetron::decimal_view>());
+    }
+    return static_cast<T>(arg.as<numetron::integer_view>());
+}
+
+void annium_numeric_to_i8(vm::context& ctx)
+{
+    smart_blob& arg = ctx.stack_back();
+    int8_t val = annium_numeric_cast<int8_t>(arg);
+    arg.replace(smart_blob{ i8_blob_result(val) });
+}
+
+void annium_numeric_to_ui8(vm::context& ctx)
+{
+    smart_blob& arg = ctx.stack_back();
+    uint8_t val = annium_numeric_cast<uint8_t>(arg);
+    arg.replace(smart_blob{ ui8_blob_result(val) });
+}
+
+void annium_numeric_to_i16(vm::context& ctx)
+{
+    smart_blob& arg = ctx.stack_back();
+    int16_t val = annium_numeric_cast<int16_t>(arg);
+    arg.replace(smart_blob{ i16_blob_result(val) });
+}
+
+void annium_numeric_to_ui16(vm::context& ctx)
+{
+    smart_blob& arg = ctx.stack_back();
+    uint16_t val = annium_numeric_cast<uint16_t>(arg);
+    arg.replace(smart_blob{ ui16_blob_result(val) });
+}
+
+void annium_numeric_to_i32(vm::context& ctx)
+{
+    smart_blob& arg = ctx.stack_back();
+    int32_t val = annium_numeric_cast<int32_t>(arg);
+    arg.replace(smart_blob{ i32_blob_result(val) });
+}
+
+void annium_numeric_to_ui32(vm::context& ctx)
+{
+    smart_blob& arg = ctx.stack_back();
+    uint32_t val = annium_numeric_cast<uint32_t>(arg);
+    arg.replace(smart_blob{ ui32_blob_result(val) });
+}
+
+void annium_numeric_to_i64(vm::context& ctx)
+{
+    smart_blob& arg = ctx.stack_back();
+    int64_t val = annium_numeric_cast<int64_t>(arg);
+    arg.replace(smart_blob{ i64_blob_result(val) });
+}
+
+void annium_numeric_to_ui64(vm::context& ctx)
+{
+    smart_blob& arg = ctx.stack_back();
+    uint64_t val = annium_numeric_cast<uint64_t>(arg);
+    arg.replace(smart_blob{ ui64_blob_result(val) });
+}
+
 class annium_callable : public invocation::callable
 {
     smart_blob fn_blob_;

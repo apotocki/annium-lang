@@ -2,3 +2,56 @@ let v0 = 123;
 let v1 = v0 as i32;
 let v2 = v0 as i32 as i64;
 print(to_string(typeof(v0)) .. " " .. to_string(typeof(v1)) .. " " .. to_string(typeof(v2)));
+
+// annium_numeric_to_* / __to_i8 .. __to_u64: static_cast-like truncation to a fixed-width integer,
+// from any numeric source (fixed-width integer, bigint, float, decimal).
+
+// widening / sign vs zero extension from narrow fixed-width sources
+let s8: i8 = -5;
+let us8: u8 = 200;
+assert_equal(__to_i64(s8), -5);
+assert_equal(__to_u64(us8), 200);
+assert_equal(__to_i16(s8), -5);
+assert_equal(__to_u16(us8), 200);
+
+// narrowing from a wider fixed-width source: low bits are kept, sign reinterpreted
+let w32: i32 = 300;
+assert_equal(__to_i8(w32), 44);
+assert_equal(__to_u8(w32), 44);
+
+let w32b: i32 = 511;
+assert_equal(__to_i8(w32b), -1);
+assert_equal(__to_u8(w32b), 255);
+
+let neg32: i32 = -1;
+assert_equal(__to_u8(neg32), 255);
+assert_equal(__to_i16(neg32), -1);
+assert_equal(__to_u16(neg32), 65535);
+assert_equal(__to_u32(neg32), 4294967295);
+assert_equal(__to_i64(neg32), -1);
+assert_equal(__to_u64(neg32), 18446744073709551615);
+
+// bigint source (default literal type)
+assert_equal(__to_i8(300), 44);
+assert_equal(__to_u8(511), 255);
+assert_equal(__to_i16(65541), 5);
+assert_equal(__to_u16(65541), 5);
+assert_equal(__to_i8(-1), -1);
+assert_equal(__to_u8(-1), 255);
+
+// floating point / decimal sources
+let f32v: f32 = 300;
+assert_equal(__to_i8(f32v), 44);
+
+let f64v: f64 = -1;
+assert_equal(__to_u16(f64v), 65535);
+
+let f16v: f16 = 200;
+assert_equal(__to_u8(f16v), 200);
+
+let decv: decimal = 511;
+assert_equal(__to_i8(decv), -1);
+
+// widening float/decimal into a wider integer result
+assert_equal(__to_i64(f32v), 300);
+assert_equal(__to_i64(decv), 511);
