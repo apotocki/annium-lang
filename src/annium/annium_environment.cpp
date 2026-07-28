@@ -68,6 +68,7 @@
 #include "annium/entities/struct/struct_set_pattern.hpp"
 #include "annium/entities/struct/is_struct_pattern.hpp"
 #include "annium/entities/struct/tuple_of_pattern.hpp"
+#include "annium/entities/literals/numeric_pattern.hpp"
 
 #include "annium/entities/enum/enum_implicit_cast_pattern.hpp"
 #include "annium/entities/enum/enum_implicit_runtime_cast_pattern.hpp"
@@ -1640,6 +1641,9 @@ environment::environment()
     functional& tuple_of_fnl = fregistry_resolve(get(builtin_qnid::tuple_of));
     tuple_of_fnl.push(make_shared<tuple_of_pattern>());
 
+    functional& numeric_fnl = fregistry_resolve(get(builtin_qnid::numeric));
+    numeric_fnl.push(make_shared<numeric_pattern>());
+
     //fn_result_identifier_ = make_identifier("->");
 
     //eq_qname_identifier_ = make_qname_identifier("==");
@@ -1676,14 +1680,14 @@ environment::environment()
     builtin_eids_[(size_t)builtin_eid::to_integer] = set_builtin_extern("__to_integer(runtime)->integer"sv, &annium_to_integer);
     builtin_eids_[(size_t)builtin_eid::int2dec] = set_builtin_extern("__int2dec(runtime)->decimal"sv, &annium_int2dec);
     //set_extern<builtin_fn_pattern>("implicit_cast(mut integer)->float"sv, &annium_int2flt);
-    set_builtin_extern("__to_i8(runtime)->i8"sv, &annium_numeric_to_i8);
-    set_builtin_extern("__to_u8(runtime)->u8"sv, &annium_numeric_to_ui8);
-    set_builtin_extern("__to_i16(runtime)->i16"sv, &annium_numeric_to_i16);
-    set_builtin_extern("__to_u16(runtime)->u16"sv, &annium_numeric_to_ui16);
-    set_builtin_extern("__to_i32(runtime)->i32"sv, &annium_numeric_to_i32);
-    set_builtin_extern("__to_u32(runtime)->u32"sv, &annium_numeric_to_ui32);
-    set_builtin_extern("__to_i64(runtime)->i64"sv, &annium_numeric_to_i64);
-    set_builtin_extern("__to_u64(runtime)->u64"sv, &annium_numeric_to_ui64);
+    set_builtin_extern("__to_i8(runtime @numeric)->i8"sv, &annium_numeric_to_i8);
+    set_builtin_extern("__to_u8(runtime @numeric)->u8"sv, &annium_numeric_to_ui8);
+    set_builtin_extern("__to_i16(runtime @numeric)->i16"sv, &annium_numeric_to_i16);
+    set_builtin_extern("__to_u16(runtime @numeric)->u16"sv, &annium_numeric_to_ui16);
+    set_builtin_extern("__to_i32(runtime @numeric)->i32"sv, &annium_numeric_to_i32);
+    set_builtin_extern("__to_u32(runtime @numeric)->u32"sv, &annium_numeric_to_ui32);
+    set_builtin_extern("__to_i64(runtime @numeric)->i64"sv, &annium_numeric_to_i64);
+    set_builtin_extern("__to_u64(runtime @numeric)->u64"sv, &annium_numeric_to_ui64);
     set_builtin_extern("create_extern_object(runtime string)->object"sv, &annium_create_extern_object);
     builtin_eids_[(size_t)builtin_eid::extern_invoke] = set_builtin_extern("__extern_invoke(runtime string, runtime ..., runtime u32)~>$R"sv, &annium_invoke);
     builtin_eids_[(size_t)builtin_eid::extern_invoke_void] = set_builtin_extern("__extern_invoke(runtime string, runtime ..., runtime u32)~>()"sv, &annium_invoke_void);

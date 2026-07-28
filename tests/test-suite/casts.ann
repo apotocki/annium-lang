@@ -55,3 +55,36 @@ assert_equal(__to_i8(decv), -1);
 // widening float/decimal into a wider integer result
 assert_equal(__to_i64(f32v), 300);
 assert_equal(__to_i64(decv), 511);
+
+// u16/u32/u64 as sources too (previously only used as targets above)
+let us16: u16 = 60000;
+let us32: u32 = 4000000000;
+let us64: u64 = 300;
+assert_equal(__to_i64(us16), 60000);
+assert_equal(__to_i64(us32), 4000000000);
+assert_equal(__to_i8(us64), 44);
+
+// numeric_cast (bootstrap.ann): explicit, context-driven counterpart to implicit_cast --
+// the target width is picked from the expected result type at the call site (~>), same values as the __to_iN calls above.
+let nc1: i8 = numeric_cast(w32);
+assert_equal(nc1, 44);
+let nc2: u8 = numeric_cast(w32b);
+assert_equal(nc2, 255);
+let nc3: i16 = numeric_cast(s8);
+assert_equal(nc3, -5);
+let nc4: u16 = numeric_cast(neg32);
+assert_equal(nc4, 65535);
+let nc5: i32 = numeric_cast(neg32);
+assert_equal(nc5, -1);
+let nc6: u32 = numeric_cast(us64);
+assert_equal(nc6, 300);
+let nc7: i64 = numeric_cast(f32v);
+assert_equal(nc7, 300);
+let nc8: u64 = numeric_cast(us8);
+assert_equal(nc8, 200);
+
+// numeric_cast from a bigint literal and from decimal, same truncation semantics
+let nc9: i8 = numeric_cast(300);
+assert_equal(nc9, 44);
+let nc10: i8 = numeric_cast(decv);
+assert_equal(nc10, -1);

@@ -118,3 +118,15 @@ inline fn regex_search(target: runtime string, re: regex_object) -> [string] {
 inline fn to_integer(runtime string) -> integer {
     return reinterpret(std.to_integer($0));
 }
+
+// NUMERIC CASTS
+// explicit, context-driven counterpart to implicit_cast for the fixed-width numeric family:
+// the target type is picked from the expected result type at the call site (~>), like __plus/__extern_invoke do.
+inline fn numeric_cast(runtime @numeric) ~> i8  => __to_i8($0);
+inline fn numeric_cast(runtime @numeric) ~> u8  => __to_u8($0);
+inline fn numeric_cast(runtime @numeric) ~> i16 => __to_i16($0);
+inline fn numeric_cast(runtime @numeric) ~> u16 => __to_u16($0);
+inline fn numeric_cast(runtime @numeric) ~> i32 => __to_i32($0);
+inline fn numeric_cast(runtime @numeric) ~> u32 => __to_u32($0);
+inline fn numeric_cast(runtime @numeric) ~> i64 => __to_i64($0);
+inline fn numeric_cast(runtime @numeric) ~> u64 => __to_u64($0);

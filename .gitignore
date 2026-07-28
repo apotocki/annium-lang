@@ -11,4 +11,6 @@
 /Directory.Build.local.props
 *.md
 !README.md
+!A*.md
+!I*.md
 .github/*.md

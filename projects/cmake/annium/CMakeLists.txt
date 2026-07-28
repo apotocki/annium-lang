@@ -77,6 +77,7 @@ set (LIBRARY_SOURCES
     ${ANNIUM_SRC}/annium/entities/literals/numeric_literal_equal_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/literals/numeric_literal_implicit_cast_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/literals/numeric_literal_unary_minus_pattern.cpp
+    ${ANNIUM_SRC}/annium/entities/literals/numeric_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/literals/string/string_empty_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/literals/string/string_concat_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/literals/string/string_implicit_cast_pattern.cpp
@@ -138,6 +139,7 @@ set (LIBRARY_SOURCES
     ${ANNIUM_SRC}/annium/errors/assign_error.cpp
     ${ANNIUM_SRC}/annium/errors/cast_error.cpp
     ${ANNIUM_SRC}/annium/errors/circular_dependency_error.cpp
+    ${ANNIUM_SRC}/annium/errors/concept_not_satisfied_error.cpp
     ${ANNIUM_SRC}/annium/errors/function_call_match_error.cpp
     ${ANNIUM_SRC}/annium/errors/identifier_redefinition_error.cpp
     ${ANNIUM_SRC}/annium/errors/no_position_argument_error.cpp

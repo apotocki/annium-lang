@@ -10,6 +10,7 @@
 
 #include "annium/errors/type_mismatch_error.hpp"
 #include "annium/errors/signature_name_mismatch_error.hpp"
+#include "annium/errors/concept_not_satisfied_error.hpp"
 
 #include "annium/auxiliary.hpp"
 
@@ -66,17 +67,28 @@ error_storage pattern_matcher::do_match_context_identifier(context_identifier ci
     return do_match_concepts(pattern.concepts, type); // Context identifier matches the type
 }
 
-error_storage pattern_matcher::do_match_concepts(span<const syntax_expression> concepts, annotated_entity_identifier const&) const
+error_storage pattern_matcher::do_match_concepts(span<const syntax_expression> concepts, annotated_entity_identifier const& type) const
 {
-    // Check if the type matches any of the concepts
+    // Each @concept is a compile-time predicate fn(t: typename) -> bool; a concept is satisfied
+    // when calling it with the matched type as argument returns true. All concepts must pass.
     for (const auto& concept_expr : concepts) {
-        auto concept_res = base_expression_visitor::visit(
-            ctx_, ctx_.expression_store(), expected_result_t{ .modifier = value_modifier_t::constexpr_value },
-            concept_expr);
-        if (!concept_res) {
-            return concept_res.error();
+        auto const& qref = std::get<qname_reference_expression>(concept_expr.value);
+        auto qnid = ctx_.lookup_qname(annotated_qname_view{ qref.name, concept_expr.location });
+        if (!qnid) return std::move(qnid.error());
+
+        call_builder cb{ concept_expr.location };
+        cb.emplace_back(syntax_expression{ concept_expr.location, type.value });
+
+        auto match = ctx_.find(*qnid, cb.location, cb, ctx_.expression_store(),
+            expected_result_t{ .type = ctx_.env().get(builtin_eid::boolean), .modifier = value_modifier_t::constexpr_value });
+        if (!match) return std::move(match.error());
+
+        auto res = match->apply(ctx_);
+        if (!res) return std::move(res.error());
+
+        if (!res->is_const_result || res->value() != ctx_.env().get(builtin_eid::true_)) {
+            return make_error<concept_not_satisfied_error>(type.location, type.value, *qnid, concept_expr.location);
         }
-        // TODO: Process concept matches
     }
     return {}; // All concepts matched successfully
 }

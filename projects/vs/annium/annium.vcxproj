@@ -67,6 +67,7 @@
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_implicit_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_implicit_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_unary_minus_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\literals\string\string_concat_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\literals\string\string_empty_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\literals\string\string_implicit_cast_pattern.cpp" />
@@ -100,6 +101,7 @@
     <ClCompile Include="..\..\..\src\annium\errors\assign_error.cpp" />
     <ClCompile Include="..\..\..\src\annium\errors\cast_error.cpp" />
     <ClCompile Include="..\..\..\src\annium\errors\circular_dependency_error.cpp" />
+    <ClCompile Include="..\..\..\src\annium\errors\concept_not_satisfied_error.cpp" />
     <ClCompile Include="..\..\..\src\annium\errors\function_call_match_error.cpp" />
     <ClCompile Include="..\..\..\src\annium\errors\identifier_redefinition_error.cpp" />
     <ClCompile Include="..\..\..\src\annium\errors\no_position_argument_error.cpp" />
@@ -208,6 +210,7 @@
     <ClInclude Include="..\..\..\src\annium\entities\literals\literal_entity.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_implicit_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_unary_minus_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\literals\string\string_concat_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\literals\string\string_empty_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\literals\string\string_implicit_cast_pattern.hpp" />
@@ -244,6 +247,7 @@
     <ClInclude Include="..\..\..\src\annium\errors\assign_error.hpp" />
     <ClInclude Include="..\..\..\src\annium\errors\cast_error.hpp" />
     <ClInclude Include="..\..\..\src\annium\errors\circular_dependency_error.hpp" />
+    <ClInclude Include="..\..\..\src\annium\errors\concept_not_satisfied_error.hpp" />
     <ClInclude Include="..\..\..\src\annium\errors\function_call_match_error.hpp" />
     <ClInclude Include="..\..\..\src\annium\errors\identifier_redefinition_error.hpp" />
     <ClInclude Include="..\..\..\src\annium\errors\no_position_argument_error.hpp" />

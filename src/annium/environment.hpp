@@ -129,7 +129,8 @@ class arena;
     ((apply, "apply"sv))                   \
     ((empty, "empty"sv))                   \
     ((is_struct, "is_struct"sv))           \
-    ((tuple_of, "tuple_of"sv))
+    ((tuple_of, "tuple_of"sv))             \
+    ((numeric, "numeric"sv))
 
 //((enum_, "enum"sv))                  
 

@@ -799,6 +799,9 @@ parameter-decl:
 // abbreviated main case: foo([constexpr | runtime] type-expression [...] [= expression])
     | constraint-expression-specified[ce] parameter-default-value-opt[default]
         { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = std::move(get<0>($ce)), .default_value = std::move($default), .modifier = get<1>($ce) }; }
+    // abbreviated unnamed case with concept(s), no type-expression: foo([constexpr | runtime] @concept... [= expression])
+    | constraint-expression-specified-mod[mod] concept-expression-list[cpts] parameter-default-value-opt[default]
+        { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move(get<0>($mod)) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default), .modifier = get<1>($mod) }; }
     // parse special case, when type-expression is just a qname and we have no 'constexpr' or 'runtime' modifier
     | qname parameter-default-value-opt[default]
         {

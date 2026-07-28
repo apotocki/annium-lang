@@ -1,0 +1,73 @@
+# Annium Language Syntax Reference
+
+A working reference to `.ann` source syntax, built incrementally from reading `src/annium/annium.l` / `annium.y` and real registered signatures — **not a complete spec**. Extend this file as new syntax is investigated; don't let it silently go stale (if you find a section wrong while working on the grammar, fix it in the same change). Referenced from `CLAUDE.md`.
+
+## Builtin type keywords
+
+From `ANNIUM_BUILTIN_QNAMES_SEQ` / `ANNIUM_BUILTIN_TYPES_SEQ` (`src/annium/environment.hpp`):
+
+| Keyword | Meaning |
+|---|---|
+| `i8`, `u8`, `i16`, `u16`, `i32`, `u32`, `i64`, `u64` | fixed-width integers (note: **`u8`/`u16`/...**, not `ui8`/`ui16`/... — that spelling is only used VM-internally for `blob_type`, see `sonia::invocation::blob_type` in `modules/sonia-prime`) |
+| `f16`, `f32`, `f64` | fixed-width floats |
+| `integer` | arbitrary-precision integer (bigint) |
+| `decimal` | arbitrary-precision decimal |
+| `bool` | boolean |
+| `string` | string |
+| `object` | opaque host/extern object handle |
+| `callable` | first-class callable value |
+| `any` | untyped/dynamic |
+| `typename` | the type of types — see "typename-mode parameters" below |
+| `tuple`, `array`, `function`, `functor`, `union` | compound/structural type constructors |
+
+## Function/parameter declaration
+
+A parameter is written as (informally, several grammar productions in `annium.y:780-861` cover the combinations):
+
+```
+[name | $internalName] [: [runtime|constexpr] constraint] [default]
+```
+
+- **Modifier** (`runtime` / `constexpr`, before the type): `runtime T` requires an actual runtime value; `constexpr T` requires a compile-time constant; omitted = `constexpr_or_runtime_type` (either is accepted, and the matcher decides per call site).
+- **Unnamed positional**: just a constraint, no name — `runtime`, `runtime integer`, `constexpr string`, or a bare type name like `integer` (defaults to `constexpr_or_runtime_type`). Example: `"__to_integer(runtime)->integer"`.
+- **Named, caller-visible**: `name: constraint` — e.g. `"decimal(text: string)->decimal|()"`.
+- **Named, internal-only** (not part of the call-site signature, just a label used in the result-type expression or for readability): `$name: constraint`, where `$name` lexes as `CONTEXT_IDENTIFIER` (`$` followed by **letters**, `annium.l:104`). Example: `"__array_set_at($arr: runtime, $index: runtime integer, $value)"`.
+- **Placeholder**: `_` matches any single positional argument without binding a name.
+- **Variadic**: trailing `...` — `"__print(runtime ..., runtime integer)"`.
+- **Optional**: `name?: constraint` with a default-value spec.
+
+### `$0` / `$1` / `$$` are NOT parameter names
+
+`$0`, `$1`, ... lex as `RESERVED_IDENTIFIER` (`$` followed by a plain number, `annium.l:105`) — a **completely different token** from `$name` (`CONTEXT_IDENTIFIER`). `RESERVED_IDENTIFIER` is only valid in **expression position**, inside a function body or a result-type expression, meaning "the value of the Nth positional argument" — e.g. `assert_equal`'s body uses `$0 == $1`; `"__array_tail(~runtime tuple(_, $t...))->tuple($t...)"`'s result type references a *pattern-bound* `$t`, not this reserved form. You cannot declare a parameter named `$0` — the grammar's `internal-identifier` production only accepts `CONTEXT_IDENTIFIER`. Use a letters-based `$name` instead.
+
+## `@concept` constraints
+
+`@name` attached to a parameter pattern requires a registered compile-time predicate `fn name(t: typename) -> bool`; the parameter matches only if calling that predicate with the candidate's type returns `true`. Multiple `@a @b` on one pattern is AND (all must pass). See `IMPLEMENTATION_NOTES.md` for how this is actually evaluated (`pattern_matcher::do_match_concepts`) and known predicates (`is_struct`, `tuple_of`, `numeric`).
+
+A concept can be attached to a fully unnamed positional parameter, combined with an explicit `runtime`/`constexpr` modifier: `runtime @numeric` (`"__to_i8(runtime @numeric)->i8"`) — like any other unnamed positional parameter, it isn't referenced by name at the call site; use `$0`/`$1`/... in the body or result-type expression if you need to refer back to it. This form is a dedicated `parameter-decl` grammar alternative (`constraint-expression-specified-mod[mod] concept-expression-list[cpts]`, `annium.y`, next to the plain `constraint-expression-specified` abbreviated case) — don't confuse it with the *named* forms (`name: runtime @concept` / `$name: runtime @concept`, `annium.y:820,834`), which exist separately for when you actually need to bind and reference the parameter (e.g. from the result-type expression, à la `array_tail`'s `$t`).
+
+A bare concept with no modifier and no name (`@is_struct` alone, as in `bootstrap.ann`'s `self: @is_struct`) is also legal — it's a placeholder pattern with the concept attached, defaulting to `constexpr_or_runtime_type`.
+
+## `typename`-mode parameters
+
+A parameter can require its argument to itself be a type (a `typename`-typed value, e.g. `SomeStruct` passed directly rather than an instance of it), via the `TILDA TYPENAME` / `TYPENAME` pattern-mod grammar (`annium.y:969-972`). `is_struct`'s and `numeric`'s own single parameter both work this way. In C++ pattern implementations, this shows up as: the argument's `get_result_type(...)` equals `env.get(builtin_eid::typename_)`, and the type being tested is the argument's *value* (`arg_er.value()`), not its type.
+
+## Casts
+
+`value as Type` — binary expression, `binary_operator_type::CAST` (`annium.y:1141-1142`). Example (`tests/test-suite/casts.ann`): `v0 as i32`, chainable: `v0 as i32 as i64`.
+
+## `extern fn`
+
+```
+extern fn name(runtime T1, runtime T2, ...) [-> R];
+```
+
+Declares a natively-implemented function with no body. All parameters must be `runtime` (rejected otherwise — see `IMPLEMENTATION_NOTES.md`). The runtime lookup name is the qname joined with `::` (e.g. `namespace foo { extern fn bar(...); }` → looked up as `"foo::bar"`).
+
+## `let` with explicit type
+
+`let name: Type = expr;` — e.g. `let fltvar: f16 = 100;`, `let s8: i8 = -5;`. Useful for constructing a value of a specific fixed-width type from an untyped (bigint/decimal-default) literal in tests.
+
+## Double-underscore builtins are ordinary callables
+
+Names like `__to_integer`, `__print`, `__get_frame_stack_height`, `__to_i8` are not special syntax — they're just registered functionals with a conventional `__`-prefixed name (signalling "compiler/library-internal"), callable exactly like any other function from `.ann` source: `__to_i8(x)`, `assert_equal(__get_frame_stack_height(), 1)`.

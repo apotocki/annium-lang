@@ -35,13 +35,15 @@ std::expected<functional_match_descriptor_ptr, error_storage> is_struct_pattern:
     auto pmd = make_shared<functional_match_descriptor>(call);
 
     // Check if the argument is a struct_entity or a typename referring to a struct_entity
-    struct_entity const* arg_as_struct;
-    entity const* arg_entity;
-    entity_identifier arg_type = get_result_type(env, arg_er, &arg_entity);
-    if (arg_type == env.get(builtin_eid::typename_)) {
-        arg_as_struct = arg_er.is_const_result ? dynamic_cast<struct_entity const*>(arg_entity) : nullptr;
-    } else {
-        arg_as_struct = dynamic_cast<struct_entity const*>(&get_entity(env, arg_type));
+    struct_entity const* arg_as_struct = nullptr;
+    if (!arg_er.is_const_result || arg_er.value() != env.get(builtin_eid::typename_)) {
+        entity const* arg_entity;
+        entity_identifier arg_type = get_result_type(env, arg_er, &arg_entity);
+        if (arg_type == env.get(builtin_eid::typename_)) {
+            arg_as_struct = arg_er.is_const_result ? dynamic_cast<struct_entity const*>(arg_entity) : nullptr;
+        } else {
+            arg_as_struct = dynamic_cast<struct_entity const*>(&get_entity(env, arg_type));
+        }
     }
     pmd->signature.result.emplace(env.get(arg_as_struct ? builtin_eid::true_ : builtin_eid::false_), true);
 
