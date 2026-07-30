@@ -37,6 +37,13 @@ smart_blob numeric_cast_truncate_to(smart_blob const& arg, builtin_eid target_ty
     case builtin_eid::u32: return smart_blob{ ui32_blob_result(numeric_cast_truncate<uint32_t>(arg)) };
     case builtin_eid::i64: return smart_blob{ i64_blob_result(numeric_cast_truncate<int64_t>(arg)) };
     case builtin_eid::u64: return smart_blob{ ui64_blob_result(numeric_cast_truncate<uint64_t>(arg)) };
+    case builtin_eid::integer:
+        // arbitrary precision: no truncation for integral sources (bigint represents them exactly),
+        // only a floating/decimal source loses its fractional part -- mirrors annium_to_integer (annium_library.cpp).
+        if (::is_floating_point(arg->type)) {
+            return smart_blob{ bigint_blob_result((numetron::integer)arg.as<numetron::decimal_view>()) };
+        }
+        return smart_blob{ bigint_blob_result(arg.as<numetron::integer_view>()) };
     default:
         THROW_NOT_IMPLEMENTED_ERROR("numeric_cast_constexpr_pattern: unsupported target type"sv);
     }
@@ -52,9 +59,10 @@ numeric_cast_constexpr_pattern::try_match(fn_compiler_context& ctx, prepared_cal
     bool valid_target = exp.type == env.get(builtin_eid::i8) || exp.type == env.get(builtin_eid::u8) ||
         exp.type == env.get(builtin_eid::i16) || exp.type == env.get(builtin_eid::u16) ||
         exp.type == env.get(builtin_eid::i32) || exp.type == env.get(builtin_eid::u32) ||
-        exp.type == env.get(builtin_eid::i64) || exp.type == env.get(builtin_eid::u64);
+        exp.type == env.get(builtin_eid::i64) || exp.type == env.get(builtin_eid::u64) ||
+        exp.type == env.get(builtin_eid::integer);
     if (!valid_target) {
-        return std::unexpected(make_error<type_mismatch_error>(call.location, exp.type, "a fixed-width integer type"sv));
+        return std::unexpected(make_error<type_mismatch_error>(call.location, exp.type, "a fixed-width integer type or integer"sv));
     }
     builtin_eid target_type = static_cast<builtin_eid>(exp.type.value);
 

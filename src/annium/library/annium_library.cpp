@@ -406,8 +406,7 @@ void annium_to_integer(vm::context& ctx)
     smart_blob result;
     if (arg->type == blob_type::boolean || is_basic_integral(arg->type)) {
         result = smart_blob{ bigint_blob_result(arg.as<numetron::integer>()) };
-    }
-    if (::is_floating_point(arg->type)) {
+    } else if (::is_floating_point(arg->type)) {
         numetron::decimal_view dv = arg.as<numetron::decimal_view>();
         result = smart_blob{ bigint_blob_result((numetron::integer)dv) };
     } else {

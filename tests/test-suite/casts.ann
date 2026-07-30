@@ -102,3 +102,21 @@ let ncc3: i32 = numeric_cast(-1);
 assert_equal(ncc3, -1);
 let ncc4: u16 = numeric_cast(65541);
 assert_equal(ncc4, 5);
+
+// numeric_cast(...) ~> integer: arbitrary precision target, runtime path via __to_integer,
+// constexpr path folds directly to a bigint. Integral sources convert exactly (no truncation);
+// only a floating/decimal source loses its fractional part.
+let ni1: integer = numeric_cast(runtime_cast(w32));
+assert_equal(ni1, 300);
+let ni2: integer = numeric_cast(runtime_cast(neg32));
+assert_equal(ni2, -1);
+let ni3: integer = numeric_cast(300);
+assert_equal(ni3, 300);
+let ni4: integer = numeric_cast(decv);
+assert_equal(ni4, 511);
+
+let frac32: f32 = 3.75;
+let ni5: integer = numeric_cast(frac32); // constexpr: fractional part truncated toward zero
+assert_equal(ni5, 3);
+let ni6: integer = numeric_cast(runtime_cast(frac32)); // runtime: same truncation via __to_integer
+assert_equal(ni6, 3);
