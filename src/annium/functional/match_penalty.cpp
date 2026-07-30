@@ -13,7 +13,7 @@ bool operator==(match_penalty const& lhs, match_penalty const& rhs) noexcept
     return lhs.placeholders == rhs.placeholders
         && lhs.casts == rhs.casts
         && lhs.variadics == rhs.variadics
-        && lhs.cast_allowances == rhs.cast_allowances;
+        && lhs.cast_capable_matches == rhs.cast_capable_matches;
 }
 
 std::strong_ordering operator<=>(match_penalty const& lhs, match_penalty const& rhs) noexcept
@@ -34,7 +34,7 @@ std::strong_ordering operator<=>(match_penalty const& lhs, match_penalty const& 
     if (auto cmp = lhs.variadics <=> rhs.variadics; cmp != 0) {
         return cmp;
     }
-    return lhs.cast_allowances <=> rhs.cast_allowances;
+    return lhs.cast_capable_matches <=> rhs.cast_capable_matches;
 }
 
 match_penalty& match_penalty::operator+=(match_penalty const& other) noexcept
@@ -46,7 +46,7 @@ match_penalty& match_penalty::operator+=(match_penalty const& other) noexcept
     }
     casts += other.casts;
     variadics += other.variadics;
-    cast_allowances += other.cast_allowances;
+    cast_capable_matches += other.cast_capable_matches;
     return *this;
 }
 

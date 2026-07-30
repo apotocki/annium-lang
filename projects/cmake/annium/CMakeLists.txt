@@ -78,6 +78,7 @@ set (LIBRARY_SOURCES
     ${ANNIUM_SRC}/annium/entities/literals/numeric_literal_implicit_cast_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/literals/numeric_literal_unary_minus_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/literals/numeric_pattern.cpp
+    ${ANNIUM_SRC}/annium/entities/literals/numeric_cast_constexpr_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/literals/string/string_empty_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/literals/string/string_concat_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/literals/string/string_implicit_cast_pattern.cpp

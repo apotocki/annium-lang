@@ -130,3 +130,4 @@ inline fn numeric_cast(runtime @numeric) ~> i32 => __to_i32($0);
 inline fn numeric_cast(runtime @numeric) ~> u32 => __to_u32($0);
 inline fn numeric_cast(runtime @numeric) ~> i64 => __to_i64($0);
 inline fn numeric_cast(runtime @numeric) ~> u64 => __to_u64($0);
+inline fn numeric_cast(runtime @numeric) ~> integer => __to_integer($0);

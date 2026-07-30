@@ -19,3 +19,11 @@ fn testfn3($a0, $a1) => 1;
 fn testfn3($a0, $a1, ...) => 2;
 assert_equal(testfn3(1, 2), 1); // prefer exact arity match
 assert_equal(testfn3(1, 2, 3), 2); // variadic match
+
+// two @concept (pattern-constrained) overloads competing on modifier alone: neither is a plain
+// type-expression, so this exercises constraint_matcher's syntax_pattern branch specifically --
+// picking the one that needs no implicit constexpr<->runtime materialization over the one that does.
+fn tesnfn4(runtime @numeric) => 1;
+fn tesnfn4(constexpr @numeric) => 2;
+assert_equal(tesnfn4(42), 2); // constexpr argument: prefer the constexpr pattern match (no cast) over runtime (needs materialization)
+assert_equal(tesnfn4(runtime_cast(42)), 1); // genuinely runtime argument (plain `let` stays constexpr-foldable): only the runtime pattern match is viable at all

@@ -69,6 +69,7 @@
 #include "annium/entities/struct/is_struct_pattern.hpp"
 #include "annium/entities/struct/tuple_of_pattern.hpp"
 #include "annium/entities/literals/numeric_pattern.hpp"
+#include "annium/entities/literals/numeric_cast_constexpr_pattern.hpp"
 
 #include "annium/entities/enum/enum_implicit_cast_pattern.hpp"
 #include "annium/entities/enum/enum_implicit_runtime_cast_pattern.hpp"
@@ -1688,6 +1689,11 @@ environment::environment()
     set_builtin_extern("__to_u32(runtime @numeric)->u32"sv, &annium_numeric_to_ui32);
     set_builtin_extern("__to_i64(runtime @numeric)->i64"sv, &annium_numeric_to_i64);
     set_builtin_extern("__to_u64(runtime @numeric)->u64"sv, &annium_numeric_to_ui64);
+
+    // constexpr counterpart to the 8 `numeric_cast(runtime @numeric) ~> iN|uN` overloads declared in bootstrap.ann:
+    // same qname, folds the conversion at compile time when the argument is a compile-time constant.
+    functional& numeric_cast_fnl = fregistry_resolve(qname{ make_identifier("numeric_cast"sv) });
+    numeric_cast_fnl.push(make_shared<numeric_cast_constexpr_pattern>());
     set_builtin_extern("create_extern_object(runtime string)->object"sv, &annium_create_extern_object);
     builtin_eids_[(size_t)builtin_eid::extern_invoke] = set_builtin_extern("__extern_invoke(runtime string, runtime ..., runtime u32)~>$R"sv, &annium_invoke);
     builtin_eids_[(size_t)builtin_eid::extern_invoke_void] = set_builtin_extern("__extern_invoke(runtime string, runtime ..., runtime u32)~>()"sv, &annium_invoke_void);

@@ -86,7 +86,7 @@ struct constraint_matcher
                 //);
             }
         } // else it's just a type constraint that has met by successful call_session.use_*** call
-        return match_penalty{ .casts = has_cast, .cast_allowances = 1 };
+        return match_penalty{ .casts = has_cast, .cast_capable_matches = 1 };
     }
 
     std::expected<match_penalty, error_storage> operator()(syntax_pattern const* constraint) const
@@ -115,6 +115,20 @@ struct constraint_matcher
                 make_error<basic_general_error>(param_name.location, "cannot match argument pattern"sv, param_name.value),
                 std::move(err)
             ));
+        }
+        // Same `casts` accounting as the syntax_expression branch above: a pattern-constrained (e.g.
+        // @concept-carrying) parameter that needed an implicit cast/materialization to satisfy its modifier
+        // (constexpr coerced to runtime, or vice versa) should be penalized just as much as a plain
+        // type-constrained one, so overload resolution can prefer an exact-modifier match.
+        // Deliberately NOT adding to cast_capable_matches here (unlike the sibling branch, which always sets
+        // it to 1): pattern-constrained parameters never go through a generic implicit_cast fallback (a
+        // structural match either succeeds or fails outright), so they should never count as "cast-capable"
+        // matches -- that's what lets a pattern match (e.g. `~integer`) win ties against an equally-cast-free
+        // plain type match (`integer`) for the same argument, see match_priority.ann's "prefer exact type
+        // match" case. Bumping it unconditionally here would cancel that tie-break and make the two branches
+        // indistinguishable (ambiguity_error) whenever neither needed a cast.
+        if (has_cast) {
+            ++pattern_penalty.casts;
         }
         return std::expected<match_penalty, error_storage>{
             std::in_place, std::move(pattern_penalty)

@@ -9,8 +9,11 @@
 /logs
 /log.conf
 /Directory.Build.local.props
+*.cmd
+*.sh
 *.md
 !README.md
-!A*.md
-!I*.md
+!ANNIUM_SYNTAX.md
+!IMPLEMENTATION_NOTES.md
+!FUTURE_WORK.md
 .github/*.md

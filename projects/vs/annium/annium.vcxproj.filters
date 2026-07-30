@@ -369,6 +369,9 @@
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_pattern.cpp">
       <Filter>annium\entities\literals</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_cast_constexpr_pattern.cpp">
+      <Filter>annium\entities\literals</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\enum\enum_to_integer_pattern.cpp">
       <Filter>annium\entities\enum</Filter>
     </ClCompile>
@@ -774,6 +777,9 @@
       <Filter>annium\entities\literals</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_pattern.hpp">
+      <Filter>annium\entities\literals</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_cast_constexpr_pattern.hpp">
       <Filter>annium\entities\literals</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\enum\enum_to_integer_pattern.hpp">

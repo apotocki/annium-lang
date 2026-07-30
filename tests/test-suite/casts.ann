@@ -66,25 +66,39 @@ assert_equal(__to_i8(us64), 44);
 
 // numeric_cast (bootstrap.ann): explicit, context-driven counterpart to implicit_cast --
 // the target width is picked from the expected result type at the call site (~>), same values as the __to_iN calls above.
-let nc1: i8 = numeric_cast(w32);
+// runtime_cast(...) forces a genuinely runtime argument here -- plain `let x: T = <const-expr>;` stays
+// constexpr-foldable in this language, so without it these would all silently exercise
+// numeric_cast_constexpr_pattern instead of the runtime `.ann` overloads (-> __to_iN ecalls) they're meant to cover.
+let nc1: i8 = numeric_cast(runtime_cast(w32));
 assert_equal(nc1, 44);
-let nc2: u8 = numeric_cast(w32b);
+let nc2: u8 = numeric_cast(runtime_cast(w32b));
 assert_equal(nc2, 255);
-let nc3: i16 = numeric_cast(s8);
+let nc3: i16 = numeric_cast(runtime_cast(s8));
 assert_equal(nc3, -5);
-let nc4: u16 = numeric_cast(neg32);
+let nc4: u16 = numeric_cast(runtime_cast(neg32));
 assert_equal(nc4, 65535);
-let nc5: i32 = numeric_cast(neg32);
+let nc5: i32 = numeric_cast(runtime_cast(neg32));
 assert_equal(nc5, -1);
-let nc6: u32 = numeric_cast(us64);
+let nc6: u32 = numeric_cast(runtime_cast(us64));
 assert_equal(nc6, 300);
-let nc7: i64 = numeric_cast(f32v);
+let nc7: i64 = numeric_cast(runtime_cast(f32v));
 assert_equal(nc7, 300);
-let nc8: u64 = numeric_cast(us8);
+let nc8: u64 = numeric_cast(runtime_cast(us8));
 assert_equal(nc8, 200);
 
-// numeric_cast from a bigint literal and from decimal, same truncation semantics
+// numeric_cast with a constexpr-foldable argument (a bare literal, or a `let` alias to one -- `let`
+// doesn't force runtime materialization on its own) goes through numeric_cast_constexpr_pattern,
+// folded at compile time instead of the runtime __to_iN overload -- same values either way.
 let nc9: i8 = numeric_cast(300);
 assert_equal(nc9, 44);
 let nc10: i8 = numeric_cast(decv);
 assert_equal(nc10, -1);
+
+let ncc1: u8 = numeric_cast(511);
+assert_equal(ncc1, 255);
+let ncc2: u64 = numeric_cast(-1);
+assert_equal(ncc2, 18446744073709551615);
+let ncc3: i32 = numeric_cast(-1);
+assert_equal(ncc3, -1);
+let ncc4: u16 = numeric_cast(65541);
+assert_equal(ncc4, 5);
