@@ -36,6 +36,7 @@
 #include "annium/entities/literals/numeric_literal_equal_pattern.hpp"
 #include "annium/entities/literals/numeric_literal_unary_minus_pattern.hpp"
 #include "annium/entities/literals/numeric_literal_plus_pattern.hpp"
+#include "annium/entities/literals/numeric_literal_minus_pattern.hpp"
 
 #include "annium/entities/literals/string/string_implicit_cast_pattern.hpp"
 #include "annium/entities/literals/string/string_concat_pattern.hpp"
@@ -1532,6 +1533,7 @@ environment::environment()
 
     functional& minus_fnl = fregistry_resolve(get(builtin_qnid::minus));
     minus_fnl.push(make_shared<numeric_literal_unary_minus_pattern>());
+    minus_fnl.push(make_shared<numeric_literal_minus_pattern>());
 
     functional& plus_fnl = fregistry_resolve(get(builtin_qnid::plus));
     plus_fnl.push(make_shared<numeric_literal_plus_pattern>());
@@ -1717,8 +1719,13 @@ environment::environment()
     
     //set_extern<builtin_fn_pattern>("negate(mut _)->bool"sv, &annium_negate);
     builtin_eids_[(size_t)builtin_eid::add_numeric] = set_builtin_extern("__plus_numeric(runtime @numeric, runtime @numeric)->any"sv, &annium_operator_plus_numeric);
+    builtin_eids_[(size_t)builtin_eid::subtract_numeric] = set_builtin_extern("__minus_numeric(runtime @numeric, runtime @numeric)->any"sv, &annium_operator_minus_numeric);
 
-    builtin_eids_[(size_t)builtin_eid::isubtract] = set_builtin_extern("__minus(runtime integer, runtime integer)~>integer"sv, &annium_operator_minus_integer);
+    // __isubtract: kept under its own private qname (distinct from the public "__minus" operator,
+    // same reasoning as __unary_minus) purely so array_from_iterator_make_pattern.cpp can invoke it
+    // directly via env.get(builtin_eid::isubtract) for internal stack-size bookkeeping -- unrelated
+    // to numeric_literal_minus_pattern, which now owns "__minus" for user-facing binary subtraction.
+    builtin_eids_[(size_t)builtin_eid::isubtract] = set_builtin_extern("__isubtract(runtime integer, runtime integer)~>integer"sv, &annium_operator_minus_integer);
 
 }
 

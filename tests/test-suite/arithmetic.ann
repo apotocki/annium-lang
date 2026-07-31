@@ -1,9 +1,10 @@
-// __plus / a+b: generic numeric addition across any two numeric types (bool excluded), no
-// explicit numeric_cast needed. The result type is the "strongest" of the two operand types --
-// see numeric_promotion.hpp's strongest_numeric_type() for the exact rule. runtime_cast(...)
-// forces genuinely runtime operands (see casts.ann): a plain `let x: T = <const-expr>;` stays
-// constexpr-foldable in this language and would otherwise route through the compile-time fold
-// in numeric_literal_plus_pattern instead of the runtime __plus_numeric extern.
+// __plus / a+b and __minus / a-b: generic numeric addition/subtraction across any two numeric
+// types (bool excluded), no explicit numeric_cast needed. The result type is the "strongest" of
+// the two operand types -- see numeric_promotion.hpp's strongest_numeric_type() for the exact
+// rule. runtime_cast(...) forces genuinely runtime operands (see casts.ann): a plain
+// `let x: T = <const-expr>;` stays constexpr-foldable in this language and would otherwise route
+// through the compile-time fold in numeric_literal_plus_pattern/numeric_literal_minus_pattern
+// instead of the runtime __plus_numeric/__minus_numeric externs.
 
 // same-type addition still routes through the generic runtime extern (no more dedicated
 // per-type __plus overloads)
@@ -80,3 +81,81 @@ assert_equal(cf3, 3.75);
 // constexpr integer + decimal fold: joins to decimal even though both operands are constexpr.
 let cf4: decimal = 1 + 2.5;
 assert_equal(cf4, 3.5);
+
+// __minus / a-b: same join rule as __plus, but operand order must be preserved -- unlike
+// addition, numeric_literal_minus_pattern must never swap lhs/rhs while widening a literal or
+// emitting the runtime subtraction. Also coexists in the same qname as unary `-x`
+// (numeric_literal_unary_minus_pattern); arity tells them apart.
+
+let na: i32 = runtime_cast(10);
+let nb: i32 = runtime_cast(20);
+assert_equal(na - nb, -10);
+
+let nda: decimal = runtime_cast(1.5);
+let ndb: decimal = runtime_cast(2.25);
+assert_equal(nda - ndb, -0.75);
+
+let nbia: integer = runtime_cast(100000000000000000000);
+let nbib: integer = runtime_cast(1);
+assert_equal(nbia - nbib, 99999999999999999999);
+
+// mixed fixed-width, same family: widens to the wider type. 200-(-100) overflows i8 (max 127)
+// but fits i16 exactly -- a wrong (too-narrow) result type would silently wrap instead of 300.
+let m8: i8 = runtime_cast(-100);
+let m16: i16 = runtime_cast(200);
+assert_equal(m16 - m8, 300);
+
+// signed/unsigned collision at the same width: escalates to i64 rather than overflowing i32.
+let mu32: u32 = runtime_cast(2000000000);
+let mi32: i32 = runtime_cast(-2000000000);
+assert_equal(mu32 - mi32, 4000000000);
+
+// same collision at 64-bit width: escalates all the way to arbitrary-precision integer -- the
+// true difference is a huge negative value that fits neither i64 nor u64.
+let mi64: i64 = runtime_cast(1);
+let mu64: u64 = runtime_cast(18446744073709551615); // u64 max
+assert_equal(mi64 - mu64, -18446744073709551614);
+
+// integral - floating and floating - integral: escalates to a float wide enough for the
+// integral side, and operand order flips the sign correctly either way.
+let mi32b: i32 = runtime_cast(100);
+let mf32: f32 = runtime_cast(0.5);
+assert_equal(mi32b - mf32, 99.5);
+assert_equal(mf32 - mi32b, -99.5);
+
+// integer (bigint) - decimal and decimal - integer: escalates to decimal either way.
+let mbi: integer = runtime_cast(5);
+let mde: decimal = runtime_cast(2.5);
+assert_equal(mbi - mde, 2.5);
+assert_equal(mde - mbi, -2.5);
+
+// a runtime operand combined with a literal that fits its type as-is: no widening (the
+// assignment below would fail to compile if it had incorrectly widened to i16).
+let x8c: i8 = runtime_cast(5);
+let y8c: i8 = x8c - 3;
+assert_equal(y8c, 2);
+
+// a runtime operand combined with a literal that overflows its type: the literal widens the
+// pair to the smallest type it fits (i16), not all the way to `integer`. Checked in both
+// argument positions to confirm lhs/rhs order survives the widening.
+let x8d: i8 = runtime_cast(-100);
+assert_equal(x8d - 1000, -1100);
+assert_equal(1000 - x8d, 1100);
+
+// fully constexpr fold: no runtime __minus_numeric call is emitted at all.
+let cf5: i8 = 5 - 2;
+assert_equal(cf5, 3);
+let cf6: i8 = 2 - 5;
+assert_equal(cf6, -3);
+
+// constexpr fold stays exact at arbitrary precision.
+let cf7: integer = 100000000000000000000 - 1;
+assert_equal(cf7, 99999999999999999999);
+
+// constexpr decimal - decimal fold.
+let cf8: decimal = 2.25 - 1.5;
+assert_equal(cf8, 0.75);
+
+// constexpr integer - decimal fold: joins to decimal even though both operands are constexpr.
+let cf9: decimal = 5 - 2.5;
+assert_equal(cf9, 2.5);
