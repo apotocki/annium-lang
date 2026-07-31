@@ -375,6 +375,9 @@
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_mul_pattern.cpp">
       <Filter>annium\entities\literals</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_div_pattern.cpp">
+      <Filter>annium\entities\literals</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_promotion.cpp">
       <Filter>annium\entities\literals</Filter>
     </ClCompile>
@@ -795,6 +798,9 @@
       <Filter>annium\entities\literals</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_mul_pattern.hpp">
+      <Filter>annium\entities\literals</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_div_pattern.hpp">
       <Filter>annium\entities\literals</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_promotion.hpp">

@@ -38,6 +38,7 @@
 #include "annium/entities/literals/numeric_literal_plus_pattern.hpp"
 #include "annium/entities/literals/numeric_literal_minus_pattern.hpp"
 #include "annium/entities/literals/numeric_literal_mul_pattern.hpp"
+#include "annium/entities/literals/numeric_literal_div_pattern.hpp"
 
 #include "annium/entities/literals/string/string_implicit_cast_pattern.hpp"
 #include "annium/entities/literals/string/string_concat_pattern.hpp"
@@ -1542,6 +1543,9 @@ environment::environment()
     functional& multiply_fnl = fregistry_resolve(get(builtin_qnid::multiply));
     multiply_fnl.push(make_shared<numeric_literal_mul_pattern>());
 
+    functional& divide_fnl = fregistry_resolve(get(builtin_qnid::divide));
+    divide_fnl.push(make_shared<numeric_literal_div_pattern>());
+
     // typeof(object: const metaobject, property: const __identifier) -> typename
     //typeof_fnl.push(make_shared<metaobject_typeof_pattern>());
 
@@ -1725,6 +1729,7 @@ environment::environment()
     builtin_eids_[(size_t)builtin_eid::add_numeric] = set_builtin_extern("__plus_numeric(runtime @numeric, runtime @numeric)->any"sv, &annium_operator_plus_numeric);
     builtin_eids_[(size_t)builtin_eid::subtract_numeric] = set_builtin_extern("__minus_numeric(runtime @numeric, runtime @numeric)->any"sv, &annium_operator_minus_numeric);
     builtin_eids_[(size_t)builtin_eid::multiply_numeric] = set_builtin_extern("__mul_numeric(runtime @numeric, runtime @numeric)->any"sv, &annium_operator_mul_numeric);
+    builtin_eids_[(size_t)builtin_eid::divide_numeric] = set_builtin_extern("__div_numeric(runtime @numeric, runtime @numeric)->any"sv, &annium_operator_div_numeric);
 
     // __isubtract: kept under its own private qname (distinct from the public "__minus" operator,
     // same reasoning as __unary_minus) purely so array_from_iterator_make_pattern.cpp can invoke it

@@ -358,4 +358,45 @@ smart_blob multiply_numeric(smart_blob const& lhs, smart_blob const& rhs, builti
     }
 }
 
+smart_blob divide_numeric(smart_blob const& lhs, smart_blob const& rhs, builtin_eid result_type)
+{
+    switch (result_type) {
+    case builtin_eid::i8:
+        return i8_blob_result(static_cast<int8_t>(lhs.as<int8_t>() / rhs.as<int8_t>()));
+    case builtin_eid::u8:
+        return ui8_blob_result(static_cast<uint8_t>(lhs.as<uint8_t>() / rhs.as<uint8_t>()));
+    case builtin_eid::i16:
+        return i16_blob_result(static_cast<int16_t>(lhs.as<int16_t>() / rhs.as<int16_t>()));
+    case builtin_eid::u16:
+        return ui16_blob_result(static_cast<uint16_t>(lhs.as<uint16_t>() / rhs.as<uint16_t>()));
+    case builtin_eid::i32:
+        return i32_blob_result(static_cast<int32_t>(lhs.as<int32_t>() / rhs.as<int32_t>()));
+    case builtin_eid::u32:
+        return ui32_blob_result(static_cast<uint32_t>(lhs.as<uint32_t>() / rhs.as<uint32_t>()));
+    case builtin_eid::i64:
+        return i64_blob_result(static_cast<int64_t>(lhs.as<int64_t>() / rhs.as<int64_t>()));
+    case builtin_eid::u64:
+        return ui64_blob_result(static_cast<uint64_t>(lhs.as<uint64_t>() / rhs.as<uint64_t>()));
+    case builtin_eid::f16: {
+        // float16 only defines unary operator-() (see negate_constexpr_numeric), no binary /:
+        // round-trip through float for the division itself.
+        float quot = static_cast<float>(lhs.as<numetron::float16>()) / static_cast<float>(rhs.as<numetron::float16>());
+        return f16_blob_result(numetron::float16_cast(quot));
+    }
+    case builtin_eid::f32:
+        return f32_blob_result(lhs.as<float>() / rhs.as<float>());
+    case builtin_eid::f64:
+        return f64_blob_result(lhs.as<double_t>() / rhs.as<double_t>());
+    case builtin_eid::integer: {
+        auto quot = lhs.as<numetron::integer>() / rhs.as<numetron::integer_view>();
+        return smart_blob{ bigint_blob_result(quot) }.allocate();
+    }
+    default:
+        // builtin_eid::decimal deliberately excluded: division isn't defined for decimal yet
+        // (see FUTURE_WORK.md) -- numeric_literal_div_pattern rejects decimal operands before
+        // this function is ever reached, so reaching here for decimal (or anything else) is a bug.
+        THROW_INTERNAL_ERROR("divide_numeric: unsupported result type"sv);
+    }
+}
+
 } // namespace annium

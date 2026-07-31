@@ -172,6 +172,7 @@ QMARK                    "?"
 PLUS                     "+"
 MINUS                    "-"
 ASTERISK                 "*"
+SLASH                    "/"
 TILDA                    "~"
 OPEN_SQUARE_DBL_BRACKET  "[["
 CLOSE_SQUARE_DBL_BRACKET "]]"
@@ -378,6 +379,7 @@ HASHTAG					"#"
 	{PLUS}					   { variant_emplace(location); return (annium_lang::parser::token::PLUS); }
 	{MINUS}					   { variant_emplace(location); return (annium_lang::parser::token::MINUS); }
 	{ASTERISK}				   { variant_emplace(location); return (annium_lang::parser::token::ASTERISK); }
+	{SLASH}					   { variant_emplace(location); return (annium_lang::parser::token::SLASH); }
 	{TILDA}                    { return (annium_lang::parser::token::TILDA); }
 	{LOGIC_OR}                 { variant_emplace(location); return (annium_lang::parser::token::LOGIC_OR); }
     {LOGIC_AND}                { variant_emplace(location); return (annium_lang::parser::token::LOGIC_AND); }

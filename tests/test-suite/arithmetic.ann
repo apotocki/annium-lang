@@ -1,11 +1,13 @@
-// __plus / a+b, __minus / a-b, and __multiply / a*b: generic numeric addition/subtraction/
-// multiplication across any two numeric types (bool excluded), no explicit numeric_cast needed.
-// The result type is the "strongest" of the two operand types -- see numeric_promotion.hpp's
-// strongest_numeric_type() for the exact rule. runtime_cast(...) forces genuinely runtime
+// __plus / a+b, __minus / a-b, __multiply / a*b, and __divide / a/b: generic numeric
+// addition/subtraction/multiplication/division across any two numeric types (bool excluded), no
+// explicit numeric_cast needed. The result type is the "strongest" of the two operand types --
+// see numeric_promotion.hpp's strongest_numeric_type() for the exact rule (division has its own
+// extra wrinkle, see the __divide section below). runtime_cast(...) forces genuinely runtime
 // operands (see casts.ann): a plain `let x: T = <const-expr>;` stays constexpr-foldable in this
 // language and would otherwise route through the compile-time fold in
-// numeric_literal_plus_pattern/numeric_literal_minus_pattern/numeric_literal_mul_pattern instead
-// of the runtime __plus_numeric/__minus_numeric/__mul_numeric externs.
+// numeric_literal_plus_pattern/numeric_literal_minus_pattern/numeric_literal_mul_pattern/
+// numeric_literal_div_pattern instead of the runtime
+// __plus_numeric/__minus_numeric/__mul_numeric/__div_numeric externs.
 
 // same-type addition still routes through the generic runtime extern (no more dedicated
 // per-type __plus overloads)
@@ -231,3 +233,80 @@ assert_equal(cf12, 3.75);
 // constexpr integer * decimal fold: joins to decimal even though both operands are constexpr.
 let cf13: decimal = 3 * 2.5;
 assert_equal(cf13, 7.5);
+
+// __divide / a/b: unlike __plus/__minus/__multiply, decimal is deliberately NOT supported --
+// division for decimal is undefined pending a design decision (see FUTURE_WORK.md), so
+// numeric_literal_div_pattern rejects a decimal operand as a compile error instead of picking a
+// join for it. Two integral-kind operands give a truncating (toward zero, like C's `/`) integral
+// result; any floating-kind operand escalates to the corresponding floating result, same join
+// rule as the other operators. Like __minus, operand order matters and is never swapped.
+//
+// One consequence worth noting: a bare integer literal defaults to the arbitrary-precision
+// `integer` type, whose *only* safe conversion target is `decimal` (see
+// is_always_safe_runtime_conversion's `integer` case) -- so an expression combining a bare integer
+// literal with any float-typed operand always tries to join to decimal, which division then
+// rejects. Dividing a literal against a float therefore needs the integer side pinned to an
+// explicit fixed-width type first (as cf17/cf18 below do), same as any other int/float join.
+
+let qa: i32 = runtime_cast(22);
+let qb: i32 = runtime_cast(7);
+assert_equal(qa / qb, 3); // truncates toward zero, not rounds
+
+let qbia: integer = runtime_cast(100000000000000000001);
+let qbib: integer = runtime_cast(2);
+assert_equal(qbia / qbib, 50000000000000000000); // arbitrary-precision division also truncates
+
+// mixed fixed-width, same family: the dividend (300) doesn't fit i8, so the join must escalate to
+// i16 rather than picking either operand's own (too-narrow) type.
+let q16: i16 = runtime_cast(300);
+let q8: i8 = runtime_cast(7);
+assert_equal(q16 / q8, 42);
+
+// signed/unsigned collision at the same width: neither safely converts into the other, so the
+// join escalates to i64 instead of picking either side.
+let qu32: u32 = runtime_cast(4000000000);
+let qi32: i32 = runtime_cast(-3);
+assert_equal(qu32 / qi32, -1333333333);
+
+// same collision at 64-bit width: escalates all the way to arbitrary-precision integer, since
+// there's no wider fixed-width signed type left.
+let qu64: u64 = runtime_cast(18446744073709551615); // u64 max
+let qi64: i64 = runtime_cast(-1);
+assert_equal(qu64 / qi64, -18446744073709551615);
+
+// integral / floating and floating / integral: escalates to a float wide enough for the integral
+// side, in both directions.
+let qi32b: i32 = runtime_cast(8);
+let qf32: f32 = runtime_cast(32.0);
+assert_equal(qi32b / qf32, 0.25);
+assert_equal(qf32 / qi32b, 4.0);
+
+// a runtime operand combined with a literal that fits its type as-is: no widening happens (the
+// assignment below would fail to compile if it had incorrectly widened to i16).
+let x8g: i8 = runtime_cast(9);
+let y8g: i8 = x8g / 3;
+assert_equal(y8g, 3);
+
+// a runtime operand combined with a literal that overflows its type: the literal widens the pair
+// to the smallest type it fits (i16), not all the way to `integer`. Checked in both argument
+// positions to confirm lhs/rhs order survives the widening (division is order-sensitive).
+let x8h: i8 = runtime_cast(100);
+assert_equal(x8h / 1000, 0); // truncates toward zero
+assert_equal(1000 / x8h, 10);
+
+// fully constexpr fold: no runtime __div_numeric call is emitted at all. Constexpr integer
+// division truncates toward zero the same way the runtime path does.
+let cf14: i8 = 7 / 2;
+assert_equal(cf14, 3);
+let cf15: i8 = -7 / 2;
+assert_equal(cf15, -3);
+
+// constexpr fold stays exact at arbitrary precision (and still truncates).
+let cf16: integer = 100000000000000000001 / 2;
+assert_equal(cf16, 50000000000000000000);
+
+// constexpr int / float fold: the integer side is pinned to i32 (not left as a bare `integer`
+// literal -- see the note above) so the join lands on f64 instead of being rejected as decimal.
+let cf17: i32 = 8;
+let cf18: f32 = 32.0;
+assert_equal(cf17 / cf18, 0.25);

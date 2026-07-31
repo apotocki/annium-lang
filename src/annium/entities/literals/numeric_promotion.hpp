@@ -52,6 +52,13 @@ smart_blob subtract_numeric(smart_blob const& lhs, smart_blob const& rhs, builti
 // Same shape as add_numeric, but lhs * rhs.
 smart_blob multiply_numeric(smart_blob const& lhs, smart_blob const& rhs, builtin_eid result_type);
 
+// Same shape as add_numeric, but lhs / rhs. `result_type` is never builtin_eid::decimal --
+// numeric_literal_div_pattern rejects decimal operands before this is ever called (division isn't
+// defined for decimal yet, pending a design decision -- see FUTURE_WORK.md). Two integral-kind
+// operands truncate (C++ integer division semantics), matching the caller's join rule of picking
+// an integral result_type only when both operands are integral-kind.
+smart_blob divide_numeric(smart_blob const& lhs, smart_blob const& rhs, builtin_eid result_type);
+
 // Can the constexpr value `source_val` (of type `source_type`) be represented in `target_type`
 // without loss of precision? Used to check, at compile time, whether a literal operand's
 // actual value fits a candidate result type.

@@ -1030,6 +1030,8 @@ base_expression_visitor::result_type base_expression_visitor::operator()(binary_
         return this->operator()(builtin_qnid::minus, be.args);
     case binary_operator_type::MUL:
         return this->operator()(builtin_qnid::multiply, be.args);
+    case binary_operator_type::DIV:
+        return this->operator()(builtin_qnid::divide, be.args);
     case binary_operator_type::BIT_OR:
         return this->operator()(builtin_qnid::bit_or, be.args);
     case binary_operator_type::BIT_AND:
