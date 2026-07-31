@@ -38,10 +38,4 @@ Every constraint-matching branch would compute this classification through one s
 
 **Why deferred:** explicitly out of scope for the `__plus` task this grew out of; the user asked for the mechanism to be *designed* reusably but only `__plus` to be *implemented* this round.
 
-## Tighten `can_convert_constexpr_value_safely`'s decimal-source fit check for float/integer/decimal targets
-
-**Status:** not started, deliberately deferred; pre-existing behavior, not a regression from the `__plus` work that surfaced it.
-
-**Problem:** `can_convert_constexpr_value_safely<numetron::decimal_view>` (`entities/literals/numeric_promotion.hpp`, moved verbatim from `numeric_literal_implicit_cast_pattern.cpp`) returns `true` unconditionally for `f16`/`f32`/`f64`/`integer`/`decimal` targets — including for a source value with a fractional part converting to `integer` (an exact, non-fractional type), which should require truncation/rejection the same way the `i8`/`u8`/.../`u64` branches right above it already do (they check `exponent().sgn() < 0` first and reject). E.g. a hypothetical `numeric_cast(3.5)` targeting `integer`, or (via `widen_for_literal_fit`, see the `__plus` note above) an `i8_var + 3.5` search that happens to reach `integer` as a widening candidate before `decimal`, would silently accept a fractional value into an exact-integer target without complaint.
-
-**Why deferred:** pre-existing modeling choice already shipped and relied upon by `numeric_cast`/`numeric_literal_implicit_cast_pattern`, not something introduced while wiring up `__plus`; fixing it means deciding new rejection semantics for those existing call sites too, which is its own task, not a drive-by fix.
+`can_convert_constexpr_value_safely`'s decimal-source fit check for `integer`/`f16`/`f32`/`f64` targets — previously tracked here as deferred — has since been fixed at the root (both the `integer` case and the float cases, via an actual round-trip precision check for the latter). See `BUGFIXES.md`'s "`can_convert_constexpr_value_safely`'s `decimal_view` branch let a fractional `decimal` implicitly narrow to `integer` without loss-of-precision check" entry (and its follow-up paragraph).

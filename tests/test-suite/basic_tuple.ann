@@ -20,7 +20,7 @@ assert_equal(typeof(t0val.0), t0.0);
 assert_equal(t0val.1, 42);
 assert_equal(typeof(t0val.1), t0.1);
 
-let f16val : f16 = runtime_cast(1.1);
+let f16val : f16 = numeric_cast(runtime_cast(1.1));
 let t1val: t1 = (123, name1: f16val, name0: "asd");
 
 assert_equal(__get_frame_stack_height(), 3);

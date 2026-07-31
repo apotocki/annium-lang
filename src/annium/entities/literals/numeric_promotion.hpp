@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <cmath>
 #include <sstream>
 
 #include "annium/environment.hpp"
@@ -75,11 +76,20 @@ bool can_convert_constexpr_value_safely(SourceValue const& source_val, builtin_e
             case builtin_eid::u64:
                 return source_val.template is_fit<uint64_t>() && source_val.sgn() >= 0;
             case builtin_eid::f16:
+                // Exact comparison against the (possibly rounded) float16 value -- correctly
+                // rejects a bigint/fixed-width value too large for float16 to represent exactly
+                // (e.g. 2^63+1 rounding to 2^63), same class of issue as draft.ann's commented-out
+                // f_pow2/big_pow2_plus1 case at the top of the file. numetron::operator==(basic_
+                // integer_view, floating_point) already handles non-finite/fractional rhs safely
+                // (returns false rather than throwing), so no separate isfinite guard is needed here.
+                return source_val == static_cast<float>(numetron::float16_cast(source_val));
             case builtin_eid::f32:
+                return source_val == static_cast<float>(source_val);
             case builtin_eid::f64:
+                return source_val == static_cast<double_t>(source_val);
             case builtin_eid::integer:
             case builtin_eid::decimal:
-                return true; // integers can always be converted to floats and decimal
+                return true; // arbitrary precision: any integer/bigint value fits exactly
             default:
                 return false;
         }
@@ -110,12 +120,32 @@ bool can_convert_constexpr_value_safely(SourceValue const& source_val, builtin_e
             case builtin_eid::u64:
                 if (source_val.exponent().sgn() < 0) return false; // has fractional part
                 return source_val.significand().template is_fit<uint64_t>() && !source_val.is_negative();
-            case builtin_eid::f16:
-            case builtin_eid::f32:
-            case builtin_eid::f64:
             case builtin_eid::integer:
+                if (source_val.exponent().sgn() < 0) return false; // has fractional part
+                return true; // arbitrary precision: any integral decimal value fits
+            case builtin_eid::f16: {
+                // Round-trip through float16 and back: if converting loses any digit of the
+                // original (normalized) significand/exponent, float16_cast()'s rounding would
+                // have discarded precision -- not "always safe" the way an exact-family
+                // conversion is. A magnitude that overflows float16's range entirely (-> +-inf)
+                // is rejected up front, since basic_decimal's floating-point constructor throws
+                // for a non-finite value rather than reporting "doesn't fit".
+                numetron::float16 f16v = numetron::float16_cast(source_val);
+                if (!std::isfinite(static_cast<float>(f16v))) return false;
+                return numetron::decimal{ f16v } == source_val;
+            }
+            case builtin_eid::f32: {
+                float f32v = static_cast<float>(source_val);
+                if (!std::isfinite(f32v)) return false;
+                return numetron::decimal{ f32v } == source_val;
+            }
+            case builtin_eid::f64: {
+                double_t f64v = static_cast<double_t>(source_val);
+                if (!std::isfinite(f64v)) return false;
+                return numetron::decimal{ f64v } == source_val;
+            }
             case builtin_eid::decimal:
-                return true; // decimal can always be converted to floats and decimal/integer
+                return true; // same type; source_type == target_type already returned true above
             default:
                 return false;
         }
