@@ -8,6 +8,8 @@
 #include "numetron/basic_integer.hpp"
 #include "numetron/basic_decimal.hpp"
 
+#include "annium/entities/literals/numeric_promotion.hpp"
+
 #include <sstream>
 #include <utility>
 
@@ -467,26 +469,13 @@ void annium_unary_minus(vm::context& ctx)
 //    ctx.stack_back().replace( smart_blob{ std::move(res) } );
 //}
 
-void annium_operator_plus_integer(vm::context& ctx)
+void annium_operator_plus_numeric(vm::context& ctx)
 {
-    auto l = ctx.stack_back(1).as<numetron::integer>();
-    auto r = ctx.stack_back().as<numetron::integer_view>();
-    auto sum = l + r;
-    smart_blob res{ bigint_blob_result(sum) };
-    res.allocate();
+    smart_blob const& l = ctx.stack_back(1);
+    smart_blob const& r = ctx.stack_back();
+    builtin_eid result_type = strongest_numeric_type(numeric_builtin_eid_of(*l), numeric_builtin_eid_of(*r));
+    smart_blob res = add_numeric(l, r, result_type);
 
-    ctx.stack_pop();
-    ctx.stack_back().replace(std::move(res));
-}
-
-void annium_operator_plus_decimal(vm::context& ctx)
-{
-    auto l = ctx.stack_back(1).as<numetron::decimal>();
-    auto r = ctx.stack_back().as<numetron::decimal_view>();
-    auto sum = l + r;
-    smart_blob res{ decimal_blob_result(sum) };
-    res.allocate();
-    
     ctx.stack_pop();
     ctx.stack_back().replace(std::move(res));
 }

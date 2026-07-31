@@ -201,6 +201,7 @@ enum class builtin_eid : entity_identifier::value_type
     unary_minus, // builtin ::unary_minus(value) -> valueT
     concat, // builtin ::concat(string ...)-> string
     isubtract,
+    add_numeric, // builtin ::__plus_numeric(runtime, runtime) -- generic numeric addition, see numeric_literal_plus_pattern
     eof_builtin_eid_value
 };
 

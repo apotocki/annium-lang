@@ -1,0 +1,82 @@
+// __plus / a+b: generic numeric addition across any two numeric types (bool excluded), no
+// explicit numeric_cast needed. The result type is the "strongest" of the two operand types --
+// see numeric_promotion.hpp's strongest_numeric_type() for the exact rule. runtime_cast(...)
+// forces genuinely runtime operands (see casts.ann): a plain `let x: T = <const-expr>;` stays
+// constexpr-foldable in this language and would otherwise route through the compile-time fold
+// in numeric_literal_plus_pattern instead of the runtime __plus_numeric extern.
+
+// same-type addition still routes through the generic runtime extern (no more dedicated
+// per-type __plus overloads)
+let ia: i32 = runtime_cast(10);
+let ib: i32 = runtime_cast(20);
+assert_equal(ia + ib, 30);
+
+let da: decimal = runtime_cast(1.5);
+let db: decimal = runtime_cast(2.25);
+assert_equal(da + db, 3.75);
+
+let bia: integer = runtime_cast(100000000000000000000);
+let bib: integer = runtime_cast(1);
+assert_equal(bia + bib, 100000000000000000001);
+
+// mixed fixed-width, same family: widens to the wider type. 100+200 overflows i8 (max 127) but
+// fits i16 exactly -- a wrong (too-narrow) result type would silently wrap instead of giving 300.
+let s8: i8 = runtime_cast(100);
+let s16: i16 = runtime_cast(200);
+assert_equal(s8 + s16, 300);
+
+// signed/unsigned collision at the same width: neither safely converts into the other, so the
+// join escalates to the next wider signed type (i64) instead of picking either side.
+let su32: u32 = runtime_cast(4000000000);
+let si32: i32 = runtime_cast(-1);
+assert_equal(su32 + si32, 3999999999);
+
+// same collision at 64-bit width: escalates all the way to arbitrary-precision integer, since
+// there's no wider fixed-width signed type left.
+let su64: u64 = runtime_cast(18446744073709551615); // u64 max
+let si64: i64 = runtime_cast(1);
+assert_equal(su64 + si64, 18446744073709551616);
+
+// integral + floating: escalates to a float wide enough for the integral side.
+let si32b: i32 = runtime_cast(100);
+let sf32: f32 = runtime_cast(0.5);
+assert_equal(si32b + sf32, 100.5);
+
+// integer (bigint) + decimal: escalates to decimal, the only exact common representation.
+let sbi: integer = runtime_cast(5);
+let sde: decimal = runtime_cast(2.5);
+assert_equal(sbi + sde, 7.5);
+
+// a runtime operand combined with a literal that fits its type as-is: no widening happens (the
+// assignment below would fail to compile if it had incorrectly widened to i16).
+let x8a: i8 = runtime_cast(5);
+let y8a: i8 = x8a + 3;
+assert_equal(y8a, 8);
+
+// a runtime operand combined with a literal that overflows its type: the literal (and only the
+// literal) adapts by widening the pair to the smallest type it fits, instead of forcing
+// promotion all the way to `integer` (which bare literals default to).
+let x8b: i8 = runtime_cast(100);
+assert_equal(x8b + 1000, 1100);
+
+// same widening logic in the other argument position.
+assert_equal(1000 + x8b, 1100);
+
+// fully constexpr fold: no runtime __plus_numeric call is emitted at all. The sum of two bare
+// integer literals is itself constexpr (type `integer`), and narrows via the existing implicit
+// cast machinery same as any other constexpr integer would.
+let cf1: i8 = 1 + 2;
+assert_equal(cf1, 3);
+
+// constexpr fold stays exact at arbitrary precision (would truncate if it silently went through
+// a fixed 64-bit accumulator).
+let cf2: integer = 100000000000000000000 + 1;
+assert_equal(cf2, 100000000000000000001);
+
+// constexpr decimal + decimal fold.
+let cf3: decimal = 1.5 + 2.25;
+assert_equal(cf3, 3.75);
+
+// constexpr integer + decimal fold: joins to decimal even though both operands are constexpr.
+let cf4: decimal = 1 + 2.5;
+assert_equal(cf4, 3.5);

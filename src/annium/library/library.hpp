@@ -39,8 +39,7 @@ void annium_logical_not(vm::context&);
 void annium_unary_minus(vm::context&);
 //void annium_concat_string(vm::context&);
 
-void annium_operator_plus_integer(vm::context&);
-void annium_operator_plus_decimal(vm::context&);
+void annium_operator_plus_numeric(vm::context&);
 
 void annium_operator_minus_integer(vm::context&);
 

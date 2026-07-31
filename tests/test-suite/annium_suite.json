@@ -67,6 +67,10 @@
   {
     "src": "std.ann",
     "output": ""
+  },
+  {
+    "src": "arithmetic.ann",
+    "output": ""
   }
   /*
     

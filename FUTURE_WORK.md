@@ -27,3 +27,21 @@ Every constraint-matching branch would compute this classification through one s
 **Where to pick this up:** `IMPLEMENTATION_NOTES.md`'s "Disambiguating the constexpr vs. runtime overload for a literal argument" section has the concrete bug/fix this idea grew out of, including exact file:line references into the current (pre-refactor) mechanism.
 
 `numetron::basic_decimal_view::operator<=>`'s digit-shifting branch (equal-case bug, plus the related remainder-discarding issue that could have affected `less`/`greater` too) — previously tracked here as deferred — has since been fixed at the root. See `BUGFIXES.md`'s "`basic_decimal_view::operator<=>` couldn't report equality for two differently-scaled representations of the same value" entry.
+
+## Extend generic numeric arithmetic (`__plus`) to `__minus`/`__mul`/`__div`
+
+**Status:** not started, deliberately deferred (only `__plus` was done — see `IMPLEMENTATION_NOTES.md`'s "Generic numeric arithmetic" section).
+
+**Problem:** `__minus` is still the old single `(runtime integer, runtime integer)~>integer` typed overload (no `decimal` overload even exists, let alone cross-type support); `__mul`/`__div` don't exist as callable operators at all.
+
+**Proposed direction:** the reusable pieces are already in `entities/literals/numeric_promotion.hpp` (`strongest_numeric_type`, `widen_for_literal_fit`, the shared value-conversion helpers) and `add_numeric`'s shape in the same header is a template for `subtract_numeric`/`multiply_numeric`/`divide_numeric`. Each new operator needs: (1) a `numeric_literal_<op>_pattern` mirroring `numeric_literal_plus_pattern`'s try_match/apply shape, (2) a type-erased runtime extern mirroring `annium_operator_plus_numeric` (`numeric_builtin_eid_of` + a per-result-type switch), (3) the corresponding `builtin_eid` slot and registration in `annium_environment.cpp`. Division additionally needs a decision this codebase hasn't made yet: what `strongest_numeric_type` should mean for two *integral* operands (does `i32/i32` truncate like C, or promote to `decimal`?) — plausibly a different join rule than addition/subtraction/multiplication.
+
+**Why deferred:** explicitly out of scope for the `__plus` task this grew out of; the user asked for the mechanism to be *designed* reusably but only `__plus` to be *implemented* this round.
+
+## Tighten `can_convert_constexpr_value_safely`'s decimal-source fit check for float/integer/decimal targets
+
+**Status:** not started, deliberately deferred; pre-existing behavior, not a regression from the `__plus` work that surfaced it.
+
+**Problem:** `can_convert_constexpr_value_safely<numetron::decimal_view>` (`entities/literals/numeric_promotion.hpp`, moved verbatim from `numeric_literal_implicit_cast_pattern.cpp`) returns `true` unconditionally for `f16`/`f32`/`f64`/`integer`/`decimal` targets — including for a source value with a fractional part converting to `integer` (an exact, non-fractional type), which should require truncation/rejection the same way the `i8`/`u8`/.../`u64` branches right above it already do (they check `exponent().sgn() < 0` first and reject). E.g. a hypothetical `numeric_cast(3.5)` targeting `integer`, or (via `widen_for_literal_fit`, see the `__plus` note above) an `i8_var + 3.5` search that happens to reach `integer` as a widening candidate before `decimal`, would silently accept a fractional value into an exact-integer target without complaint.
+
+**Why deferred:** pre-existing modeling choice already shipped and relied upon by `numeric_cast`/`numeric_literal_implicit_cast_pattern`, not something introduced while wiring up `__plus`; fixing it means deciding new rejection semantics for those existing call sites too, which is its own task, not a drive-by fix.
