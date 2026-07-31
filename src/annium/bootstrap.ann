@@ -131,3 +131,7 @@ inline fn numeric_cast(runtime @numeric) ~> u32 => __to_u32($0);
 inline fn numeric_cast(runtime @numeric) ~> i64 => __to_i64($0);
 inline fn numeric_cast(runtime @numeric) ~> u64 => __to_u64($0);
 inline fn numeric_cast(runtime @numeric) ~> integer => __to_integer($0);
+inline fn numeric_cast(runtime @numeric) ~> f16 => __to_f16($0);
+inline fn numeric_cast(runtime @numeric) ~> f32 => __to_f32($0);
+inline fn numeric_cast(runtime @numeric) ~> f64 => __to_f64($0);
+inline fn numeric_cast(runtime @numeric) ~> decimal => __to_decimal($0);

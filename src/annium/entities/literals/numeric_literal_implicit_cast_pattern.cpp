@@ -310,13 +310,13 @@ numeric_literal_implicit_cast_pattern::try_match(fn_compiler_context& ctx, prepa
     }
 }
 
-smart_blob integet_view_to_numeric(numetron::integer_view source_val, builtin_eid target_type)
+smart_blob integer_view_to_numeric(numetron::integer_view source_val, builtin_eid target_type)
 {
     switch (target_type) {
     case builtin_eid::boolean:
         return bool_blob_result(!!source_val);
     case builtin_eid::integer:
-        return bigint_blob_result(source_val);
+        return smart_blob{ bigint_blob_result(source_val) }.allocate();
     case builtin_eid::i8:
         return i8_blob_result(static_cast<int8_t>(source_val));
     case builtin_eid::u8:
@@ -340,7 +340,7 @@ smart_blob integet_view_to_numeric(numetron::integer_view source_val, builtin_ei
     case builtin_eid::f64:
         return f64_blob_result(static_cast<double_t>(source_val));
     case builtin_eid::decimal:
-        return decimal_blob_result(numetron::decimal_view{ source_val, 0 });
+        return smart_blob{ decimal_blob_result(numetron::decimal{ source_val }) }.allocate();
     default:
         THROW_NOT_IMPLEMENTED_ERROR("numeric_literal_implicit_cast_pattern: integer to other types conversion is not implemented"sv);
     }
@@ -370,14 +370,14 @@ smart_blob floating_point_to_numeric(T source_val, builtin_eid target_type)
         if constexpr (std::is_floating_point_v<T> || std::is_same_v<numetron::float16, T>) {
             if (source_val >= 0) {
                 numetron::integer ival = static_cast<numetron::integer>((uint64_t)(double)source_val);
-                return integet_view_to_numeric(ival, target_type);
+                return integer_view_to_numeric(ival, target_type);
             } else {
                 numetron::integer ival = static_cast<numetron::integer>((int64_t)(double)source_val);
-                return integet_view_to_numeric(ival, target_type);
+                return integer_view_to_numeric(ival, target_type);
             }
         } else {
             numetron::integer ival = static_cast<numetron::integer>(source_val);
-            return integet_view_to_numeric(ival, target_type);
+            return integer_view_to_numeric(ival, target_type);
         }
     }
 }
@@ -420,7 +420,7 @@ numeric_literal_implicit_cast_pattern::apply(fn_compiler_context& ctx, semantic:
             case builtin_eid::u64:
             case builtin_eid::i64: {
                 numetron::integer_view source_val = nmd.arg->value().as<numetron::integer_view>();
-                result_blob = integet_view_to_numeric(source_val, target_type);
+                result_blob = integer_view_to_numeric(source_val, target_type);
                 break;
             }
             case builtin_eid::decimal: {

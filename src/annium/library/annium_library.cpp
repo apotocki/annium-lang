@@ -9,6 +9,7 @@
 #include "numetron/basic_decimal.hpp"
 
 #include <sstream>
+#include <utility>
 
 namespace annium {
 
@@ -33,9 +34,112 @@ void annium_get_frame_stack_height(vm::context& ctx)
     ctx.stack_push(smart_blob{ ui64_blob_result(ctx.stack().size() - ctx.frame_stack_back()) });
 }
 
+namespace {
+
+// blob_type_dispatch instantiates its callback for every blob_type (string, bool, tuple, error, ...),
+// not just numeric ones -- annium_any_equal's runtime guard (::is_numeric(l->type)/::is_numeric(r->type))
+// only ensures the *values actually reached* are numeric, it doesn't stop the compiler from instantiating
+// the numeric-only logic below (static_cast<double>, numetron::decimal{...}, ...) for e.g. LDT=std::string_view
+// too. Every branch that does real numeric work must be gated on this trait first, mirroring how
+// blob_result_strict_equal_to (this header's invocation.hpp counterpart) gates its own branches on
+// std::is_same_v<LDT, RDT> before touching either operand.
+//
+// is_integral_not_bool_v<T> alone isn't quite enough here: blob_type::c8 (a character, not a number --
+// ::is_numeric(blob_type::c8) is false, same as string/tuple/error) dispatches to a plain `char`, and
+// std::is_integral_v<char> is true, so it would otherwise slip through this gate as if it were numeric.
+// That went unnoticed while every branch below happened to compile for `char` too (static_cast<double>,
+// plain ==, ...), but std::cmp_equal (used for the native-vs-native integral comparison further down)
+// static_asserts its arguments are "standard integer types" -- a category that, per the standard,
+// specifically excludes plain `char` (its signedness is unspecified, unlike signed/unsigned char) --
+// so instantiating this lambda for LDT/RDT = char, which ::is_numeric already guarantees never actually
+// happens at runtime, stopped compiling. Excluded explicitly rather than narrowing is_integral_not_bool_v
+// itself, since that trait is shared sonia-prime infrastructure used well beyond this one dispatch gate.
+template <typename T>
+constexpr bool is_numeric_dispatch_type_v =
+    (is_integral_not_bool_v<T> && !std::is_same_v<T, char>) || std::is_floating_point_v<T> || std::is_same_v<T, numetron::float16> ||
+    numetron::is_basic_integer_view_v<T> || numetron::is_basic_decimal_view_v<T>;
+
+}
+
 void annium_any_equal(vm::context& ctx)
 {
-    bool result = ctx.stack_back() == ctx.stack_back(1);
+    smart_blob const& l = ctx.stack_back(1);
+    smart_blob const& r = ctx.stack_back();
+    bool result;
+    // blob_result::operator== is intentionally an exact/strict comparison within one numeric "family"
+    // (integral vs floating/decimal -- see sonia-prime's invocation.hpp); it's already correct AND cheap
+    // for same-family pairs (any integer width vs any integer width or bigint; any float width vs any
+    // float width or decimal), so only cross-family numeric pairs need help here.
+    if (::is_numeric(l->type) && ::is_numeric(r->type) && ::is_integral(l->type) != ::is_integral(r->type)) {
+        result = blob_type_dispatch(*l, [&r]<typename LDT>(LDT lv) -> bool {
+            return blob_type_dispatch(*r, [&lv]<typename RDT>(RDT rv) -> bool {
+                // Gate on both operand types actually being numeric dispatch types before doing anything
+                // arithmetic with them -- see is_numeric_dispatch_type_v's comment above; the runtime
+                // ::is_numeric checks in annium_any_equal only guarantee this for the *values* that reach
+                // here, not for every LDT/RDT the compiler must instantiate this lambda for.
+                if constexpr (is_numeric_dispatch_type_v<LDT> && is_numeric_dispatch_type_v<RDT>) {
+                    // Exactly one of LDT/RDT is integral-ish (fixed-width int or bigint) and the other is
+                    // floating-ish (f16/f32/f64/decimal) here (see the is_integral(l) != is_integral(r)
+                    // guard above). Nothing in this dispatch ever throws for a comparison between two
+                    // well-formed numeric values, regardless of magnitude -- only for genuinely exceptional
+                    // circumstances (e.g. allocation failure) unrelated to the values themselves, same as
+                    // everywhere else.
+                    if constexpr (numetron::is_basic_decimal_view_v<LDT>) {
+                        // numetron::decimal{ rv } picks whichever constructor overload matches rv's
+                        // concrete type (native int, bigint, float, float16) via ordinary overload
+                        // resolution -- no manual dispatch needed here. Unlike decimal_view, the OWNING
+                        // numetron::decimal can always normalize (strip trailing decimal zeros) even
+                        // from a bigint too wide for inline storage, since it can reallocate; its
+                        // basic_integer_view constructor does exactly that now (basic_decimal.hpp,
+                        // BUGFIXES.md), so plain operator== is correct and needs no extra logic here.
+                        return numetron::decimal{ rv } == lv;
+                    } else if constexpr (numetron::is_basic_decimal_view_v<RDT>) {
+                        return numetron::decimal{ lv } == rv;
+                    } else if constexpr (is_integral_not_bool_v<LDT> || numetron::is_basic_integer_view_v<LDT>) {
+                        if constexpr (is_integral_not_bool_v<RDT> || numetron::is_basic_integer_view_v<RDT>) {
+                            // Both are integral-ish, but different widths (e.g. i32 vs bigint) -- exact
+                            // comparison is correct. Native-vs-native (e.g. i8 vs u32) needs std::cmp_equal
+                            // rather than a plain ==: the usual arithmetic conversions would silently convert
+                            // the signed side to unsigned before comparing (GCC's "-Wsign-compare" warning is
+                            // flagging exactly this), which is wrong whenever the signed value is negative.
+                            // Whenever a bigint (basic_integer_view) is on either side, plain == already
+                            // compares exactly regardless of the native side's signedness -- std::cmp_equal
+                            // only accepts std::integral operands, so it doesn't apply there anyway.
+                            if constexpr (is_integral_not_bool_v<LDT> && is_integral_not_bool_v<RDT>) {
+                                return std::cmp_equal(lv, rv);
+                            } else {
+                                return lv == rv;
+                            }
+                        } else if constexpr (std::is_floating_point_v<RDT> || std::is_same_v<RDT, numetron::float16>) {
+                            // numetron::operator==(basic_integer_view, floating) already checks finiteness
+                            // and wholeness internally before decomposing rvdbl into an exact bigint --
+                            // no need to duplicate that check here.
+                            if constexpr (numetron::is_basic_integer_view_v<LDT>) {
+                                return lv == static_cast<double>(rv);
+                            } else {
+                                return numetron::integer_view{lv} == static_cast<double>(rv);
+                            }
+                        }
+                    } else if constexpr (is_integral_not_bool_v<RDT> || numetron::is_basic_integer_view_v<RDT>) {
+                        if constexpr (std::is_floating_point_v<LDT> || std::is_same_v<LDT, numetron::float16>) {
+                            if constexpr (numetron::is_basic_integer_view_v<RDT>) {
+                                return rv == static_cast<double>(lv);
+                            } else {
+                                return numetron::integer_view{ rv } == static_cast<double>(lv);
+                            }
+                        }
+                    } else if constexpr (std::is_floating_point_v<LDT> || std::is_same_v<LDT, numetron::float16>) {
+                        if constexpr (std::is_floating_point_v<RDT> || std::is_same_v<RDT, numetron::float16>) {
+                            return static_cast<double>(lv) == static_cast<double>(rv);
+                        }
+                    }
+                }
+                return false; // unreachable at runtime -- see the comment on is_numeric_dispatch_type_v
+            });
+        });
+    } else {
+        result = l == r;
+    }
     ctx.stack_pop();
     ctx.stack_back().replace(smart_blob{ bool_blob_result(result) });
 }
@@ -509,6 +613,39 @@ void annium_numeric_to_ui64(vm::context& ctx)
     smart_blob& arg = ctx.stack_back();
     uint64_t val = annium_numeric_cast<uint64_t>(arg);
     arg.replace(smart_blob{ ui64_blob_result(val) });
+}
+
+// Unlike the fixed-width integer family above, these don't need the is_floating_point(arg->type)
+// dispatch: numetron::decimal_view already represents any numeric source (fixed-width int, bigint,
+// f16/f32/f64, decimal) exactly, via smart_blob::as<numetron::decimal_view>()'s own dispatch.
+void annium_numeric_to_f16(vm::context& ctx)
+{
+    smart_blob& arg = ctx.stack_back();
+    numetron::float16 val = numetron::float16_cast(arg.as<numetron::decimal_view>());
+    arg.replace(smart_blob{ f16_blob_result(val) });
+}
+
+void annium_numeric_to_f32(vm::context& ctx)
+{
+    smart_blob& arg = ctx.stack_back();
+    float val = static_cast<float>(arg.as<numetron::decimal_view>());
+    arg.replace(smart_blob{ f32_blob_result(val) });
+}
+
+void annium_numeric_to_f64(vm::context& ctx)
+{
+    smart_blob& arg = ctx.stack_back();
+    double val = static_cast<double>(arg.as<numetron::decimal_view>());
+    arg.replace(smart_blob{ f64_blob_result(val) });
+}
+
+void annium_numeric_to_decimal(vm::context& ctx)
+{
+    smart_blob& arg = ctx.stack_back();
+    numetron::decimal_view dv = arg.as<numetron::decimal_view>();
+    smart_blob result{ decimal_blob_result(dv) };
+    result.allocate();
+    arg.replace(std::move(result));
 }
 
 class annium_callable : public invocation::callable

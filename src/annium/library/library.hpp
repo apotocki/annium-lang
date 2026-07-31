@@ -58,4 +58,9 @@ void annium_numeric_to_ui32(vm::context&);
 void annium_numeric_to_i64(vm::context&);
 void annium_numeric_to_ui64(vm::context&);
 
+void annium_numeric_to_f16(vm::context&);
+void annium_numeric_to_f32(vm::context&);
+void annium_numeric_to_f64(vm::context&);
+void annium_numeric_to_decimal(vm::context&);
+
 }

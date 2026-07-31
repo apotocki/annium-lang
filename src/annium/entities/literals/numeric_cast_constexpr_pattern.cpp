@@ -44,6 +44,18 @@ smart_blob numeric_cast_truncate_to(smart_blob const& arg, builtin_eid target_ty
             return smart_blob{ bigint_blob_result((numetron::integer)arg.as<numetron::decimal_view>()) };
         }
         return smart_blob{ bigint_blob_result(arg.as<numetron::integer_view>()) };
+    // f16/f32/f64/decimal: numetron::decimal_view represents any numeric source (fixed-width int, bigint,
+    // f16/f32/f64, decimal) exactly, so unlike the fixed-width integer cases above there's no
+    // is_floating_point(arg->type) dispatch needed here -- mirrors annium_numeric_to_f16/f32/f64/decimal
+    // (library/annium_library.cpp).
+    case builtin_eid::f16:
+        return smart_blob{ f16_blob_result(numetron::float16_cast(arg.as<numetron::decimal_view>())) };
+    case builtin_eid::f32:
+        return smart_blob{ f32_blob_result(static_cast<float>(arg.as<numetron::decimal_view>())) };
+    case builtin_eid::f64:
+        return smart_blob{ f64_blob_result(static_cast<double>(arg.as<numetron::decimal_view>())) };
+    case builtin_eid::decimal:
+        return smart_blob{ decimal_blob_result(arg.as<numetron::decimal_view>()) };
     default:
         THROW_NOT_IMPLEMENTED_ERROR("numeric_cast_constexpr_pattern: unsupported target type"sv);
     }
@@ -60,9 +72,11 @@ numeric_cast_constexpr_pattern::try_match(fn_compiler_context& ctx, prepared_cal
         exp.type == env.get(builtin_eid::i16) || exp.type == env.get(builtin_eid::u16) ||
         exp.type == env.get(builtin_eid::i32) || exp.type == env.get(builtin_eid::u32) ||
         exp.type == env.get(builtin_eid::i64) || exp.type == env.get(builtin_eid::u64) ||
-        exp.type == env.get(builtin_eid::integer);
+        exp.type == env.get(builtin_eid::integer) ||
+        exp.type == env.get(builtin_eid::f16) || exp.type == env.get(builtin_eid::f32) ||
+        exp.type == env.get(builtin_eid::f64) || exp.type == env.get(builtin_eid::decimal);
     if (!valid_target) {
-        return std::unexpected(make_error<type_mismatch_error>(call.location, exp.type, "a fixed-width integer type or integer"sv));
+        return std::unexpected(make_error<type_mismatch_error>(call.location, exp.type, "a numeric type"sv));
     }
     builtin_eid target_type = static_cast<builtin_eid>(exp.type.value);
 

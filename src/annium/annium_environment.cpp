@@ -1359,17 +1359,17 @@ generic_literal_entity const& environment::make_generic_entity(smart_blob value,
 
 generic_literal_entity const& environment::make_integer_entity(numetron::integer_view value, entity_identifier type)
 {
-    return make_generic_entity(smart_blob{ bigint_blob_result(value) }, type ? type : get(builtin_eid::integer));
+    return make_generic_entity(smart_blob{ bigint_blob_result(value) }.allocate(), type ? type : get(builtin_eid::integer));
 }
 
 generic_literal_entity const& environment::make_decimal_entity(numetron::decimal_view value, entity_identifier type)
 {
-    return make_generic_entity(smart_blob{ decimal_blob_result(value) }, type ? type : get(builtin_eid::decimal));
+    return make_generic_entity(smart_blob{ decimal_blob_result(value) }.allocate(), type ? type : get(builtin_eid::decimal));
 }
 
 generic_literal_entity const& environment::make_string_entity(string_view value, entity_identifier type)
 {
-    return make_generic_entity(smart_blob{ string_blob_result(value) }, type ? type : get(builtin_eid::string));
+    return make_generic_entity(smart_blob{ string_blob_result(value) }.allocate(), type ? type : get(builtin_eid::string));
 }
 
 basic_signatured_entity const& environment::make_basic_signatured_entity(entity_signature&& sig)
@@ -1689,6 +1689,10 @@ environment::environment()
     set_builtin_extern("__to_u32(runtime @numeric)->u32"sv, &annium_numeric_to_ui32);
     set_builtin_extern("__to_i64(runtime @numeric)->i64"sv, &annium_numeric_to_i64);
     set_builtin_extern("__to_u64(runtime @numeric)->u64"sv, &annium_numeric_to_ui64);
+    set_builtin_extern("__to_f16(runtime @numeric)->f16"sv, &annium_numeric_to_f16);
+    set_builtin_extern("__to_f32(runtime @numeric)->f32"sv, &annium_numeric_to_f32);
+    set_builtin_extern("__to_f64(runtime @numeric)->f64"sv, &annium_numeric_to_f64);
+    set_builtin_extern("__to_decimal(runtime @numeric)->decimal"sv, &annium_numeric_to_decimal);
 
     // constexpr counterpart to the 8 `numeric_cast(runtime @numeric) ~> iN|uN` overloads declared in bootstrap.ann:
     // same qname, folds the conversion at compile time when the argument is a compile-time constant.

@@ -15,6 +15,8 @@
 #include "annium/auxiliary.hpp"
 #include "sonia/utility/invocation/invocation.hpp"
 
+#include <stdexcept>
+
 namespace annium {
 
 class numeric_literal_equal_match_descriptor : public functional_match_descriptor
@@ -58,140 +60,99 @@ inline bool is_numeric_type(builtin_eid type) noexcept
     }
 }
 
-// Helper function to compare two constexpr numeric values
-template <typename T>
-requires(std::is_floating_point_v<T> || std::is_same_v<numetron::float16, T> || std::is_same_v<numetron::decimal_view, T>)
-bool compare_constexpr_values(T const& lhs_val, T const& rhs_val)
+// A constexpr numeric literal's value, tagged by which native representation it's stored in --
+// mirrors the blob layout produced by ui64_blob_result/f16_blob_result/f32_blob_result/f64_blob_result/
+// decimal_blob_result (sonia-prime's invocation.hpp): every fixed-width and bigint integral type
+// (including boolean, folded to 0/1) is stored as numetron::integer_view.
+struct extracted_numeric_value
 {
-    if constexpr (std::is_same_v<T, T>) {
-        return lhs_val == rhs_val;
-    } else if constexpr (std::is_same_v<T, bool> && std::is_arithmetic_v<T>) {
-        return (lhs_val ? 1 : 0) == rhs_val;
-    } else if constexpr (std::is_arithmetic_v<T> && std::is_same_v<T, bool>) {
-        return lhs_val == (rhs_val ? 1 : 0);
-    } else if constexpr (std::is_same_v<T, numetron::integer_view> && std::is_arithmetic_v<T>) {
-        if constexpr (std::is_floating_point_v<T>) {
-            return static_cast<double>(lhs_val) == static_cast<double>(rhs_val);
-        } else {
-            return lhs_val == static_cast<int64_t>(rhs_val);
-        }
-    } else if constexpr (std::is_arithmetic_v<T> && std::is_same_v<T, numetron::integer_view>) {
-        if constexpr (std::is_floating_point_v<T>) {
-            return static_cast<double>(lhs_val) == static_cast<double>(rhs_val);
-        } else {
-            return static_cast<int64_t>(lhs_val) == rhs_val;
-        }
-    } else if constexpr (std::is_same_v<T, numetron::decimal_view> || std::is_same_v<T, numetron::decimal_view>) {
-        // For decimal comparisons, convert both to decimal
-        numetron::decimal lhs_decimal, rhs_decimal;
-        
-        if constexpr (std::is_same_v<T, numetron::decimal_view>) {
-            lhs_decimal = numetron::decimal{ lhs_val };
-        } else if constexpr (std::is_same_v<T, numetron::integer_view>) {
-            lhs_decimal = numetron::decimal{ lhs_val };
-        } else {
-            lhs_decimal = numetron::decimal{ std::to_string(lhs_val) };
-        }
-        
-        if constexpr (std::is_same_v<T, numetron::decimal_view>) {
-            rhs_decimal = numetron::decimal{ rhs_val };
-        } else if constexpr (std::is_same_v<T, numetron::integer_view>) {
-            rhs_decimal = numetron::decimal{ rhs_val };
-        } else {
-            rhs_decimal = numetron::decimal{ std::to_string(rhs_val) };
-        }
-        
-        return lhs_decimal == rhs_decimal;
-    } else {
-        // General arithmetic comparison
-        return static_cast<double>(lhs_val) == static_cast<double>(rhs_val);
+    enum class kind { integral, f16, f32, f64, decimal } k;
+    numetron::integer_view iv{};
+    numetron::float16 f16v{};
+    float f32v = 0;
+    double f64v = 0;
+    numetron::decimal_view decv{};
+};
+
+extracted_numeric_value extract_numeric_value(smart_blob const& value, builtin_eid type)
+{
+    using kind = extracted_numeric_value::kind;
+    switch (type) {
+        case builtin_eid::boolean:
+            return { .k = kind::integral, .iv = numetron::integer_view{ value.as<bool>() ? 1 : 0 } };
+        case builtin_eid::integer:
+        case builtin_eid::i8:
+        case builtin_eid::u8:
+        case builtin_eid::i16:
+        case builtin_eid::u16:
+        case builtin_eid::i32:
+        case builtin_eid::u32:
+        case builtin_eid::i64:
+        case builtin_eid::u64:
+            return { .k = kind::integral, .iv = value.as<numetron::integer_view>() };
+        case builtin_eid::f16:
+            return { .k = kind::f16, .f16v = value.as<numetron::float16>() };
+        case builtin_eid::f32:
+            return { .k = kind::f32, .f32v = value.as<float>() };
+        case builtin_eid::f64:
+            return { .k = kind::f64, .f64v = value.as<double>() };
+        case builtin_eid::decimal:
+            return { .k = kind::decimal, .decv = value.as<numetron::decimal_view>() };
+        default:
+            throw std::logic_error("extract_numeric_value: not a numeric type"); // guarded by is_numeric_type at the call site
     }
 }
 
-// Helper function to extract and compare constexpr values based on their types
-bool compare_constexpr_literal_values(generic_literal_entity const* lhs_entity, generic_literal_entity const* rhs_entity, 
+inline bool is_floating_kind(extracted_numeric_value::kind k) noexcept
+{
+    using kind = extracted_numeric_value::kind;
+    return k == kind::f16 || k == kind::f32 || k == kind::f64;
+}
+
+// Widens a floating-ish or decimal value to double. Always exact for f16/f32 (lossless widening) and
+// f64 (identity); for decimal this is the same lossy-above-53-bits conversion this function already
+// used before, kept only for the decimal-vs-floating pair, which no test currently exercises.
+double to_double(extracted_numeric_value const& v) noexcept
+{
+    using kind = extracted_numeric_value::kind;
+    switch (v.k) {
+        case kind::f16: return static_cast<double>(v.f16v);
+        case kind::f32: return static_cast<double>(v.f32v);
+        case kind::f64: return v.f64v;
+        case kind::decimal: return static_cast<double>(v.decv);
+        default: return static_cast<double>(v.iv); // unreachable from this file's call sites; kept for switch exhaustiveness
+    }
+}
+
+// Extract and compare two constexpr numeric literal values, mirroring annium_any_equal's runtime
+// category split (annium_library.cpp): same-family pairs (integral vs integral, decimal vs decimal)
+// compare natively and exactly. The cross-family pair that needs care is integral-ish (fixed-width int
+// or bigint) vs floating-ish (f16/f32/f64): converting the INTEGRAL side to double would be lossy
+// above double's 53 exact mantissa bits, silently colliding distinct large values (see BUGFIXES.md).
+// numetron::basic_integer_view::operator==(T floating) avoids that by decomposing the float's own
+// IEEE754 bits (exact for any finite whole-number float) instead of rounding the integer.
+bool compare_constexpr_literal_values(generic_literal_entity const* lhs_entity, generic_literal_entity const* rhs_entity,
                                       builtin_eid lhs_type, builtin_eid rhs_type)
 {
-    smart_blob const& lhs_value = lhs_entity->value();
-    smart_blob const& rhs_value = rhs_entity->value();
-    
-    // Simple approach: convert both values to double and compare
-    double lhs_val = 0.0;
-    double rhs_val = 0.0;
-    
-    // Extract left value
-    switch (lhs_type) {
-        case builtin_eid::boolean:
-            lhs_val = lhs_value.as<bool>() ? 1.0 : 0.0;
-            break;
-        case builtin_eid::integer:
-        case builtin_eid::i8:
-        case builtin_eid::u8:
-        case builtin_eid::i16:
-        case builtin_eid::u16:
-        case builtin_eid::i32:
-        case builtin_eid::u32:
-        case builtin_eid::i64:
-        case builtin_eid::u64:
-            // All integer types are stored as integer_view
-            lhs_val = static_cast<double>(lhs_value.as<numetron::integer_view>());
-            break;
-        case builtin_eid::f16:
-            // f16 might be stored as integer_view
-            lhs_val = lhs_value.as<double>();
-            break;
-        case builtin_eid::f32:
-            lhs_val = static_cast<double>(lhs_value.as<float>());
-            break;
-        case builtin_eid::f64:
-            lhs_val = lhs_value.as<double>();
-            break;
-        case builtin_eid::decimal: {
-            numetron::decimal_view dv = lhs_value.as<numetron::decimal_view>();
-            lhs_val = static_cast<double>(dv);
-            break;
-        }
-        default:
-            return false;
-    }
-    
-    // Extract right value
-    switch (rhs_type) {
-        case builtin_eid::boolean:
-            rhs_val = rhs_value.as<bool>() ? 1.0 : 0.0;
-            break;
-        case builtin_eid::integer:
-        case builtin_eid::i8:
-        case builtin_eid::u8:
-        case builtin_eid::i16:
-        case builtin_eid::u16:
-        case builtin_eid::i32:
-        case builtin_eid::u32:
-        case builtin_eid::i64:
-        case builtin_eid::u64:
-            // All integer types are stored as integer_view
-            rhs_val = static_cast<double>(rhs_value.as<numetron::integer_view>());
-            break;
-        case builtin_eid::f16:
-            // f16 might be stored as integer_view
-            rhs_val = static_cast<double>(rhs_value.as<numetron::integer_view>());
-            break;
-        case builtin_eid::f32:
-            rhs_val = static_cast<double>(rhs_value.as<float>());
-            break;
-        case builtin_eid::f64:
-            rhs_val = rhs_value.as<double>();
-            break;
-        case builtin_eid::decimal: {
-            numetron::decimal_view dv = rhs_value.as<numetron::decimal_view>();
-            rhs_val = static_cast<double>(dv);
-            break;
-        }
-        default:
-            return false;
-    }
-    
-    return lhs_val == rhs_val;
+    using kind = extracted_numeric_value::kind;
+    extracted_numeric_value lhs = extract_numeric_value(lhs_entity->value(), lhs_type);
+    extracted_numeric_value rhs = extract_numeric_value(rhs_entity->value(), rhs_type);
+
+    if (lhs.k == kind::integral && rhs.k == kind::integral) return lhs.iv == rhs.iv;
+    if (lhs.k == kind::decimal && rhs.k == kind::decimal) return lhs.decv == rhs.decv;
+
+    // integral <-> decimal: exact, since constructing a decimal from an integer_view is exact (no
+    // dragonbox shortest-round-trip float formatting involved, unlike decimal-from-float).
+    if (lhs.k == kind::integral && rhs.k == kind::decimal) return numetron::decimal{ lhs.iv } == rhs.decv;
+    if (lhs.k == kind::decimal && rhs.k == kind::integral) return numetron::decimal{ rhs.iv } == lhs.decv;
+
+    // integral <-> floating: the exact cross-family path this function used to get wrong.
+    if (lhs.k == kind::integral && is_floating_kind(rhs.k)) return lhs.iv == to_double(rhs);
+    if (is_floating_kind(lhs.k) && rhs.k == kind::integral) return rhs.iv == to_double(lhs);
+
+    // Both floating-ish (any width, including decimal-vs-float): widening f16/f32 to double is always
+    // exact, so a plain double comparison is correct here.
+    return to_double(lhs) == to_double(rhs);
 }
 
 } // anonymous namespace

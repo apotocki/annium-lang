@@ -120,3 +120,73 @@ let ni5: integer = numeric_cast(frac32); // constexpr: fractional part truncated
 assert_equal(ni5, 3);
 let ni6: integer = numeric_cast(runtime_cast(frac32)); // runtime: same truncation via __to_integer
 assert_equal(ni6, 3);
+
+// __to_f16/__to_f32/__to_f64/__to_decimal: any numeric source -> floating/decimal target,
+// no bit-truncation involved (numetron::decimal_view represents the source exactly either way).
+assert_equal(__to_f32(w32), 300);
+assert_equal(__to_f64(neg32), -1);
+assert_equal(__to_f16(us8), 200);
+assert_equal(__to_decimal(300), 300);
+assert_equal(__to_decimal(neg32), -1);
+assert_equal(__to_decimal(0), 0); // basic_decimal_view(integral 0) used to loop forever, see BUGFIXES.md
+assert_equal(__to_decimal(-300), -300); // negative value with trailing zeros -- exercises the strip-zeros loop body, not just the 0 guard
+assert_equal(__to_f32(0), 0);
+
+// == between u64/i64/bigint and a float must stay exact, not go through a lossy double cast:
+// double only has 53 bits of exact integer precision, so two distinct u64 values near 2^63
+// (where the double ULP is already 2^11 = 2048) would incorrectly compare equal if naively
+// cast to double -- see BUGFIXES.md / annium_any_equal.
+// big_pow2 and f_pow2 both hold the exact value 2^63 (a power of two, exactly representable in
+// f64) -- deliberately NOT numeric_cast(big_pow2), since numeric_cast is allowed to change the
+// value to fit the target (that's the whole point of a truncating cast); this test is specifically
+// about == correctness, not about whether a cast happens to preserve a value it isn't obligated to
+// preserve. big_pow2_plus1 holds the distinct exact value 2^63+1: what matters for this test is the
+// actual value each side holds at comparison time, not how the source constructed it -- == must
+// tell these two values apart even though naively casting big_pow2_plus1 to double would round it
+// down to 2^63 and make it collide with f_pow2.
+let big_pow2: u64 = 9223372036854775808; // 2^63
+let big_pow2_plus1: u64 = 9223372036854775809; // 2^63 + 1 -- NOT exactly representable as f64, rounds to 2^63 if naively cast to double
+let f_pow2: f64 = 9223372036854775808; // 2^63, exactly representable in f64
+assert_equal(f_pow2, big_pow2);
+assert_not_equal(f_pow2, big_pow2_plus1);
+
+// Same values, but with runtime_cast forcing a genuinely runtime argument: `let x: T = <const-expr>;`
+// above stays constexpr-foldable, so those two asserts are resolved entirely at compile time by
+// numeric_literal_equal_pattern's own (separate, and correct) constexpr comparison -- they never
+// reach the runtime `==` (__equal / annium_any_equal) that this section is meant to cover. Forcing at
+// least one side runtime here routes through that actual runtime implementation instead.
+assert_equal(runtime_cast(f_pow2), runtime_cast(big_pow2));
+assert_not_equal(runtime_cast(f_pow2), runtime_cast(big_pow2_plus1));
+
+// bigint too large to fit a native 64-bit int, compared against decimal: must not throw, must compare
+// exactly (annium_int_decimal_equal, exact multiplication -- no normalization/is_fit rejection).
+let huge_bigint = 100000000000000000000000; // 10^23
+let huge_decimal: decimal = 100000000000000000000000;
+assert_equal(huge_bigint, huge_decimal);
+assert_not_equal(huge_bigint, 100000000000000000000001);
+
+// a whole-number f64 beyond u64's range, compared against a matching bigint: must not throw, must
+// compare exactly (numetron::operator==(basic_integer_view, floating), exact bigint-from-double construction).
+let huge_pow2_bigint: integer = 1180591620717411303424; // 2^70
+let huge_pow2_f64: f64 = 1180591620717411303424; // same value, exact since it's a power of 2
+assert_equal(huge_pow2_f64, huge_pow2_bigint);
+
+// numeric_cast(...) ~> f16/f32/f64/decimal: runtime path (via __to_fN/__to_decimal)
+let nf1: f32 = numeric_cast(runtime_cast(w32));
+assert_equal(nf1, 300);
+let nf2: f64 = numeric_cast(runtime_cast(neg32));
+assert_equal(nf2, -1);
+let nf3: f16 = numeric_cast(runtime_cast(us8));
+assert_equal(nf3, 200);
+let nd1: decimal = numeric_cast(runtime_cast(w32));
+assert_equal(nd1, 300);
+
+// numeric_cast(...) ~> f16/f32/f64/decimal: constexpr path (numeric_cast_constexpr_pattern)
+let nf4: f32 = numeric_cast(300);
+assert_equal(nf4, 300);
+let nd2: decimal = numeric_cast(-1);
+assert_equal(nd2, -1);
+let nf5: f16 = numeric_cast(200);
+assert_equal(nf5, 200);
+let nf6: f64 = numeric_cast(decv); // constexpr decimal source (decv = 511)
+assert_equal(nf6, 511);

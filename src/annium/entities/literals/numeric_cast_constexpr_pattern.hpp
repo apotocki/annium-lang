@@ -7,13 +7,14 @@
 
 namespace annium {
 
-// numeric_cast(constexpr @numeric) ~> i8|u8|i16|u16|i32|u32|i64|u64|integer
+// numeric_cast(constexpr @numeric) ~> i8|u8|i16|u16|i32|u32|i64|u64|integer|f16|f32|f64|decimal
 // constexpr counterpart of the `runtime @numeric` overloads declared in bootstrap.ann: when the argument
-// is a compile-time constant, fold the same static_cast-like truncating conversion at compile time instead
-// of deferring to the __to_iN/__to_integer ecall at VM runtime. Same truncation semantics as those builtins,
-// never rejects on precision loss (unlike numeric_literal_implicit_cast_pattern, which is a checked/rejecting
-// conversion and is architecturally the wrong fit here). `integer` is arbitrary precision, so "truncation"
-// only bites for a floating/decimal source (fractional part dropped); integral sources convert exactly.
+// is a compile-time constant, fold the same conversion at compile time instead of deferring to the
+// __to_iN/__to_integer/__to_f16/__to_f32/__to_f64/__to_decimal ecall at VM runtime. Same semantics as
+// those builtins, never rejects on precision loss (unlike numeric_literal_implicit_cast_pattern, which is
+// a checked/rejecting conversion and is architecturally the wrong fit here). The 8 fixed-width integer
+// targets bit-truncate; `integer` (arbitrary precision) and the floating/decimal targets only lose
+// precision for a source with a fractional part or magnitude the target can't represent exactly.
 //
 // Plain default weight -- disambiguation against the 8 `runtime @numeric` overloads (both are structurally
 // viable for a literal argument) happens via ordinary match_penalty comparison: matching a compile-time
@@ -30,7 +31,7 @@ public:
 
     std::expected<syntax_expression_result, error_storage> apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const override;
 
-    std::ostream& print(environment const&, std::ostream& s) const override { return s << "numeric_cast(constexpr @numeric)~>i8|u8|i16|u16|i32|u32|i64|u64|integer"; }
+    std::ostream& print(environment const&, std::ostream& s) const override { return s << "numeric_cast(constexpr @numeric)~>i8|u8|i16|u16|i32|u32|i64|u64|integer|f16|f32|f64|decimal"; }
 };
 
 }
