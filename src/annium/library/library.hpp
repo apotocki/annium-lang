@@ -45,6 +45,7 @@ void annium_operator_minus_integer(vm::context&);
 void annium_operator_minus_numeric(vm::context&);
 void annium_operator_mul_numeric(vm::context&);
 void annium_operator_div_numeric(vm::context&);
+void annium_divide_decimal_rounded(vm::context&);
 
 void annium_to_integer(vm::context&);
 void annium_str2dec(vm::context&);

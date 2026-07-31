@@ -135,3 +135,27 @@ inline fn numeric_cast(runtime @numeric) ~> f16 => __to_f16($0);
 inline fn numeric_cast(runtime @numeric) ~> f32 => __to_f32($0);
 inline fn numeric_cast(runtime @numeric) ~> f64 => __to_f64($0);
 inline fn numeric_cast(runtime @numeric) ~> decimal => __to_decimal($0);
+
+// DECIMAL DIVISION WITH EXPLICIT ROUNDING
+// The plain `/` operator has no runtime definition for decimal (numeric_promotion.hpp) -- most
+// quotients (e.g. 1/3) aren't exactly representable in a finite number of decimal digits, and
+// unlike constexpr `/` (which can just reject a non-terminating result at compile time), runtime
+// `/` would have nothing to fall back on. divide(...) is the explicit, always-succeeding
+// alternative: it rounds to at most `scale` digits after the decimal point instead of rejecting
+// anything. Only rounding_mode.half_even is implemented so far (divide_decimal_rounded in
+// numeric_promotion.cpp) -- the rest are declared for a stable signature but throw if selected.
+enum rounding_mode {
+    half_even,
+    half_up,
+    half_down,
+    up,
+    down,
+    ceiling,
+    floor
+}
+
+// mode crosses into __divide_decimal_rounded as a bare integer ordinal (to_integer(mode)) -- there's
+// no shared symbolic enum type between bootstrap.ann and the C++ side, see decimal_rounding_mode's
+// comment in numeric_promotion.hpp (its member order must match this enum's exactly).
+inline fn divide($a: runtime decimal, $b: runtime decimal, $scale: runtime u32, $mode: runtime rounding_mode = .half_even) -> decimal
+    => __divide_decimal_rounded($a, $b, $scale, to_integer($mode));

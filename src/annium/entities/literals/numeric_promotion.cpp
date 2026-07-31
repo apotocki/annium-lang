@@ -451,4 +451,53 @@ std::optional<numetron::decimal> try_divide_decimal_constexpr(numetron::decimal_
     return numetron::decimal{ (numetron::integer_view)result_sig, (numetron::integer_view)result_exp };
 }
 
+std::optional<numetron::decimal> divide_decimal_rounded(numetron::decimal_view lhs, numetron::decimal_view rhs, uint32_t scale, decimal_rounding_mode mode)
+{
+    if (mode != decimal_rounding_mode::half_even) {
+        THROW_NOT_IMPLEMENTED_ERROR("divide_decimal_rounded: only rounding_mode::half_even is implemented so far"sv);
+    }
+
+    numetron::integer den{ rhs.significand().abs() };
+    if (!den) return std::nullopt; // division by zero
+
+    numetron::integer num{ lhs.significand().abs() };
+    if (!num) return numetron::decimal{ 0 };
+
+    // num/den * 10^scale, scaled by the operands' own exponent difference -- push the whole 10^e
+    // factor onto whichever side (numerator or denominator) keeps it a positive power, so the
+    // division below is always an exact-integer numerator over an exact-integer denominator.
+    int64_t e = (int64_t)lhs.exponent() - (int64_t)rhs.exponent() + (int64_t)scale;
+    if (e >= 0) {
+        num *= numetron::pow(numetron::integer{ 10 }, static_cast<uint64_t>(e));
+    } else {
+        den *= numetron::pow(numetron::integer{ 10 }, static_cast<uint64_t>(-e));
+    }
+
+    numetron::integer q = num / den; // truncated (toward zero) magnitude quotient
+    numetron::integer r = num % den;
+
+    // round-half-even tie-break on the discarded remainder, compared against half the denominator
+    // (via 2*r instead of den/2 -- den isn't necessarily even, so this avoids integer-dividing it).
+    numetron::integer twice_r = r * numetron::integer{ 2 };
+    numetron::integer_view twice_r_v = (numetron::integer_view)twice_r;
+    numetron::integer_view den_v = (numetron::integer_view)den;
+    if (twice_r_v > den_v) {
+        q += 1;
+    } else if (twice_r_v == den_v && (q % 2)) {
+        q += 1; // exact tie: round to the even neighbor, and q is currently odd
+    }
+
+    if (lhs.is_negative() != rhs.is_negative()) q = -q;
+
+    numetron::integer result_exp{ -static_cast<int64_t>(scale) };
+    if (q) {
+        // Strip trailing zeros -- same normalization every other decimal arithmetic result already
+        // gets (see e.g. multiply_numeric's decimal case), so a `scale` larger than the quotient
+        // actually needs doesn't leave fake extra precision sitting in the significand.
+        while (!(q % 10)) { q /= 10; result_exp += 1; }
+    }
+
+    return numetron::decimal{ (numetron::integer_view)q, (numetron::integer_view)result_exp };
+}
+
 } // namespace annium

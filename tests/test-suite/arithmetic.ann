@@ -328,3 +328,43 @@ assert_equal(cf20, 31.25);
 // constexpr decimal / decimal fold.
 let cf21: decimal = 1.5 / 0.6; // denominator (reduced) 2
 assert_equal(cf21, 2.5);
+
+// divide(a, b, scale, mode): the explicit, always-succeeding runtime decimal division the plain
+// `/` operator doesn't offer (see numeric_promotion.hpp's divide_decimal_rounded). Only
+// rounding_mode.half_even is implemented so far. mode defaults to .half_even when omitted.
+
+// scale (5) larger than the exact result needs: normalizes down to 0.25, same trailing-zero
+// stripping every other decimal arithmetic result already gets.
+assert_equal(divide(1, 4, 5), 0.25);
+
+// 1/8 = 0.125 exactly -- an exact tie at 2 decimal places between 0.12 and 0.13. half-even rounds
+// to the even neighbor: 12 is even, so it rounds down.
+assert_equal(divide(1, 8, 2), 0.12);
+
+// 3/8 = 0.375 exactly -- an exact tie between 0.37 and 0.38. 37 is odd, 38 is even, so this one
+// rounds up instead, unlike the previous case -- confirms the tie-break actually looks at parity
+// rather than always rounding the same direction.
+assert_equal(divide(3, 8, 2), 0.38);
+
+// 1/3 = 0.333... -- not a tie, rounds down.
+assert_equal(divide(1, 3, 2), 0.33);
+
+// 2/3 = 0.666... -- not a tie, rounds up.
+assert_equal(divide(2, 3, 2), 0.67);
+
+// sign handling: same magnitude and tie as the 1/8 case above, but negative -- confirms rounding
+// is applied to the magnitude and the sign re-applied after, not rounded independently.
+assert_equal(divide(-1, 8, 2), -0.12);
+
+// scale = 0: rounds to a whole number, but the result stays `decimal` (never narrows to
+// `integer`) -- the return type must not depend on scale's actual value, since scale can be a
+// genuine runtime value. 5/2 = 2.5 is an exact tie between 2 and 3; 2 is even.
+assert_equal(divide(5, 2, 0), 2);
+
+// explicit rounding_mode argument (same result as the omitted-default case above).
+assert_equal(divide(1, 8, 2, .half_even), 0.12);
+
+// runtime_cast'd operands (not bare literals) flow through the same single code path.
+let dda: decimal = runtime_cast(1);
+let ddb: decimal = runtime_cast(8);
+assert_equal(divide(dda, ddb, 2), 0.12);

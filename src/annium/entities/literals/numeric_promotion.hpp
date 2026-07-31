@@ -68,9 +68,37 @@ smart_blob divide_numeric(smart_blob const& lhs, smart_blob const& rhs, builtin_
 // rounding or long division. Returns std::nullopt for division by zero or a non-terminating
 // (repeating) quotient; numeric_literal_div_pattern turns either into a compile error.
 // constexpr-only by design: at runtime nothing could reject a non-terminating result until the
-// actual operand values are known, so runtime decimal/decimal division stays fully undefined --
-// see FUTURE_WORK.md.
+// actual operand values are known, so the plain `/` operator stays fully undefined for decimal at
+// runtime -- see FUTURE_WORK.md. (The explicit `divide(a, b, scale, mode)` bootstrap.ann function,
+// see decimal_rounding_mode/divide_decimal_rounded below, is the runtime-safe alternative: it
+// always produces a result by rounding to a caller-chosen scale instead of rejecting anything.)
 std::optional<numetron::decimal> try_divide_decimal_constexpr(numetron::decimal_view lhs, numetron::decimal_view rhs);
+
+// Mirrors bootstrap.ann's `rounding_mode` enum member-for-member (ordinal order must match
+// exactly -- the bootstrap.ann `divide(...)` wrapper crosses the runtime boundary by passing
+// `to_integer(mode)`'s bare ordinal to __divide_decimal_rounded, there's no shared symbolic type).
+// Only half_even is implemented so far (see divide_decimal_rounded); the rest are declared now so
+// the enum/signature shape doesn't need to change again when they're added incrementally.
+enum class decimal_rounding_mode : int
+{
+    half_even = 0,
+    half_up = 1,
+    half_down = 2,
+    up = 3,
+    down = 4,
+    ceiling = 5,
+    floor = 6,
+};
+
+// Divides two decimal values, rounded to at most `scale` digits after the decimal point (trailing
+// zeros are stripped afterward, same normalization every other decimal arithmetic result already
+// gets -- this codebase's decimal type has no way to print a non-significant trailing zero, so an
+// exact `scale`-digit padding wouldn't be observable anyway). Unlike try_divide_decimal_constexpr,
+// this never rejects a non-terminating quotient -- it always produces a result, by rounding.
+// Returns std::nullopt for division by zero (the caller, annium_divide_decimal_rounded, turns that
+// into a runtime exception). Throws THROW_NOT_IMPLEMENTED_ERROR for any `mode` other than
+// half_even -- the other modes are deliberately not implemented yet, see FUTURE_WORK.md.
+std::optional<numetron::decimal> divide_decimal_rounded(numetron::decimal_view lhs, numetron::decimal_view rhs, uint32_t scale, decimal_rounding_mode mode);
 
 // Can the constexpr value `source_val` (of type `source_type`) be represented in `target_type`
 // without loss of precision? Used to check, at compile time, whether a literal operand's

@@ -525,6 +525,29 @@ void annium_operator_div_numeric(vm::context& ctx)
     ctx.stack_back().replace(std::move(res));
 }
 
+// Backs bootstrap.ann's `divide(a, b, scale, mode)`, the explicit runtime-safe alternative to the
+// plain `/` operator (which stays undefined for decimal at runtime -- see numeric_promotion.hpp).
+// `mode` arrives as a bare integer ordinal (bootstrap.ann passes `to_integer(mode)`, not the
+// rounding_mode value itself -- there's no shared symbolic enum type across the runtime boundary,
+// see decimal_rounding_mode's comment).
+void annium_divide_decimal_rounded(vm::context& ctx)
+{
+    numetron::decimal_view a = ctx.stack_back(3).as<numetron::decimal_view>();
+    numetron::decimal_view b = ctx.stack_back(2).as<numetron::decimal_view>();
+    uint32_t scale = ctx.stack_back(1).as<uint32_t>();
+    auto mode = static_cast<decimal_rounding_mode>(ctx.stack_back().as<int32_t>());
+
+    auto result = divide_decimal_rounded(a, b, scale, mode);
+    if (!result) {
+        throw exception("divide: division by zero");
+    }
+    smart_blob res{ decimal_blob_result(*result) };
+    res.allocate();
+
+    ctx.stack_pop(3);
+    ctx.stack_back().replace(std::move(res));
+}
+
 void annium_to_integer(vm::context& ctx)
 {
     auto& arg = ctx.stack_back();

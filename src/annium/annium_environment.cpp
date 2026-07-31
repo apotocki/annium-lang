@@ -1737,6 +1737,13 @@ environment::environment()
     // to numeric_literal_minus_pattern, which now owns "__minus" for user-facing binary subtraction.
     builtin_eids_[(size_t)builtin_eid::isubtract] = set_builtin_extern("__isubtract(runtime integer, runtime integer)~>integer"sv, &annium_operator_minus_integer);
 
+    // Backs bootstrap.ann's public `divide(a, b, scale, mode)` -- the explicit, runtime-safe
+    // decimal division the plain `/` operator doesn't offer (see numeric_promotion.hpp's
+    // divide_decimal_rounded). No builtin_eid slot: nothing in C++ ever calls this directly, it's
+    // only ever reached via the ordinary qname lookup for bootstrap.ann's wrapper function, same
+    // as __to_i8 and friends just above.
+    set_builtin_extern("__divide_decimal_rounded(runtime decimal, runtime decimal, runtime u32, runtime integer)->decimal"sv, &annium_divide_decimal_rounded);
+
 }
 
 intptr_t environment::retrieve_function_rt_identifier(internal_function_entity const& fn_ent)
