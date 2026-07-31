@@ -4,6 +4,7 @@
 #pragma once
 
 #include <cmath>
+#include <optional>
 #include <sstream>
 
 #include "annium/environment.hpp"
@@ -58,6 +59,18 @@ smart_blob multiply_numeric(smart_blob const& lhs, smart_blob const& rhs, builti
 // operands truncate (C++ integer division semantics), matching the caller's join rule of picking
 // an integral result_type only when both operands are integral-kind.
 smart_blob divide_numeric(smart_blob const& lhs, smart_blob const& rhs, builtin_eid result_type);
+
+// Attempts an exact constexpr `decimal / decimal` division. Unlike +, -, * (see divide_numeric's
+// comment), decimal division has no general definition here: most quotients (e.g. 1/3) don't have
+// a finite base-10 representation. But when the reduced fraction's denominator's only prime
+// factors are 2 and 5, the quotient *is* finite and exact -- computed here by clearing the
+// denominator to an exact power of 10 (via gcd + repeated factoring-out of 2s and 5s), never by
+// rounding or long division. Returns std::nullopt for division by zero or a non-terminating
+// (repeating) quotient; numeric_literal_div_pattern turns either into a compile error.
+// constexpr-only by design: at runtime nothing could reject a non-terminating result until the
+// actual operand values are known, so runtime decimal/decimal division stays fully undefined --
+// see FUTURE_WORK.md.
+std::optional<numetron::decimal> try_divide_decimal_constexpr(numetron::decimal_view lhs, numetron::decimal_view rhs);
 
 // Can the constexpr value `source_val` (of type `source_type`) be represented in `target_type`
 // without loss of precision? Used to check, at compile time, whether a literal operand's

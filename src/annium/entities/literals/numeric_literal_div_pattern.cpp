@@ -152,15 +152,6 @@ numeric_literal_div_pattern::try_match(fn_compiler_context& ctx, prepared_call c
         return std::unexpected(make_error<type_mismatch_error>(rhs_loc, rhs_type_id, "a numeric type"sv));
     }
 
-    // Division isn't defined for decimal yet -- pending a design decision (see FUTURE_WORK.md).
-    // Reject either side up front rather than letting it silently join into a decimal result.
-    if (lhs_type == builtin_eid::decimal) {
-        return std::unexpected(make_error<type_mismatch_error>(lhs_loc, lhs_type_id, "a non-decimal numeric type (division is not yet defined for decimal)"sv));
-    }
-    if (rhs_type == builtin_eid::decimal) {
-        return std::unexpected(make_error<type_mismatch_error>(rhs_loc, rhs_type_id, "a non-decimal numeric type (division is not yet defined for decimal)"sv));
-    }
-
     generic_literal_entity const* lhs_literal = lhs_er.is_const_result ?
         dynamic_cast<generic_literal_entity const*>(lhs_type_entity) : nullptr;
     generic_literal_entity const* rhs_literal = rhs_er.is_const_result ?
@@ -171,13 +162,26 @@ numeric_literal_div_pattern::try_match(fn_compiler_context& ctx, prepared_call c
     pmd->append_arg(rhs_er, rhs_loc);
 
     if (lhs_literal && rhs_literal) {
-        // Both constexpr: fold entirely at compile time.
+        // Both constexpr: fold entirely at compile time. Unlike the other two branches below,
+        // decimal isn't rejected outright here -- both operand *values* are already known, so a
+        // join landing on decimal can be checked for an exact, finite result instead (see
+        // try_divide_decimal_constexpr) -- something only possible when nothing is left to runtime.
         builtin_eid result_type = strongest_numeric_type(lhs_type, rhs_type);
         if (result_type == builtin_eid::decimal) {
-            return std::unexpected(make_error<type_mismatch_error>(lhs_loc, lhs_type_id, "a non-decimal numeric type (division is not yet defined for decimal)"sv));
+            auto exact = try_divide_decimal_constexpr(
+                lhs_literal->value().as<numetron::decimal_view>(),
+                rhs_literal->value().as<numetron::decimal_view>());
+            if (!exact) {
+                return std::unexpected(make_error<basic_general_error>(lhs_loc,
+                    "this decimal division has no exact, finite result (division by zero, or a repeating fraction)"sv));
+            }
+            smart_blob quot{ decimal_blob_result(*exact) };
+            quot.allocate();
+            pmd->signature.result.emplace(e.make_generic_entity(std::move(quot), e.get(result_type)).id, true);
+        } else {
+            smart_blob quot = divide_numeric(lhs_literal->value(), rhs_literal->value(), result_type);
+            pmd->signature.result.emplace(e.make_generic_entity(std::move(quot), e.get(result_type)).id, true);
         }
-        smart_blob quot = divide_numeric(lhs_literal->value(), rhs_literal->value(), result_type);
-        pmd->signature.result.emplace(e.make_generic_entity(std::move(quot), e.get(result_type)).id, true);
     } else if (lhs_literal || rhs_literal) {
         bool lhs_is_literal = lhs_literal != nullptr;
         builtin_eid runtime_type = lhs_is_literal ? rhs_type : lhs_type;
@@ -186,14 +190,17 @@ numeric_literal_div_pattern::try_match(fn_compiler_context& ctx, prepared_call c
 
         builtin_eid result_type = widen_literal_for_runtime_peer(lit, lit_type, runtime_type);
         if (result_type == builtin_eid::decimal) {
-            return std::unexpected(make_error<type_mismatch_error>(lhs_loc, lhs_type_id, "a non-decimal numeric type (division is not yet defined for decimal)"sv));
+            // Runtime decimal division isn't rejected for the same reason a bad constexpr fold
+            // is above -- there's no operand *value* here yet to check for an exact result, so it
+            // stays fully undefined at runtime (see FUTURE_WORK.md).
+            return std::unexpected(make_error<type_mismatch_error>(lhs_loc, lhs_type_id, "a non-decimal numeric type (runtime division is not defined for decimal)"sv));
         }
         pmd->signature.result.emplace(e.get(result_type), false);
     } else {
-        // Both runtime.
+        // Both runtime: same reasoning as the literal+runtime branch above.
         builtin_eid result_type = strongest_numeric_type(lhs_type, rhs_type);
         if (result_type == builtin_eid::decimal) {
-            return std::unexpected(make_error<type_mismatch_error>(lhs_loc, lhs_type_id, "a non-decimal numeric type (division is not yet defined for decimal)"sv));
+            return std::unexpected(make_error<type_mismatch_error>(lhs_loc, lhs_type_id, "a non-decimal numeric type (runtime division is not defined for decimal)"sv));
         }
         pmd->signature.result.emplace(e.get(result_type), false);
     }

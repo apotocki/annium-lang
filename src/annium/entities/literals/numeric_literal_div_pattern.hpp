@@ -11,8 +11,13 @@ namespace annium {
 // an arithmetic operand) without requiring an explicit numeric_cast. The result type is the
 // "strongest" of the two operand types (see numeric_promotion.hpp's strongest_numeric_type()):
 // two integral-kind operands give an integral (truncating) result, any floating-kind operand
-// gives the corresponding floating result. decimal is deliberately rejected on either side --
-// division isn't defined for decimal yet, pending a design decision (see FUTURE_WORK.md).
+// gives the corresponding floating result.
+//
+// decimal is special-cased: at runtime it's rejected outright (division isn't defined for decimal
+// there -- see FUTURE_WORK.md), but when *both* operands are constexpr, a join landing on decimal
+// is instead checked for an exact, finite result (try_divide_decimal_constexpr in
+// numeric_promotion.hpp) and only rejected (as a compile error) if the division doesn't terminate
+// or divides by zero -- something only checkable when both operand values are already known.
 //
 // For constexpr values: computed entirely at compile time.
 // For runtime values: delegates to the generic __div_numeric extern (annium_operator_div_numeric),

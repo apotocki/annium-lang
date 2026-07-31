@@ -4,6 +4,7 @@
 #include "sonia/config.hpp"
 #include "numeric_promotion.hpp"
 
+#include <algorithm>
 #include <array>
 
 namespace annium {
@@ -397,6 +398,57 @@ smart_blob divide_numeric(smart_blob const& lhs, smart_blob const& rhs, builtin_
         // this function is ever reached, so reaching here for decimal (or anything else) is a bug.
         THROW_INTERNAL_ERROR("divide_numeric: unsupported result type"sv);
     }
+}
+
+namespace {
+
+numetron::integer integer_gcd(numetron::integer a, numetron::integer b)
+{
+    while (b) {
+        numetron::integer r = a % b;
+        a = std::move(b);
+        b = std::move(r);
+    }
+    return a;
+}
+
+} // anonymous namespace
+
+std::optional<numetron::decimal> try_divide_decimal_constexpr(numetron::decimal_view lhs, numetron::decimal_view rhs)
+{
+    numetron::integer den{ rhs.significand().abs() };
+    if (!den) return std::nullopt; // division by zero
+
+    numetron::integer num{ lhs.significand().abs() };
+    if (!num) return numetron::decimal{ 0 }; // 0 / (nonzero) == 0
+
+    numetron::integer g = integer_gcd(num, den);
+    num /= g;
+    den /= g;
+
+    // Strip all factors of 2 and 5 out of the (now coprime with num) denominator -- if anything
+    // other than 1 is left, the reduced fraction's denominator has some other prime factor, so
+    // its base-10 expansion repeats forever and there's no exact decimal result.
+    int e2 = 0;
+    while (!(den % 2)) { den /= 2; ++e2; }
+    int e5 = 0;
+    while (!(den % 5)) { den /= 5; ++e5; }
+    if (!(den == 1)) return std::nullopt;
+
+    // num/den == num / (2^e2 * 5^e5); multiplying num by the missing powers of 2 and 5 turns the
+    // denominator into an exact 10^k, so the quotient becomes an exact integer significand over
+    // 10^k -- no rounding anywhere in this computation.
+    int k = std::max(e2, e5);
+    numetron::integer multiplier = numetron::pow(numetron::integer{ 2 }, static_cast<unsigned int>(k - e2))
+                                  * numetron::pow(numetron::integer{ 5 }, static_cast<unsigned int>(k - e5));
+    numetron::integer result_sig = num * multiplier;
+    if (lhs.is_negative() != rhs.is_negative()) result_sig = -result_sig;
+
+    numetron::integer result_exp{ lhs.exponent() };
+    result_exp -= rhs.exponent();
+    result_exp -= k;
+
+    return numetron::decimal{ (numetron::integer_view)result_sig, (numetron::integer_view)result_exp };
 }
 
 } // namespace annium
