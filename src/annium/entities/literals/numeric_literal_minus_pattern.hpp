@@ -32,7 +32,7 @@ public:
     apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const override;
 
     std::ostream& print(environment const&, std::ostream& s) const override
-    { return s << "minus(@is_numeric, @is_numeric)->strongest($0, $1)"sv; }
+    { return s << "minus(@numeric, @numeric)->auto"sv; }
 };
 
 } // namespace annium

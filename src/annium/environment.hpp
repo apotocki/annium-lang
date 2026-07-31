@@ -109,6 +109,7 @@ class arena;
     ((ne, "not_equal"sv))                  \
     ((plus, "__plus"))                     \
     ((minus, "__minus"))                   \
+    ((multiply, "__multiply"))             \
     ((bit_or, "__bit_or"))                 \
     ((bit_and, "__bit_and"))               \
     ((logical_not, "logical_not"))         \
@@ -203,6 +204,7 @@ enum class builtin_eid : entity_identifier::value_type
     isubtract,
     add_numeric, // builtin ::__plus_numeric(runtime, runtime) -- generic numeric addition, see numeric_literal_plus_pattern
     subtract_numeric, // builtin ::__minus_numeric(runtime, runtime) -- generic numeric subtraction, see numeric_literal_minus_pattern
+    multiply_numeric, // builtin ::__mul_numeric(runtime, runtime) -- generic numeric multiplication, see numeric_literal_mul_pattern
     eof_builtin_eid_value
 };
 

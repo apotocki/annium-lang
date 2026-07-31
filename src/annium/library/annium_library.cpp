@@ -503,6 +503,17 @@ void annium_operator_minus_numeric(vm::context& ctx)
     ctx.stack_back().replace(std::move(res));
 }
 
+void annium_operator_mul_numeric(vm::context& ctx)
+{
+    smart_blob const& l = ctx.stack_back(1);
+    smart_blob const& r = ctx.stack_back();
+    builtin_eid result_type = strongest_numeric_type(numeric_builtin_eid_of(*l), numeric_builtin_eid_of(*r));
+    smart_blob res = multiply_numeric(l, r, result_type);
+
+    ctx.stack_pop();
+    ctx.stack_back().replace(std::move(res));
+}
+
 void annium_to_integer(vm::context& ctx)
 {
     auto& arg = ctx.stack_back();

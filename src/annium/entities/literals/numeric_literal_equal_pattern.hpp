@@ -25,7 +25,7 @@ public:
     apply(fn_compiler_context& ctx, semantic::expression_list_t& el, functional_match_descriptor& md) const override;
 
     std::ostream& print(environment const&, std::ostream& s) const override
-    { return s << "equal(@is_numeric, @is_numeric)->bool"sv; }
+    { return s << "equal(@numeric, @numeric)->bool"sv; }
 };
 
 } // namespace annium

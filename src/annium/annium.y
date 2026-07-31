@@ -1102,6 +1102,8 @@ syntax-expression-base:
     | ASTERISK syntax-expression[expr] %prec DEREF
 		{ $$ = syntax_expression{ std::move($ASTERISK), unary_expression{ unary_operator_type::DEREF, true, std::span{ ctx.make<opt_named_expression_t>(std::move($expr)), 1 } } }; }
 //////////////////////////// 5 priorit
+    | syntax-expression[larg] ASTERISK syntax-expression[rarg]
+        { $$ = syntax_expression{ std::move($ASTERISK), binary_expression{ binary_operator_type::MUL, ctx.make_span_for_args<opt_named_expression_t>(std::move($larg), std::move($rarg)) } }; }
 
 //////////////////////////// 6 priority
     | syntax-expression[larg] PLUS syntax-expression[rarg]

@@ -49,6 +49,9 @@ smart_blob add_numeric(smart_blob const& lhs, smart_blob const& rhs, builtin_eid
 // callers must keep lhs/rhs in their original left/right position.
 smart_blob subtract_numeric(smart_blob const& lhs, smart_blob const& rhs, builtin_eid result_type);
 
+// Same shape as add_numeric, but lhs * rhs.
+smart_blob multiply_numeric(smart_blob const& lhs, smart_blob const& rhs, builtin_eid result_type);
+
 // Can the constexpr value `source_val` (of type `source_type`) be represented in `target_type`
 // without loss of precision? Used to check, at compile time, whether a literal operand's
 // actual value fits a candidate result type.
