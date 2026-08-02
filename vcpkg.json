@@ -12,6 +12,7 @@
     "boost-stacktrace",
     "boost-test",
     "boost-dynamic-bitset",
-    "boost-container"
+    "boost-container",
+    "boost-callable-traits"
   ]
 }

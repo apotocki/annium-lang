@@ -102,6 +102,8 @@ public:
     std::ostringstream output;
     smart_blob eftor_;
 
+    smart_blob callable_;
+
     annium_test_model()
     {
         set_cout_writer([this](string_view str) { output << str; });
@@ -133,6 +135,13 @@ public:
     //    return to_string(arg);
     //}
 
+    blob_result c0_call() {
+        using callable_t = invocation::wrapper_object<shared_ptr<invocation::callable>>;
+        callable_t & obj = callable_.as<callable_t>();
+        obj.value->invoke({});
+        return nil_blob_result();
+    }
+
     static void do_registration(registrar_type& mr)
     {
         mr.register_property("eftor",
@@ -144,8 +153,18 @@ public:
             }
         );
 
+        mr.register_property("c0",
+            [](annium_test_model const& self) -> blob_result {
+                return smart_blob{ self.callable_ }.detach();
+            },
+            [](annium_test_model& self, blob_result const& val) {
+                self.callable_ = val;
+            }
+        );
+
         mr.register_method<&annium_test_model::eftor_call>("eftor_call");
         mr.register_method<&annium_test_model::iv_call>("iv_call");
+        mr.register_method<&annium_test_model::c0_call>("c0_call");
     }
     
 };
@@ -211,7 +230,6 @@ void annium_suite_test()
 
 void annium_test_registrar()
 {
-    //register_test(BOOST_TEST_CASE(&annium_test));
     register_test(BOOST_TEST_CASE(&annium_suite_test));
 }
 
