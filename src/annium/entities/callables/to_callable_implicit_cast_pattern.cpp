@@ -50,13 +50,13 @@ std::expected<functional_match_descriptor_ptr, error_storage> to_callable_implic
     }
 
     auto call_session = call.new_session(ctx);
-    
+
     auto arg_descr = call_session.get_next_positioned_argument();
     if (!arg_descr) return std::unexpected(std::move(arg_descr.error()));
 
     // Check if there are any unused arguments
     if (auto argterm = call_session.unused_argument(); argterm) {
-        return std::unexpected(make_error<basic_general_error>(argterm.location(), 
+        return std::unexpected(make_error<basic_general_error>(argterm.location(),
             "implicit_cast accepts exactly one argument"sv, std::move(argterm.value())));
     }
 
@@ -67,7 +67,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> to_callable_implic
     pmd->append_arg(std::move(arg_er), std::move(arg_loc));
     pmd->signature.result.emplace(exp.type, false);
 
-    indirect_internal_function_entity smpl{ pmd->signature, call.location };
+    indirect_internal_function_entity smpl{ pmd->signature, resource_location{} }; // call.location
 
     internal_function_entity& fne = static_cast<internal_function_entity&>(env.eregistry_find_or_create(smpl, [&env, &tmd = *pmd]() {
         qname_view fnqn = env.fregistry_resolve(tmd.signature.name).name();
@@ -76,7 +76,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> to_callable_implic
             env,
             qname(fnqn), // we don't need a separate (nested) namespace for this particular proxy function
             entity_signature{ tmd.signature },
-            tmd.call_location,
+            resource_location{}, //tmd.call_location,
             function_result_fd);
     }));
 
@@ -150,8 +150,8 @@ std::expected<functional_match_descriptor_ptr, error_storage> to_callable_implic
                 std::move(err)
             ));
         }
-        pmd->pfne = &fne;
     }
+    pmd->pfne = &fne;
 
     return pmd;
 }
