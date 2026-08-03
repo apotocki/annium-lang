@@ -164,7 +164,7 @@ numeric_literal_implicit_cast_pattern::try_match(fn_compiler_context& ctx, prepa
         
         auto pmd = sonia::make_shared<numeric_literal_implicit_cast_match_descriptor>(call, nullptr);
         pmd->signature.emplace_back(src_arg_er.type(), false);
-        pmd->signature.result.emplace(exp.type, can_be_constexpr(exp.modifier));
+        pmd->signature.result.emplace(exp.type, can_be_only_constexpr(exp.modifier));
         pmd->emplace_back(0, src_arg_er);
         return pmd;
     }
