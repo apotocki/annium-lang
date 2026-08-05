@@ -744,23 +744,29 @@ public:
         if (!env) {
             return smart_blob{ error_blob_result("annium_callable error: environment is no longer available") };
         }
-        shared_ptr<invocation::invocable> scope_holder;
-        invocation::invocable* ps =  std::visit([&scope_holder]<typename T>(T arg) -> invocation::invocable* {
-            if constexpr (std::is_same_v<T, invocation::invocable*>) {
-                return arg;
-            } else {
-                scope_holder = arg.lock();
-                if (!scope_holder) {
-                    throw exception{ "annium_callable error: invocable environment is no longer available" };
-                }
-                return scope_holder.get();
-            }}, scope_);
-
-        //if (args.size() < arg_count_) {
-        //    return smart_blob{ error_blob_result(("annium_callable error: expected %1% arguments, got %2%"_fmt % arg_count_ % args.size()).str()) };
-        //}
         try {
-            vm::context ctx{ *env, ps };
+            shared_ptr<invocation::invocable> scope_holder;
+            invocation::invocable *ps = std::visit(
+                [&scope_holder]<typename T>(T arg) -> invocation::invocable * {
+                    if constexpr (std::is_same_v<T, invocation::invocable *>) {
+                        return arg;
+                    } else {
+                        scope_holder = arg.lock();
+                        if (!scope_holder) {
+                            throw exception{ "annium_callable error: invocable environment is no longer available" };
+                        }
+                        return scope_holder.get();
+                    }
+                },
+            scope_);
+
+          // if (args.size() < arg_count_) {
+          //     return smart_blob{ error_blob_result(("annium_callable error:
+          //     expected %1% arguments, got %2%"_fmt % arg_count_ %
+          //     args.size()).str()) };
+          // }
+
+            vm::context ctx{*env, ps};
             size_t init_stack_sz = ctx.stack_size();
             ctx.stack_push(fn_blob_);
             annium_unfold(ctx);
@@ -769,23 +775,26 @@ public:
             ctx.stack_pop();
             size_t argidx = 0;
             for (; argidx < (std::min)(args.size(), arg_count_); ++argidx) {
-                ctx.stack_push(smart_blob{ args[argidx] });
+                ctx.stack_push(smart_blob{args[argidx]});
             }
             for (; argidx < arg_count_; ++argidx) {
-                ctx.stack_push(smart_blob{ });
+                ctx.stack_push(smart_blob{});
             }
             env->bvm().run(ctx, address);
-            
+
             size_t final_stack_sz = ctx.stack_size();
             smart_blob result;
             if (final_stack_sz > init_stack_sz) {
                 BOOST_ASSERT(final_stack_sz == init_stack_sz + 1);
                 return std::move(ctx.stack_back());
             }
-            return smart_blob{ nil_blob_result() };
+            return smart_blob{nil_blob_result()};
         } catch (...) {
-            GLOBAL_LOG_ERROR() << "Exception in annium_callable: %1%"_fmt % boost::current_exception_diagnostic_information();
-            return smart_blob{ error_blob_result(boost::current_exception_diagnostic_information()) };
+            GLOBAL_LOG_ERROR()
+                << "Exception in annium_callable: %1%"_fmt %
+                        boost::current_exception_diagnostic_information();
+            return smart_blob{error_blob_result(
+                boost::current_exception_diagnostic_information())};
         }
     }
 };
@@ -903,6 +912,7 @@ void annium_invoke_callable(vm::context& ctx)
     // we have on stack here: [callable_object, arg1, arg2, ..., argN, N]
     using namespace sonia::invocation;
     size_t argcount = ctx.stack_back().as<size_t>();
+    GLOBAL_LOG_INFO() << "annium_invoke_callable: argcount = %1%"_fmt % argcount;
     shared_ptr<callable> pcallable = std::move(ctx.stack_back(argcount + 1).as<wrapper_object<shared_ptr<callable>>>().value);
 
     small_vector<blob_result, 16> args;
