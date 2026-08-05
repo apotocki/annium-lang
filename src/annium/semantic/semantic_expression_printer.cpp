@@ -169,6 +169,12 @@ void expression_printer_visitor::operator()(invoke_function const& f) const
     ss << '\n';
 }
 
+void expression_printer_visitor::operator()(invoke_context_function const&) const
+{
+    do_indent();
+    ss << "invoke_context_function\n"sv;
+}
+
 void expression_printer_visitor::operator()(return_statement const&) const
 {
     do_indent();

@@ -16,6 +16,7 @@ using namespace sonia;
 class chained_host
     : public invocation::invocable
     , public invocation::registrar<chained_host, invocation::invocable>
+    , public enable_shared_from_this<chained_host>
 {
     using registrar_base_t = invocation::registrar<chained_host, invocation::invocable>;
     using registrar_type = registrar_base_t::registrar_type;

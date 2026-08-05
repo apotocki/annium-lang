@@ -912,7 +912,7 @@ void annium_invoke_callable(vm::context& ctx)
     // we have on stack here: [callable_object, arg1, arg2, ..., argN, N]
     using namespace sonia::invocation;
     size_t argcount = ctx.stack_back().as<size_t>();
-    GLOBAL_LOG_INFO() << "annium_invoke_callable: argcount = %1%"_fmt % argcount;
+    //GLOBAL_LOG_INFO() << "annium_invoke_callable: argcount = %1%"_fmt % argcount;
     shared_ptr<callable> pcallable = std::move(ctx.stack_back(argcount + 1).as<wrapper_object<shared_ptr<callable>>>().value);
 
     small_vector<blob_result, 16> args;
