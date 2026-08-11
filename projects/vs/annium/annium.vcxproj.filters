@@ -881,6 +881,15 @@
     <ClInclude Include="..\..\..\src\annium\functional\general\qname_implicit_cast_pattern.hpp">
       <Filter>annium\functional\general</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\modules\sonia-prime\sonia\utility\lang\vmop_proto.hpp">
+      <Filter>annium\vm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\modules\sonia-prime\sonia\utility\lang\vm2.gen.hpp">
+      <Filter>annium\vm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\modules\sonia-prime\sonia\utility\lang\vm.hpp">
+      <Filter>annium\vm</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\src\annium\generate_bootstrap.ps1">
@@ -891,7 +900,14 @@
     <CustomBuild Include="..\..\..\src\annium\bootstrap.ann">
       <Filter>annium</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\..\..\src\annium\annium.l" />
-    <CustomBuild Include="..\..\..\src\annium\annium.y" />
+    <CustomBuild Include="..\..\..\src\annium\annium.l">
+      <Filter>annium</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\annium\annium.y">
+      <Filter>annium</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\modules\sonia-prime\sonia\utility\lang\vm2.hpp">
+      <Filter>annium\vm</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

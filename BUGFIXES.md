@@ -143,6 +143,53 @@ That's no longer the situation the code is in: `from_blob<basic_decimal_view<Lim
 
 **Fix:** reverted `operator==` to a direct `lhs.significand() == rhs.significand() && lhs.exponent() == rhs.exponent()`, `noexcept` again (the `<=>`-based version couldn't be `noexcept`, since aligning differently-scaled significands can allocate). Simpler and cheaper than routing through `<=>`, and correct precisely because every producer now guarantees normalized input — if a new non-normalizing producer of `basic_decimal_view` is ever added, it must normalize before handing the view to `operator==`, not the other way around.
 
+## `virtual_stack_machine::traverse`'s `op::ecall` case decoded its operand starting one byte too early
+
+**Files:** `modules/sonia-prime/sonia/utility/lang/vm.hpp`, `modules/sonia-prime/sonia/utility/lang/vm2.hpp` (submodule, `github.com/apotocki/sonia-prime`)
+
+Found while designing a codegen-friendly annotation grammar for `op`'s dispatch shapes (each opcode needed to be classified as "reads a uint operand" / "not") and noticing `ecall`'s `case` didn't follow the same shape as every other operand-bearing opcode. Every other multi-byte opcode (`push`, `set`, the jump family, ...) does `size_t start_address = address++;` *before* calling `read_uint(address)`, so the varint operand is read starting one byte past the opcode byte itself. `op::ecall`'s case called `read_uint(address)` directly, with `address` still pointing *at* the opcode byte:
+
+```cpp
+case op::ecall:
+    {
+        size_t fn_index = read_uint(address);
+        ftor(identity<op::ecall>, ctx, address++, fn_index);
+        continue;
+    }
+```
+
+`op::ecall == 31` (`0x1F`), whose high bit is clear, so `read_uint` reads that single byte, sees no continuation bit, and returns `31` immediately having advanced `address` by only one byte — treating the opcode byte itself as a complete (and wrong) one-byte varint. The real operand bytes `append_ecall` wrote for `fnindex >= 128` are left unconsumed and get reinterpreted as the start of the next instruction, desyncing decoding for the rest of the program. This only affects the long form (`fnindex >= 128`); the packed short form (opcode byte itself `>= 128`, handled in a separate branch before the `switch`) was unaffected and is why the bug went unnoticed — nothing in the test suite currently registers more than 128 external functions.
+
+**Fix:** capture `start_address = address++` before decoding, matching every other operand-bearing case: `read_uint` now correctly starts one byte past the opcode, and `ftor` receives the opcode's own position (consistent with what `printer`'s `ecall` handler expects for display) instead of the already-advanced one.
+
+## `environment::compile` never appended a trailing `ret` for a function body without an explicit `return`
+
+**File:** `src/annium/annium_environment.cpp` (`environment::compile(internal_function_entity const&)`)
+
+Found while designing a computed-goto dispatch form for the VM (see `vmop_proto.hpp`/`vm2.hpp`) that was going to rely on every function's bytecode being guaranteed to end in `op::ret`, to avoid a per-dispatch bounds check. Looked for where that guarantee is actually enforced and found it wasn't: `compiler_visitor::operator()(semantic::return_statement const&)` (`vm/compiler_visitor.hpp:431-447`) is the *only* place that emits `op::ret`, and it only fires for an explicit `return` statement in the source. `environment::compile` — the live top-level function-compilation entry point — used to have a matching "append a trailing `ret` if the body had no explicit return" step, but it was commented out:
+
+```cpp
+vmcvis(fn_ent.body);
+//if (!vmcvis.local_return_position) { // no explicit return
+//    fb.append_ret();
+//}
+fb.materialize();
+```
+
+(`vmcvis.local_return_position` doesn't exist on `compiler_visitor` any more either — a matching live block referencing it in `src/annium/annium.cpp` is itself dead, wrapped in `#if 0`.) Net effect: a `.ann` function whose body falls off the end without an explicit `return` compiled to bytecode with no terminator at all. `virtual_stack_machine::traverse()`'s `while (address < code_.size())` loop doesn't read out of bounds for this (functions are packed back-to-back in the same `code_` buffer), but it does fall through into whichever function happens to be compiled immediately after it and starts executing that function's bytecode as if it were a continuation of the current one.
+
+**Fix:** unconditionally call `fb.append_ret()` after `vmcvis(fn_ent.body)`, instead of trying to resurrect the removed conditional. A body that already ends with an explicit `return` gets one extra, unreachable `ret` right after its own (a few harmless dead bytes); a body that doesn't now reliably gets exactly one terminator. Simpler and strictly safer than reconstructing "was the last emitted instruction already a `ret`" tracking, which no longer exists anywhere in `compiler_visitor` to build on.
+
+## `virtual_stack_machine::append_jt`/`append_jtx`/`append_jf`/`append_jfx` referenced enum values that don't exist
+
+**File:** `modules/sonia-prime/sonia/utility/lang/vm2.hpp` (submodule, `github.com/apotocki/sonia-prime`) - `vm.hpp` has the identical, unfixed functions
+
+Surfaced by the sonia-pygen `CustomBuild` step (added this session to generate `vm2.gen.hpp`), which parses `vm2.hpp` with real Clang and failed with `no member named 'jt' in 'sonia::vm::op'` (and `jtp`/`jtn`/`jf`/`jfp`/`jfn`). Those four member functions push `static_cast<uint8_t>(op::jt)` etc., but `jt`/`jtp`/`jtn`/`jf`/`jfp`/`jfn` are commented out of the `op` enum (`//jt = 4, jtp = 5, jtn = 6, //jf = 7, jfp = 8, jfn = 9,`) and never had a `traverse()` dispatch case either, in this file or `vm.hpp`. Their only real call sites are `compiler_visitor.hpp`'s `conditional_t`/`not_empty_condition_t` handling - both entirely inside `#if 0` blocks, in functions whose live body is just `THROW_NOT_IMPLEMENTED_ERROR(...)`. So these were dead code, not just unused: nothing reachable ever calls them, and if something did, `traverse()` has no opcode handler waiting for the bytes they'd emit anyway.
+
+This had been silently tolerated because MSVC doesn't eagerly check non-dependent names inside an uninstantiated class template's member function bodies the way a strictly conforming two-phase-lookup implementation (Clang, here) does - `op::jt` never gets looked up at all if `append_jt` is never instantiated for any `ContextT`, regardless of whether `op::jt` actually exists.
+
+**Fix:** commented out all four functions in `vm2.hpp`, matching the enum's own commented-out entries, rather than leaving them for MSVC's leniency to keep masking. `vm.hpp` still has the original, uncommented versions - left as is since nothing currently parses it with Clang and it isn't blocking anything, but it carries the identical landmine.
+
 ## `can_convert_constexpr_value_safely`'s `decimal_view` branch let a fractional `decimal` implicitly narrow to `integer` without loss-of-precision check
 
 **File:** `src/annium/entities/literals/numeric_promotion.hpp`

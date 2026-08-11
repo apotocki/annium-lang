@@ -1772,9 +1772,14 @@ size_t environment::compile(internal_function_entity const& fn_ent)
 
         vm::compiler_visitor vmcvis{ *this, fb, fn_ent };
         vmcvis(fn_ent.body);
-        //if (!vmcvis.local_return_position) { // no explicit return
-        //    fb.append_ret();
-        //}
+        // Unconditional: a body ending in an explicit `return` already has its own `ret`
+        // (compiler_visitor::operator()(return_statement)) reachable by fallthrough right here,
+        // so this becomes dead code (harmless, a few extra unreachable bytes) in that case. A
+        // body that falls off the end without an explicit `return` has no other `ret` at all -
+        // omitting this appendage left such a function's bytecode with no terminator, so
+        // execution fell through into whatever bytecode happened to follow it in the shared
+        // code_ buffer (the next compiled function, typically) instead of returning.
+        fb.append_ret();
         fb.materialize();
         if (fd.index) {
             bvm().set_const(*fd.index, smart_blob{ ui64_blob_result(*fd.address) });
