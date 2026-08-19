@@ -61,3 +61,23 @@ Every constraint-matching branch would compute this classification through one s
 **Proposed direction (not decided):** either (a) loosen `logical_not_pattern::try_match` to accept the same "truthy" types `annium_logical_not` already implements (making `!5`/`logical_not("")` etc. real, working language features, matching what the runtime function already does), or (b) leave the gate as strictly `boolean`-only and prune/simplify `annium_logical_not` to match (removing the now-pointless integral/string branches), and fix the `print()` label to say `boolean` instead of `@is_numeric`/`@numeric`. Not decided which is intended — needs a real design call, not a drive-by fix.
 
 **Why deferred:** discovered while reviewing the `print()` notation of the new `numeric_literal_plus/minus/mul_pattern`s (unrelated feature); explicitly out of scope for that work, user asked to just record it here for now.
+
+## Remove `vm.hpp`'s dead `#else` branch now that `vm2.hpp` is the live implementation
+
+**Status:** not started, low priority, purely cosmetic.
+
+**Problem:** `sonia/utility/lang/vm.hpp` is now `#if 1` / `#include "vm2.hpp"` / `#else` ~1300 lines of the old hand-written `traverse()` implementation / `#endif`. The `#else` branch is permanently unreachable (the condition is a literal `1`) and still carries the unfixed `append_jt`/`append_jtx`/`append_jf`/`append_jfx` dead-code landmine (see `BUGFIXES.md`) and the pre-fix `op::ecall` decode bug — neither matters for compilation since nothing preprocesses that branch, but the file is confusing to read cold.
+
+**Proposed direction:** either delete the `#else` branch's content entirely (leaving `vm.hpp` as a pure one-line forwarding shim to `vm2.hpp`), or delete `vm.hpp` outright and repoint its few includers directly at `vm2.hpp`. Whichever's chosen, `vm2.hpp`'s own `IMPLEMENTATION_NOTES.md` section (VM instruction dispatch) should be updated to stop mentioning the forwarding shim once it's gone.
+
+**Why deferred:** not blocking anything — both MSVC and GCC builds pass as of this session. Purely a follow-up cleanup once the `vm2.hpp` codegen path has had more real-world mileage.
+
+## `if`/conditional expression compilation is not implemented in the VM compiler
+
+**Status:** not started; discovered as a side effect of VM dispatch work, not this session's actual task.
+
+**Problem:** `vm/compiler_visitor.hpp`'s `operator()(semantic::conditional_t const&)` and `operator()(semantic::not_empty_condition_t const&)` both immediately `THROW_NOT_IMPLEMENTED_ERROR(...)` as their live first statement — the actual code-generation logic for each (building `jt`/`jf`-style conditional jumps via `append_jtx`/`append_jfx`/`append_jmpx` and `swap_code_blocks` to lay out true/false branches) exists only inside `#if 0` blocks right below the throw. This means `.ann` source that needs the compiler to emit a real conditional branch currently cannot compile at all through this path (whatever currently-passing tests exercise conditionals, if any, must be going through some other mechanism, e.g. compile-time-only branching, since this runtime path is a guaranteed throw).
+
+**Proposed direction:** not investigated — would need to determine why this was stubbed out (grammar/AST support for `conditional_t` predates this, per the `#if 0` code's shape, so it's specifically the codegen side that's missing) and whether the sketched `#if 0` approach is still the intended shape or needs rethinking against the current `op` set — note `jt`/`jtp`/`jtn`/`jf`/`jfp`/`jfn` (the opcodes `append_jtx`/`append_jfx` emit) are commented out of `op` entirely and have no `traverse()` dispatch case in either dispatch form (see `IMPLEMENTATION_NOTES.md`'s VM instruction dispatch section) - reviving this would need those opcodes properly reinstated (including a codegen shape decision for them: `VMOP_ARG VMOP_JUMP`, matching the rest of the jump family) end to end, not just uncommenting the `#if 0` blocks.
+
+**Why deferred:** found while tracing `append_jtx`/`append_jfx`'s only call sites to determine whether they were truly dead code (see `BUGFIXES.md`) — well outside the scope of the VM dispatch codegen task this session was actually doing.

@@ -167,6 +167,7 @@
     <ClCompile Include="..\..\..\src\sonia\mvvm\bunch_builder_view_model.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\modules\sonia-prime\sonia\utility\lang\vm.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\arena.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\ast_resource.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\base_expression_visitor.ipp" />
@@ -334,6 +335,18 @@
     </CustomBuild>
     <None Include="..\..\..\src\annium\annium.y" Condition="'$(GENERATE_PARSER)'!='1'" />
     <None Include="..\..\..\src\annium\generate_bootstrap.ps1" />
+    <!-- sonia-pygen is a private tool, not vendored into this (public) repo. PythonGenPath is
+         only ever set locally (Directory.Build.local.props, gitignored) - without it this
+         CustomBuild is skipped entirely and vm2.gen.hpp (checked in) is compiled as-is. -->
+    <CustomBuild Include="..\..\..\modules\sonia-prime\sonia\utility\lang\vm2.hpp" Condition="'$(PythonGenPath)' != ''">
+      <Command>"$(PythonExePath)" "$(PythonGenPath)" -c "$(SolutionDir)pygen.json" -f "%(FullPath)"</Command>
+      <Outputs>..\..\..\modules\sonia-prime\sonia\utility\lang\vm2.gen.hpp</Outputs>
+      <Message>Generating vm2.gen.hpp from vm2.hpp via sonia-pygen</Message>
+      <BuildInParallel>true</BuildInParallel>
+    </CustomBuild>
+    <ClInclude Include="..\..\..\modules\sonia-prime\sonia\utility\lang\vm2.hpp" Condition="'$(PythonGenPath)' == ''" />
+    <ClInclude Include="..\..\..\modules\sonia-prime\sonia\utility\lang\vm2.gen.hpp" />
+    <ClInclude Include="..\..\..\modules\sonia-prime\sonia\utility\lang\vmop_proto.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
