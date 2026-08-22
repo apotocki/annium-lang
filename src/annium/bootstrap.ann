@@ -42,12 +42,32 @@ inline fn __and($LHS: bool, $RHS) {
 }
 */
 
+// consts
+inline fn ::get(self: ~ typename bool, property: ~ consteval .min) -> bool => false;
+inline fn ::get(self: ~ typename bool, property: ~ consteval .max) -> bool => true;
+inline fn ::get(self: ~ typename i8, property: ~ consteval .min) -> i8 => -128;
+inline fn ::get(self: ~ typename i8, property: ~ consteval .max) -> i8 => 127;
+inline fn ::get(self: ~ typename u8, property: ~ consteval .min) -> u8 => 0;
+inline fn ::get(self: ~ typename u8, property: ~ consteval .max) -> u8 => 255;
+inline fn ::get(self: ~ typename i16, property: ~ consteval .min) -> i16 => -32768;
+inline fn ::get(self: ~ typename i16, property: ~ consteval .max) -> i16 => 32767;
+inline fn ::get(self: ~ typename u16, property: ~ consteval .min) -> u16 => 0;
+inline fn ::get(self: ~ typename u16, property: ~ consteval .max) -> u16 => 65535;
+inline fn ::get(self: ~ typename i32, property: ~ consteval .min) -> i32 => -2147483648;
+inline fn ::get(self: ~ typename i32, property: ~ consteval .max) -> i32 => 2147483647;
+inline fn ::get(self: ~ typename u32, property: ~ consteval .min) -> u32 => 0;
+inline fn ::get(self: ~ typename u32, property: ~ consteval .max) -> u32 => 4294967295;
+inline fn ::get(self: ~ typename i64, property: ~ consteval .min) -> i64 => -9223372036854775808;
+inline fn ::get(self: ~ typename i64, property: ~ consteval .max) -> i64 => 9223372036854775807;
+inline fn ::get(self: ~ typename u64, property: ~ consteval .min) -> u64 => 0;
+inline fn ::get(self: ~ typename u64, property: ~ consteval .max) -> u64 => 18446744073709551615;
+
+
 // STRINGS
 inline fn implicit_cast(string) ~> bool => !empty($0);
 inline fn clone(string) -> string => reinterpret(std.clone($0));
 inline fn starts_with(self: ~ runtime string, $prefix: runtime string) -> bool => reinterpret(std.starts_with(self, $prefix));
-//inline fn invoke(self: ~ runtime string, method: ~ consteval .starts_with, $prefix: runtime string) -> bool => reinterpret(std.starts_with(self, $prefix));
-inline fn substring(self: ~ runtime string, $start: runtime u32, $length: runtime i32 = -1) -> string => reinterpret(std.substring(self, $start, $length));
+inline fn substring(self: ~ runtime string, $start: runtime u32, $length: runtime i32 = i32.max) -> string => reinterpret(std.substring(self, $start, $length));
 
 // UNIONS
 inline fn equal($l: ~union(...), $r) => apply(to: $l, visitor: fn[$r]($value) => $value == $r);

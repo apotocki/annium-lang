@@ -56,8 +56,12 @@ string_view std_object::substring(string_view target, uint32_t start, int32_t le
 {
     if (start >= target.size()) {
         return string_view{};
+    } else if (length >= 0) {
+        length = (std::min)(length, static_cast<int32_t>(target.size() - start));
+    } else {
+        length = (std::max)(static_cast<int32_t>(target.size() - start) + length, 0);
     }
-    return target.substr(start, length >= 0 ? length : target.size() - start);
+    return target.substr(start, static_cast<size_t>(length));
 }
 
 class regex_object : public invocation::object

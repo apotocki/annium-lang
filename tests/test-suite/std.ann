@@ -13,3 +13,7 @@ assert_equal(test_string.starts_with("The quicg"), false);
 
 assert_equal(test_string.substring(4, 5), "quick");
 assert_equal(test_string.substring(10), "brown fox jumps over the lazy dog.");
+assert_equal(test_string.substring(10, 100), "brown fox jumps over the lazy dog.");
+assert_equal(test_string.substring(10, -1), "brown fox jumps over the lazy dog");
+assert_equal(test_string.substring(10, -34), "");
+assert_equal(test_string.substring(10, -35), "");
