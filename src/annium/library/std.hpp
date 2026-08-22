@@ -25,6 +25,10 @@ public:
     // numers
     blob_result to_integer(string_view);
 
+    // strings
+    bool starts_with(string_view target, string_view prefix) const;
+    string_view substring(string_view target, uint32_t start, int32_t length = -1) const;
+
     // regex
     blob_result regex_object(string_view pattern);
     blob_result regex_search(string_view target, smart_blob re);

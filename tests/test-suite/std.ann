@@ -3,6 +3,13 @@ assert_equal(size(match), 1);
 assert_equal(match[0], "file.txt");
 
 let re = new regex_object("[^/]+$");
-let match2 = regex_search(target: "folder/subfolder/file.txt", re: re);
+let match2 = re.search("folder/subfolder/file.txt");
 assert_equal(size(match2), 1);
 assert_equal(match2[0], "file.txt");
+
+let test_string = "The quick brown fox jumps over the lazy dog.";
+assert_equal(test_string.starts_with("The quick"), true);
+assert_equal(test_string.starts_with("The quicg"), false);
+
+assert_equal(test_string.substring(4, 5), "quick");
+assert_equal(test_string.substring(10), "brown fox jumps over the lazy dog.");

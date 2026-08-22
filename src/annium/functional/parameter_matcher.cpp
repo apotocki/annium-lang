@@ -92,23 +92,28 @@ struct constraint_matcher
     std::expected<match_penalty, error_storage> operator()(syntax_pattern const* constraint) const
     {
         environment& env = callee_ctx.env();
-        entity_identifier type_to_match;
+        entity_identifier type_or_value_to_match;
         if (arg_er.is_const_result) {
             entity const& arg_res_entity = get_entity(env, arg_er.value());
             if (has(pd.modifier(), parameter_constraint_modifier_t::typename_value)) { // typename as constexpr value matching
                 if (arg_res_entity.get_type() != env.get(builtin_eid::typename_)) {
                     return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, arg_er.value(), "a typename"sv));
                 }
-                type_to_match = arg_er.value();
+                type_or_value_to_match = arg_er.value();
+            } else if (has(pd.modifier(), parameter_constraint_modifier_t::constexpr_not_a_typename_value)) { // a pattern-constrained parameter that is a constexpr value
+                if (arg_res_entity.get_type() == env.get(builtin_eid::typename_)) {
+                    return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, arg_er.value(), "a consteval"sv));
+                }
+                type_or_value_to_match = arg_er.value();
             } else {
-                type_to_match = arg_res_entity.get_type();
+                type_or_value_to_match = arg_res_entity.get_type();
             }
         } else {
-            type_to_match = arg_er.type();
+            type_or_value_to_match = arg_er.type();
         }
         match_penalty pattern_penalty;
         error_storage err = pattern_matcher{ callee_ctx, pmatcher.md.bindings, pmatcher.call.expressions, pattern_penalty }
-            .match(*constraint, annotated_entity_identifier{ type_to_match, arg_descr.expression->location });
+            .match(*constraint, annotated_entity_identifier{ type_or_value_to_match, arg_descr.expression->location });
         if (err) {
             annotated_identifier param_name = pd.name();
             return std::unexpected(append_cause(

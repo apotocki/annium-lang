@@ -45,6 +45,9 @@ inline fn __and($LHS: bool, $RHS) {
 // STRINGS
 inline fn implicit_cast(string) ~> bool => !empty($0);
 inline fn clone(string) -> string => reinterpret(std.clone($0));
+inline fn starts_with(self: ~ runtime string, $prefix: runtime string) -> bool => reinterpret(std.starts_with(self, $prefix));
+//inline fn invoke(self: ~ runtime string, method: ~ consteval .starts_with, $prefix: runtime string) -> bool => reinterpret(std.starts_with(self, $prefix));
+inline fn substring(self: ~ runtime string, $start: runtime u32, $length: runtime i32 = -1) -> string => reinterpret(std.substring(self, $start, $length));
 
 // UNIONS
 inline fn equal($l: ~union(...), $r) => apply(to: $l, visitor: fn[$r]($value) => $value == $r);
@@ -99,20 +102,20 @@ inline fn foldl($f, $z, $elements ...) => foldl($f, $f($z, head($elements)...), 
 inline fn foldr($f, $z) => $z;
 inline fn foldr($f, $z, $elements ...) => $f(head($elements)..., foldr($f, $z, tail($elements)...));
 
-inline fn ::set(self: runtime object, property: constexpr __identifier, $value: runtime) => __set(self, to_string(property), $value);
-inline fn ::get(self: runtime object, property: constexpr __identifier) -> any => __get(self, to_string(property));
-inline fn ::invoke(self: runtime object, method: constexpr __identifier, runtime any ...) -> any => __invoke(self, to_string(method), $0 ..., size($0));
+inline fn ::set(self: ~ runtime object, property: constexpr __identifier, $value: runtime) => __set(self, to_string(property), $value);
+inline fn ::get(self: ~ runtime object, property: constexpr __identifier) -> any => __get(self, to_string(property));
+inline fn ::invoke(self: ~ runtime object, method: constexpr __identifier, runtime any ...) -> any => __invoke(self, to_string(method), $0 ..., size($0));
 
 
 struct regex_object => (cookie: any);
 inline fn init(runtime string) ~> regex_object {
-	return init(cookie: invoke(self: std, method: .regex_object, $0));
+	return init(cookie: std.regex_object($0));
 }
 inline fn regex_search(target: runtime string, re: runtime string) -> [string] {
 	return reinterpret(std.regex_search(target, re));
 }
-inline fn regex_search(target: runtime string, re: regex_object) -> [string] {
-	return reinterpret(std.regex_search(target, re.cookie));
+inline fn search(self: ~regex_object, $target: runtime string) -> [string] {
+	return reinterpret(std.regex_search($target, self.cookie));
 }
 
 inline fn to_integer(runtime string) -> integer {

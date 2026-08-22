@@ -72,6 +72,26 @@ Every constraint-matching branch would compute this classification through one s
 
 **Why deferred:** not blocking anything — both MSVC and GCC builds pass as of this session. Purely a follow-up cleanup once the `vm2.hpp` codegen path has had more real-world mileage.
 
+## Mark trivial pattern-mismatch errors so they can be collapsed/hidden in diagnostics
+
+**Status:** not started, deliberately deferred.
+
+**Problem:** `error_printer_visitor::print()` (see `IMPLEMENTATION_NOTES.md`'s "Error-tree printing prints leaf-first, longest chain first" section) now prints the deepest, longest failure chain first and caps how many alternative chains it shows in full. That fixes ordering/volume, but every `type_mismatch_error` (`errors/type_mismatch_error.*`) generated while `functional::find`/`parameter_matcher.cpp`/`pattern_matcher.cpp` reject a candidate overload still prints as a full-weight error, indistinguishable from a "real" error. For a call with several plausible-looking overloads, the leading chains can still be pure signature-shape noise ("expected `integer`, got `string`" for a candidate that was never a serious contender) rather than the actually-informative failure.
+
+**Proposed direction:** add a way for an `error` node to self-report as "trivial"/collapsible — e.g. a `virtual bool is_trivial() const noexcept { return false; }` on `error` (or `general_error`), overridden by `type_mismatch_error` and similar pattern-rejection errors — and have `error_printer_visitor::print()` (or a caller-selected mode) render trivial leaves as a single collapsed line (e.g. the candidate's signature plus "rejected: type mismatch") instead of expanding their full chain. Needs a decision on default behavior (collapsed by default with a verbose escape hatch, vs. shown by default) and how the "escape hatch" is exposed — a `print()` parameter/mode enum on `error_printer_visitor` is simplest; a compiler-wide CLI flag is a separate, bigger decision.
+
+**Why deferred:** the user asked to build the ordering/chain-collection mechanism first and explicitly flagged the triviality-tagging piece as a separate follow-up needing its own design pass (which errors count as "trivial," what the collapsed one-line form should say, whether it's opt-in or opt-out) rather than building it opportunistically alongside the ordering change.
+
+## Consider a smarter tie-break than raw chain length for ordering alternative error chains
+
+**Status:** not started, deliberately deferred.
+
+**Problem:** `error_printer_visitor::print()`'s longest-chain-first heuristic (see `IMPLEMENTATION_NOTES.md`) uses chain depth alone as a proxy for "most likely the real error." Depth is a reasonable default but not always right — a deep chain can come from a generic combinator pattern failing for unrelated reasons several layers down, while a shallow chain is the actual intended overload. The matcher already computes something more direct (`functional::find`'s per-candidate `match_descriptor->penalty`/parameter-match specificity, see `functional/parameter_matcher.cpp`), but that information isn't threaded through to error objects, so `collect_chains()`/the sort in `print()` can't use it as a tie-break (or primary key) today.
+
+**Proposed direction:** not decided — would need `pattern_match_error`/`type_mismatch_error` (or a shared base) to carry enough of the match-penalty signal to compare candidates by "how close was this match" in addition to/instead of raw depth, and a decision on how that interacts with the existing `alt_error` structure (which currently only stores the rejected candidates' error trees, not their penalties).
+
+**Why deferred:** the user agreed depth-first ordering was a reasonable first cut and explicitly flagged this as a possible refinement to reconsider later, not a blocker for the initial leaf-first printing change.
+
 ## `if`/conditional expression compilation is not implemented in the VM compiler
 
 **Status:** not started; discovered as a side effect of VM dispatch work, not this session's actual task.

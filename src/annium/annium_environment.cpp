@@ -1215,7 +1215,7 @@ std::ostream& environment::print_to(std::ostream& os, semantic::expression_list_
 std::ostream& environment::print_to(std::ostream& os, error const& err) const
 {
     error_printer_visitor vis{ *this, os };
-    err.visit(vis);
+    vis.print(err);
     return os;
 }
 

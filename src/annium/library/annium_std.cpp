@@ -20,6 +20,9 @@ void std_object::do_registration(registrar_type& mr)
     mr.register_method<&std_object::regex_object>("regex_object"sv);
     mr.register_method<&std_object::regex_search>("regex_search"sv);
     mr.register_method<&std_object::clone_value>("clone"sv);
+
+    mr.register_method<&std_object::starts_with>("starts_with"sv);
+    mr.register_method<&std_object::substring>("substring"sv);
 }
 
 blob_result std_object::to_integer(string_view str)
@@ -31,12 +34,30 @@ blob_result std_object::to_integer(string_view str)
 
 blob_result std_object::clone_value(blob_result val)
 {
+    // to do: real clone
     if (val.type == blob_type::string) {
-        blob_result_allocate(&val);
+        if (!val.need_unpin) {
+            blob_result_allocate(&val);
+        } else {
+            blob_result_pin(&val);
+        }
         return val;
         //if (!val.inplace_size && !val.need_unpin) // it's a reference, we need to return a new blob_result
     }
     return error_blob_result("Cannot clone the given value"sv);
+}
+
+bool std_object::starts_with(string_view target, string_view prefix) const
+{
+    return target.starts_with(prefix);
+}
+
+string_view std_object::substring(string_view target, uint32_t start, int32_t length) const
+{
+    if (start >= target.size()) {
+        return string_view{};
+    }
+    return target.substr(start, length >= 0 ? length : target.size() - start);
 }
 
 class regex_object : public invocation::object
