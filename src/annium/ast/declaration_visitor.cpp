@@ -132,7 +132,7 @@ declaration_visitor::result_type declaration_visitor::operator()(using_decl cons
         
         //fnptrn->result_constraints.emplace(parameter_constraint_set_t{ .expression = ud.expression }, parameter_constraint_modifier_t::const_value);
         fnl.push(std::move(fnptrn));
-        return std::unexpected(std::move(err));
+        //return std::unexpected(std::move(err));
     }
     return break_scope_kind::none;
 }
