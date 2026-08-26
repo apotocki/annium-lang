@@ -114,6 +114,9 @@
     <ClCompile Include="..\..\..\src\annium\ast\base_expression_visitor.cpp">
       <Filter>annium\ast</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\ast\consteval_evaluator.cpp">
+      <Filter>annium\ast</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\ast\declaration_visitor.cpp">
       <Filter>annium\ast</Filter>
     </ClCompile>
@@ -513,6 +516,9 @@
       <Filter>annium\ast</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\ast\base_expression_visitor.hpp">
+      <Filter>annium\ast</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\ast\consteval_evaluator.hpp">
       <Filter>annium\ast</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\ast\declaration_visitor.hpp">

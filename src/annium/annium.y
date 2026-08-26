@@ -1098,6 +1098,8 @@ syntax-expression-base:
 //////////////////////////// 3 priority
     | MINUS syntax-expression[expr] %prec PREFIXMINUS
         { $$ = syntax_expression{ std::move($MINUS), unary_expression{ unary_operator_type::MINUS, true, std::span{ ctx.make<opt_named_expression_t>(std::move($expr)), 1 } } }; }
+    | CONSTEVAL syntax-expression[expr] %prec PREFIXMINUS
+        { $$ = syntax_expression{ std::move($CONSTEVAL), consteval_expression{ ctx.make<syntax_expression>(std::move($expr)) } }; }
     | EXCLPT syntax-expression[expr]
 		{ $$ = syntax_expression{ std::move($EXCLPT), unary_expression{ unary_operator_type::NEGATE, true, std::span{ ctx.make<opt_named_expression_t>(std::move($expr)), 1 } } }; }
     | ASTERISK syntax-expression[expr] %prec DEREF

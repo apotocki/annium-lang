@@ -249,6 +249,8 @@ class environment : public enable_shared_from_this<environment>
 
     sonia::lang::compiler_task_tracer task_tracer_;
 
+    invocation::invocable* compile_time_host_ = nullptr;
+
 public:
     enum class builtin_type
     {
@@ -444,8 +446,17 @@ public:
 
     //// compiler
     intptr_t retrieve_function_rt_identifier(internal_function_entity const&);
-    
+
     size_t compile(internal_function_entity const&);
+
+    // The host used to run compiler-owned bytecode *during compilation* (consteval, see
+    // CONSTEVAL_CTFE_PLAN.md section 3.5) -- deliberately the same chained_host the compiled
+    // program itself will run with, parents included; set once by annium_impl right after both
+    // it and environment exist. Not the same thing as a vm::context's own `penv`, which is
+    // supplied fresh per run; this is just where the compiler finds the host to hand it, since
+    // environment otherwise has no notion of a host at all.
+    inline void set_compile_time_host(invocation::invocable* host) noexcept { compile_time_host_ = host; }
+    inline invocation::invocable* compile_time_host() const noexcept { return compile_time_host_; }
 
     //// utility
     std::unique_ptr<arena> acquire_arena();

@@ -76,6 +76,7 @@ public:
 
     result_type operator()(annium_fn_type const&) const;
     result_type operator()(not_empty_expression const&) const;
+    result_type operator()(consteval_expression const&) const;
 
     template <typename T>
     result_type operator()(T const&) const

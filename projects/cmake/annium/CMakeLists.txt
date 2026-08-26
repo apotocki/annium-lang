@@ -41,6 +41,7 @@ set (LIBRARY_SOURCES
     ${ANNIUM_SRC}/annium/ast/assign_expression_visitor.cpp
     ${ANNIUM_SRC}/annium/ast/ast_resource.cpp
     ${ANNIUM_SRC}/annium/ast/base_expression_visitor.cpp
+    ${ANNIUM_SRC}/annium/ast/consteval_evaluator.cpp
     ${ANNIUM_SRC}/annium/ast/declaration_visitor.cpp
     ${ANNIUM_SRC}/annium/ast/fn_compiler_context.cpp
     ${ANNIUM_SRC}/annium/entities/functional_binding.cpp

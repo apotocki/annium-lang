@@ -485,6 +485,9 @@
     <None Include="..\..\..\tests\test-suite\arithmetic.ann">
       <Filter>test-suite</Filter>
     </None>
+    <None Include="..\..\..\tests\test-suite\consteval.ann">
+      <Filter>test-suite</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\..\..\modules\sonia-prime\projects\vs\sonia.natvis">

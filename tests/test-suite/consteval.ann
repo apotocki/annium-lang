@@ -1,0 +1,71 @@
+// consteval <expr>: forced compile-time evaluation of otherwise-runtime code (CTFE).
+// See CONSTEVAL_CTFE_PLAN.md.
+
+// bootstrap.ann's starts_with/substring each have two overloads: the original runtime-only one,
+// and a constexpr one layered on top that just forwards to `consteval` of the runtime one, e.g.
+// `inline fn starts_with(self: ~ constexpr string, $prefix: constexpr string) -> bool =>
+//  consteval starts_with(self: runtime_cast(self), runtime_cast($prefix));`. Calling it with two
+// *different* literal argument pairs, as below, is what originally exposed a real bug (see
+// BUGFIXES.md): each distinct constexpr argument pair gets its own internal_function_entity for
+// the wrapper, so the wrapper's single `consteval` node gets built -- and a scratch entity
+// created -- once per call site, all at the *same* source location (the wrapper's own, in
+// bootstrap.ann). A single call here would not have caught the regression; keep at least two.
+let r0 = starts_with(self: "hello", "he");
+assert(r0);
+assert(is_const(r0));
+
+let r1 = starts_with(self: "hello", "no");
+assert(!r1);
+assert(is_const(r1));
+
+let r2 = substring(self: "hello", 1, 3);
+assert_equal(r2, "ell");
+assert(is_const(r2));
+
+let r3 = substring(self: "hello", 0, 5);
+assert_equal(r3, "hello");
+assert(is_const(r3));
+
+// Same regression, more directly: two separate `consteval` expressions each naming bootstrap.ann's
+// actual `starts_with(runtime,runtime)` overload -- exercises the fix independent of the
+// constexpr-wrapper plumbing above. `is_const` confirms these actually folded to compile-time
+// constants rather than silently falling back to a runtime call that happens to produce the
+// right value.
+assert(is_const(consteval starts_with(self: "hello", "he")));
+assert(consteval starts_with(self: "hello", "he"));
+assert(!consteval starts_with(self: "hello", "no"));
+
+// section 3.6 regression: std_object::substring returns a string_view into its own argument, and
+// annium_invoke_object pops that argument before the caller sees the result -- a missing deep
+// copy at the consteval boundary would produce garbage or a crash here instead of a clean "ell".
+assert_equal(consteval substring(self: "hello", 1, 3), "ell");
+
+// consteval over a call chain that includes a non-inline function: wrap_starts_with is a plain
+// (non-inline) fn, so evaluating this exercises the transitive dependency-materialisation step
+// (CONSTEVAL_CTFE_PLAN.md section 5.1) -- wrap_starts_with itself has to be force-built and
+// force-compiled before the scratch block that calls it can run. Its own body is compiled once,
+// shared by every call site, so `$a.starts_with($b)` inside it always resolves the runtime
+// overload of starts_with regardless of what a particular caller passed.
+fn wrap_starts_with($a: string, $b: string) -> bool {
+    return $a.starts_with($b);
+}
+assert(consteval wrap_starts_with("hello", "he"));
+
+// an expression whose callee body contains an `if`: confirms conditional_t codegen works fine
+// under consteval (CONSTEVAL_CTFE_PLAN.md section 4 -- this was never actually broken, but is
+// worth a regression test given FUTURE_WORK.md used to claim otherwise before this plan).
+fn choose($flag: bool) -> string {
+    if $flag {
+        return "yes";
+    } else {
+        return "no";
+    }
+}
+assert_equal(consteval choose(true), "yes");
+assert_equal(consteval choose(false), "no");
+
+// Not part of this script (it's meant to compile and run cleanly): consteval over a result that
+// resolves to `object` (an opaque host handle, never representable as a compile-time constant)
+// must be a clean compile error, not a crash -- try uncommenting this locally to check the
+// diagnostic:
+// let bad = consteval create_extern_object("Foo");

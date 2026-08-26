@@ -6,6 +6,7 @@
 #include "annium/ast/base_expression_visitor.ipp"
 //#include "annium/ast/base_expression_visitor.ipp"
 #include "annium/ast/declaration_visitor.hpp"
+#include "annium/ast/consteval_evaluator.hpp"
 //#include "annium/ast/fn_compiler_context.hpp"
 
 #include <boost/container/flat_set.hpp>
@@ -1378,6 +1379,25 @@ base_expression_visitor::result_type base_expression_visitor::operator()(not_emp
 {
     (void)v;
     THROW_NOT_IMPLEMENTED_ERROR("base_expression_visitor not_empty_expression_t");
+}
+
+base_expression_visitor::result_type base_expression_visitor::operator()(consteval_expression const& ce) const
+{
+    // Ordinary runtime semantics for the operand -- the same overloads a normal compilation
+    // would pick (CONSTEVAL_CTFE_PLAN.md section 3.1). No expected type/modifier is forced here:
+    // that's exactly what lets a `runtime` parameter materialise a constexpr literal argument
+    // the normal way, and what keeps this from becoming a second, competing constexpr-folding
+    // path alongside apply_cast's.
+    auto res = base_expression_visitor::visit(ctx, expressions, *ce.value);
+    if (!res) return std::unexpected(std::move(res.error()));
+    syntax_expression_result& er = res->first;
+    if (er.is_const_result) {
+        // the operand already folded to a compile-time value on its own; nothing to evaluate
+        return apply_cast(std::move(er));
+    }
+    auto eval_res = evaluate_consteval(ctx, context_expression_.location, std::move(er));
+    if (!eval_res) return std::unexpected(std::move(eval_res.error()));
+    return apply_cast(std::move(*eval_res));
 }
 
 } // namespace annium

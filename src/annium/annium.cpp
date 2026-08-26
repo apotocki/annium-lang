@@ -115,7 +115,12 @@ using namespace annium;
 #include "bootstrap_code.generated.hpp"
 
 annium_impl::annium_impl()
-{}
+{
+    // consteval evaluation runs during compilation, deep inside declaration_visitor, with no
+    // path back to annium_impl's own chained_host_ -- give environment_ a standing pointer to
+    // the same host up front so it's there by the time any consteval expression needs it.
+    environment_->set_compile_time_host(chained_host_.get());
+}
 
 annium_impl::~annium_impl()
 {

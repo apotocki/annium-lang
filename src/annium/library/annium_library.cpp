@@ -855,6 +855,10 @@ void annium_get_object_property(vm::context& ctx)
     if (res.is_error()) {
         throw exception(res.as<std::string>());
     }
+    // res may be a view into memory the host object only guarantees for the duration of the
+    // get_property() call (e.g. something it built from its own transient state) -- see the
+    // annium_invoke_object comment below for the concrete, confirmed instance of this pattern.
+    res.allocate();
     ctx.stack_pop();
     ctx.stack_back().replace(std::move(res));
 }
@@ -867,7 +871,7 @@ void annium_invoke(vm::context& ctx)
     for (size_t i = argcount; i > 0; --i) {
         args.emplace_back(*ctx.stack_back(i));
     }
-    
+
     string_view name = ctx.stack_back(argcount + 1).as<string_view>();
     smart_blob resobj = ctx.env().invoke(name, span{ args });
     if (resobj.is_error()) {
@@ -875,6 +879,12 @@ void annium_invoke(vm::context& ctx)
         // GLOBAL_LOG_ERROR() << "Error invoking '%1%': %2%"_fmt % name % tstr;
         throw exception(resobj.as<std::string>());
     }
+    // resobj may be a non-owning view into `args` (e.g. a string_view-returning host method
+    // handing back a slice of one of its own string_view arguments) -- args is a local variable
+    // and is about to go out of scope when this function returns, so resobj must own its bytes
+    // before that happens. See the annium_invoke_object comment below for the confirmed case
+    // this guards against (BUGFIXES.md).
+    resobj.allocate();
     ctx.stack_pop(argcount + 1);
     ctx.stack_back().replace(std::move(resobj));
 }
@@ -903,6 +913,17 @@ void annium_invoke_object(vm::context& ctx)
     if (res.is_error()) {
         throw exception(res.as<std::string>());
     }
+    // res can be a non-owning view into `args` (e.g. std_object::substring returns a string_view
+    // into its own `target` argument, and string_blob_result(string_view) wraps it as a reference
+    // rather than copying) -- args is a local variable, about to be destroyed when this function
+    // returns, taking that memory with it. Confirmed the hard way: consteval's own scratch
+    // execution (ast/consteval_evaluator.cpp) reads a pushed ecall result well after this
+    // function has returned, and under valgrind that read landed on already-invalidated stack
+    // memory (garbage instead of "ell" from `substring("hello", 1, 3)`). Ordinary (non-consteval)
+    // execution has the exact same dangling reference the instant this function returns -- it
+    // just usually reads it again quickly enough, before anything else reuses this stack region,
+    // that the bug stays latent. See BUGFIXES.md.
+    res.allocate();
     ctx.stack_pop(argcount + 2);
     ctx.stack_back().replace(std::move(res));
 }
@@ -925,6 +946,8 @@ void annium_invoke_callable(vm::context& ctx)
     if (res.is_error()) {
         throw exception(res.as<std::string>());
     }
+    // same dangling-view hazard as annium_invoke_object just above -- see BUGFIXES.md.
+    res.allocate();
     ctx.stack_pop(argcount + 1);
     ctx.stack_back().replace(std::move(res));
 }

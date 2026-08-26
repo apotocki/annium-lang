@@ -168,6 +168,7 @@
     <None Include="..\..\..\tests\test-suite\callables.ann" />
     <None Include="..\..\..\tests\test-suite\casts.ann" />
     <None Include="..\..\..\tests\test-suite\conditional_statements.ann" />
+    <None Include="..\..\..\tests\test-suite\consteval.ann" />
     <None Include="..\..\..\tests\test-suite\draft.ann" />
     <None Include="..\..\..\tests\test-suite\enums.ann" />
     <None Include="..\..\..\tests\test-suite\basic_tuple.ann" />

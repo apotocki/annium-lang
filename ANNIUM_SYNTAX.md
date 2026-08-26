@@ -32,6 +32,7 @@ A parameter is written as (informally, several grammar productions in `annium.y:
 - **Unnamed positional**: just a constraint, no name — `runtime`, `runtime integer`, `constexpr string`, or a bare type name like `integer` (defaults to `constexpr_or_runtime_type`). Example: `"__to_integer(runtime)->integer"`.
 - **Named, caller-visible**: `name: constraint` — e.g. `"decimal(text: string)->decimal|()"`.
 - **Named, internal-only** (not part of the call-site signature, just a label used in the result-type expression or for readability): `$name: constraint`, where `$name` lexes as `CONTEXT_IDENTIFIER` (`$` followed by **letters**, `annium.l:104`). Example: `"__array_set_at($arr: runtime, $index: runtime integer, $value)"`.
+- **Named, caller-visible name + separate internal name**: `name $internalName: constraint` — see "External name + internal name" below.
 - **Placeholder**: `_` matches any single positional argument without binding a name.
 - **Variadic**: trailing `...` — `"__print(runtime ..., runtime integer)"`.
 - **Optional**: `name?: constraint` with a default-value spec.
@@ -39,6 +40,28 @@ A parameter is written as (informally, several grammar productions in `annium.y:
 ### `$0` / `$1` / `$$` are NOT parameter names
 
 `$0`, `$1`, ... lex as `RESERVED_IDENTIFIER` (`$` followed by a plain number, `annium.l:105`) — a **completely different token** from `$name` (`CONTEXT_IDENTIFIER`). `RESERVED_IDENTIFIER` is only valid in **expression position**, inside a function body or a result-type expression, meaning "the value of the Nth positional argument" — e.g. `assert_equal`'s body uses `$0 == $1`; `"__array_tail(~runtime tuple(_, $t...))->tuple($t...)"`'s result type references a *pattern-bound* `$t`, not this reserved form. You cannot declare a parameter named `$0` — the grammar's `internal-identifier` production only accepts `CONTEXT_IDENTIFIER`. Use a letters-based `$name` instead.
+
+### Call-site argument matching: named vs. positional
+
+Whether a parameter's declared name starts with `$` decides how its argument must be written at the call site — this is independent of the `runtime`/`constexpr` modifier and of whether the parameter has a default:
+
+- **Declared with an external (non-`$`) name** (`name: constraint` or `name $internalName: constraint`) — the argument **must** be passed by that name: `f(name: value)`. Named arguments may appear in **any order**.
+- **Declared as `$name` only** (no external name) — the parameter is **positional only**; nothing is written at the call site for it. Positional arguments are matched strictly in **declaration order**, regardless of where any named arguments are interleaved among them at the call site.
+
+This is why `bootstrap.ann`'s `starts_with(self: ~ runtime string, $prefix: runtime string) -> bool` must be called as `starts_with(self: "hello", "he")`, not `starts_with("hello", "he")`: `self` has an external name (no `$`), so it's mandatory and named; `$prefix` has none, so it's positional and unnamed at the call site. The same applies to `substring(self: ~ runtime string, $start: runtime u32, $length: runtime i32 = i32.max)`: `substring(self: "hello", 1, 3)`.
+
+### External name + internal name: `name $internalName: constraint`
+
+A parameter can declare *both* a caller-facing external name and a separate implementation-facing internal name, e.g. `f(count $n: integer)`: the call site writes `count:`, the body refers to the value as `$n` (like Swift's external/internal parameter name pairs). This is `named_parameter_name` (`ast_terms.hpp`) with both `external_name` and `internal_name` set. Plain `name: constraint` is the same struct with `internal_name` left empty (the body then refers to the parameter by its external name directly); plain `$name: constraint` is the other variant, `unnamed_parameter_name` (no external name — positional, per above).
+
+## Member calls (`a.b(args)`) desugar to ordinary functional lookup
+
+`a.b(args)` is sugar, resolved in two steps, tried in order:
+
+1. `b(self: <type of a>, args)` — a plain call to a functional named `b` whose `self` parameter matches `a`'s type.
+2. If no such pattern matches: `invoke(self: <type of a>, method: __identifier, args)` — the generic dynamic-dispatch fallback (used for e.g. host/extern objects with no compile-time-known member set).
+
+So member-call syntax needs no special declaration on the callee's side: any function with a `self`-named first parameter (e.g. `starts_with(self: ~ runtime string, ...)`) is callable both as `starts_with(self: x, ...)` and as `x.starts_with(...)` — they're the same call, just written differently.
 
 ## `@concept` constraints
 

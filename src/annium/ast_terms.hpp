@@ -280,6 +280,13 @@ struct not_empty_expression
     syntax_expression const* value;
 };
 
+// consteval <expr> -- forces compile-time evaluation of an otherwise-runtime expression.
+// See CONSTEVAL_CTFE_PLAN.md.
+struct consteval_expression
+{
+    syntax_expression const* value;
+};
+
 struct new_expression
 {
     syntax_expression const* name;
@@ -462,6 +469,7 @@ struct syntax_expression
         new_expression, // like new Type(args)
         unary_expression, // like -value
         binary_expression, // like left + right
+        consteval_expression, // like consteval <expr>
         /*not_empty_expression, // like value?
 
         // special statements

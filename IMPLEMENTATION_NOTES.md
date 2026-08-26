@@ -139,6 +139,102 @@ Runtime `/` still has no definition for `decimal` (point 2 above) — a runtime 
 
 **`divide_decimal_rounded` (`numeric_promotion.hpp`/`.cpp`) only implements `rounding_mode::half_even`; the other six values are declared (in both enums, for a stable signature) but throw `THROW_NOT_IMPLEMENTED_ERROR`.** Deliberately incremental, mirroring how `__plus`/`__minus`/`__multiply`/`__divide` were each implemented and tested before moving to the next — see `FUTURE_WORK.md`. The algorithm: scale `lhs`'s significand by `10^(exp_a - exp_b + scale)` (or scale `rhs`'s significand by `10^-(...)` if that exponent comes out negative) so the division becomes an exact-integer numerator over an exact-integer denominator; take the truncated quotient `q` and remainder `r` from that (`numetron::integer`'s existing `operator/`/`operator%`, magnitudes only — sign is reapplied at the very end via `lhs.is_negative() != rhs.is_negative()`); compare `2*r` against the denominator to find `half_even`'s tie-break (`2r < den`: round down, keep `q`; `2r > den`: round up, `q += 1`; `2r == den`: an exact tie, round to whichever of `q`/`q+1` is even); then strip trailing zeros from the result same as `try_divide_decimal_constexpr` does. Division by zero returns `std::nullopt` (same shape as `try_divide_decimal_constexpr`), which `annium_divide_decimal_rounded` turns into a real `throw exception(...)` — unlike the constexpr case, there's no compile error to report instead, this only happens at actual runtime.
 
+## `consteval <expr>` -- forced compile-time evaluation (CTFE)
+
+See `CONSTEVAL_CTFE_PLAN.md` for the full design and rationale; this section covers the shape the
+implementation actually took, for anyone reading `ast/consteval_evaluator.*` cold.
+
+**The operand is visited exactly once, with ordinary (unconstrained) semantics**
+(`base_expression_visitor::operator()(consteval_expression const&)`, `ast/base_expression_visitor.cpp`) --
+`base_expression_visitor::visit(ctx, expressions, *ce.value)`, the 3-arg overload, which leaves
+`expected_result` default-constructed (`value_modifier_t::constexpr_or_runtime_value`, no forced
+type). This is deliberate: it's what lets a `runtime`-only parameter materialize a constexpr
+literal argument the normal way, without `consteval` needing any special-cased interaction with
+overload resolution. If the operand happens to fold to a constexpr result on its own (e.g. the
+whole expression turned out to reference only constexpr-foldable things), `evaluate_consteval` is
+never even called -- there's nothing to run.
+
+**The scratch function is a real, throwaway `internal_function_entity`, not hand-rolled asm.**
+`evaluate_consteval` (`ast/consteval_evaluator.cpp`) builds one with an empty `entity_signature`,
+inserts it into the entity registry (`environment::eregistry_insert`, purely to get it a real,
+unique `entity_identifier` -- everything else about the entity is unused), assigns its `body`
+field directly to the *already-produced* `syntax_expression_result::expressions` span (no
+`declaration_visitor`/AST pass needed, since that span is already a fully-resolved semantic
+expression list), and calls the existing `environment::compile(internal_function_entity const&)`
+on it. That function's own unconditional trailing `fb.append_ret()` (see the "Unconditional" note
+at its call site) is exactly what turns "push the operand's value" into a standalone `ret`-
+terminated routine with no extra code needed here. The scratch entity is left as a "provision"
+(the constructor's default) specifically so `annium_impl::compile`'s later
+build-everything/compile-everything registry traversal skips it -- that traversal only touches
+non-provision entities, and re-`build()`ing this one (which has no `sts_` at all, having bypassed
+`set_body`) would silently blow its `body` away.
+
+**Dependency materialisation walks the *already-compiled* semantic form, not the AST.**
+`dependency_walker` (anonymous namespace, `consteval_evaluator.cpp`) recurses through every
+branch-bearing `semantic::expression` variant (`conditional_t`, `switch_t`,
+`not_empty_condition_t`, `loop_scope_t`, `return_statement`, `yield_statement`, nested
+`expression_span`) and, at each `invoke_function`, force-`build()`s the callee if needed and --
+only for a non-inline target -- schedules it for `environment::compile()`. It always recurses into
+the callee's own body regardless of inline-ness, since an inline callee's body is what actually
+ends up inside whichever function *does* get compiled (possibly the scratch block itself,
+possibly one of its own non-inline callees, transitively). Compiling every collected non-inline
+function before running is required, not optional: `asm_builder`'s `call` op defers to a
+`pushc <const-slot>; callp` indirection when the target's address isn't known yet
+(`vmasm_builder.hpp`'s `function_builder::materialize`, `case op_t::call`), and that slot is only
+populated by `environment::compile()`, which nothing else has necessarily called yet at this point
+in the pipeline -- `annium_impl::compile`'s own "build all, then compile all" pass runs later, for
+the *outer* program.
+
+**The same walk doubles as a "will this even run standalone" check.** The scratch entity is
+frame-less (zero variables, no `pushfp`/`popfp`) by construction, so a `push_local_variable`/
+`set_local_variable`/`push_by_offset{frame_bottom}` appearing directly in the operand's *own*
+instructions (not inside an inlined callee's body, which gets its own pushfp/popfp-wrapped frame
+at the splice site regardless of whether the caller has one) means the operand reaches into the
+*enclosing* function's frame -- a value that doesn't exist yet at compile time. `dependency_walker`
+tracks this via a `top_level` flag that's only true for the scratch block's own span (false the
+moment it descends into any callee's body), and `evaluate_consteval` turns a hit into a clean
+`basic_general_error` instead of letting it crash inside `resolve_variable_index`. The same applies
+to a non-empty `syntax_expression_result::temporaries` (e.g. from short-circuit-style codegen) --
+rejected outright, since materializing those would need real variable-table entries the scratch
+entity doesn't have. Neither case is exercised by the motivating example or the plan's test list;
+see `FUTURE_WORK.md`.
+
+**CT-representability is checked twice, at different points, because the two failure modes are
+different.** A statically-typed `object`/`callable` result (`operand.type()` already says so) is
+rejected before compiling or running anything -- cheap, and covers the plan's test case
+(`create_extern_object` is declared `-> object`). A result whose *static* type is `any` can't be
+judged that way (see the plan's section 3.4), so the actual `blob_type` of the executed result is
+checked instead, after the run, before it's handed to `make_generic_entity` -- `blob_type::object`
+covers both `object` and `callable` at the wire level (a `callable` value is carried as a
+`blob_type::object`-tagged handle, same as a plain host object; see `annium_invoke_callable`).
+Recursing into tuple/array/struct element types, as the plan's table describes, is not implemented
+-- see `FUTURE_WORK.md`.
+
+**The compile-time host is reached through a new `environment::compile_time_host()`, not
+`vm::context`'s own `penv`.** `environment` previously had no notion of a host at all -- the
+`chained_host` instance lives in `annium::detail::annium_impl`, a sibling of `environment_`, and
+`vm::context`'s `penv` is supplied fresh per run by whoever constructs the context (`annium_impl`,
+for every real run). `evaluate_consteval` runs deep inside `declaration_visitor`, with no path back
+to `annium_impl`, so `annium_impl`'s constructor now does
+`environment_->set_compile_time_host(chained_host_.get())` once, right after both objects exist,
+purely so `evaluate_consteval` has something to hand `vm::context`'s constructor. This is the one
+piece of plumbing the plan's section 3.5 assumes is already possible but doesn't actually spell
+out as a step.
+
+**The result is deep-copied immediately, before anything else touches `vmctx`.** `smart_blob
+result_blob = vmctx.stack_back(); result_blob.allocate();` happens as the very next two statements
+after `bvm().run()` returns, before `vmctx.stack_pop()` even runs -- see the plan's section 3.6 for
+why a returned blob can't be assumed to own its storage (`std_object::substring` returning a view
+into an argument that's about to be popped is the concrete example). `.allocate()`
+(`blob_result_allocate`, `invocation.hpp`) is the existing "force this blob to own independently-
+allocated storage" primitive used the same way throughout `annium_environment.cpp`'s
+`make_*_entity` factories.
+
+**`blob_type` is a global-namespace enum**, not `sonia::` or `sonia::invocation::`-scoped (see its
+definition in `invocation.hpp`, above any `namespace` block) -- that's why every `.cpp` in this
+tree that touches it (`blob_type::object`, `blob_type::error`, ...) does so unqualified with no
+`using namespace` needed.
+
 ## `blob_result`'s decimal wire format (`sonia-prime/sonia/utility/invocation/invocation.hpp`)
 
 `decimal_blob_result`/`blob_decimal_dispatch` (encode/decode pair) support two on-the-wire layouts for `blob_type::decimal`, selected by `inplace_size`:

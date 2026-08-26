@@ -44,6 +44,7 @@
     <ClCompile Include="..\..\..\src\annium\annium_environment.cpp" />
     <ClCompile Include="..\..\..\src\annium\ast\assign_expression_visitor.cpp" />
     <ClCompile Include="..\..\..\src\annium\ast\base_expression_visitor.cpp" />
+    <ClCompile Include="..\..\..\src\annium\ast\consteval_evaluator.cpp" />
     <ClCompile Include="..\..\..\src\annium\ast\declaration_visitor.cpp" />
     <ClCompile Include="..\..\..\src\annium\ast\expression_visitor.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -196,6 +197,7 @@
     <ClInclude Include="..\..\..\src\annium\annium.yy.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\assign_expression_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\base_expression_visitor.hpp" />
+    <ClInclude Include="..\..\..\src\annium\ast\consteval_evaluator.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\declaration_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\expression_implicit_cast_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\expression_visitor.hpp" />

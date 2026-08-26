@@ -1,6 +1,11 @@
 extern var std: object;
 
 // CONTROL
+inline fn assert(bool, location: string = __call_location) -> () {
+	if $0 { return; }
+	error(location: location, "Assertion failed");
+}
+
 inline fn assert_equal(_, _, location: string = __call_location) -> () {
 	if $0 == $1 { return; }
 	error(location: location, "Assertion failed: " .. to_string($0) .. " != " .. to_string($1));
@@ -62,12 +67,13 @@ inline fn ::get(self: ~ typename i64, property: ~ consteval .max) -> i64 => 9223
 inline fn ::get(self: ~ typename u64, property: ~ consteval .min) -> u64 => 0;
 inline fn ::get(self: ~ typename u64, property: ~ consteval .max) -> u64 => 18446744073709551615;
 
-
 // STRINGS
 inline fn implicit_cast(string) ~> bool => !empty($0);
 inline fn clone(string) -> string => reinterpret(std.clone($0));
 inline fn starts_with(self: ~ runtime string, $prefix: runtime string) -> bool => reinterpret(std.starts_with(self, $prefix));
+inline fn starts_with(self: ~ constexpr string, $prefix: constexpr string) -> bool => consteval starts_with(self: runtime_cast(self), runtime_cast($prefix));
 inline fn substring(self: ~ runtime string, $start: runtime u32, $length: runtime i32 = i32.max) -> string => reinterpret(std.substring(self, $start, $length));
+inline fn substring(self: ~ constexpr string, $start: constexpr u32, $length: constexpr i32 = i32.max) -> string => consteval substring(self: runtime_cast(self), runtime_cast($start), runtime_cast($length));
 
 // UNIONS
 inline fn equal($l: ~union(...), $r) => apply(to: $l, visitor: fn[$r]($value) => $value == $r);
