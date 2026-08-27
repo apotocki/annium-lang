@@ -491,6 +491,9 @@
     <None Include="..\..\..\tests\test-suite\comparisons.ann">
       <Filter>test-suite</Filter>
     </None>
+    <None Include="..\..\..\tests\test-suite\numeric_limits.ann">
+      <Filter>test-suite</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\..\..\modules\sonia-prime\projects\vs\sonia.natvis">

@@ -66,6 +66,19 @@ inline fn ::get(self: ~ typename i64, property: ~ consteval .min) -> i64 => -922
 inline fn ::get(self: ~ typename i64, property: ~ consteval .max) -> i64 => 9223372036854775807;
 inline fn ::get(self: ~ typename u64, property: ~ consteval .min) -> u64 => 0;
 inline fn ::get(self: ~ typename u64, property: ~ consteval .max) -> u64 => 18446744073709551615;
+// f16/f32/f64 .min/.max are the most-negative/most-positive *finite* value (symmetric, min = -max),
+// matching the fixed-width integer types' min/max above -- not C++'s std::numeric_limits<T>::min(),
+// which for floating types means "smallest positive normalized value" instead. Each literal is the
+// exact decimal expansion of the IEEE-754 value (e.g. f32 max = (2^24-1)*2^104), not a rounded
+// approximation -- an inexact literal would make the implicit bigint/decimal -> floating narrowing
+// below fail its exact round-trip safety check (see BUGFIXES.md's
+// `can_convert_constexpr_value_safely` entry) instead of silently losing precision.
+inline fn ::get(self: ~ typename f16, property: ~ consteval .min) -> f16 => -65504;
+inline fn ::get(self: ~ typename f16, property: ~ consteval .max) -> f16 => 65504;
+inline fn ::get(self: ~ typename f32, property: ~ consteval .min) -> f32 => -340282346638528859811704183484516925440;
+inline fn ::get(self: ~ typename f32, property: ~ consteval .max) -> f32 => 340282346638528859811704183484516925440;
+inline fn ::get(self: ~ typename f64, property: ~ consteval .min) -> f64 => -179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368;
+inline fn ::get(self: ~ typename f64, property: ~ consteval .max) -> f64 => 179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368;
 
 // STRINGS
 inline fn implicit_cast(string) ~> bool => !empty($0);

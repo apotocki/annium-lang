@@ -111,14 +111,19 @@ smart_blob negate_constexpr_numeric(generic_literal_entity const* arg, builtin_e
 } // anonymous namespace
 
 std::expected<functional_match_descriptor_ptr, error_storage>
-numeric_literal_unary_minus_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
+numeric_literal_unary_minus_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const&) const
 {
     environment& env = ctx.env();
-    
+
     auto call_session = call.new_session(ctx);
-    
-    // Get the single argument
-    auto arg_descr = call_session.get_next_positioned_argument(exp);
+
+    // Get the single argument. Deliberately resolved with a neutral (default-constructed)
+    // expected_result_t rather than the caller's `exp` -- see numeric_literal_minus_pattern's sibling
+    // try_match (same "minus" qname, binary arity) for the pattern this mirrors, and BUGFIXES.md for
+    // why forwarding `exp` here was wrong: it made the pre-negation operand get resolved against the
+    // *outer* expression's expected type (e.g. `i8` for `-> i8 => -128;`), which a boundary literal
+    // like 128 doesn't itself fit (i8's range is -128..127) even though its negation, -128, does.
+    auto arg_descr = call_session.get_next_positioned_argument();
     if (!arg_descr) return std::unexpected(std::move(arg_descr.error()));
     
     // Check for unused arguments
