@@ -96,3 +96,42 @@ let rmax32: f32 = runtime_cast(f32.max);
 let rmin32: f32 = runtime_cast(f32.min);
 assert(rmin32 < rmax32);
 assert(!(rmax32 < rmin32));
+
+// .inf/.nan: unlike .min/.max, these have no literal spelling and are backed by a dedicated extern
+// per width (__f16_infinity/__f32_infinity/__f64_infinity, __f16_nan/__f32_nan/__f64_nan), invoked
+// via `consteval` -- see the comment above their bootstrap.ann declarations. No separate -infinity
+// property: unary `-` already works on f16/f32/f64, so `-f32.inf` is exercised directly below instead
+// of a hypothetical `f32.neg_inf`.
+
+// +inf compares greater than every finite value, including .max itself; -inf (via unary `-`, not a
+// property of its own) compares less than every finite value, including .min.
+assert(f16.inf > f16.max);
+assert(-f16.inf < f16.min);
+assert(f32.inf > f32.max);
+assert(-f32.inf < f32.min);
+assert(f64.inf > f64.max);
+assert(-f64.inf < f64.min);
+
+// infinity is a well-ordered, self-equal value (unlike NaN below) -- equal to itself, and not less
+// than itself.
+assert_equal(f32.inf, f32.inf);
+assert(!(f32.inf < f32.inf));
+assert(!(f32.inf < -f32.inf));
+
+// NaN's defining property: unordered and unequal to *everything*, including itself -- every `==`
+// comparison is false and every `<`/`>` comparison is false, not just the ones against other values.
+assert(!(f32.nan == f32.nan));
+assert(!(f32.nan < f32.nan));
+assert(!(f32.nan < 0));
+assert(!(0 < f32.nan));
+assert(!(f32.nan < f32.inf));
+assert(!(f32.inf < f32.nan));
+assert(!(f32.nan == f32.max));
+
+// runtime_cast'd operands: .inf/.nan themselves fold at compile time, but confirm the values still
+// behave correctly once they're ordinary runtime f32 values, not just inside constexpr expressions.
+let rinf32: f32 = runtime_cast(f32.inf);
+let rnan32: f32 = runtime_cast(f32.nan);
+assert(rmax32 < rinf32);
+assert(!(rnan32 == rnan32));
+assert(!(rnan32 < rnan32));

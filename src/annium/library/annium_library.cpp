@@ -10,6 +10,9 @@
 
 #include "annium/entities/literals/numeric_promotion.hpp"
 
+#include <cmath>
+#include <limits>
+#include <optional>
 #include <sstream>
 #include <utility>
 
@@ -60,6 +63,22 @@ template <typename T>
 constexpr bool is_numeric_dispatch_type_v =
     (is_integral_not_bool_v<T> && !std::is_same_v<T, char>) || std::is_floating_point_v<T> || std::is_same_v<T, numetron::float16> ||
     numetron::is_basic_integer_view_v<T> || numetron::is_basic_decimal_view_v<T>;
+
+// `<` between a value that's always finite in this language (integral, bigint, or decimal -- none of
+// those have a NaN/infinity state) and a native floating value that might not be (f16/f32/f64, now
+// that bootstrap.ann's .nan/.inf properties can actually produce one). Returns the ordering result if
+// the floating side is non-finite; nullopt if it's finite, meaning the caller should fall through to
+// its own finite-case comparison (numetron::decimal construction) -- numetron::decimal's
+// floating-point constructor throws for a non-finite input rather than reporting "doesn't fit" (see
+// BUGFIXES.md), so non-finite values must be intercepted before ever reaching that constructor. NaN
+// compares false against everything, including itself; +-infinity compares as wider than any finite
+// value, in the direction its sign says.
+inline std::optional<bool> less_involving_nonfinite(double floating_side, bool floating_is_lhs) noexcept
+{
+    if (std::isnan(floating_side)) return false;
+    if (std::isinf(floating_side)) return floating_is_lhs ? (floating_side < 0) : (floating_side > 0);
+    return std::nullopt;
+}
 
 }
 
@@ -202,7 +221,17 @@ void annium_numeric_less(vm::context& ctx)
                     // so route both operands through the owning numetron::decimal, which is
                     // exactly constructible from every numeric dispatch type (native int,
                     // bigint, float, float16, decimal_view -- basic_decimal.hpp's constructor
-                    // set) and compares exactly against another numetron::decimal.
+                    // set) and compares exactly against another numetron::decimal. decimal
+                    // itself is always finite, so only the non-decimal side can be a
+                    // non-finite floating value -- intercept that before it ever reaches
+                    // numetron::decimal's throwing floating constructor.
+                    if constexpr (numetron::is_basic_decimal_view_v<LDT> &&
+                                  (std::is_floating_point_v<RDT> || std::is_same_v<RDT, numetron::float16>)) {
+                        if (auto nf = less_involving_nonfinite(static_cast<double>(rv), false)) return *nf;
+                    } else if constexpr (numetron::is_basic_decimal_view_v<RDT> &&
+                                         (std::is_floating_point_v<LDT> || std::is_same_v<LDT, numetron::float16>)) {
+                        if (auto nf = less_involving_nonfinite(static_cast<double>(lv), true)) return *nf;
+                    }
                     return numetron::decimal{lv} < numetron::decimal{rv};
                 } else if constexpr ((is_integral_not_bool_v<LDT> || numetron::is_basic_integer_view_v<LDT>) &&
                                       (is_integral_not_bool_v<RDT> || numetron::is_basic_integer_view_v<RDT>)) {
@@ -223,8 +252,15 @@ void annium_numeric_less(vm::context& ctx)
                                       is_integral_not_bool_v<RDT> || numetron::is_basic_integer_view_v<RDT>) {
                     // Integral-ish (native or bigint) vs. native floating (f16/f32/f64): no
                     // operator<=> exists between basic_integer_view and a floating type (unlike
-                    // operator==, which has one -- see basic_integer.hpp), so fall back to the
-                    // same numetron::decimal route used for the decimal branches above.
+                    // operator==, which has one -- see basic_integer.hpp). The integral-ish side
+                    // is always finite, so -- same reasoning as the decimal branch above --
+                    // intercept a non-finite floating operand before falling back to the same
+                    // numetron::decimal route used for the decimal branches above.
+                    if constexpr (std::is_floating_point_v<RDT> || std::is_same_v<RDT, numetron::float16>) {
+                        if (auto nf = less_involving_nonfinite(static_cast<double>(rv), false)) return *nf;
+                    } else if constexpr (std::is_floating_point_v<LDT> || std::is_same_v<LDT, numetron::float16>) {
+                        if (auto nf = less_involving_nonfinite(static_cast<double>(lv), true)) return *nf;
+                    }
                     return numetron::decimal{lv} < numetron::decimal{rv};
                 } else {
                     // Both native floating (f16/f32/f64 in any combination): casting to double is
@@ -236,6 +272,44 @@ void annium_numeric_less(vm::context& ctx)
     });
     ctx.stack_pop();
     ctx.stack_back().replace(smart_blob{ bool_blob_result(result) });
+}
+
+// f16/f32/f64 .inf/.nan (bootstrap.ann): these values have no numeric-literal spelling and can't be
+// built via constexpr arithmetic either (compile-time float division by zero is rejected, same as
+// decimal division by zero -- see arithmetic.ann's `divide` section), so unlike .min/.max (plain
+// literals) each needs an actual extern, called via `consteval` from bootstrap.ann to still fold at
+// compile time. Zero-argument externs, same shape as annium_get_frame_stack_height above: no operands
+// to pop, just push the result. -infinity isn't given its own extern/property -- unary `-` already
+// works on f16/f32/f64 (numeric_literal_unary_minus_pattern.cpp's negate_constexpr_numeric), so
+// `-f32.inf` covers it without duplicating a property that's just this one's negation.
+void annium_f16_infinity(vm::context& ctx)
+{
+    ctx.stack_push(smart_blob{ f16_blob_result(numetron::float16::infinity()) });
+}
+
+void annium_f32_infinity(vm::context& ctx)
+{
+    ctx.stack_push(smart_blob{ f32_blob_result(std::numeric_limits<float>::infinity()) });
+}
+
+void annium_f64_infinity(vm::context& ctx)
+{
+    ctx.stack_push(smart_blob{ f64_blob_result(std::numeric_limits<double>::infinity()) });
+}
+
+void annium_f16_nan(vm::context& ctx)
+{
+    ctx.stack_push(smart_blob{ f16_blob_result(numetron::float16::quiet_NaN()) });
+}
+
+void annium_f32_nan(vm::context& ctx)
+{
+    ctx.stack_push(smart_blob{ f32_blob_result(std::numeric_limits<float>::quiet_NaN()) });
+}
+
+void annium_f64_nan(vm::context& ctx)
+{
+    ctx.stack_push(smart_blob{ f64_blob_result(std::numeric_limits<double>::quiet_NaN()) });
 }
 
 void annium_tostring(vm::context & ctx)

@@ -1709,6 +1709,16 @@ environment::environment()
     set_builtin_extern("__to_f64(runtime @numeric)->f64"sv, &annium_numeric_to_f64);
     set_builtin_extern("__to_decimal(runtime @numeric)->decimal"sv, &annium_numeric_to_decimal);
 
+    // backing externs for bootstrap.ann's f16/f32/f64 .inf/.nan typename-properties -- see the
+    // comment above their annium_library.cpp implementations for why these need a real extern
+    // instead of a plain literal like .min/.max use.
+    set_builtin_extern("__f16_infinity()->f16"sv, &annium_f16_infinity);
+    set_builtin_extern("__f32_infinity()->f32"sv, &annium_f32_infinity);
+    set_builtin_extern("__f64_infinity()->f64"sv, &annium_f64_infinity);
+    set_builtin_extern("__f16_nan()->f16"sv, &annium_f16_nan);
+    set_builtin_extern("__f32_nan()->f32"sv, &annium_f32_nan);
+    set_builtin_extern("__f64_nan()->f64"sv, &annium_f64_nan);
+
     // constexpr counterpart to the 8 `numeric_cast(runtime @numeric) ~> iN|uN` overloads declared in bootstrap.ann:
     // same qname, folds the conversion at compile time when the argument is a compile-time constant.
     functional& numeric_cast_fnl = fregistry_resolve(qname{ make_identifier("numeric_cast"sv) });
