@@ -1,0 +1,147 @@
+// __less / a<b: generic numeric "strictly less than" across any two numeric types (bool excluded),
+// implemented by annium_numeric_less in annium_library.cpp. Unlike __equal (which accepts any blob
+// type at the C++ level and only special-cases numeric pairs at runtime), bootstrap.ann's
+// `less(runtime @numeric, runtime @numeric) -> bool` restricts both operands to @numeric at the
+// type-system level -- there's no non-numeric fallback to test here. `<` is also, as of this
+// writing, the only relational operator actually wired up end-to-end (<=, >, >= exist in the
+// grammar's operator_type enum but their production rule is commented out), so this file is scoped
+// to `<` alone.
+//
+// annium_numeric_less has no blob_result::operator< to fall back on for same-family pairs (unlike
+// __plus/__minus/__multiply/__divide's numeric_promotion.cpp, and unlike __equal's blob_result::
+// operator==), so every pairing below -- same-family and cross-family alike -- exercises hand-written
+// dispatch logic in that function. Each section here targets one of its branches specifically.
+//
+// As with arithmetic.ann, a plain `let x: T = <const-expr>;` stays constexpr-foldable (bootstrap.ann
+// routes bare-literal `<` through `consteval __less` instead of a dedicated numeric_literal_less_
+// pattern), so runtime_cast forces genuinely runtime operands through annium_numeric_less itself in
+// every section except the explicit constexpr-fold section at the end.
+
+// same native type, same width: the plain case.
+let a32: i32 = runtime_cast(3);
+let b32: i32 = runtime_cast(5);
+assert(a32 < b32);
+assert(!(b32 < a32));
+assert(!(a32 < a32)); // strict: a value is never less than itself
+
+// mixed fixed-width, same signedness family: std::cmp_less (like __equal's std::cmp_equal) compares
+// the mathematical values directly regardless of width.
+let s8: i8 = runtime_cast(100);
+let s16: i16 = runtime_cast(200);
+assert(s8 < s16);
+assert(!(s16 < s8));
+
+// signed/unsigned collision at the same width: the case std::cmp_less exists for. The usual
+// arithmetic conversions would silently convert the signed side to unsigned before comparing --
+// (u32)-1 becomes 4294967295, which is NOT less than 4000000000 -- giving the wrong answer for a
+// value that's mathematically negative. std::cmp_less compares the true values instead.
+let ineg32: i32 = runtime_cast(-1);
+let ularge32: u32 = runtime_cast(4000000000);
+assert(ineg32 < ularge32);
+assert(!(ularge32 < ineg32));
+
+// same collision at 64-bit width, where there's no wider native type left to escalate to (unlike
+// __plus/__minus, __less doesn't escalate at all -- it just needs the comparison itself to stay
+// correct at the widest native width).
+let ineg64: i64 = runtime_cast(-1);
+let ularge64: u64 = runtime_cast(18446744073709551615); // u64 max
+assert(ineg64 < ularge64);
+assert(!(ularge64 < ineg64));
+
+// native vs. bigint (integer): at least one side is a basic_integer_view, so this exercises the
+// "lv < rv" branch that relies on basic_integer_view's own operator<=> plus C++20's reversed-
+// candidate synthesis to cover both operand orders.
+let small: i32 = runtime_cast(5);
+let big: integer = runtime_cast(100000000000000000000); // far beyond i64/u64 range
+assert(small < big);
+assert(!(big < small));
+
+// same, with a negative native value and a negative bigint, to confirm sign is respected on both
+// sides of the pairing, not just magnitude.
+let negsmall: i32 = runtime_cast(-5);
+assert(negsmall < big);
+let negbig: integer = runtime_cast(-100000000000000000000);
+assert(negbig < small);
+assert(!(small < negbig));
+
+// bigint vs. bigint. Both operands here are constructed the same way annium-lang always constructs
+// bigint blobs (via numetron::integer's canonical uint64_t limb width -- see bigint_blob_result in
+// invocation.hpp), so both land on the same basic_integer_view<uint64_t> instantiation and compare
+// directly. (basic_integer_view comparisons across *different* limb widths are a separate, currently
+// unimplemented case -- see BUGFIXES.md / integer_view.hpp -- not reachable from bigint values
+// annium-lang itself produces, so it isn't exercised here.)
+let biga: integer = runtime_cast(100000000000000000000);
+let bigb: integer = runtime_cast(100000000000000000001);
+assert(biga < bigb);
+assert(!(bigb < biga));
+assert(!(biga < biga));
+
+let negbig2: integer = runtime_cast(-999999999999999999999);
+assert(negbig2 < biga);
+assert(!(biga < negbig2));
+
+// decimal vs. decimal: both sides are basic_decimal_view, comparing directly via its own
+// operator<=>.
+let da: decimal = runtime_cast(1.5);
+let db: decimal = runtime_cast(2.25);
+assert(da < db);
+assert(!(db < da));
+assert(!(da < da));
+
+// decimal vs. integral (native and bigint): basic_decimal(_view) has no operator<=> against an
+// integral type directly, so this routes through owning numetron::decimal construction on both
+// sides.
+let de: decimal = runtime_cast(2.5);
+let ni: i32 = runtime_cast(3);
+assert(de < ni);
+assert(!(ni < de));
+
+let sbi: integer = runtime_cast(5);
+assert(de < sbi);
+assert(!(sbi < de));
+
+// decimal vs. native floating: same "route through numetron::decimal" branch, the other side of the
+// pairing.
+let ff: f32 = runtime_cast(2.75);
+assert(de < ff);
+assert(!(ff < de));
+
+// native floating vs. native floating, mixed width (f16/f32/f64 in every combination): the cheap
+// static_cast<double> branch. Exact for all three widths, so equality/ordering both stay precise.
+let f16a: f16 = runtime_cast(1.5);
+let f32a: f32 = runtime_cast(2.5);
+let f64a: f64 = runtime_cast(3.5);
+assert(f16a < f32a);
+assert(f32a < f64a);
+assert(f16a < f64a);
+assert(!(f64a < f16a));
+assert(!(f32a < f32a));
+
+// native/bigint integral vs. native floating: the gap this feature had to work around -- unlike
+// operator==, numetron's basic_integer_view has no operator<=> against a floating type, so this
+// (like the decimal branches above) routes both operands through numetron::decimal construction
+// instead. Covered for both a native integral and a bigint on the integral side, and both operand
+// orders.
+let ia: i32 = runtime_cast(10);
+let fa: f32 = runtime_cast(10.5);
+assert(ia < fa);
+assert(!(fa < ia));
+
+let small_float: f64 = runtime_cast(5.5);
+assert(small_float < big); // 5.5 < 10^20
+assert(!(big < small_float));
+assert(negbig < small_float); // -10^20 < 5.5
+assert(!(small_float < negbig));
+
+// fully constexpr fold: `<` between two constexpr numeric operands never reaches
+// annium_numeric_less at runtime -- it's resolved by consteval __less at compile time instead (see
+// bootstrap.ann). Included to confirm the compile-time path agrees with the runtime path exercised
+// above, across the same family combinations (native/native, bigint/bigint, decimal/decimal,
+// integer/decimal).
+assert(1 < 2);
+assert(!(5 < 3));
+assert(!(2 < 2));
+assert(1.5 < 2.5);
+assert(100000000000000000000 < 100000000000000000001);
+assert(!(3 < 2.5)); // int/decimal join
+assert(2 < 2.5);

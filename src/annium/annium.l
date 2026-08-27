@@ -185,6 +185,7 @@ FARROW					 "~>"
 CONCAT                   ".."
 EQ                       "=="
 NE                       "!="
+LESS					 "<"
 ELLIPSIS                 "..."
 
 /*
@@ -237,10 +238,6 @@ PERCENT                 "%"
 
 TILDA                   "~"
 EXCL                    "^"
-OPEN_BROKET             "<"
-CLOSE_BROKET            ">"
-
-
 
 DOLLAR                  "$"
 
@@ -389,6 +386,7 @@ HASHTAG					"#"
 	{CONCAT}                   { variant_emplace(location); return (annium_lang::parser::token::CONCAT); }
 	{EQ}					   { variant_emplace(location); return (annium_lang::parser::token::EQ); }
 	{NE}					   { variant_emplace(location); return (annium_lang::parser::token::NE); }
+	{LESS}                     { variant_emplace(location); return (annium_lang::parser::token::LESS); }
 	{ELLIPSIS}                 { variant_emplace(location); return (annium_lang::parser::token::ELLIPSIS); }
 
 	{IDENTIFIER} {
@@ -444,21 +442,6 @@ HASHTAG					"#"
 		return (annium_lang::parser::token::OPERATOR_TERM);
 	}
 
-	
-	
-    
-	
-    
-	
-
-
-
-	{OPEN_BROKET}			{ return (annium_lang::parser::token::OPEN_BROKET); }
-	{CLOSE_BROKET}			{ return (annium_lang::parser::token::CLOSE_BROKET); }
-	
-	
-	
-	
 	{HASHTAG}               { return (annium_lang::parser::token::HASHTAG); }
 	*/
 }

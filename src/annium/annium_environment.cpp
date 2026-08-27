@@ -1675,6 +1675,7 @@ environment::environment()
     builtin_eids_[(size_t)builtin_eid::array_at] = set_builtin_extern("__array_at()"sv, &annium_array_at);
     builtin_eids_[(size_t)builtin_eid::array_set_at] = set_builtin_extern("__array_set_at($arr: runtime, $index: runtime integer, $value)"sv, &annium_array_set_at);
     builtin_eids_[(size_t)builtin_eid::equal] = set_builtin_extern("__equal(runtime, runtime)->bool"sv, &annium_any_equal);
+    builtin_eids_[(size_t)builtin_eid::less] = set_builtin_extern("__less(runtime @numeric, runtime @numeric)->bool"sv, &annium_numeric_less);
     builtin_eids_[(size_t)builtin_eid::assert] = set_builtin_extern("__assert(runtime)"sv, &annium_assert);
     builtin_eids_[(size_t)builtin_eid::string_empty] = set_builtin_extern("empty(runtime string)->bool"sv, &annium_string_empty);
     builtin_eids_[(size_t)builtin_eid::string_size] = set_builtin_extern("size(runtime string)->integer"sv, &annium_string_size);

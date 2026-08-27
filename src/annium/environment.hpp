@@ -107,6 +107,7 @@ class arena;
     ((init, "init"sv))                     \
     ((eq, "equal"sv))                      \
     ((ne, "not_equal"sv))                  \
+    ((less, "less"sv))                     \
     ((plus, "__plus"))                     \
     ((minus, "__minus"))                   \
     ((multiply, "__multiply"))             \
@@ -192,6 +193,7 @@ enum class builtin_eid : entity_identifier::value_type
     array_at, // builtin ::array_at(array, index)-> elementT
     array_set_at, // builtin ::array_set_at(array, index, value)-> void
     equal, // builtin ::equal(a, b)-> boolean
+    less, // builtin ::less(a, b)-> boolean
     assert, // builtin ::assert(condition, message)-> void 
     error, // builtin ::__error(message)-> void
     string_empty, // builtin ::empty(runtime string)-> bool

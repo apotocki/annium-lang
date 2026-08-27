@@ -79,6 +79,7 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 %token GE                   "`>=`"
 %token <resource_location> EQ                   "`==`"
 %token <resource_location> NE                   "`!=`"
+%token <resource_location> LESS                 "`<`"
 %token <resource_location> LOGIC_AND            "`&&`"
 %token <resource_location> LOGIC_OR             "`||`"
 %token <resource_location> CONCAT               "`..`"
@@ -104,8 +105,6 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 %token CLOSE_SQUARE_BRACKET "`]`"
 %token <resource_location> OPEN_SQUARE_DBL_BRACKET "`[[`"
 %token CLOSE_SQUARE_DBL_BRACKET "`]]`"
-%token OPEN_BROKET          "`<`"
-%token CLOSE_BROKET         "`>`"
 %token END_STATEMENT		"`;`"
 %token <resource_location> POINT      "`.`"
 %token <resource_location> PLUS       "`+`"
@@ -211,7 +210,7 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 %left AMPERSAND
 
 // 9 priority
-%left EQ NE
+%left EQ NE LESS
 
 // 6 priority
 %left CONCAT
@@ -1121,6 +1120,8 @@ syntax-expression-base:
         { $$ = syntax_expression{ std::move($EQ), binary_expression{ binary_operator_type::EQ, ctx.make_span_for_args<opt_named_expression_t>(std::move($larg), std::move($rarg)) } }; }
     | syntax-expression[larg] NE syntax-expression[rarg]
         { $$ = syntax_expression{ std::move($NE), binary_expression{ binary_operator_type::NE, ctx.make_span_for_args<opt_named_expression_t>(std::move($larg), std::move($rarg)) } }; }
+    | syntax-expression[larg] LESS syntax-expression[rarg]
+        { $$ = syntax_expression{ std::move($LESS), binary_expression{ binary_operator_type::LESS, ctx.make_span_for_args<opt_named_expression_t>(std::move($larg), std::move($rarg)) } }; }
     | syntax-expression[larg] CONCAT syntax-expression[rarg]
         { $$ = syntax_expression{ std::move($CONCAT), binary_expression{ binary_operator_type::CONCAT, ctx.make_span_for_args<opt_named_expression_t>(std::move($larg), std::move($rarg)) } }; }
 //////////////////////////// 10 priority

@@ -13,6 +13,7 @@ void annium_get_frame_stack_height(vm::context&);
 
 void annium_any_equal(vm::context&);
 void annium_decimal_equal(vm::context&);
+void annium_numeric_less(vm::context&);
 void annium_tostring(vm::context&);
 void annium_print_string(vm::context&);
 void annium_concat(vm::context&);

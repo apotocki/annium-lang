@@ -175,6 +175,69 @@ void annium_decimal_equal(vm::context& ctx)
     ctx.stack_back().replace(smart_blob{ bool_blob_result(l == r) });
 }
 
+void annium_numeric_less(vm::context& ctx)
+{
+    smart_blob const& l = ctx.stack_back(1);
+    smart_blob const& r = ctx.stack_back();
+    // Unlike annium_any_equal, there's no blob_result::operator< to fall back on for
+    // same-family pairs (sonia-prime's invocation.hpp only defines operator== for
+    // blob_result), so every pairing -- same-family and cross-family alike -- is handled
+    // by hand here via blob_type_dispatch. bootstrap.ann's `less(runtime @numeric, runtime
+    // @numeric)` signature guarantees both operands are numeric by the time __less runs;
+    // the is_numeric_dispatch_type_v gate below exists only because blob_type_dispatch
+    // still instantiates this lambda for every blob_type at compile time (see the comment
+    // above is_numeric_dispatch_type_v's definition).
+    bool result = blob_type_dispatch(*l, [&r]<typename LDT>(LDT lv) -> bool {
+        if constexpr (!is_numeric_dispatch_type_v<LDT>) {
+            return false; // unreachable at runtime
+        } else {
+            return blob_type_dispatch(*r, [&lv]<typename RDT>(RDT rv) -> bool {
+                if constexpr (!is_numeric_dispatch_type_v<RDT>) {
+                    return false; // unreachable at runtime
+                } else if constexpr (numetron::is_basic_decimal_view_v<LDT> && numetron::is_basic_decimal_view_v<RDT>) {
+                    return lv < rv;
+                } else if constexpr (numetron::is_basic_decimal_view_v<LDT> || numetron::is_basic_decimal_view_v<RDT>) {
+                    // decimal vs. integral or floating: neither basic_integer_view nor the
+                    // native floating types have an operator<=> against basic_decimal(_view),
+                    // so route both operands through the owning numetron::decimal, which is
+                    // exactly constructible from every numeric dispatch type (native int,
+                    // bigint, float, float16, decimal_view -- basic_decimal.hpp's constructor
+                    // set) and compares exactly against another numetron::decimal.
+                    return numetron::decimal{lv} < numetron::decimal{rv};
+                } else if constexpr ((is_integral_not_bool_v<LDT> || numetron::is_basic_integer_view_v<LDT>) &&
+                                      (is_integral_not_bool_v<RDT> || numetron::is_basic_integer_view_v<RDT>)) {
+                    if constexpr (is_integral_not_bool_v<LDT> && is_integral_not_bool_v<RDT>) {
+                        // Native-vs-native needs std::cmp_less rather than a plain <: the usual
+                        // arithmetic conversions would silently convert the signed side to
+                        // unsigned before comparing, same reasoning as annium_any_equal's
+                        // std::cmp_equal.
+                        return std::cmp_less(lv, rv);
+                    } else {
+                        // At least one side is a bigint (basic_integer_view); its operator<=>
+                        // against basic_integer_view or std::integral, together with C++20's
+                        // reversed-candidate synthesis, covers native-vs-bigint in either order
+                        // as well as bigint-vs-bigint.
+                        return lv < rv;
+                    }
+                } else if constexpr (is_integral_not_bool_v<LDT> || numetron::is_basic_integer_view_v<LDT> ||
+                                      is_integral_not_bool_v<RDT> || numetron::is_basic_integer_view_v<RDT>) {
+                    // Integral-ish (native or bigint) vs. native floating (f16/f32/f64): no
+                    // operator<=> exists between basic_integer_view and a floating type (unlike
+                    // operator==, which has one -- see basic_integer.hpp), so fall back to the
+                    // same numetron::decimal route used for the decimal branches above.
+                    return numetron::decimal{lv} < numetron::decimal{rv};
+                } else {
+                    // Both native floating (f16/f32/f64 in any combination): casting to double is
+                    // exact for all of them and preserves NaN/infinity ordering semantics.
+                    return static_cast<double>(lv) < static_cast<double>(rv);
+                }
+            });
+        }
+    });
+    ctx.stack_pop();
+    ctx.stack_back().replace(smart_blob{ bool_blob_result(result) });
+}
+
 void annium_tostring(vm::context & ctx)
 {
     std::ostringstream res;

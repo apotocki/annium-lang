@@ -73,6 +73,10 @@
     "output": ""
   },
   {
+    "src": "comparisons.ann",
+    "output": ""
+  },
+  {
     "src": "consteval.ann",
     "output": ""
   }

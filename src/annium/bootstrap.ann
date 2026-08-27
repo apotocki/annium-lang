@@ -148,6 +148,10 @@ inline fn to_integer(runtime string) -> integer {
     return reinterpret(std.to_integer($0));
 }
 
+// NUMERIC
+inline fn less(runtime @numeric, runtime @numeric) -> bool => __less($0, $1);
+inline fn less(constexpr @numeric, constexpr @numeric) -> bool => consteval __less($0, $1);
+
 // NUMERIC CASTS
 // explicit, context-driven counterpart to implicit_cast for the fixed-width numeric family:
 // the target type is picked from the expected result type at the call site (~>), like __plus/__extern_invoke do.
