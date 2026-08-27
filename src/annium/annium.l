@@ -186,6 +186,9 @@ CONCAT                   ".."
 EQ                       "=="
 NE                       "!="
 LESS					 "<"
+LESS_EQ                  "<="
+GREATER                  ">"
+GREATER_EQ               ">="
 ELLIPSIS                 "..."
 
 /*
@@ -387,6 +390,9 @@ HASHTAG					"#"
 	{EQ}					   { variant_emplace(location); return (annium_lang::parser::token::EQ); }
 	{NE}					   { variant_emplace(location); return (annium_lang::parser::token::NE); }
 	{LESS}                     { variant_emplace(location); return (annium_lang::parser::token::LESS); }
+	{LESS_EQ}                  { variant_emplace(location); return (annium_lang::parser::token::LESS_EQ); }
+	{GREATER}                  { variant_emplace(location); return (annium_lang::parser::token::GREATER); }
+	{GREATER_EQ}               { variant_emplace(location); return (annium_lang::parser::token::GREATER_EQ); }
 	{ELLIPSIS}                 { variant_emplace(location); return (annium_lang::parser::token::ELLIPSIS); }
 
 	{IDENTIFIER} {

@@ -108,6 +108,9 @@ class arena;
     ((eq, "equal"sv))                      \
     ((ne, "not_equal"sv))                  \
     ((less, "less"sv))                     \
+    ((less_eq, "less_eq"sv))               \
+    ((greater, "greater"sv))               \
+    ((greater_eq, "greater_eq"sv))         \
     ((plus, "__plus"))                     \
     ((minus, "__minus"))                   \
     ((multiply, "__multiply"))             \

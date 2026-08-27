@@ -75,11 +75,12 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 %token DBLMINUS             "`--`"
 %token LEFTSHIFT            "`<<`"
 %token RIGHTSHIFT           "`>>`"
-%token LE                   "`<=`"
-%token GE                   "`>=`"
 %token <resource_location> EQ                   "`==`"
 %token <resource_location> NE                   "`!=`"
 %token <resource_location> LESS                 "`<`"
+%token <resource_location> LESS_EQ              "`<=`"
+%token <resource_location> GREATER              "`>`"
+%token <resource_location> GREATER_EQ           "`>=`"
 %token <resource_location> LOGIC_AND            "`&&`"
 %token <resource_location> LOGIC_OR             "`||`"
 %token <resource_location> CONCAT               "`..`"
@@ -210,7 +211,7 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 %left AMPERSAND
 
 // 9 priority
-%left EQ NE LESS
+%left EQ NE LESS LESS_EQ GREATER GREATER_EQ
 
 // 6 priority
 %left CONCAT
@@ -847,8 +848,10 @@ parameter-decl:
     //    { $$ = parameter{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($intid.name.location) } } ), .default_value = optional_t{}, .modifier =  parameter_constraint_modifier_t::constexpr_or_runtime_type }; }
     | internal-identifier[intid] concept-expression-list-opt[cpts] parameter-default-value-opt[default]
         { $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($intid.name.location) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default), .modifier =  parameter_constraint_modifier_t::constexpr_or_runtime_type }; }
-    | UNDERSCORE parameter-default-value-opt[default]
-        { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($UNDERSCORE) } } ), .default_value = std::move($default), .modifier =  parameter_constraint_modifier_t::constexpr_or_runtime_type }; }
+    | UNDERSCORE concept-expression-list-opt[cpts] parameter-default-value-opt[default]
+        { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($UNDERSCORE) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default), .modifier =  parameter_constraint_modifier_t::constexpr_or_runtime_type }; }
+    | concept-expression-list[cpts] parameter-default-value-opt[default]
+        { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ $cpts.front().location }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default), .modifier =  parameter_constraint_modifier_t::constexpr_or_runtime_type }; }
     | internal-identifier[intid] ELLIPSIS parameter-default-value-opt[default]
         { $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($ELLIPSIS) } } ), .default_value = std::move($default), .modifier =  parameter_constraint_modifier_t::constexpr_or_runtime_type | parameter_constraint_modifier_t::variadic }; }
     | ELLIPSIS parameter-default-value-opt[default]
@@ -1122,6 +1125,12 @@ syntax-expression-base:
         { $$ = syntax_expression{ std::move($NE), binary_expression{ binary_operator_type::NE, ctx.make_span_for_args<opt_named_expression_t>(std::move($larg), std::move($rarg)) } }; }
     | syntax-expression[larg] LESS syntax-expression[rarg]
         { $$ = syntax_expression{ std::move($LESS), binary_expression{ binary_operator_type::LESS, ctx.make_span_for_args<opt_named_expression_t>(std::move($larg), std::move($rarg)) } }; }
+    | syntax-expression[larg] LESS_EQ syntax-expression[rarg]
+        { $$ = syntax_expression{ std::move($LESS_EQ), binary_expression{ binary_operator_type::LESS_EQ, ctx.make_span_for_args<opt_named_expression_t>(std::move($larg), std::move($rarg)) } }; }
+    | syntax-expression[larg] GREATER syntax-expression[rarg]
+        { $$ = syntax_expression{ std::move($GREATER), binary_expression{ binary_operator_type::GREATER, ctx.make_span_for_args<opt_named_expression_t>(std::move($larg), std::move($rarg)) } }; }
+    | syntax-expression[larg] GREATER_EQ syntax-expression[rarg]
+        { $$ = syntax_expression{ std::move($GREATER_EQ), binary_expression{ binary_operator_type::GREATER_EQ, ctx.make_span_for_args<opt_named_expression_t>(std::move($larg), std::move($rarg)) } }; }
     | syntax-expression[larg] CONCAT syntax-expression[rarg]
         { $$ = syntax_expression{ std::move($CONCAT), binary_expression{ binary_operator_type::CONCAT, ctx.make_span_for_args<opt_named_expression_t>(std::move($larg), std::move($rarg)) } }; }
 //////////////////////////// 10 priority

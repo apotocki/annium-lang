@@ -1027,6 +1027,12 @@ base_expression_visitor::result_type base_expression_visitor::operator()(binary_
         return this->operator()(builtin_qnid::ne, be.args);
     case binary_operator_type::LESS:
         return this->operator()(builtin_qnid::less, be.args);
+    case binary_operator_type::LESS_EQ:
+        return this->operator()(builtin_qnid::less_eq, be.args);
+    case binary_operator_type::GREATER:
+        return this->operator()(builtin_qnid::greater, be.args);
+    case binary_operator_type::GREATER_EQ:
+        return this->operator()(builtin_qnid::greater_eq, be.args);
     case binary_operator_type::PLUS:
         return this->operator()(builtin_qnid::plus, be.args);
     case binary_operator_type::MINUS:

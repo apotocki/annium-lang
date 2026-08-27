@@ -151,6 +151,9 @@ inline fn to_integer(runtime string) -> integer {
 // NUMERIC
 inline fn less(runtime @numeric, runtime @numeric) -> bool => __less($0, $1);
 inline fn less(constexpr @numeric, constexpr @numeric) -> bool => consteval __less($0, $1);
+inline fn less_eq(@numeric, @numeric) -> bool => !less($1, $0);
+inline fn greater(@numeric, @numeric) -> bool => less($1, $0);
+inline fn greater_eq(@numeric, @numeric) -> bool => !less($0, $1);
 
 // NUMERIC CASTS
 // explicit, context-driven counterpart to implicit_cast for the fixed-width numeric family:

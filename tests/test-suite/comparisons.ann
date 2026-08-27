@@ -2,10 +2,7 @@
 // implemented by annium_numeric_less in annium_library.cpp. Unlike __equal (which accepts any blob
 // type at the C++ level and only special-cases numeric pairs at runtime), bootstrap.ann's
 // `less(runtime @numeric, runtime @numeric) -> bool` restricts both operands to @numeric at the
-// type-system level -- there's no non-numeric fallback to test here. `<` is also, as of this
-// writing, the only relational operator actually wired up end-to-end (<=, >, >= exist in the
-// grammar's operator_type enum but their production rule is commented out), so this file is scoped
-// to `<` alone.
+// type-system level -- there's no non-numeric fallback to test here.
 //
 // annium_numeric_less has no blob_result::operator< to fall back on for same-family pairs (unlike
 // __plus/__minus/__multiply/__divide's numeric_promotion.cpp, and unlike __equal's blob_result::
@@ -16,6 +13,13 @@
 // routes bare-literal `<` through `consteval __less` instead of a dedicated numeric_literal_less_
 // pattern), so runtime_cast forces genuinely runtime operands through annium_numeric_less itself in
 // every section except the explicit constexpr-fold section at the end.
+//
+// <=, >, >= (less_eq/greater/greater_eq in bootstrap.ann) are pure bootstrap.ann compositions on top
+// of `less` -- `less_eq(a,b) => !less(b,a)`, `greater(a,b) => less(b,a)`, `greater_eq(a,b) =>
+// !less(a,b)` -- with no C++ implementation and no dispatch logic of their own, so the dedicated
+// section near the end of this file only needs to check the composition/argument-order itself
+// (particularly the a==a boundary, where an accidentally-swapped $0/$1 is easiest to miss), not the
+// full numeric-family matrix `<` already covers above.
 
 // same native type, same width: the plain case.
 let a32: i32 = runtime_cast(3);
@@ -145,3 +149,45 @@ assert(1.5 < 2.5);
 assert(100000000000000000000 < 100000000000000000001);
 assert(!(3 < 2.5)); // int/decimal join
 assert(2 < 2.5);
+
+// <=, >, >=: pure compositions of `less` (see the file header). Each gets a less-than case, a
+// greater-than case, and -- the important one, since this is exactly where an argument-order slip
+// would hide -- the a==a boundary.
+let p: i32 = runtime_cast(3);
+let q: i32 = runtime_cast(5);
+
+// less_eq(a,b) => !less(b,a)
+assert(p <= q);       // 3 <= 5
+assert(!(q <= p));    // !(5 <= 3)
+assert(p <= p);       // 3 <= 3
+
+// greater(a,b) => less(b,a)
+assert(q > p);        // 5 > 3
+assert(!(p > q));     // !(3 > 5)
+assert(!(p > p));     // !(3 > 3)
+
+// greater_eq(a,b) => !less(a,b). Regression check: an earlier version of greater_eq was defined
+// identically to less_eq (!less($1,$0) instead of !less($0,$1)), so greater_eq(5,3) evaluated to
+// false instead of true -- exactly the case the next two asserts pin down.
+assert(q >= p);       // 5 >= 3
+assert(!(p >= q));    // !(3 >= 5)
+assert(p >= p);       // 3 >= 3
+
+// a couple of non-native families, to confirm the composition itself (not just `less`) works
+// generically across types -- the full per-family dispatch matrix is already covered by the `<`
+// sections above, so this is deliberately not exhaustive.
+assert(big >= small);         // bigint vs. native
+assert(!(small >= big));
+assert(db >= da);             // decimal vs. decimal
+assert(fa > ia);              // native floating vs. native integral
+
+// constexpr fold for <=, >, >=, mirroring the `<` constexpr section above.
+assert(2 <= 3);
+assert(!(3 <= 2));
+assert(2 <= 2);
+assert(3 > 2);
+assert(!(2 > 3));
+assert(!(2 > 2));
+assert(3 >= 2);
+assert(!(2 >= 3));
+assert(2 >= 2);
