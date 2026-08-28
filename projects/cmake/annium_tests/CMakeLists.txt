@@ -12,7 +12,6 @@ set (MODULE_NAME annium_tests)
 set (ANNIUM_TESTS_SOURCES
     ${SONIA_HOME}/applied/scoped_services.cpp
     ${SONIA_HOME}/applied/tests_external.cpp
-    ${SONIA_HOME}/applied/tests_main.cpp
     
     ${SONIA_HOME}/sonia/fibers/algo/algorithm.cpp
     ${SONIA_HOME}/sonia/fibers/algo/round_robin.cpp
@@ -52,14 +51,32 @@ set (ANNIUM_TESTS_SOURCES
     
     ${SONIA_HOME}/sonia/sal/posix_sal.cpp
     ${SONIA_HOME}/sonia/sys/posix/posix.cpp
-    ${SONIA_HOME}/sonia/sys/linux/signals.cpp
-    ${SONIA_HOME}/sonia/sys/linux/linux_timer.cpp
-    ${SONIA_HOME}/sonia/sys/linux/signals_api.cpp
-    
     ${ANNIUM_HOME}/tests/annium_test.cpp
 )
 
+if(NOT APPLE)
+    list(APPEND ANNIUM_TESTS_SOURCES
+        ${SONIA_HOME}/applied/tests_main.cpp
+    )
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    list(APPEND ANNIUM_TESTS_SOURCES
+        ${SONIA_HOME}/sonia/sys/linux/signals.cpp
+        ${SONIA_HOME}/sonia/sys/linux/linux_timer.cpp
+        ${SONIA_HOME}/sonia/sys/linux/signals_api.cpp
+    )
+elseif(APPLE)
+    list(APPEND ANNIUM_TESTS_SOURCES
+        ${SONIA_HOME}/sonia/sys/macos/dispatch.cpp
+    )
+endif()
+
 add_executable(${MODULE_NAME} ${ANNIUM_TESTS_SOURCES})
+
+if(APPLE)
+    target_compile_options(${MODULE_NAME} PRIVATE -fblocks)
+endif()
 
 # Link annium library to tests
 target_link_libraries(${MODULE_NAME} PRIVATE annium numetron)
@@ -71,6 +88,7 @@ target_link_libraries(${MODULE_NAME} PRIVATE
     Boost::log
     Boost::log_setup
     Boost::program_options
+    Boost::serialization
     Boost::unit_test_framework
 )
 

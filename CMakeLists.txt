@@ -49,7 +49,11 @@ if (DEFINED ENV{BOOST_INCLUDE})
         endif()
     endforeach()
 else()
-    find_package(Boost REQUIRED COMPONENTS headers context log log_setup program_options thread unit_test_framework)
+    find_package(Boost REQUIRED COMPONENTS context log log_setup program_options serialization thread unit_test_framework)
+    if (NOT TARGET Boost::headers)
+        add_library(Boost::headers INTERFACE IMPORTED)
+        target_include_directories(Boost::headers INTERFACE "${Boost_INCLUDE_DIRS}")
+    endif()
 endif()
 #find_package(PkgConfig REQUIRED)
 
@@ -132,6 +136,8 @@ add_compile_definitions(SONIA_PRIME_STATIC SONIA_NO_PRIME_BUNDLE AUTO_TEST_REGIS
 # Platform-specific definitions
 if(WIN32)
     add_compile_definitions(BOOST_NO_USER_CONFIG BOOST_ALL_DYN_LINK BOOST_STACKTRACE_LINK)
+elseif(APPLE)
+    add_compile_definitions(BOOST_STACKTRACE_GNU_SOURCE_NOT_REQUIRED)
 endif()
 
 set (COMMON_INCLUDE)
