@@ -120,3 +120,20 @@ This entry previously claimed that both `conditional_t` and `not_empty_condition
 - `switch_t` (`vm/compiler_visitor.hpp:289`) is implemented the same way.
 
 The mistake came from grepping for `THROW_NOT_IMPLEMENTED_ERROR` near `conditional_t` without checking whether the enclosing block was `#if 0`'d — exactly the trap `IMPLEMENTATION_NOTES.md` warns about under "Stale / dead code caveat".
+
+## Wire up (or replace) `numetron::limb_arithmetic::udiv`'s multi-limb divisor case
+
+**Status:** not started, deliberately deferred -- flagged by the user, who recalled disabling a working multi-limb implementation at some point but not why.
+
+**Problem:** the public entry point `udiv(std::span<const LimbT> u, std::span<const LimbT> v, std::span<LimbT> q, std::span<LimbT> r)` (`limb_arithmetic/udiv.hpp`, bottom of the file) -- the one every higher-level division (`basic_integer`'s `operator/`/`operator%`, and transitively anything that divides by a bigint) actually calls -- only implements a single-limb divisor (`ve - vb == 1`, routed to the fast `udivby1` path); any wider divisor hits `throw std::runtime_error("not implemented")`. This was worked around, not fixed, while adding `f16`/`f32`/`f64` `.pi`/`.e` to `bootstrap.ann` (see `BUGFIXES.md`'s "Adding `f16`/`f32`/`f64` `.pi`/`.e` surfaced a chain of five independent bugs" entry, point 3) by restructuring `decimal_view::operator T()` to never divide by anything wider than one limb in the first place.
+
+**The work isn't starting from zero.** The same file already contains two different apparent attempts at a real multi-limb algorithm, neither wired to the `udiv` entry point above:
+
+- `udiv_bc`/`udiv_svoboda`/`udiv_dv` (lines ~72-285) -- a base-case long division plus a Svoboda's-algorithm variant (precomputed-reciprocal division) and a divide-and-conquer wrapper, feeding a *different* `udiv(LimbT uh, span ul, LimbT dh, span dl, qit, alloc)` overload (line ~288, allocator-taking, output-iterator-based quotient) that nothing else in the library calls.
+- `udiv2` (lines ~342-486) -- a separate, more self-contained normalize/divide/denormalize implementation with its own two overloads, also uncalled from anywhere else.
+
+Both look substantially complete (normalization, quotient digit estimation with the correction loop, remainder recovery) rather than stubs, which fits the user's recollection of having had a working version -- but neither has been audited for correctness here, and it's not established which of the two (if either, as-is) is actually right, or why the entry point was pointed at a bare throw instead of either one.
+
+**Proposed direction:** when picked back up, treat this as "review and validate an existing implementation," not "write one from scratch": pick one of `udiv_svoboda`/`udiv2` (or reconcile them), get it wired to the real `udiv` entry point, and test hard against exactly the class of inputs that exposed the `add()`/`decimal_view` bugs in the `BUGFIXES.md` entry above -- wide, close-in-magnitude operands, exact-equality cases, and both odd and even limb-count divisors -- before trusting it. Once it's correct, `decimal_view::operator T()`'s `floor_div_pow5` chunking (the workaround this entry exists because of) can be simplified back to a single direct `A / pow5k` / `A % pow5k`.
+
+**Why deferred:** genuinely unresolved *why* it was disabled -- could be a real correctness bug in one or both attempts, an incomplete integration, or something unrelated to correctness entirely. Re-enabling it blind, without knowing which, is exactly the kind of risk this project's bug history (three separate previously-latent `numetron` arithmetic bugs surfaced by one feature addition, per the entry above) argues against.

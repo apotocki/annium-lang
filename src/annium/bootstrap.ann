@@ -92,6 +92,20 @@ inline fn ::get(self: ~ typename f64, property: ~ consteval .inf) -> f64 => cons
 inline fn ::get(self: ~ typename f16, property: ~ consteval .nan) -> f16 => consteval __f16_nan();
 inline fn ::get(self: ~ typename f32, property: ~ consteval .nan) -> f32 => consteval __f32_nan();
 inline fn ::get(self: ~ typename f64, property: ~ consteval .nan) -> f64 => consteval __f64_nan();
+// f16/f32/f64 .pi/.e: like .min/.max (and unlike .inf/.nan), no extern needed -- pi and e are
+// irrational, but the correctly-rounded value actually *stored* in any given width is itself an
+// exact dyadic rational (significand * 2^exponent), so it has a finite, exact decimal expansion the
+// same way FLT_MAX/DBL_MAX do. Each literal below is that exact expansion for the IEEE-754 value
+// nearest to the true mathematical constant at that width (computed from System.Math.PI/E via each
+// width's own correct round-to-nearest-even, then decomposed exactly through its sign/exponent/
+// significand bits -- not a truncated decimal approximation), so the same implicit-narrowing
+// round-trip safety check .min/.max's comment above describes applies here too.
+inline fn ::get(self: ~ typename f16, property: ~ consteval .pi) -> f16 => 3.140625;
+inline fn ::get(self: ~ typename f32, property: ~ consteval .pi) -> f32 => 3.1415927410125732421875;
+inline fn ::get(self: ~ typename f64, property: ~ consteval .pi) -> f64 => 3.141592653589793115997963468544185161590576171875;
+inline fn ::get(self: ~ typename f16, property: ~ consteval .e) -> f16 => 2.71875;
+inline fn ::get(self: ~ typename f32, property: ~ consteval .e) -> f32 => 2.71828174591064453125;
+inline fn ::get(self: ~ typename f64, property: ~ consteval .e) -> f64 => 2.718281828459045090795598298427648842334747314453125;
 
 // STRINGS
 inline fn implicit_cast(string) ~> bool => !empty($0);

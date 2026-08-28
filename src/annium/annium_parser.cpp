@@ -154,17 +154,23 @@ numetron::decimal_view parser_context::make_decimal_view(string_view str) const
     auto exp_part = tmpdec.exponent();
 
     if (!sign_part.is_inplace()) {
+        // Mirrors make_integer_view's own sz==1/else split just above: a value that doesn't fit
+        // inplace (more than one limb) needs the regular out-of-line span constructor, not
+        // make_inplace -- make_inplace requires the span to fit within inplace_max_size (one limb
+        // for integer_view's uint64_t LimbT) and throws otherwise. The limbs are copied into the
+        // compiler's long-lived arena first since tmpdec (and the limbs sign_part currently points
+        // into) is a local about to be destroyed when this function returns.
         auto [sign_limbs, mask, sgn] = sign_part.decompose();
         auto arena_sign_limbs = arena_->make_array<limb_t>(sign_limbs);
         arena_sign_limbs.back() &= mask;
-        sign_part = numetron::integer_view::make_inplace(arena_sign_limbs, sgn);
+        sign_part = numetron::integer_view(arena_sign_limbs, sgn);
     }
 
     if (!exp_part.is_inplace()) {
         auto [exp_limbs, mask, sgn] = exp_part.decompose();
         auto arena_exp_limbs = arena_->make_array<limb_t>(exp_limbs);
         arena_exp_limbs.back() &= mask;
-        exp_part = numetron::integer_view::make_inplace(arena_exp_limbs, sgn);
+        exp_part = numetron::integer_view(arena_exp_limbs, sgn);
     }
     return numetron::decimal_view{ sign_part, exp_part };
 }

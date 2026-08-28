@@ -4,6 +4,7 @@
 #pragma once
 
 #include <cmath>
+#include <iostream>
 #include <optional>
 #include <sstream>
 
@@ -100,6 +101,38 @@ enum class decimal_rounding_mode : int
 // half_even -- the other modes are deliberately not implemented yet, see FUTURE_WORK.md.
 std::optional<numetron::decimal> divide_decimal_rounded(numetron::decimal_view lhs, numetron::decimal_view rhs, uint32_t scale, decimal_rounding_mode mode);
 
+// The *exact* decimal value of a finite native float/double -- not `numetron::decimal{value}`,
+// which goes through Dragonbox (basic_decimal_view's floating-point constructor) and deliberately
+// produces the *shortest* decimal string that still round-trips back to `value`, not the exact
+// one. That's the right tool for printing a float concisely, but the wrong one for an exactness
+// check: comparing a shortened Dragonbox decimal against a `source_val` written with more digits
+// than Dragonbox's minimal round-trip form spuriously reports "different" even when both exactly
+// represent the same value once rounded to the target float type (found via `f32.pi`/`f32.e`:
+// their correctly-rounded exact decimal expansions are longer than Dragonbox's shortest form for
+// the same bit pattern). `value`'s bits are exactly `int_mantissa * 2^binexp` (frexp/ldexp are
+// exact for finite floats); folding the 2^binexp factor into a decimal is exact too -- into the
+// significand when binexp >= 0, or via 2^binexp = 5^-binexp / 10^binexp when binexp < 0 (same
+// "split off the base-5 part, the base-2 part is exact" trick decimal_view's own float conversion
+// operator uses, just inverted).
+template <std::floating_point T>
+numetron::decimal exact_decimal_from_finite(T value)
+{
+    if (value == T{0}) return numetron::decimal{0};
+    int exp2;
+    T mantissa = std::frexp(value, &exp2);
+    constexpr int mantissa_bits = std::numeric_limits<T>::digits;
+    int64_t int_mantissa = static_cast<int64_t>(std::ldexp(mantissa, mantissa_bits));
+    int64_t binexp = static_cast<int64_t>(exp2) - mantissa_bits;
+    numetron::integer sig{ int_mantissa };
+    if (binexp >= 0) {
+        sig *= numetron::pow(numetron::integer{2}, static_cast<unsigned int>(binexp));
+        return numetron::decimal{ (numetron::integer_view)sig, numetron::integer_view{0} };
+    } else {
+        sig *= numetron::pow(numetron::integer{5}, static_cast<unsigned int>(-binexp));
+        return numetron::decimal{ (numetron::integer_view)sig, numetron::integer_view{binexp} };
+    }
+}
+
 // Can the constexpr value `source_val` (of type `source_type`) be represented in `target_type`
 // without loss of precision? Used to check, at compile time, whether a literal operand's
 // actual value fits a candidate result type.
@@ -186,18 +219,19 @@ bool can_convert_constexpr_value_safely(SourceValue const& source_val, builtin_e
                 // is rejected up front, since basic_decimal's floating-point constructor throws
                 // for a non-finite value rather than reporting "doesn't fit".
                 numetron::float16 f16v = numetron::float16_cast(source_val);
-                if (!std::isfinite(static_cast<float>(f16v))) return false;
-                return numetron::decimal{ f16v } == source_val;
+                float f16v_widened = static_cast<float>(f16v); // exact: float16 -> float always widens exactly
+                if (!std::isfinite(f16v_widened)) return false;
+                return exact_decimal_from_finite(f16v_widened) == source_val;
             }
             case builtin_eid::f32: {
                 float f32v = static_cast<float>(source_val);
                 if (!std::isfinite(f32v)) return false;
-                return numetron::decimal{ f32v } == source_val;
+                return exact_decimal_from_finite(f32v) == source_val;
             }
             case builtin_eid::f64: {
                 double_t f64v = static_cast<double_t>(source_val);
                 if (!std::isfinite(f64v)) return false;
-                return numetron::decimal{ f64v } == source_val;
+                return exact_decimal_from_finite(f64v) == source_val;
             }
             case builtin_eid::decimal:
                 return true; // same type; source_type == target_type already returned true above

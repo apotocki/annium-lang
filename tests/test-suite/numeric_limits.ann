@@ -168,3 +168,30 @@ let rnan32: f32 = runtime_cast(f32.nan);
 assert(rmax32 < rinf32);
 assert(!(rnan32 == rnan32));
 assert(!(rnan32 < rnan32));
+
+// .pi/.e: unlike .inf/.nan, no extern involved -- see the comment above their bootstrap.ann
+// declarations for why the correctly-rounded value at each width still has an exact, finite decimal
+// expansion despite pi/e themselves being irrational. Each expected value here is that exact
+// expansion (computed independently of bootstrap.ann's own literals, via each width's own
+// round-to-nearest-even from System.Math.PI/E), so an equal `assert_equal` also incidentally confirms
+// the two independently-derived literals agree bit for bit.
+assert_equal(f16.pi, 3.140625);
+assert_equal(f32.pi, 3.1415927410125732421875);
+assert_equal(f64.pi, 3.141592653589793115997963468544185161590576171875);
+assert_equal(f16.e, 2.71875);
+assert_equal(f32.e, 2.71828174591064453125);
+assert_equal(f64.e, 2.718281828459045090795598298427648842334747314453125);
+
+// e < pi at every width -- true of the exact mathematical constants, and (since neither value is
+// anywhere near a rounding boundary that could flip the comparison) true of each width's
+// independently-rounded approximation too.
+assert(f16.e < f16.pi);
+assert(f32.e < f32.pi);
+assert(f64.e < f64.pi);
+
+// runtime_cast'd operands, same reasoning as .max/.inf above: .pi/.e fold at compile time, but the
+// value still needs to behave correctly as an ordinary runtime f32 value.
+let rpi32: f32 = runtime_cast(f32.pi);
+let re32: f32 = runtime_cast(f32.e);
+assert(re32 < rpi32);
+assert(!(rpi32 < re32));
