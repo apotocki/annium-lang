@@ -128,6 +128,39 @@ assert(!(f32.nan < f32.inf));
 assert(!(f32.inf < f32.nan));
 assert(!(f32.nan == f32.max));
 
+// !=: matches IEEE semantics even for NaN, because -- unlike the four ordering operators -- IEEE
+// defines `!=` as the exact logical negation of `==` (the one relational pair where that holds), and
+// `not_equal(a,b) => !($0 == $1)` (bootstrap.ann) does exactly that.
+assert(f32.nan != f32.nan);
+assert(f32.nan != f32.max);
+assert(f32.nan != 0);
+assert(f32.inf != f32.max);
+
+// >: `greater(a,b) => less($1, $0)` (bootstrap.ann) is a straight argument swap, no negation -- so it
+// inherits `less`'s already-correct NaN handling (false whenever either operand is NaN, in either
+// position) without needing any special-casing of its own.
+assert(!(f32.nan > f32.nan));
+assert(!(f32.nan > 0));
+assert(!(0 > f32.nan));
+assert(!(f32.nan > f32.inf));
+assert(!(f32.inf > f32.nan));
+
+// <=, >=: `less_eq(a,b) => less($0,$1) || equal($0,$1)` and `greater_eq(a,b) => greater($0,$1) ||
+// equal($0,$1)` (bootstrap.ann) -- deliberately an OR of two already-NaN-correct calls rather than a
+// negated `less`, since negating "unordered false" would wrongly produce "true" (see the comment
+// above their bootstrap.ann definitions for the full reasoning, and why `not_equal`/`greater` don't
+// have this problem in the first place).
+assert(!(f32.nan <= f32.nan));
+assert(!(f32.nan >= f32.nan));
+assert(!(f32.nan <= f32.max));
+assert(!(f32.max >= f32.nan));
+
+// <=, >= for infinity -- a well-ordered value, not "unordered" like NaN, so ordinary `<=`/`>=`
+// semantics apply throughout.
+assert(f32.inf <= f32.inf);
+assert(!(f32.max >= f32.inf));
+assert(f32.inf >= f32.max);
+
 // runtime_cast'd operands: .inf/.nan themselves fold at compile time, but confirm the values still
 // behave correctly once they're ordinary runtime f32 values, not just inside constexpr expressions.
 let rinf32: f32 = runtime_cast(f32.inf);

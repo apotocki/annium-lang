@@ -177,9 +177,17 @@ inline fn to_integer(runtime string) -> integer {
 // NUMERIC
 inline fn less(runtime @numeric, runtime @numeric) -> bool => __less($0, $1);
 inline fn less(constexpr @numeric, constexpr @numeric) -> bool => consteval __less($0, $1);
-inline fn less_eq(@numeric, @numeric) -> bool => !less($1, $0);
+// less_eq/greater_eq are deliberately NOT `!less(...)` of a swapped/same-order call: NaN makes `<`
+// (and `>`) unordered-false in both directions, so negating either would turn "unordered" into a
+// false "true" for `<=`/`>=` -- exactly backwards from IEEE-754, which says every relational operator
+// except `!=` is false whenever either operand is NaN. `less($0,$1) || equal($0,$1)` stays correct
+// for NaN because it only ever ORs two already-correct falses, never negates one. `not_equal` (above,
+// `!equal(...)`) and `greater` (below, a plain argument swap into `less`, no negation) don't have
+// this problem -- `!=` is IEEE's one relational operator that genuinely is the negation of `==`, and
+// swapping arguments into an already-correct `less` doesn't introduce any negation to go wrong.
+inline fn less_eq(@numeric, @numeric) -> bool => less($0, $1) || equal($0, $1);
 inline fn greater(@numeric, @numeric) -> bool => less($1, $0);
-inline fn greater_eq(@numeric, @numeric) -> bool => !less($0, $1);
+inline fn greater_eq(@numeric, @numeric) -> bool => greater($0, $1) || equal($0, $1);
 
 // NUMERIC CASTS
 // explicit, context-driven counterpart to implicit_cast for the fixed-width numeric family:
