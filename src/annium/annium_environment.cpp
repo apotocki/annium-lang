@@ -1709,6 +1709,16 @@ environment::environment()
     set_builtin_extern("__to_f64(runtime @numeric)->f64"sv, &annium_numeric_to_f64);
     set_builtin_extern("__to_decimal(runtime @numeric)->decimal"sv, &annium_numeric_to_decimal);
 
+    // backing externs for bootstrap.ann's sqrt/log/floor/ceil/pow/round -- f64-only for now, see
+    // annium_numeric_sqrt's comment in annium_library.cpp.
+    set_builtin_extern("__sqrt(runtime @numeric)->f64"sv, &annium_numeric_sqrt);
+    set_builtin_extern("__log(runtime @numeric)->f64"sv, &annium_numeric_log);
+    set_builtin_extern("__floor(runtime @numeric)->f64"sv, &annium_numeric_floor);
+    set_builtin_extern("__ceil(runtime @numeric)->f64"sv, &annium_numeric_ceil);
+    set_builtin_extern("__pow(runtime @numeric, runtime @numeric)->f64"sv, &annium_numeric_pow);
+    set_builtin_extern("__round(runtime @numeric)->f64"sv, &annium_numeric_round);
+    set_builtin_extern("__round_digits(runtime @numeric, runtime @numeric)->f64"sv, &annium_numeric_round_digits);
+
     // backing externs for bootstrap.ann's f16/f32/f64 .inf/.nan typename-properties -- see the
     // comment above their annium_library.cpp implementations for why these need a real extern
     // instead of a plain literal like .min/.max use.

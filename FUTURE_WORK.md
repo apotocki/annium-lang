@@ -121,6 +121,16 @@ This entry previously claimed that both `conditional_t` and `not_empty_condition
 
 The mistake came from grepping for `THROW_NOT_IMPLEMENTED_ERROR` near `conditional_t` without checking whether the enclosing block was `#if 0`'d — exactly the trap `IMPLEMENTATION_NOTES.md` warns about under "Stale / dead code caveat".
 
+## Exact/decimal-native `sqrt`/`log`/`floor`/`ceil`/`pow`/`round`
+
+**Status:** not started, deliberately deferred. `bootstrap.ann`'s `sqrt`/`log`/`floor`/`ceil`/`pow`/`round(value[, digits])` (backed by `annium_numeric_sqrt`/`_log`/`_floor`/`_ceil`/`_pow`/`_round`/`_round_digits` in `library/annium_library.cpp`) all take `runtime @numeric` — any numeric source, `decimal` included — but convert straight to `double` via `numetron::decimal_view` and compute through `<cmath>`, always returning `f64`. So calling any of them with a `decimal` operand today silently goes through `f64` and loses `decimal`'s exactness. (`abs`/`min`/`max` don't have this problem — they're pure `.ann`, implemented via the already-generic `<` and unary `-`, and preserve the operand's own type exactly, `decimal` included.)
+
+**Problem:** `floor`/`ceil`/`round` are the ones a `decimal` caller would most plausibly want exact (unlike `log`/`sqrt`/`pow`, which are inherently transcendental/irrational in general and have no exact `decimal` answer for most inputs) — a `decimal`-native `floor`/`ceil` is just significand/exponent manipulation, no `double` round-trip needed, and would avoid the precision loss a large-significand `decimal` would suffer going through `f64`.
+
+**Proposed direction:** not designed — would need deciding whether `decimal` gets its own overload set (mirroring `divide(a, b, scale, mode)`'s explicit, `decimal`-only shape) or whether the existing `@numeric`-generic functions should special-case `decimal` internally and return `decimal` instead of `f64` when the input is `decimal` (which would make the return type context-dependent, unlike every other numeric function in `bootstrap.ann` today).
+
+**Why deferred:** the user explicitly scoped the initial `sqrt`/`log`/`floor`/`ceil`/`pow`/`round` work to `f16`/`f32`/`f64` only, to unblock `formatBytes(...)`, and said `decimal` support would be a separate follow-up.
+
 ## Wire up (or replace) `numetron::limb_arithmetic::udiv`'s multi-limb divisor case
 
 **Status:** not started, deliberately deferred -- flagged by the user, who recalled disabling a working multi-limb implementation at some point but not why.

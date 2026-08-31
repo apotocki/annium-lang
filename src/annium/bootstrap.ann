@@ -189,6 +189,7 @@ inline fn to_integer(runtime string) -> integer {
 }
 
 // NUMERIC
+inline fn implicit_cast(@numeric) ~> bool => $0 != 0;
 inline fn less(runtime @numeric, runtime @numeric) -> bool => __less($0, $1);
 inline fn less(constexpr @numeric, constexpr @numeric) -> bool => consteval __less($0, $1);
 // less_eq/greater_eq are deliberately NOT `!less(...)` of a swapped/same-order call: NaN makes `<`
@@ -202,6 +203,50 @@ inline fn less(constexpr @numeric, constexpr @numeric) -> bool => consteval __le
 inline fn less_eq(@numeric, @numeric) -> bool => less($0, $1) || equal($0, $1);
 inline fn greater(@numeric, @numeric) -> bool => less($1, $0);
 inline fn greater_eq(@numeric, @numeric) -> bool => greater($0, $1) || equal($0, $1);
+
+// f64-only for now (decimal support deferred, see FUTURE_WORK.md). Each accepts any numeric source
+// (integer, f16/f32/f64, decimal) via @numeric -- like less/greater above -- rather than one overload
+// per type, so callers don't need an explicit numeric_cast before every call.
+inline fn sqrt(runtime @numeric) -> f64 => __sqrt($0);
+inline fn log(runtime @numeric) -> f64 => __log($0);
+inline fn floor(runtime @numeric) -> f64 => __floor($0);
+inline fn ceil(runtime @numeric) -> f64 => __ceil($0);
+inline fn pow(runtime @numeric, runtime @numeric) -> f64 => __pow($0, $1);
+inline fn round(runtime @numeric) -> f64 => __round($0);
+inline fn round(runtime @numeric, $digits: runtime @numeric) -> f64 => __round_digits($0, $digits);
+
+inline fn sqrt(constexpr @numeric) -> f64 => consteval __sqrt($0);
+inline fn log(constexpr @numeric) -> f64 => consteval __log($0);
+inline fn floor(constexpr @numeric) -> f64 => consteval __floor($0);
+inline fn ceil(constexpr @numeric) -> f64 => consteval __ceil($0);
+inline fn pow(constexpr @numeric, constexpr @numeric) -> f64 => consteval __pow($0, $1);
+inline fn round(constexpr @numeric) -> f64 => consteval __round($0);
+inline fn round(constexpr @numeric, $digits: constexpr @numeric) -> f64 => consteval __round_digits($0, $digits);
+
+// abs/min/max: unlike sqrt/log/floor/ceil/pow/round above, these need no extern at all -- they're
+// exact for every numeric type (no transcendental/precision-losing math involved), so they're
+// written directly in terms of already-generic `<` (less/greater) and unary `-`, both of which
+// already work across the whole @numeric family and preserve the operand's own type (see
+// numeric_literal_unary_minus_pattern's "minus(:~$T @numeric)->$T" shape). No explicit `->` result
+// type is declared -- like __or/__and above, it's inferred from the body, so abs(i32) stays i32,
+// abs(f64) stays f64, etc., rather than forcing everything through f64 the way sqrt/log/... do.
+// unsigned operands are never negated: `$x < 0` is unconditionally false for any unsigned type, so
+// abs($x) degenerates to the identity for u8/u16/u32/u64, which is exactly what abs of a value
+// that's already non-negative by construction should do.
+inline fn abs($x: @numeric) => $x < 0 && -$x || $x;
+
+// min/max don't attempt NaN-specific handling beyond what `<` itself already does: since `<` is
+// unordered-false for NaN in both directions (see less_eq/greater_eq's comment above), min(NaN, x)
+// and min(x, NaN) can return different operands depending on argument order -- the same caveat
+// every `<`-based comparison in this file already carries, not a new one introduced here.
+inline fn min($a: @numeric, $b: @numeric) {
+    if $a < $b { return $a; }
+    return $b;
+}
+inline fn max($a: @numeric, $b: @numeric) {
+    if $a < $b { return $b; }
+    return $a;
+}
 
 // NUMERIC CASTS
 // explicit, context-driven counterpart to implicit_cast for the fixed-width numeric family:

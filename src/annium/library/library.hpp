@@ -67,6 +67,14 @@ void annium_numeric_to_f32(vm::context&);
 void annium_numeric_to_f64(vm::context&);
 void annium_numeric_to_decimal(vm::context&);
 
+void annium_numeric_sqrt(vm::context&);
+void annium_numeric_log(vm::context&);
+void annium_numeric_floor(vm::context&);
+void annium_numeric_ceil(vm::context&);
+void annium_numeric_pow(vm::context&);
+void annium_numeric_round(vm::context&);
+void annium_numeric_round_digits(vm::context&);
+
 void annium_f16_infinity(vm::context&);
 void annium_f32_infinity(vm::context&);
 void annium_f64_infinity(vm::context&);

@@ -12,6 +12,7 @@
 *.cmd
 *.sh
 *.md
+*.log
 !README.md
 !ANNIUM_SYNTAX.md
 !IMPLEMENTATION_NOTES.md

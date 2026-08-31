@@ -1,0 +1,129 @@
+// sqrt/log/floor/ceil/pow/round(value[, digits]): bootstrap.ann's `runtime @numeric -> f64` wrappers
+// around annium_numeric_sqrt/_log/_floor/_ceil/_pow/_round/_round_digits (library/annium_library.cpp).
+// f64-only for now -- decimal support is deferred, see FUTURE_WORK.md's "Exact/decimal-native
+// sqrt/log/floor/ceil/pow/round" entry. @numeric (not per-width f16/f32/f64 overloads) was a
+// deliberate choice so a plain integer literal or `integer`-typed value can be passed directly,
+// without an explicit numeric_cast at every call site -- motivated by `formatBytes(...)`-shaped code,
+// which mixes `integer`, `i64`, and `f64` operands across log/pow/round/floor calls. None of these
+// functions have a constexpr-folding counterpart (unlike e.g. `less`) -- every call here always
+// executes through the actual runtime extern, even for a bare literal argument.
+//
+// abs/min/max, below, are a different shape entirely -- pure `.ann`, no extern, no forced-f64
+// result -- see their own section further down.
+
+// LOG (natural log, ln) -- log(v)/log(base) is the change-of-base formula formatBytes(...) relies
+// on. ln(1) == 0 exactly (guaranteed by C's log()); x/log(x) == 1 exactly for any finite nonzero x,
+// since IEEE-754 division of a value by itself is always exactly 1.
+assert_equal(log(1), 0);
+let lx = log(1024);
+assert_equal(lx / lx, 1);
+
+// integer (bigint), f16, f32, f64 sources all accepted directly -- no numeric_cast needed.
+let li: integer = runtime_cast(1);
+assert_equal(log(li), 0);
+let lf16: f16 = runtime_cast(1);
+assert_equal(log(lf16), 0);
+let lf32: f32 = runtime_cast(1);
+assert_equal(log(lf32), 0);
+let lf64: f64 = runtime_cast(1);
+assert_equal(log(lf64), 0);
+
+// SQRT -- perfect squares only, for the same correctly-rounded-ness reason pow's section below
+// avoids fractional exponents (sqrt() itself is required to be correctly rounded by IEEE-754/C, but
+// keeping to exact integer results here needs no reliance on that guarantee either way).
+assert_equal(sqrt(4), 2);
+assert_equal(sqrt(9), 3);
+assert_equal(sqrt(0), 0);
+let sq: f32 = runtime_cast(16);
+assert_equal(sqrt(sq), 4);
+
+// FLOOR / CEIL
+assert_equal(floor(3), 3);
+assert_equal(floor(3.7), 3);
+assert_equal(floor(-3.7), -4);
+assert_equal(floor(-3), -3);
+
+assert_equal(ceil(3), 3);
+assert_equal(ceil(3.2), 4);
+assert_equal(ceil(-3.2), -3);
+
+let fl32: f32 = numeric_cast(3.7);
+assert_equal(floor(fl32), 3);
+let ce32: f32 = numeric_cast(3.2);
+assert_equal(ceil(ce32), 4);
+
+// POW -- exact integer/power-of-two cases only (pow() isn't guaranteed correctly-rounded for
+// arbitrary fractional exponents, so this deliberately avoids asserting bit-exact results for those).
+assert_equal(pow(2, 10), 1024);
+assert_equal(pow(10, 0), 1);
+assert_equal(pow(1024, 0), 1);
+assert_equal(pow(2, -1), 0.5);
+
+let pb: i32 = runtime_cast(2);
+let pe: i32 = runtime_cast(10);
+assert_equal(pow(pb, pe), 1024);
+
+// ROUND (single-argument: round to nearest integer, half away from zero)
+assert_equal(round(2.4), 2);
+assert_equal(round(2.6), 3);
+assert_equal(round(2.5), 3);
+assert_equal(round(-2.5), -3);
+assert_equal(round(3), 3);
+
+// ROUND (two-argument: round to at most `digits` digits after the decimal point) -- the shape
+// formatBytes(...) uses directly.
+assert_equal(round(3.14159, 2), 3.14);
+assert_equal(round(1234.5678, 2), 1234.57);
+assert_equal(round(1234.5, 0), 1235);
+
+// digits arrives as a `decimal` here (not f64/i64), exercising @numeric on the second parameter too
+// -- mirrors formatBytes(...)'s `base10 + $p + 1`, which lands on `decimal` per
+// strongest_numeric_type's f64/i64 join (see IMPLEMENTATION_NOTES.md).
+let rd: decimal = runtime_cast(2);
+assert_equal(round(3.14159, rd), 3.14);
+
+// ABS -- exact, type-preserving (no extern, no forced f64: see bootstrap.ann's comment above its
+// definition). assert_equal alone wouldn't catch a wrong *result type* (it just compares values),
+// so each check below also assigns into an explicitly-typed `let` -- that would fail to compile if
+// abs($x) came back some other type than $x's own.
+assert_equal(abs(-5), 5);
+assert_equal(abs(5), 5);
+assert_equal(abs(-5.5), 5.5);
+assert_equal(abs(0), 0);
+
+let ai32: i32 = runtime_cast(-5);
+let rai32: i32 = abs(ai32);
+assert_equal(rai32, 5);
+
+let af64: f64 = runtime_cast(-2.5);
+let raf64: f64 = abs(af64);
+assert_equal(raf64, 2.5);
+
+// unsigned: `$x < 0` is unconditionally false, so abs is the identity -- never hits unary `-`.
+let au32: u32 = runtime_cast(5);
+let rau32: u32 = abs(au32);
+assert_equal(rau32, 5);
+
+let adec: decimal = runtime_cast(-1.25);
+let radec: decimal = abs(adec);
+assert_equal(radec, 1.25);
+
+// MIN / MAX
+assert_equal(min(3, 5), 3);
+assert_equal(max(3, 5), 5);
+assert_equal(min(-1, 1), -1);
+assert_equal(max(-1, 1), 1);
+assert_equal(min(5, 5), 5);
+assert_equal(max(5, 5), 5);
+
+let mia: i32 = runtime_cast(7);
+let mib: i32 = runtime_cast(2);
+let rmin: i32 = min(mia, mib);
+let rmax: i32 = max(mia, mib);
+assert_equal(rmin, 2);
+assert_equal(rmax, 7);
+
+let mfa: f64 = runtime_cast(1.5);
+let mfb: f64 = runtime_cast(2.5);
+assert_equal(min(mfa, mfb), 1.5);
+assert_equal(max(mfa, mfb), 2.5);

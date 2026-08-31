@@ -851,6 +851,66 @@ void annium_numeric_to_decimal(vm::context& ctx)
     arg.replace(std::move(result));
 }
 
+// sqrt/log/floor/ceil/pow/round: f64-only for now (see FUTURE_WORK.md for decimal). Every operand is
+// read through numetron::decimal_view the same way annium_numeric_to_f64 is, so any numeric source
+// (fixed-width int, bigint, f16/f32/f64, decimal) is accepted -- these back bootstrap.ann's
+// `sqrt`/`log`/`floor`/`ceil`/`pow`/`round`, declared `runtime @numeric`, always returning f64.
+void annium_numeric_sqrt(vm::context& ctx)
+{
+    smart_blob& arg = ctx.stack_back();
+    double val = static_cast<double>(arg.as<numetron::decimal_view>());
+    arg.replace(smart_blob{ f64_blob_result(std::sqrt(val)) });
+}
+
+void annium_numeric_log(vm::context& ctx)
+{
+    smart_blob& arg = ctx.stack_back();
+    double val = static_cast<double>(arg.as<numetron::decimal_view>());
+    arg.replace(smart_blob{ f64_blob_result(std::log(val)) });
+}
+
+void annium_numeric_floor(vm::context& ctx)
+{
+    smart_blob& arg = ctx.stack_back();
+    double val = static_cast<double>(arg.as<numetron::decimal_view>());
+    arg.replace(smart_blob{ f64_blob_result(std::floor(val)) });
+}
+
+void annium_numeric_ceil(vm::context& ctx)
+{
+    smart_blob& arg = ctx.stack_back();
+    double val = static_cast<double>(arg.as<numetron::decimal_view>());
+    arg.replace(smart_blob{ f64_blob_result(std::ceil(val)) });
+}
+
+void annium_numeric_pow(vm::context& ctx)
+{
+    double base = static_cast<double>(ctx.stack_back(1).as<numetron::decimal_view>());
+    double exponent = static_cast<double>(ctx.stack_back().as<numetron::decimal_view>());
+    ctx.stack_pop();
+    ctx.stack_back().replace(smart_blob{ f64_blob_result(std::pow(base, exponent)) });
+}
+
+void annium_numeric_round(vm::context& ctx)
+{
+    smart_blob& arg = ctx.stack_back();
+    double val = static_cast<double>(arg.as<numetron::decimal_view>());
+    arg.replace(smart_blob{ f64_blob_result(std::round(val)) });
+}
+
+// Rounds to at most `digits` digits after the decimal point (negative digits round to the left of
+// the point), same "scale, round-to-nearest, unscale" shape as the standard textbook approach --
+// unlike bootstrap.ann's decimal `divide(...)`, this is f64 arithmetic so there's no exactness
+// concern to guard (a plain std::round of the scaled value is sufficient).
+void annium_numeric_round_digits(vm::context& ctx)
+{
+    double val = static_cast<double>(ctx.stack_back(1).as<numetron::decimal_view>());
+    double digits = static_cast<double>(ctx.stack_back().as<numetron::decimal_view>());
+    ctx.stack_pop();
+    double scale = std::pow(10.0, digits);
+    ctx.stack_back().replace(smart_blob{ f64_blob_result(std::round(val * scale) / scale) });
+}
+
 class annium_callable : public invocation::callable
 {
     smart_blob fn_blob_;
