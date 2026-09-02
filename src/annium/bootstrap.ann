@@ -119,7 +119,7 @@ inline fn substring(self: ~ constexpr string, $start: constexpr u32, $length: co
 inline fn equal($l: ~union(...), $r) => apply(to: $l, visitor: fn[$r]($value) => $value == $r);
 inline fn equal($l, $r: ~union(...)) => apply(to: $r, visitor: fn[$l]($value) => $value == $l);
 inline fn to_string(~union(...))->string => apply(to: $0, visitor: fn($x) => to_string($x));
-
+inline viable fn get(self: ~union(...), property: integer) => apply(to: self, visitor: fn[property]($x) => get(self: $x, property: property));
 inline viable fn implicit_cast(~ union(...)) ~> $T => apply(to: $0, visitor: (fn($x)->$T => implicit_cast($x)));
 
 // STRUCTS
@@ -190,8 +190,14 @@ inline fn to_integer(runtime string) -> integer {
 
 // NUMERIC
 inline fn implicit_cast(@numeric) ~> bool => $0 != 0;
-inline fn less(runtime @numeric, runtime @numeric) -> bool => __less($0, $1);
-inline fn less(constexpr @numeric, constexpr @numeric) -> bool => consteval __less($0, $1);
+inline fn less(@numeric, @numeric) -> bool {
+	if is_const($0) && is_const($1) {
+		return consteval __less(runtime_cast($0), runtime_cast($1));
+	} else {
+		return __less(runtime_cast($0), runtime_cast($1));
+	}
+}
+
 // less_eq/greater_eq are deliberately NOT `!less(...)` of a swapped/same-order call: NaN makes `<`
 // (and `>`) unordered-false in both directions, so negating either would turn "unordered" into a
 // false "true" for `<=`/`>=` -- exactly backwards from IEEE-754, which says every relational operator
@@ -215,13 +221,20 @@ inline fn pow(runtime @numeric, runtime @numeric) -> f64 => __pow($0, $1);
 inline fn round(runtime @numeric) -> f64 => __round($0);
 inline fn round(runtime @numeric, $digits: runtime @numeric) -> f64 => __round_digits($0, $digits);
 
-inline fn sqrt(constexpr @numeric) -> f64 => consteval __sqrt($0);
-inline fn log(constexpr @numeric) -> f64 => consteval __log($0);
-inline fn floor(constexpr @numeric) -> f64 => consteval __floor($0);
-inline fn ceil(constexpr @numeric) -> f64 => consteval __ceil($0);
-inline fn pow(constexpr @numeric, constexpr @numeric) -> f64 => consteval __pow($0, $1);
-inline fn round(constexpr @numeric) -> f64 => consteval __round($0);
-inline fn round(constexpr @numeric, $digits: constexpr @numeric) -> f64 => consteval __round_digits($0, $digits);
+inline fn round(@numeric, $digits: @numeric) -> f64 {
+	if is_const($0) && is_const($digits) {
+		return consteval __round_digits(runtime_cast($0), runtime_cast($digits));
+	} else {
+		return __round_digits(runtime_cast($0), runtime_cast($digits));
+	}
+}
+
+inline fn sqrt(constexpr @numeric) -> f64 => consteval __sqrt(runtime_cast($0));
+inline fn log(constexpr @numeric) -> f64 => consteval __log(runtime_cast($0));
+inline fn floor(constexpr @numeric) -> f64 => consteval __floor(runtime_cast($0));
+inline fn ceil(constexpr @numeric) -> f64 => consteval __ceil(runtime_cast($0));
+inline fn pow(constexpr @numeric, constexpr @numeric) -> f64 => consteval __pow(runtime_cast($0), runtime_cast($1));
+inline fn round(constexpr @numeric) -> f64 => consteval __round(runtime_cast($0));
 
 // abs/min/max: unlike sqrt/log/floor/ceil/pow/round above, these need no extern at all -- they're
 // exact for every numeric type (no transcendental/precision-losing math involved), so they're

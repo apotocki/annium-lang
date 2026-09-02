@@ -1688,7 +1688,7 @@ environment::environment()
     //set_const_extern<to_string_pattern>("size(const metaobjct))->integer"sv);
 
     //set_extern<builtin_fn_pattern>("__error(mut string)"sv, &annium_error);
-    set_builtin_extern("__print(runtime ..., runtime integer)"sv, &annium_print_string);
+    set_builtin_extern("__print(runtime any ..., runtime integer)"sv, &annium_print_string);
 
     //set_extern("implicit_cast(to: typename string, _)->string"sv, &annium_tostring);
     //set_const_extern<to_string_pattern>("to_string(const __identifier)->string"sv);
@@ -1734,8 +1734,8 @@ environment::environment()
     functional& numeric_cast_fnl = fregistry_resolve(qname{ make_identifier("numeric_cast"sv) });
     numeric_cast_fnl.push(make_shared<numeric_cast_constexpr_pattern>());
     set_builtin_extern("create_extern_object(runtime string)->object"sv, &annium_create_extern_object);
-    builtin_eids_[(size_t)builtin_eid::extern_invoke] = set_builtin_extern("__extern_invoke(runtime string, runtime ..., runtime u32)~>$R"sv, &annium_invoke);
-    builtin_eids_[(size_t)builtin_eid::extern_invoke_void] = set_builtin_extern("__extern_invoke(runtime string, runtime ..., runtime u32)~>()"sv, &annium_invoke_void);
+    builtin_eids_[(size_t)builtin_eid::extern_invoke] = set_builtin_extern("__extern_invoke(runtime string, runtime any ..., runtime u32)~>$R"sv, &annium_invoke);
+    builtin_eids_[(size_t)builtin_eid::extern_invoke_void] = set_builtin_extern("__extern_invoke(runtime string, runtime any ..., runtime u32)~>()"sv, &annium_invoke_void);
     //set_extern<builtin_fn_pattern>("set(self: object, property: const __identifier, any)"sv, &annium_set_object_property);
 
     set_builtin_extern("__set(runtime object, runtime string, runtime)->object"sv, &annium_set_object_property);
