@@ -174,8 +174,6 @@ MINUS                    "-"
 ASTERISK                 "*"
 SLASH                    "/"
 TILDA                    "~"
-OPEN_SQUARE_DBL_BRACKET  "[["
-CLOSE_SQUARE_DBL_BRACKET "]]"
 DBLCOLON                 "::"
 LOGIC_OR                 "||"
 LOGIC_AND                "&&"
@@ -366,8 +364,6 @@ HASHTAG					"#"
 	{COLON}                    { return (annium_lang::parser::token::COLON); }
 	{OPEN_SQUARE_BRACKET}	   { variant_emplace(location); return (annium_lang::parser::token::OPEN_SQUARE_BRACKET); }
 	{CLOSE_SQUARE_BRACKET}	   { return (annium_lang::parser::token::CLOSE_SQUARE_BRACKET); }
-	{OPEN_SQUARE_DBL_BRACKET}  { variant_emplace(location); return (annium_lang::parser::token::OPEN_SQUARE_DBL_BRACKET); }
-	{CLOSE_SQUARE_DBL_BRACKET} { return (annium_lang::parser::token::CLOSE_SQUARE_DBL_BRACKET); }
 	{ASSIGN}                   { variant_emplace(location); return (annium_lang::parser::token::ASSIGN); }
 	{POINT}					   { variant_emplace(location); return (annium_lang::parser::token::POINT); }
 	{UNDERSCORE}		       { variant_emplace(location); return (annium_lang::parser::token::UNDERSCORE); }

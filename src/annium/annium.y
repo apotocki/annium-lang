@@ -104,8 +104,6 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 %token CLOSE_BRACE			"`}`"
 %token <resource_location> OPEN_SQUARE_BRACKET    "`[`"
 %token CLOSE_SQUARE_BRACKET "`]`"
-%token <resource_location> OPEN_SQUARE_DBL_BRACKET "`[[`"
-%token CLOSE_SQUARE_DBL_BRACKET "`]]`"
 %token END_STATEMENT		"`;`"
 %token <resource_location> POINT      "`.`"
 %token <resource_location> PLUS       "`+`"
@@ -1069,17 +1067,20 @@ syntax-expression-base:
         }
 
     | OPEN_SQUARE_BRACKET expression-list[list] CLOSE_SQUARE_BRACKET
-        { 
+        {
             if ($list.size() == 1) {
                 $$ = syntax_expression{ std::move($OPEN_SQUARE_BRACKET), bracket_expression{ ctx.make<syntax_expression>(std::move($list.front())) } };
             } else {
                 $$ = syntax_expression{ std::move($OPEN_SQUARE_BRACKET), array_expression{ ctx.make_array<syntax_expression>($list) } };
             }
         }
+    // trailing comma forces the array-literal reading unconditionally, regardless of element
+    // count -- this is the only way to spell a one-element array value (`[x]` alone is
+    // `bracket_expression`, ambiguous between "array type" and "one-element array value")
+    | OPEN_SQUARE_BRACKET expression-list[list] COMMA CLOSE_SQUARE_BRACKET
+        { $$ = syntax_expression{ std::move($OPEN_SQUARE_BRACKET), array_expression{ ctx.make_array<syntax_expression>($list) } }; }
     | OPEN_SQUARE_BRACKET braced-statements[body] CLOSE_SQUARE_BRACKET
-        { $$ = syntax_expression{ std::move($OPEN_SQUARE_BRACKET), array_with_body_expression{ ctx.make_array<statement>($body) } }; } 
-    | OPEN_SQUARE_DBL_BRACKET expression-list[list] CLOSE_SQUARE_DBL_BRACKET
-        { $$ = syntax_expression{ std::move($OPEN_SQUARE_DBL_BRACKET), array_expression{ ctx.make_array<syntax_expression>($list) } }; }
+        { $$ = syntax_expression{ std::move($OPEN_SQUARE_BRACKET), array_with_body_expression{ ctx.make_array<statement>($body) } }; }
     | syntax-expression[type] OPEN_SQUARE_BRACKET syntax-expression[index] CLOSE_SQUARE_BRACKET
         { $$ = syntax_expression{ std::move($OPEN_SQUARE_BRACKET), index_expression{ ctx.make<syntax_expression>(std::move($type)), ctx.make<syntax_expression>(std::move($index)) } }; }
     | PROBE braced-statements[body]

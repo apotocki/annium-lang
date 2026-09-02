@@ -81,17 +81,15 @@ assert_equal(ca0[runtime_cast(2)], 30);
 // valid), so the result stays a compile-time constant, same as Case 1.
 // Note: plain `[42]` (a single element) parses as `bracket_expression`, not
 // `array_expression` (annium.y:1071-1078) - and that path currently throws
-// for a constexpr non-type value (base_expression_visitor.cpp:274). `[[42]]`
-// (annium.y:1081-1082) forces the array-literal reading unconditionally.
-let ca1 = [[42]];
+// for a constexpr non-type value (base_expression_visitor.cpp:274). The
+// trailing comma in `[42,]` (annium.y, the COMMA CLOSE_SQUARE_BRACKET
+// alternative) forces the array-literal reading unconditionally.
+let ca1 = [42,];
 assert_equal(ca1[runtime_cast(0)], 42);
 
 // Nested constant arrays (array of arrays): exercises materialize_const_blob's
 // recursion through a nested `data`-signature element.
-// Note the spaces around the inner arrays: `[[1, 2]` / `2]]` would each lex as
-// a single `[[`/`]]` double-bracket token (annium.l:177-178, greedy longest-
-// match with no grammar context), breaking the intended single-bracket nesting.
-let ca2 = [ [1, 2], [3, 4], [5, 6] ];
+let ca2 = [[1, 2], [3, 4], [5, 6]];
 let ca2_elem = ca2[runtime_cast(1)];
 assert_equal(ca2_elem[0], 3);
 assert_equal(ca2_elem[1], 4);
