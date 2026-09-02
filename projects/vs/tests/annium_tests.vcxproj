@@ -181,6 +181,7 @@
     <None Include="..\..\..\tests\test-suite\includee.ann" />
     <None Include="..\..\..\tests\test-suite\includer.ann" />
     <None Include="..\..\..\tests\test-suite\match_priority.ann" />
+    <None Include="..\..\..\tests\test-suite\math_functions.ann" />
     <None Include="..\..\..\tests\test-suite\numeric_limits.ann" />
     <None Include="..\..\..\tests\test-suite\std.ann" />
     <None Include="..\..\..\tests\test-suite\tuple_operations.ann" />

@@ -82,16 +82,38 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_make_p
 
         if (!pmd->has_explicit_type) {
             entity_identifier etype;
+            entity_identifier singleton_value; // set only when `etype` has exactly one possible inhabitant
+            bool is_singleton = false;
             if (ser.is_const_result) {
-                etype = get_entity(e, ser.value()).get_type();
+                entity const& elem_entity = get_entity(e, ser.value());
+                etype = elem_entity.get_type();
                 pmd->all_runtime = false;
+                // A value represented as `empty_entity` carries nothing of its own
+                // beyond its type - the whole value is reconstructible from the
+                // type alone. That's the established convention (not specific to
+                // any one composite kind) for a fully-const tuple, a named tuple
+                // projection, or a struct instance - see tuple_make_pattern::apply,
+                // tuple_head/tail_pattern, struct_init_pattern - so `etype` in that
+                // case has exactly one possible inhabitant: this very value. Fold
+                // such an element into a genuine const union case (its value, not
+                // its type) instead of a type case, so downstream union machinery
+                // (to_union_implicit_cast_pattern's exact_case path, this pattern's
+                // own runtime-cast branch below, fixed_array_get_pattern's
+                // materialize_const_blob) can recognize it as redundant with
+                // `which` and skip storing a payload for it. Deliberately checked
+                // by how the *value* is represented rather than which composite
+                // kind produced it, so this keeps working for any future constexpr
+                // kind that follows the same convention, without needing to be
+                // taught about it here.
+                is_singleton = dynamic_cast<empty_entity const*>(&elem_entity) != nullptr;
+                if (is_singleton) singleton_value = ser.value();
             } else {
                 etype = ser.type();
                 pmd->all_const = false;
             }
-        
+
             if (elements.insert(etype).second) {
-                usig.push_back(field_descriptor{ etype, false });
+                usig.push_back(is_singleton ? field_descriptor{ singleton_value, true } : field_descriptor{ etype, false });
             }
         } else if (ser.is_const_result) {
             pmd->all_runtime = false;
@@ -112,9 +134,14 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_make_p
             return std::unexpected(make_error<basic_general_error>(call.location, "cannot infer array element type from empty argument list"sv));
         }
         pmd->need_cast = usig.fields().size() > 1;
-        pmd->element_type = !pmd->need_cast ?
-            usig.fields().front().entity_id() :
-            e.make_basic_signatured_entity(std::move(usig)).id;
+        if (!pmd->need_cast) {
+            field_descriptor const& only = usig.fields().front();
+            // A const field here holds a singleton element's *value*, not its
+            // type (see the loop above) - recover the type for `element_type`.
+            pmd->element_type = only.is_const() ? get_entity(e, only.entity_id()).get_type() : only.entity_id();
+        } else {
+            pmd->element_type = e.make_basic_signatured_entity(std::move(usig)).id;
+        }
     } else {
         pmd->need_cast = false;
     }
@@ -156,17 +183,12 @@ std::expected<syntax_expression_result, error_storage> fixed_array_make_pattern:
     entity_identifier array_type_id = env.make_array_type_entity(amd.element_type, amd.matches.size()).id;
 
     if (amd.all_const) {
-        if (!amd.need_cast) {
-            entity_signature array_data{ env.get(builtin_qnid::data), array_type_id };
-            for (auto& [_, er, loc] : amd.matches) {
-                array_data.emplace_back(er.value(), true);
-            }
-            result.value_or_type = env.make_basic_signatured_entity(std::move(array_data)).id;
-            return result;
+        entity_signature array_data{ env.get(builtin_qnid::data), array_type_id };
+        for (auto& [_, er, loc] : amd.matches) {
+            array_data.emplace_back(er.value(), true);
         }
-        // to do: make a literal array entity
-        // but for now, create runtime array
-        result.is_const_result = false;
+        result.value_or_type = env.make_basic_signatured_entity(std::move(array_data)).id;
+        return result;
     }
     
     result.value_or_type = array_type_id;

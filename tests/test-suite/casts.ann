@@ -7,23 +7,23 @@ print(to_string(typeof(v0)) .. " " .. to_string(typeof(v1)) .. " " .. to_string(
 // from any numeric source (fixed-width integer, bigint, float, decimal).
 
 // widening / sign vs zero extension from narrow fixed-width sources
-let s8: i8 = -5;
-let us8: u8 = 200;
+let s8: i8 = runtime_cast(-5);
+let us8: u8 = runtime_cast(200);
 assert_equal(__to_i64(s8), -5);
 assert_equal(__to_u64(us8), 200);
 assert_equal(__to_i16(s8), -5);
 assert_equal(__to_u16(us8), 200);
 
 // narrowing from a wider fixed-width source: low bits are kept, sign reinterpreted
-let w32: i32 = 300;
+let w32: i32 = runtime_cast(300);
 assert_equal(__to_i8(w32), 44);
 assert_equal(__to_u8(w32), 44);
 
-let w32b: i32 = 511;
+let w32b: i32 = runtime_cast(511);
 assert_equal(__to_i8(w32b), -1);
 assert_equal(__to_u8(w32b), 255);
 
-let neg32: i32 = -1;
+let neg32: i32 = runtime_cast(-1);
 assert_equal(__to_u8(neg32), 255);
 assert_equal(__to_i16(neg32), -1);
 assert_equal(__to_u16(neg32), 65535);
@@ -32,24 +32,24 @@ assert_equal(__to_i64(neg32), -1);
 assert_equal(__to_u64(neg32), 18446744073709551615);
 
 // bigint source (default literal type)
-assert_equal(__to_i8(300), 44);
-assert_equal(__to_u8(511), 255);
-assert_equal(__to_i16(65541), 5);
-assert_equal(__to_u16(65541), 5);
-assert_equal(__to_i8(-1), -1);
-assert_equal(__to_u8(-1), 255);
+assert_equal(__to_i8(runtime_cast(300)), 44);
+assert_equal(__to_u8(runtime_cast(511)), 255);
+assert_equal(__to_i16(runtime_cast(65541)), 5);
+assert_equal(__to_u16(runtime_cast(65541)), 5);
+assert_equal(__to_i8(runtime_cast(-1)), -1);
+assert_equal(__to_u8(runtime_cast(-1)), 255);
 
 // floating point / decimal sources
-let f32v: f32 = 300;
+let f32v: f32 = runtime_cast(300);
 assert_equal(__to_i8(f32v), 44);
 
-let f64v: f64 = -1;
+let f64v: f64 = runtime_cast(-1);
 assert_equal(__to_u16(f64v), 65535);
 
-let f16v: f16 = 200;
+let f16v: f16 = runtime_cast(200);
 assert_equal(__to_u8(f16v), 200);
 
-let decv: decimal = 511;
+let decv: decimal = runtime_cast(511);
 assert_equal(__to_i8(decv), -1);
 
 // widening float/decimal into a wider integer result
@@ -57,9 +57,9 @@ assert_equal(__to_i64(f32v), 300);
 assert_equal(__to_i64(decv), 511);
 
 // u16/u32/u64 as sources too (previously only used as targets above)
-let us16: u16 = 60000;
-let us32: u32 = 4000000000;
-let us64: u64 = 300;
+let us16: u16 = runtime_cast(60000);
+let us32: u32 = runtime_cast(4000000000);
+let us64: u64 = runtime_cast(300);
 assert_equal(__to_i64(us16), 60000);
 assert_equal(__to_i64(us32), 4000000000);
 assert_equal(__to_i8(us64), 44);
@@ -126,11 +126,11 @@ assert_equal(ni6, 3);
 assert_equal(__to_f32(w32), 300);
 assert_equal(__to_f64(neg32), -1);
 assert_equal(__to_f16(us8), 200);
-assert_equal(__to_decimal(300), 300);
+assert_equal(__to_decimal(runtime_cast(300)), 300);
 assert_equal(__to_decimal(neg32), -1);
-assert_equal(__to_decimal(0), 0); // basic_decimal_view(integral 0) used to loop forever, see BUGFIXES.md
-assert_equal(__to_decimal(-300), -300); // negative value with trailing zeros -- exercises the strip-zeros loop body, not just the 0 guard
-assert_equal(__to_f32(0), 0);
+assert_equal(__to_decimal(runtime_cast(0)), 0); // basic_decimal_view(integral 0) used to loop forever, see BUGFIXES.md
+assert_equal(__to_decimal(runtime_cast(-300)), -300); // negative value with trailing zeros -- exercises the strip-zeros loop body, not just the 0 guard
+assert_equal(__to_f32(runtime_cast(0)), 0);
 
 // == between u64/i64/bigint and a float must stay exact, not go through a lossy double cast:
 // double only has 53 bits of exact integer precision, so two distinct u64 values near 2^63
