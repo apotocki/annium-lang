@@ -337,6 +337,7 @@ HASHTAG					"#"
 
 	{TYPENAME} { variant_emplace(location); return (annium_lang::parser::token::TYPENAME); }
 	{CONSTEXPR} { variant_emplace(location); return (annium_lang::parser::token::CONSTEXPR); }
+	{CONSTEVAL}/{OPEN_PARENTHESIS} { variant_emplace(location); return (annium_lang::parser::token::CONSTEVAL_GUARD); }
 	{CONSTEVAL} { variant_emplace(location); return (annium_lang::parser::token::CONSTEVAL); }
 	{RUNTIME} { variant_emplace(location); return (annium_lang::parser::token::RUNTIME); }
 

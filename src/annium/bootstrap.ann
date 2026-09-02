@@ -190,13 +190,8 @@ inline fn to_integer(runtime string) -> integer {
 
 // NUMERIC
 inline fn implicit_cast(@numeric) ~> bool => $0 != 0;
-inline fn less(@numeric, @numeric) -> bool {
-	if is_const($0) && is_const($1) {
-		return consteval __less(runtime_cast($0), runtime_cast($1));
-	} else {
-		return __less(runtime_cast($0), runtime_cast($1));
-	}
-}
+inline fn less(@numeric, @numeric) -> bool =>
+	consteval(is_const($0) && is_const($1)) __less(runtime_cast($0), runtime_cast($1));
 
 // less_eq/greater_eq are deliberately NOT `!less(...)` of a swapped/same-order call: NaN makes `<`
 // (and `>`) unordered-false in both directions, so negating either would turn "unordered" into a
@@ -213,28 +208,13 @@ inline fn greater_eq(@numeric, @numeric) -> bool => greater($0, $1) || equal($0,
 // f64-only for now (decimal support deferred, see FUTURE_WORK.md). Each accepts any numeric source
 // (integer, f16/f32/f64, decimal) via @numeric -- like less/greater above -- rather than one overload
 // per type, so callers don't need an explicit numeric_cast before every call.
-inline fn sqrt(runtime @numeric) -> f64 => __sqrt($0);
-inline fn log(runtime @numeric) -> f64 => __log($0);
-inline fn floor(runtime @numeric) -> f64 => __floor($0);
-inline fn ceil(runtime @numeric) -> f64 => __ceil($0);
-inline fn pow(runtime @numeric, runtime @numeric) -> f64 => __pow($0, $1);
-inline fn round(runtime @numeric) -> f64 => __round($0);
-inline fn round(runtime @numeric, $digits: runtime @numeric) -> f64 => __round_digits($0, $digits);
-
-inline fn round(@numeric, $digits: @numeric) -> f64 {
-	if is_const($0) && is_const($digits) {
-		return consteval __round_digits(runtime_cast($0), runtime_cast($digits));
-	} else {
-		return __round_digits(runtime_cast($0), runtime_cast($digits));
-	}
-}
-
-inline fn sqrt(constexpr @numeric) -> f64 => consteval __sqrt(runtime_cast($0));
-inline fn log(constexpr @numeric) -> f64 => consteval __log(runtime_cast($0));
-inline fn floor(constexpr @numeric) -> f64 => consteval __floor(runtime_cast($0));
-inline fn ceil(constexpr @numeric) -> f64 => consteval __ceil(runtime_cast($0));
-inline fn pow(constexpr @numeric, constexpr @numeric) -> f64 => consteval __pow(runtime_cast($0), runtime_cast($1));
-inline fn round(constexpr @numeric) -> f64 => consteval __round(runtime_cast($0));
+inline fn sqrt(@numeric) -> f64 => consteval(is_const($0)) __sqrt(runtime_cast($0));
+inline fn log(@numeric) -> f64 => consteval(is_const($0)) __log(runtime_cast($0));
+inline fn floor(@numeric) -> f64 => consteval(is_const($0)) __floor(runtime_cast($0));
+inline fn ceil(@numeric) -> f64 => consteval(is_const($0)) __ceil(runtime_cast($0));
+inline fn pow(@numeric, @numeric) -> f64 => consteval(is_const($0) && is_const($1)) __pow(runtime_cast($0), runtime_cast($1));
+inline fn round(@numeric) -> f64 => consteval(is_const($0)) __round(runtime_cast($0));
+inline fn round(@numeric, $digits: @numeric) -> f64 => consteval(is_const($0) && is_const($digits)) __round_digits(runtime_cast($0), runtime_cast($digits));
 
 // abs/min/max: unlike sqrt/log/floor/ceil/pow/round above, these need no extern at all -- they're
 // exact for every numeric type (no transcendental/precision-losing math involved), so they're
@@ -264,19 +244,19 @@ inline fn max($a: @numeric, $b: @numeric) {
 // NUMERIC CASTS
 // explicit, context-driven counterpart to implicit_cast for the fixed-width numeric family:
 // the target type is picked from the expected result type at the call site (~>), like __plus/__extern_invoke do.
-inline fn numeric_cast(runtime @numeric) ~> i8  => __to_i8($0);
-inline fn numeric_cast(runtime @numeric) ~> u8  => __to_u8($0);
-inline fn numeric_cast(runtime @numeric) ~> i16 => __to_i16($0);
-inline fn numeric_cast(runtime @numeric) ~> u16 => __to_u16($0);
-inline fn numeric_cast(runtime @numeric) ~> i32 => __to_i32($0);
-inline fn numeric_cast(runtime @numeric) ~> u32 => __to_u32($0);
-inline fn numeric_cast(runtime @numeric) ~> i64 => __to_i64($0);
-inline fn numeric_cast(runtime @numeric) ~> u64 => __to_u64($0);
-inline fn numeric_cast(runtime @numeric) ~> integer => __to_integer($0);
-inline fn numeric_cast(runtime @numeric) ~> f16 => __to_f16($0);
-inline fn numeric_cast(runtime @numeric) ~> f32 => __to_f32($0);
-inline fn numeric_cast(runtime @numeric) ~> f64 => __to_f64($0);
-inline fn numeric_cast(runtime @numeric) ~> decimal => __to_decimal($0);
+inline fn numeric_cast(@numeric) ~> i8  => consteval(is_const($0)) __to_i8(runtime_cast($0));
+inline fn numeric_cast(@numeric) ~> u8  => consteval(is_const($0)) __to_u8(runtime_cast($0));
+inline fn numeric_cast(@numeric) ~> i16 => consteval(is_const($0)) __to_i16(runtime_cast($0));
+inline fn numeric_cast(@numeric) ~> u16 => consteval(is_const($0)) __to_u16(runtime_cast($0));
+inline fn numeric_cast(@numeric) ~> i32 => consteval(is_const($0)) __to_i32(runtime_cast($0));
+inline fn numeric_cast(@numeric) ~> u32 => consteval(is_const($0)) __to_u32(runtime_cast($0));
+inline fn numeric_cast(@numeric) ~> i64 => consteval(is_const($0)) __to_i64(runtime_cast($0));
+inline fn numeric_cast(@numeric) ~> u64 => consteval(is_const($0)) __to_u64(runtime_cast($0));
+inline fn numeric_cast(@numeric) ~> integer => consteval(is_const($0)) __to_integer(runtime_cast($0));
+inline fn numeric_cast(@numeric) ~> f16 => consteval(is_const($0)) __to_f16(runtime_cast($0));
+inline fn numeric_cast(@numeric) ~> f32 => consteval(is_const($0)) __to_f32(runtime_cast($0));
+inline fn numeric_cast(@numeric) ~> f64 => consteval(is_const($0)) __to_f64(runtime_cast($0));
+inline fn numeric_cast(@numeric) ~> decimal => consteval(is_const($0)) __to_decimal(runtime_cast($0));
 
 // DECIMAL DIVISION WITH EXPLICIT ROUNDING
 // The plain `/` operator has no runtime definition for decimal (numeric_promotion.hpp) -- most
@@ -299,5 +279,5 @@ enum rounding_mode {
 // mode crosses into __divide_decimal_rounded as a bare integer ordinal (to_integer(mode)) -- there's
 // no shared symbolic enum type between bootstrap.ann and the C++ side, see decimal_rounding_mode's
 // comment in numeric_promotion.hpp (its member order must match this enum's exactly).
-inline fn divide($a: runtime decimal, $b: runtime decimal, $scale: runtime u32, $mode: runtime rounding_mode = .half_even) -> decimal
-    => __divide_decimal_rounded($a, $b, $scale, to_integer($mode));
+inline fn divide($a: @numeric, $b: @numeric, $scale: @numeric, $mode: rounding_mode = .half_even) -> decimal
+    => consteval(is_const($a) && is_const($b) && is_const($scale) && is_const($mode)) __divide_decimal_rounded(runtime_cast($a), runtime_cast($b), runtime_cast($scale), runtime_cast(to_integer($mode)));

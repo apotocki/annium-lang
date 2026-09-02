@@ -96,3 +96,9 @@ Declares a natively-implemented function with no body. All parameters must be `r
 ## Double-underscore builtins are ordinary callables
 
 Names like `__to_integer`, `__print`, `__get_frame_stack_height`, `__to_i8` are not special syntax — they're just registered functionals with a conventional `__`-prefixed name (signalling "compiler/library-internal"), callable exactly like any other function from `.ann` source: `__to_i8(x)`, `assert_equal(__get_frame_stack_height(), 1)`.
+
+## `consteval` / `consteval(condition)`
+
+`consteval expr` forces `expr` through compile-time evaluation (CTFE) even when it would otherwise be a runtime call — see `CONSTEVAL_CTFE_PLAN.md` / `IMPLEMENTATION_NOTES.md`'s `consteval` section. `expr` is a `syntax-expression` (`annium.y:1104`), so it binds like a unary prefix operator (same precedence as unary `-`).
+
+`consteval(condition) expr` — guarded form, analogous to C++'s `explicit(bool)`/`noexcept(bool)` (`annium.y`, next to the plain rule). `condition` must itself resolve to a compile-time `bool`; `true` behaves exactly like plain `consteval expr` above, `false` skips forcing and `expr` gets its ordinary constexpr-or-runtime interpretation. Lets one definition serve both a `runtime` and a `constexpr` parameter: `inline fn sqrt(@numeric) -> f64 => consteval(is_const($0)) __sqrt(runtime_cast($0));`, instead of `bootstrap.ann`'s current separate `runtime @numeric` / `constexpr @numeric` overload pair for `sqrt`/`log`/`floor`/`ceil`/`pow`/`round`.

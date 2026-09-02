@@ -282,9 +282,17 @@ struct not_empty_expression
 
 // consteval <expr> -- forces compile-time evaluation of an otherwise-runtime expression.
 // See CONSTEVAL_CTFE_PLAN.md.
+//
+// Optional guarded form: consteval(condition) <expr>. `condition` is null for the plain,
+// unconditional `consteval <expr>` above; when present, it must itself resolve to a compile-time
+// bool, and it decides whether `value` is forced through CTFE at all -- true keeps the plain
+// behavior, false leaves `value` to its ordinary constexpr-or-runtime interpretation (see
+// IMPLEMENTATION_NOTES.md's `consteval` section for why this makes a single definition serve both
+// a `runtime` and a `constexpr` parameter, e.g. `sqrt`).
 struct consteval_expression
 {
     syntax_expression const* value;
+    syntax_expression const* condition = nullptr;
 };
 
 struct new_expression

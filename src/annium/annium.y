@@ -302,6 +302,13 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 %token <resource_location> TYPENAME "typename modifier"
 %token <resource_location> CONSTEXPR "constexpr modifier"
 %token <resource_location> CONSTEVAL "consteval modifier"
+// Lexed instead of CONSTEVAL only when "consteval" is immediately followed by "(" with no
+// whitespace in between (annium.l trailing-context rule) -- see the consteval(condition) rule
+// below and IMPLEMENTATION_NOTES.md's `consteval` section for why this token split exists: it's
+// what makes the guarded-form grammar rule unambiguous with the plain rule's already-legal
+// `consteval (x)` (a fully parenthesized operand), with zero shift/reduce conflict, instead of
+// relying on Bison's default conflict resolution for the two to coexist.
+%token <resource_location> CONSTEVAL_GUARD "guarded consteval modifier"
 %token <resource_location> RUNTIME "runctime modifier"
 
 // EXPRESSIONS
@@ -1103,6 +1110,20 @@ syntax-expression-base:
         { $$ = syntax_expression{ std::move($MINUS), unary_expression{ unary_operator_type::MINUS, true, std::span{ ctx.make<opt_named_expression_t>(std::move($expr)), 1 } } }; }
     | CONSTEVAL syntax-expression[expr] %prec PREFIXMINUS
         { $$ = syntax_expression{ std::move($CONSTEVAL), consteval_expression{ ctx.make<syntax_expression>(std::move($expr)) } }; }
+    // Guarded form: consteval(condition) expr -- analogous to C++'s explicit(bool)/noexcept(bool).
+    // Disambiguated from the plain rule above lexically, not grammatically: CONSTEVAL_GUARD is only
+    // lexed in place of CONSTEVAL when "consteval" is immediately followed by "(" with no whitespace
+    // (annium.l trailing-context rule), so this production and the plain one never share a leading
+    // token and Bison sees no shift/reduce conflict between them at all. `consteval (x)` (a space
+    // before the paren) keeps lexing as plain CONSTEVAL and stays exactly the plain rule's
+    // parenthesized operand, same as always -- including the "operand happens to itself be a call
+    // through a parenthesized/computed callable" case, e.g. `consteval (x)()`, which would otherwise
+    // collide with this rule (see IMPLEMENTATION_NOTES.md's `consteval` section for the concrete
+    // counterexample bison reported before the lexer split was added). Only `consteval(...)` with no
+    // space reads as the guarded form; write `consteval (x);` (or drop the redundant parens
+    // entirely) if you genuinely mean the no-space-glued plain form.
+    | CONSTEVAL_GUARD OPEN_PARENTHESIS syntax-expression[cond] CLOSE_PARENTHESIS syntax-expression[expr] %prec PREFIXMINUS
+        { $$ = syntax_expression{ std::move($CONSTEVAL_GUARD), consteval_expression{ ctx.make<syntax_expression>(std::move($expr)), ctx.make<syntax_expression>(std::move($cond)) } }; IGNORE_TERM($OPEN_PARENTHESIS); }
     | EXCLPT syntax-expression[expr]
 		{ $$ = syntax_expression{ std::move($EXCLPT), unary_expression{ unary_operator_type::NEGATE, true, std::span{ ctx.make<opt_named_expression_t>(std::move($expr)), 1 } } }; }
     | ASTERISK syntax-expression[expr] %prec DEREF

@@ -1391,6 +1391,26 @@ base_expression_visitor::result_type base_expression_visitor::operator()(not_emp
 
 base_expression_visitor::result_type base_expression_visitor::operator()(consteval_expression const& ce) const
 {
+    // Guard for the `consteval(condition) expr` form (null `condition` is the plain, always-forced
+    // `consteval expr`). `condition` gets the same constexpr-or-runtime treatment as the operand
+    // below -- resolved normally first, and only pushed through evaluate_consteval if it didn't
+    // already fold to a compile-time value on its own -- since the condition must itself be a
+    // compile-time bool regardless of how it happens to be written.
+    bool forced = true;
+    if (ce.condition) {
+        auto cond_res = base_expression_visitor::visit(ctx, expressions,
+            expected_result_t{ .type = env().get(builtin_eid::boolean), .location = ce.condition->location },
+            *ce.condition);
+        if (!cond_res) return std::unexpected(std::move(cond_res.error()));
+        syntax_expression_result cond_er = cond_res->first;
+        if (!cond_er.is_const_result) {
+            auto cond_eval_res = evaluate_consteval(ctx, ce.condition->location, std::move(cond_er));
+            if (!cond_eval_res) return std::unexpected(std::move(cond_eval_res.error()));
+            cond_er = std::move(*cond_eval_res);
+        }
+        forced = static_cast<generic_literal_entity const&>(get_entity(env(), cond_er.value())).value().as<bool>();
+    }
+
     // Ordinary runtime semantics for the operand -- the same overloads a normal compilation
     // would pick (CONSTEVAL_CTFE_PLAN.md section 3.1). No expected type/modifier is forced here:
     // that's exactly what lets a `runtime` parameter materialise a constexpr literal argument
@@ -1399,8 +1419,9 @@ base_expression_visitor::result_type base_expression_visitor::operator()(constev
     auto res = base_expression_visitor::visit(ctx, expressions, *ce.value);
     if (!res) return std::unexpected(std::move(res.error()));
     syntax_expression_result& er = res->first;
-    if (er.is_const_result) {
-        // the operand already folded to a compile-time value on its own; nothing to evaluate
+    if (!forced || er.is_const_result) {
+        // the condition asked to skip CTFE, or the operand already folded to a compile-time value
+        // on its own; nothing to evaluate
         return apply_cast(std::move(er));
     }
     auto eval_res = evaluate_consteval(ctx, context_expression_.location, std::move(er));

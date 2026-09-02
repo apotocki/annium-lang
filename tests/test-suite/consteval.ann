@@ -69,3 +69,34 @@ assert_equal(consteval choose(false), "no");
 // must be a clean compile error, not a crash -- try uncommenting this locally to check the
 // diagnostic:
 // let bad = consteval create_extern_object("Foo");
+
+// Guarded form: consteval(condition) expr. `condition` is itself required to be a compile-time
+// bool; `true` behaves exactly like the plain `consteval expr` above, `false` skips forcing
+// entirely and `expr` keeps its ordinary constexpr-or-runtime interpretation. `runtime_cast` on
+// the argument matters here: `choose`'s `$flag: bool` has no explicit `runtime`/`constexpr`
+// modifier, so `choose(true)` alone is *already* constexpr (a default-modifier parameter bound to
+// a literal argument folds on its own, regardless of `choose` being non-inline -- see
+// `internal_fn_pattern.cpp`'s `result.is_const_result = fne.result.is_const();`), which would make
+// both branches below look identical. `runtime_cast` forces the argument itself to be genuinely
+// runtime, so only the `true` guard actually forces `choose`'s call (and its `if`/`else` body)
+// through CTFE.
+assert_equal(consteval(true) choose(runtime_cast(true)), "yes");
+assert(is_const(consteval(true) choose(runtime_cast(true))));
+
+assert_equal(consteval(false) choose(runtime_cast(true)), "yes");
+assert(!is_const(consteval(false) choose(runtime_cast(true))));
+
+// The motivating case: a single definition serving both a constexpr and a runtime argument,
+// instead of the separate runtime/constexpr overload pair bootstrap.ann still declares for e.g.
+// `sqrt` (see IMPLEMENTATION_NOTES.md's `consteval` section). `guarded_sqrt` only pays for CTFE
+// when its argument is itself constexpr; a runtime argument just calls `__sqrt` normally.
+inline fn guarded_sqrt(@numeric) -> f64 => consteval(is_const($0)) __sqrt(runtime_cast($0));
+
+let gs_const = guarded_sqrt(4);
+assert(is_const(gs_const));
+assert_equal(gs_const, 2.0);
+
+let rt4: i32 = runtime_cast(4);
+let gs_runtime = guarded_sqrt(rt4);
+assert(!is_const(gs_runtime));
+assert_equal(gs_runtime, 2.0);

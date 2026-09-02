@@ -235,6 +235,61 @@ definition in `invocation.hpp`, above any `namespace` block) -- that's why every
 tree that touches it (`blob_type::object`, `blob_type::error`, ...) does so unqualified with no
 `using namespace` needed.
 
+### Guarded form: `consteval(condition) expr`
+
+Analogous to C++'s `explicit(bool)`/`noexcept(bool)`: `condition` (required to itself be a
+compile-time `bool`) decides whether `expr` is forced through CTFE at all. `true` behaves exactly
+like the plain `consteval expr` above; `false` skips forcing entirely and `expr` keeps its
+ordinary constexpr-or-runtime interpretation -- as if `consteval` weren't there. The motivating
+case: `inline fn sqrt(@numeric) -> f64 => consteval(is_const($0)) __sqrt(runtime_cast($0));` as a
+single definition, instead of the separate `runtime @numeric` / `constexpr @numeric` overload pair
+`sqrt`/`log`/`floor`/`ceil`/`pow`/`round` still use in `bootstrap.ann` (that pair exists only
+because each is a one-line `=>` body wrapping a plain `extern fn`, unlike `less`/`round-with-digits`
+just above it in `bootstrap.ann`, which already get away with one declaration by branching on
+`is_const` inside an `if`/`else` block body -- something a `=>` expression body can't do).
+`consteval_expression::condition` (`ast_terms.hpp`) is null for the plain form.
+
+**Grammar: disambiguated lexically, via a token split -- not left as a shift/reduce conflict.** The
+first attempt at this feature added `CONSTEVAL OPEN_PARENTHESIS syntax-expression CLOSE_PARENTHESIS
+syntax-expression` next to the plain rule (`CONSTEVAL syntax-expression`, where `syntax-expression`
+already permits a parenthesized operand -- `consteval (x)` parses today, with `(x)` as the entire
+operand). Both rules can derive the same prefix `CONSTEVAL OPEN_PARENTHESIS syntax-expression
+CLOSE_PARENTHESIS`, and Bison confirmed a real, not just theoretical, ambiguity there
+(`-Wcounterexamples`): `consteval (x) ()` could mean either "guarded, condition `x`, body the void
+literal `()`" (shift) or "`(x)()` is one grouped-expression call -- call the parenthesized value `x`
+(e.g. a computed callable) with no arguments -- swallowed whole as the *plain* rule's single operand"
+(reduce). Bison's default shift-wins resolution gave the right answer for every real `consteval`
+operand in `bootstrap.ann`/`tests/test-suite/*.ann` (none of them is a parenthesized-callable call),
+but leaving a live conflict for later grammar changes to silently interact with wasn't worth it when
+an actual fix was available.
+
+The fix moves the disambiguation into the lexer instead: `annium.l` lexes a new token,
+`CONSTEVAL_GUARD`, in place of plain `CONSTEVAL` only when `"consteval"` is *immediately* followed
+by `"("` with no whitespace between them (`{CONSTEVAL}/{OPEN_PARENTHESIS}` -- flex trailing context,
+placed before the plain `{CONSTEVAL}` rule so it wins the tie on equal-length matches). The guarded
+grammar rule now starts with `CONSTEVAL_GUARD` instead of `CONSTEVAL`, so it no longer shares a
+leading token with the plain rule at all -- the two productions can't conflict, because the lexer has
+already committed to one meaning or the other before the parser ever sees the `(`. `consteval (x)`
+(a space before the paren) always lexes as plain `CONSTEVAL` and keeps exactly its current meaning,
+`(x)()` call-through-a-parenthesized-value included; only the no-space `consteval(...)` spelling
+reads as the guarded form, and it always requires a trailing expression (the grammar rule demands
+one) -- so the degenerate old case this would otherwise break, "the entire operand happens to be
+`(x)` with nothing after, glued to `consteval` with no space," just becomes a plain parse error
+instead of silently picking one of two readings; write `consteval (x);` (with a space) or drop the
+redundant parens if that's genuinely what's meant. No `%prec`/`%expect` was needed -- the split
+removes the conflict rather than steering Bison's resolution of it.
+
+**Semantics: `condition` gets exactly the same const-or-evaluate treatment as `value`.** It's
+visited with `expected_result_t{ .type = boolean }` (unconstrained modifier, so it resolves
+constexpr on its own whenever it naturally can, e.g. `is_const($0)`), and only pushed through
+`evaluate_consteval` if it didn't already fold -- the same "resolve normally first, force only if
+needed" shape the plain operand uses one paragraph below it in
+`base_expression_visitor::operator()(consteval_expression const&)`. The resulting native `bool`
+just gates which branch of the *existing* plain-form logic runs: `forced` (from the condition, or
+`true` when there's no condition at all) is OR'd into the existing
+"already-const, nothing to evaluate" check, so `false` takes the exact same code path as an operand
+that happened to already be constexpr on its own.
+
 ## `blob_result`'s decimal wire format (`sonia-prime/sonia/utility/invocation/invocation.hpp`)
 
 `decimal_blob_result`/`blob_decimal_dispatch` (encode/decode pair) support two on-the-wire layouts for `blob_type::decimal`, selected by `inplace_size`:
