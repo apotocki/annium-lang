@@ -9,7 +9,7 @@
 
 namespace annium {
 
-entity const& get_entity(environment const& env, entity_identifier const& eid)
+entity const& get_entity(environment const& env, entity_identifier eid)
 {
     return env.eregistry_get(eid);
 }
