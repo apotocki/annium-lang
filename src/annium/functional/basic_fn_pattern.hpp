@@ -115,8 +115,8 @@ public:
 
         inline bool has_expression_constraint() const noexcept { return has_expression_constraint_; }
         inline bool has_pattern_constraint() const noexcept { return !has_expression_constraint_; }
-        inline syntax_expression const* expression_constraint() const noexcept { BOOST_ASSERT(has_expression_constraint_); return expression_constraint_; }
-        inline syntax_pattern const* pattern_constraint() const noexcept { BOOST_ASSERT(!has_expression_constraint_); return pattern_constraint_; }
+        inline syntax_expression const& expression_constraint() const noexcept { BOOST_ASSERT(has_expression_constraint_); return *expression_constraint_; }
+        inline syntax_pattern const& pattern_constraint() const noexcept { BOOST_ASSERT(!has_expression_constraint_); return *pattern_constraint_; }
         inline syntax_expression const* default_value() const noexcept { return default_value_; }
         inline bool is_required_value() const noexcept { return is_required_value_; }
         inline parameter_constraint_modifier_t modifier() const noexcept { return modifier_; }

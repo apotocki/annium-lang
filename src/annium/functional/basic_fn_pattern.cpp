@@ -338,9 +338,9 @@ std::ostream& basic_fn_pattern::print(environment const& e, std::ostream& ss) co
         }
 
         if (pd.has_expression_constraint()) {
-            e.print_to(ss << ": "sv, *pd.expression_constraint());
+            e.print_to(ss << ": "sv, pd.expression_constraint());
         } else if (pd.has_pattern_constraint()) {
-            e.print_to(ss << ":~ "sv, *pd.pattern_constraint());
+            e.print_to(ss << ":~ "sv, pd.pattern_constraint());
         }
         if (has(pd.modifier(), parameter_constraint_modifier_t::variadic)) {
             ss << "... "sv;

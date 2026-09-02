@@ -50,7 +50,6 @@ struct constraint_matcher
         : pmatcher{ pmatcher_val }
         , callee_ctx{ callee_ctx_val }
         , pd{ pd_val }
-        , argexp{ .modifier = to_value_modifier(pd.modifier()) }
     {}
 
     std::expected<bool, error_storage> do_retrieve_next_argument()
@@ -74,12 +73,12 @@ struct constraint_matcher
         return std::pair{ arg_descr.result, !!arg_descr.has_been_casted };
     }
 
-    std::expected<match_penalty, error_storage> operator()(syntax_expression const* constraint) const
+    std::expected<match_penalty, error_storage> operator()(syntax_expression const& constraint) const
     {
         if (has(pd.modifier(), parameter_constraint_modifier_t::constexpr_value)) {
             BOOST_ASSERT(pconstraint_value_eid); // shuld be set by resolve_expression_expected_result call
             if (arg_er.value() != pconstraint_value_eid) {
-                return std::unexpected(make_error<value_mismatch_error>(arg_descr.expression->location, arg_er.value(), pconstraint_value_eid, constraint->location));
+                return std::unexpected(make_error<value_mismatch_error>(arg_descr.expression->location, arg_er.value(), pconstraint_value_eid, constraint.location));
                 //return append_cause(
                 //    make_error<basic_general_error>(call.location, "argument value does not match constraint"sv, param_name.value, param_name.location),
                 //    make_error<value_mismatch_error>(arg_descr.expression->location, arg_er.value(), pconstraint_value_eid, get_start_location(constraint))
@@ -89,7 +88,7 @@ struct constraint_matcher
         return match_penalty{ .casts = has_cast, .cast_capable_matches = 1 };
     }
 
-    std::expected<match_penalty, error_storage> operator()(syntax_pattern const* constraint) const
+    std::expected<match_penalty, error_storage> operator()(syntax_pattern const& constraint) const
     {
         environment& env = callee_ctx.env();
         entity_identifier type_or_value_to_match;
@@ -105,15 +104,19 @@ struct constraint_matcher
                     return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, arg_er.value(), "a consteval"sv));
                 }
                 type_or_value_to_match = arg_er.value();
+            } else if (!has(pd.modifier(), parameter_constraint_modifier_t::constexpr_type)) {
+                return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, arg_er.value(), "a runtime value"sv));
             } else {
                 type_or_value_to_match = arg_res_entity.get_type();
             }
+        } else if (!has(pd.modifier(), parameter_constraint_modifier_t::runtime_type)) {
+            return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, arg_er.type(), "a compile time value"sv));
         } else {
             type_or_value_to_match = arg_er.type();
         }
         match_penalty pattern_penalty;
         error_storage err = pattern_matcher{ callee_ctx, pmatcher.md.bindings, pmatcher.call.expressions, pattern_penalty }
-            .match(*constraint, annotated_entity_identifier{ type_or_value_to_match, arg_descr.expression->location });
+            .match(constraint, annotated_entity_identifier{ type_or_value_to_match, arg_descr.expression->location });
         if (err) {
             annotated_identifier param_name = pd.name();
             return std::unexpected(append_cause(
@@ -161,8 +164,8 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
         
         // resolve the parameter constraint value if it is specified
         if (param_it->has_expression_constraint()) {
-            syntax_expression const* param_expr = param_it->expression_constraint(); // get_if<syntax_expression const*>(&param_it->constraint)) {
-            auto argexp_res = resolve_expression_expected_result(callee_ctx, param_name, param_it->modifier(), *param_expr, cmatcher.pconstraint_value_eid);
+            syntax_expression const& param_expr = param_it->expression_constraint(); // get_if<syntax_expression const*>(&param_it->constraint)) {
+            auto argexp_res = resolve_expression_expected_result(callee_ctx, param_name, param_it->modifier(), param_expr, cmatcher.pconstraint_value_eid);
             if (!argexp_res) {
                 match_errors.alternatives.emplace_back(std::move(argexp_res.error()));
                 if (try_backtrack(callee_ctx)) continue;
@@ -370,12 +373,12 @@ bool parameter_matcher::try_backtrack(fn_compiler_context& callee_ctx)
         }
         // star is empty, remove it
         star_stack.pop_back();
-        md.remove_last_arg();
         // to do: pop star binding
         if (param_it == param_bit) {
             BOOST_ASSERT(star_stack.empty());
             break;
         }
+        md.remove_last_arg();
         --param_it;
     }
     return false;
