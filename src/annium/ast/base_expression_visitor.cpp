@@ -1412,11 +1412,21 @@ base_expression_visitor::result_type base_expression_visitor::operator()(constev
     }
 
     // Ordinary runtime semantics for the operand -- the same overloads a normal compilation
-    // would pick (CONSTEVAL_CTFE_PLAN.md section 3.1). No expected type/modifier is forced here:
-    // that's exactly what lets a `runtime` parameter materialise a constexpr literal argument
-    // the normal way, and what keeps this from becoming a second, competing constexpr-folding
-    // path alongside apply_cast's.
-    auto res = base_expression_visitor::visit(ctx, expressions, *ce.value);
+    // would pick (CONSTEVAL_CTFE_PLAN.md section 3.1). The *modifier* is deliberately left
+    // unconstrained (constexpr_or_runtime_value, the expected_result_t default): that's what lets
+    // a `runtime` parameter materialise a constexpr literal argument the normal way -- argument
+    // binding is driven by the callee's own parameter modifiers, not by this. The ambient *type*
+    // (from whatever expected_result this whole consteval_expression node was itself constructed
+    // with, e.g. the enclosing function's declared return type) IS forwarded, though: it plays no
+    // part in choosing between differently-named-the-same overload candidates (match_penalty.hpp
+    // has no type-vs-expected-type field at all -- only per-argument casts/placeholders/variadics
+    // feed overload ranking) and only two things can happen with it -- a pattern-typed/generic-
+    // result candidate (like `reinterpret`, which has no fixed return type of its own and requires
+    // a type up front) becomes matchable that otherwise couldn't be, or apply_cast below ends up
+    // with nothing left to do because the operand already produced the right type. Either way,
+    // a genuine tie still surfaces honestly as ambiguity_error, never a silent wrong pick.
+    auto res = base_expression_visitor::visit(ctx, expressions,
+        expected_result_t{ .type = expected_result.type, .location = ce.value->location }, *ce.value);
     if (!res) return std::unexpected(std::move(res.error()));
     syntax_expression_result& er = res->first;
     if (!forced || er.is_const_result) {

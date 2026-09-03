@@ -129,7 +129,7 @@ inline viable fn::get(self: @is_struct, property: constexpr __identifier) => get
 typefn array(of: typename, size?: constexpr integer);
 inline fn empty(~array(of, size $size)) => $size == 0;
 inline fn size(~array(of, size $size)) => $size;
-inline fn size(~runtime array(of)) => __array_size($0);
+inline fn size(~array(of)) => consteval(is_const($0)) __array_size(runtime_cast($0));
 struct iterator(typename array(...)) => (index: integer = 0, array: $0);
 inline fn iterator(~array(...)) -> iterator(typeof($0)) => init(array: $0);
 inline fn has_next(~iterator(=array(...))) => $0.index != size($0.array);
@@ -177,16 +177,15 @@ struct regex_object => (cookie: any);
 inline fn init(runtime string) ~> regex_object {
 	return init(cookie: std.regex_object($0));
 }
-inline fn regex_search(target: runtime string, re: runtime string) -> [string] {
-	return reinterpret(std.regex_search(target, re));
-}
+inline fn regex_search(target: string, re: string) -> [string] =>
+	consteval(is_const(target) && is_const(re)) reinterpret(std.regex_search(runtime_cast(target), runtime_cast(re)));
+
 inline fn search(self: ~regex_object, $target: runtime string) -> [string] {
 	return reinterpret(std.regex_search($target, self.cookie));
 }
 
-inline fn to_integer(runtime string) -> integer {
-    return reinterpret(std.to_integer($0));
-}
+inline fn to_integer(string) -> integer =>
+    consteval(is_const($0)) reinterpret(std.to_integer(runtime_cast($0)));
 
 // NUMERIC
 inline fn implicit_cast(@numeric) ~> bool => $0 != 0;

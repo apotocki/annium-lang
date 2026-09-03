@@ -221,6 +221,22 @@ std::expected<syntax_expression_result, error_storage> fixed_array_get_pattern::
         array_size = sz_ent.value().as<size_t>();
     }
 
+    // Per-element entity ids when self is constant, regardless of how the constant array is
+    // actually represented (see const_array_element_ids's own comment in auxiliary.hpp). When the
+    // array's *type* has no fixed size of its own (e.g. `[string]`, an unsized array -- as returned
+    // by a CTFE-folded call with no compile-time-known element count until it's actually run),
+    // the element count is only knowable from the actual constant value -- refine `array_size` from
+    // it here too, so the index bounds check just below is exact instead of silently unbounded.
+    small_vector<entity_identifier, 8> element_ids;
+    if (slfer.is_const_result) {
+        element_ids = const_array_element_ids(env, slfer.value(), of_fd->entity_id());
+        if (size_fd) {
+            BOOST_ASSERT(element_ids.size() == array_size);
+        } else {
+            array_size = element_ids.size();
+        }
+    }
+
     optional<size_t> index;
     if (proper.is_const_result) {
         generic_literal_entity const& index_ent = static_cast<generic_literal_entity const&>(get_entity(env, proper.value()));
@@ -230,20 +246,12 @@ std::expected<syntax_expression_result, error_storage> fixed_array_get_pattern::
         }
     }
 
-    entity_signature const* datasig = nullptr;
-    if (slfer.is_const_result) {
-        entity const& slf_data_entity = get_entity(env, slfer.value());
-        datasig = slf_data_entity.signature();
-        BOOST_ASSERT(datasig && datasig->name == env.get(builtin_qnid::data));
-        BOOST_ASSERT(datasig->fields().size() == array_size);
-    }
-
     // Case 1: Both self and property are constant
     if (slfer.is_const_result && proper.is_const_result) {
         return syntax_expression_result{
             .temporaries = {},
             .expressions = {},
-            .value_or_type = datasig->field(*index).entity_id(),
+            .value_or_type = element_ids[*index],
             .is_const_result = true
         };
     }
@@ -282,7 +290,7 @@ std::expected<syntax_expression_result, error_storage> fixed_array_get_pattern::
         // A single-element array's only valid index is 0, regardless of the
         // (unevaluated) runtime property value - matches Case 4's rule above.
         return syntax_expression_result{
-            .value_or_type = datasig->field(0).entity_id(),
+            .value_or_type = element_ids[0],
             .is_const_result = true
         };
     }

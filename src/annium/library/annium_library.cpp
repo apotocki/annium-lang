@@ -431,7 +431,7 @@ void annium_unfold(vm::context& ctx)
 
 void annium_array_size(vm::context& ctx)
 {
-    auto arr = ctx.stack_back(1).as<blob_result>();
+    auto arr = ctx.stack_back().as<blob_result>();
     if (!is_array(arr)) {
         throw exception("expected array, got %1%"_fmt % arr);
     }

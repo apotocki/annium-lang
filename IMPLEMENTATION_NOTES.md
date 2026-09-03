@@ -290,6 +290,73 @@ just gates which branch of the *existing* plain-form logic runs: `forced` (from 
 "already-const, nothing to evaluate" check, so `false` takes the exact same code path as an operand
 that happened to already be constexpr on its own.
 
+**The operand's `expected_result_t.type` is forwarded from the enclosing node; the modifier is
+not.** This was not the case in the feature's first cut: both operand-visiting calls in
+`operator()(consteval_expression const&)` originally used the fully unconstrained 3-arg `visit()`
+(fresh `expected_result_t{}`, `type` left null), which broke the moment `bootstrap.ann`'s
+`regex_search`/`to_integer` tried wrapping `reinterpret(...)` directly in `consteval(cond)`:
+`reinterpret_any_pattern::try_match` (`reinterpret_any_pattern.cpp`) requires a non-null `exp.type`
+unconditionally, since `reinterpret` has no fixed return type of its own -- it exists purely to cast
+an `any` into whatever the *caller* expects, so it structurally can't proceed without one
+(`pmd->signature.result.emplace(exp.type, false)` needs a real id to put there). Every other function
+ever wrapped in `consteval` up to that point had its own fixed/self-determined return type
+(`starts_with`, `substring`, `__sqrt`, `__less`, ...), so the gap went unnoticed until then.
+
+The fix -- forward `expected_result.type` (the ambient ANY-node's own expected type, e.g. the
+enclosing function's declared return type) but not `expected_result.modifier` -- turned out to be
+safe once actually checked against how overload ranking works, not just assumed: `match_penalty`
+(`match_penalty.hpp`) has fields for per-argument `casts`, `placeholders`, `variadics` and
+`cast_capable_matches` only -- nothing keyed on whether a *candidate's own return type* happens to
+equal the caller's expected type. So `expected_result_t.type` plays no role in choosing between two
+differently-named-the-same overload candidates; the only things it can do are (a) let a
+pattern-typed/generic-result candidate like `reinterpret` become matchable where it otherwise
+couldn't (a hard pass/fail, and a genuine tie from this still surfaces honestly as
+`ambiguity_error`, never a silent wrong pick -- `FUNCTION_REQUIREMENT_CHAIN_SPEC.md` section 4:
+viability filtering and overload ranking are separate steps, and ranking is exactly this
+argument-side `match_penalty`), or (b) leave `apply_cast` at the end of
+`operator()(consteval_expression const&)` with nothing left to do because the operand already
+produced the expected type. The *modifier* stays unconstrained regardless -- that one's still about
+letting a `runtime`-only parameter materialize a constexpr literal argument the normal way, driven
+by the callee's own parameter modifiers rather than anything here, and forwarding it down would
+actually risk that. With the type forwarded, `regex_search`/`to_integer` need no `.ann`-level
+workaround -- `consteval(cond) reinterpret(...)` works as the direct operand.
+
+### A compile-time-known array has two different representations -- consumers must handle both
+
+The common case is a `data`-named `entity_signature`, whose fields are the elements one-for-one
+(`array literal`/`fixed_array_make_pattern`, and `environment::make_array_entity` for anything
+built in C++). But `evaluate_consteval` (the `consteval` CTFE path, above) never produces this form
+for a composite (array/tuple/struct) result -- it always folds through
+`environment::make_generic_entity`, giving a plain `generic_literal_entity` wrapping a raw
+`smart_blob`, regardless of the result's static type. This is deliberate, not an oversight:
+decomposing into the structured `data` form at that layer would need a *sized* array type
+(`make_array_entity` always computes one from the element count it's given), which would change the
+folded value's own reported type -- e.g. `regex_search`'s declared `-> [string]` becoming
+`string[N]` for whatever `N` a particular call happened to fold to. Keeping `evaluate_consteval`
+type-preserving means every *consumer* of a compile-time-known array has to be prepared for either
+representation, not just the `data`-signature one array literals always produce.
+
+Two independent consumers found this the hard way, both via the identical
+`BOOST_ASSERT(... ->name == env.get(builtin_qnid::data))` crash on a CTFE-folded array (see
+`BUGFIXES.md`'s `array_implicit_cast_pattern`/`fixed_array_get_pattern` entry for the concrete
+`regex_search`/`size()`/`match[0]` case that surfaced it): `array_implicit_cast_pattern.cpp` (const
+array -> runtime array, and const array -> differently-typed const array) and
+`fixed_array_get_pattern.cpp` (`arr[i]` on a constant array). Both now go through
+`const_array_element_ids(environment&, entity_identifier array_value_eid, entity_identifier
+element_type_eid)` (`auxiliary.hpp`/`annium_auxiliary.cpp`) instead of reading `->signature()`
+directly -- it returns the per-element entity ids from *either* representation, reading the raw
+blob (via `blob_type_selector`/`array_size_of`/`data_of`, mirroring `annium_unfold`'s own
+element-reading logic in `annium_library.cpp`, just collecting entity ids at compile time instead
+of pushing to the VM stack) when there's no `data`-signature to read fields from. Any *new*
+const-array-consuming pattern should use this too, rather than assuming the `data`-signature form
+the way these two originally did.
+
+One existing consumer needed no change: `fixed_array_get_pattern.cpp`'s own
+`materialize_const_blob` (flattens a possibly-nested constant array into one runtime blob, for the
+"constant array, dynamic index" case) already checks for a `generic_literal_entity` first, at the
+top of its recursion, and returns its blob directly before assuming any signature -- it was already
+representation-agnostic, just not factored out for reuse the way `const_array_element_ids` now is.
+
 ## `blob_result`'s decimal wire format (`sonia-prime/sonia/utility/invocation/invocation.hpp`)
 
 `decimal_blob_result`/`blob_decimal_dispatch` (encode/decode pair) support two on-the-wire layouts for `blob_type::decimal`, selected by `inplace_size`:
