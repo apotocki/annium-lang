@@ -73,6 +73,10 @@
     "output": ""
   },
   {
+    "src": "bitwise.ann",
+    "output": ""
+  },
+  {
     "src": "comparisons.ann",
     "output": ""
   },

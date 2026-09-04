@@ -212,6 +212,10 @@ enum class builtin_eid : entity_identifier::value_type
     subtract_numeric, // builtin ::__minus_numeric(runtime, runtime) -- generic numeric subtraction, see numeric_literal_minus_pattern
     multiply_numeric, // builtin ::__mul_numeric(runtime, runtime) -- generic numeric multiplication, see numeric_literal_mul_pattern
     divide_numeric, // builtin ::__div_numeric(runtime, runtime) -- generic numeric division, see numeric_literal_div_pattern
+    bitand_numeric, // builtin ::__bit_and_numeric(runtime, runtime) -- generic integral bitwise AND, see numeric_literal_bit_and_pattern
+    bitor_numeric, // builtin ::__bit_or_numeric(runtime, runtime) -- generic integral bitwise OR, see numeric_literal_bit_or_pattern
+    bitand_bool, // builtin ::__bit_and_bool(runtime bool, runtime bool)->bool -- non-short-circuiting bitwise AND, see bool_bit_and_pattern
+    bitor_bool, // builtin ::__bit_or_bool(runtime bool, runtime bool)->bool -- non-short-circuiting bitwise OR, see bool_bit_or_pattern
     eof_builtin_eid_value
 };
 

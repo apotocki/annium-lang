@@ -10,6 +10,8 @@
 
 #include "annium/entities/prepared_call.hpp"
 
+#include "annium/errors/type_mismatch_error.hpp"
+
 #include "annium/auxiliary.hpp"
 
 namespace annium {
@@ -34,6 +36,17 @@ union_bit_or_pattern::try_match(fn_compiler_context& ctx, prepared_call const& c
         resource_location const& arg_loc = arg_descr.expression->location;
         if (!er.is_const_result) {
             return std::unexpected(make_error<basic_general_error>(arg_loc, "argument must be a constant expression"sv));
+        }
+
+        // This pattern builds a *type* union ("A | B" -> typename union(A, B)"), per its own
+        // documented signature ("fn union(=> ... @typename) -> typename", union_bit_or_pattern.hpp)
+        // -- it must not also accept plain constexpr scalars (numbers, bools), which have their
+        // own dedicated '|' overloads (numeric_literal_bit_or_pattern/bool_bit_or_pattern) since
+        // this was added. Without this check, e.g. `12 | 10` matched both, an ambiguity_error.
+        entity const& arg_entity_check = get_entity(ctx.env(), er.value());
+        entity_identifier arg_type_id = arg_entity_check.get_type();
+        if (arg_type_id != ctx.env().get(builtin_eid::typename_)) {
+            return std::unexpected(make_error<type_mismatch_error>(arg_loc, arg_type_id, "a typename"sv));
         }
 
         pmd->append_arg(er, arg_loc);

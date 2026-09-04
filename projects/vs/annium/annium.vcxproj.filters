@@ -267,6 +267,12 @@
     <ClCompile Include="..\..\..\src\annium\functional\general\logical_not_pattern.cpp">
       <Filter>annium\functional\general</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\general\bool_bit_and_pattern.cpp">
+      <Filter>annium\functional\general</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\general\bool_bit_or_pattern.cpp">
+      <Filter>annium\functional\general</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\functional\general\runtime_cast_pattern.cpp">
       <Filter>annium\functional\general</Filter>
     </ClCompile>
@@ -379,6 +385,12 @@
       <Filter>annium\entities\literals</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_div_pattern.cpp">
+      <Filter>annium\entities\literals</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_bit_and_pattern.cpp">
+      <Filter>annium\entities\literals</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_bit_or_pattern.cpp">
       <Filter>annium\entities\literals</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_promotion.cpp">
@@ -686,6 +698,12 @@
     <ClInclude Include="..\..\..\src\annium\functional\general\logical_not_pattern.hpp">
       <Filter>annium\functional\general</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\general\bool_bit_and_pattern.hpp">
+      <Filter>annium\functional\general</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\general\bool_bit_or_pattern.hpp">
+      <Filter>annium\functional\general</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\src\annium\functional\general\runtime_cast_pattern.hpp">
       <Filter>annium\functional\general</Filter>
     </ClInclude>
@@ -807,6 +825,12 @@
       <Filter>annium\entities\literals</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_div_pattern.hpp">
+      <Filter>annium\entities\literals</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_bit_and_pattern.hpp">
+      <Filter>annium\entities\literals</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_bit_or_pattern.hpp">
       <Filter>annium\entities\literals</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_promotion.hpp">

@@ -178,7 +178,7 @@ inline fn init(runtime string) ~> regex_object {
 	return init(cookie: std.regex_object($0));
 }
 inline fn regex_search(target: string, re: string) -> [string] =>
-	consteval(is_const(target) && is_const(re)) reinterpret(std.regex_search(runtime_cast(target), runtime_cast(re)));
+	consteval(is_const(target) & is_const(re)) reinterpret(std.regex_search(runtime_cast(target), runtime_cast(re)));
 
 inline fn search(self: ~regex_object, $target: runtime string) -> [string] {
 	return reinterpret(std.regex_search($target, self.cookie));
@@ -190,7 +190,7 @@ inline fn to_integer(string) -> integer =>
 // NUMERIC
 inline fn implicit_cast(@numeric) ~> bool => $0 != 0;
 inline fn less(@numeric, @numeric) -> bool =>
-	consteval(is_const($0) && is_const($1)) __less(runtime_cast($0), runtime_cast($1));
+	consteval(is_const($0) & is_const($1)) __less(runtime_cast($0), runtime_cast($1));
 
 // less_eq/greater_eq are deliberately NOT `!less(...)` of a swapped/same-order call: NaN makes `<`
 // (and `>`) unordered-false in both directions, so negating either would turn "unordered" into a
@@ -211,9 +211,9 @@ inline fn sqrt(@numeric) -> f64 => consteval(is_const($0)) __sqrt(runtime_cast($
 inline fn log(@numeric) -> f64 => consteval(is_const($0)) __log(runtime_cast($0));
 inline fn floor(@numeric) -> f64 => consteval(is_const($0)) __floor(runtime_cast($0));
 inline fn ceil(@numeric) -> f64 => consteval(is_const($0)) __ceil(runtime_cast($0));
-inline fn pow(@numeric, @numeric) -> f64 => consteval(is_const($0) && is_const($1)) __pow(runtime_cast($0), runtime_cast($1));
+inline fn pow(@numeric, @numeric) -> f64 => consteval(is_const($0) & is_const($1)) __pow(runtime_cast($0), runtime_cast($1));
 inline fn round(@numeric) -> f64 => consteval(is_const($0)) __round(runtime_cast($0));
-inline fn round(@numeric, $digits: @numeric) -> f64 => consteval(is_const($0) && is_const($digits)) __round_digits(runtime_cast($0), runtime_cast($digits));
+inline fn round(@numeric, $digits: @numeric) -> f64 => consteval(is_const($0) & is_const($digits)) __round_digits(runtime_cast($0), runtime_cast($digits));
 
 // abs/min/max: unlike sqrt/log/floor/ceil/pow/round above, these need no extern at all -- they're
 // exact for every numeric type (no transcendental/precision-losing math involved), so they're
@@ -279,4 +279,4 @@ enum rounding_mode {
 // no shared symbolic enum type between bootstrap.ann and the C++ side, see decimal_rounding_mode's
 // comment in numeric_promotion.hpp (its member order must match this enum's exactly).
 inline fn divide($a: @numeric, $b: @numeric, $scale: @numeric, $mode: rounding_mode = .half_even) -> decimal
-    => consteval(is_const($a) && is_const($b) && is_const($scale) && is_const($mode)) __divide_decimal_rounded(runtime_cast($a), runtime_cast($b), runtime_cast($scale), runtime_cast(to_integer($mode)));
+    => consteval(is_const($a) & is_const($b) & is_const($scale) & is_const($mode)) __divide_decimal_rounded(runtime_cast($a), runtime_cast($b), runtime_cast($scale), runtime_cast(to_integer($mode)));

@@ -683,6 +683,48 @@ void annium_operator_div_numeric(vm::context& ctx)
     ctx.stack_back().replace(std::move(res));
 }
 
+void annium_operator_bitand_numeric(vm::context& ctx)
+{
+    smart_blob const& l = ctx.stack_back(1);
+    smart_blob const& r = ctx.stack_back();
+    builtin_eid result_type = strongest_numeric_type(numeric_builtin_eid_of(*l), numeric_builtin_eid_of(*r));
+    smart_blob res = bit_and_numeric(l, r, result_type);
+
+    ctx.stack_pop();
+    ctx.stack_back().replace(std::move(res));
+}
+
+void annium_operator_bitor_numeric(vm::context& ctx)
+{
+    smart_blob const& l = ctx.stack_back(1);
+    smart_blob const& r = ctx.stack_back();
+    builtin_eid result_type = strongest_numeric_type(numeric_builtin_eid_of(*l), numeric_builtin_eid_of(*r));
+    smart_blob res = bit_or_numeric(l, r, result_type);
+
+    ctx.stack_pop();
+    ctx.stack_back().replace(std::move(res));
+}
+
+void annium_operator_bitand_bool(vm::context& ctx)
+{
+    bool l = ctx.stack_back(1).as<bool>();
+    bool r = ctx.stack_back().as<bool>();
+    smart_blob res = bool_blob_result(l & r);
+
+    ctx.stack_pop();
+    ctx.stack_back().replace(std::move(res));
+}
+
+void annium_operator_bitor_bool(vm::context& ctx)
+{
+    bool l = ctx.stack_back(1).as<bool>();
+    bool r = ctx.stack_back().as<bool>();
+    smart_blob res = bool_blob_result(l | r);
+
+    ctx.stack_pop();
+    ctx.stack_back().replace(std::move(res));
+}
+
 // Backs bootstrap.ann's `divide(a, b, scale, mode)`, the explicit runtime-safe alternative to the
 // plain `/` operator (which stays undefined for decimal at runtime -- see numeric_promotion.hpp).
 // `mode` arrives as a bare integer ordinal (bootstrap.ann passes `to_integer(mode)`, not the

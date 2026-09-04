@@ -27,6 +27,8 @@
 #include "annium/functional/general/typeof_pattern.hpp"
 #include "annium/functional/general/to_string_pattern.hpp"
 #include "annium/functional/general/logical_not_pattern.hpp"
+#include "annium/functional/general/bool_bit_and_pattern.hpp"
+#include "annium/functional/general/bool_bit_or_pattern.hpp"
 #include "annium/functional/general/is_const_pattern.hpp"
 #include "annium/functional/general/create_identifier_pattern.hpp"
 
@@ -39,6 +41,8 @@
 #include "annium/entities/literals/numeric_literal_minus_pattern.hpp"
 #include "annium/entities/literals/numeric_literal_mul_pattern.hpp"
 #include "annium/entities/literals/numeric_literal_div_pattern.hpp"
+#include "annium/entities/literals/numeric_literal_bit_and_pattern.hpp"
+#include "annium/entities/literals/numeric_literal_bit_or_pattern.hpp"
 
 #include "annium/entities/literals/string/string_implicit_cast_pattern.hpp"
 #include "annium/entities/literals/string/string_concat_pattern.hpp"
@@ -1580,9 +1584,18 @@ environment::environment()
     auto union_pattern = make_shared<union_bit_or_pattern>();
     functional& bit_or_fnl = fregistry_resolve(get(builtin_qnid::bit_or));
     bit_or_fnl.push(union_pattern);
+    bit_or_fnl.push(make_shared<numeric_literal_bit_or_pattern>());
+    bit_or_fnl.push(make_shared<bool_bit_or_pattern>());
 
     functional& union_fnl = fregistry_resolve(get(builtin_qnid::union_));
     union_fnl.push(union_pattern);
+
+    // "__bit_and" also carries bootstrap.ann's `typename tuple($l...) & typename tuple($r...)`
+    // compile-time tuple-concatenation overload (see bootstrap.ann) -- these two just add the
+    // runtime integer/bool overloads under the same qname.
+    functional& bit_and_fnl = fregistry_resolve(get(builtin_qnid::bit_and));
+    bit_and_fnl.push(make_shared<numeric_literal_bit_and_pattern>());
+    bit_and_fnl.push(make_shared<bool_bit_and_pattern>());
 
     // apply(union(...), visitor) -> auto  
     functional& apply_fnl = fregistry_resolve(get(builtin_qnid::apply));
@@ -1751,6 +1764,10 @@ environment::environment()
     builtin_eids_[(size_t)builtin_eid::subtract_numeric] = set_builtin_extern("__minus_numeric(runtime @numeric, runtime @numeric)->any"sv, &annium_operator_minus_numeric);
     builtin_eids_[(size_t)builtin_eid::multiply_numeric] = set_builtin_extern("__mul_numeric(runtime @numeric, runtime @numeric)->any"sv, &annium_operator_mul_numeric);
     builtin_eids_[(size_t)builtin_eid::divide_numeric] = set_builtin_extern("__div_numeric(runtime @numeric, runtime @numeric)->any"sv, &annium_operator_div_numeric);
+    builtin_eids_[(size_t)builtin_eid::bitand_numeric] = set_builtin_extern("__bit_and_numeric(runtime @numeric, runtime @numeric)->any"sv, &annium_operator_bitand_numeric);
+    builtin_eids_[(size_t)builtin_eid::bitor_numeric] = set_builtin_extern("__bit_or_numeric(runtime @numeric, runtime @numeric)->any"sv, &annium_operator_bitor_numeric);
+    builtin_eids_[(size_t)builtin_eid::bitand_bool] = set_builtin_extern("__bit_and_bool(runtime bool, runtime bool)->bool"sv, &annium_operator_bitand_bool);
+    builtin_eids_[(size_t)builtin_eid::bitor_bool] = set_builtin_extern("__bit_or_bool(runtime bool, runtime bool)->bool"sv, &annium_operator_bitor_bool);
 
     // __isubtract: kept under its own private qname (distinct from the public "__minus" operator,
     // same reasoning as __unary_minus) purely so array_from_iterator_make_pattern.cpp can invoke it

@@ -129,15 +129,6 @@ smart_blob integer_view_to_numeric(numetron::integer_view source_val, builtin_ei
     }
 }
 
-namespace {
-
-constexpr builtin_eid k_all_numeric_eids[] = {
-    builtin_eid::i8, builtin_eid::u8, builtin_eid::i16, builtin_eid::u16,
-    builtin_eid::i32, builtin_eid::u32, builtin_eid::i64, builtin_eid::u64,
-    builtin_eid::f16, builtin_eid::f32, builtin_eid::f64,
-    builtin_eid::integer, builtin_eid::decimal
-};
-
 bool is_integral_kind_eid(builtin_eid t) noexcept
 {
     switch (t) {
@@ -155,6 +146,15 @@ bool is_integral_kind_eid(builtin_eid t) noexcept
         return false;
     }
 }
+
+namespace {
+
+constexpr builtin_eid k_all_numeric_eids[] = {
+    builtin_eid::i8, builtin_eid::u8, builtin_eid::i16, builtin_eid::u16,
+    builtin_eid::i32, builtin_eid::u32, builtin_eid::i64, builtin_eid::u64,
+    builtin_eid::f16, builtin_eid::f32, builtin_eid::f64,
+    builtin_eid::integer, builtin_eid::decimal
+};
 
 bool is_floating_kind_eid(builtin_eid t) noexcept
 {
@@ -397,6 +397,67 @@ smart_blob divide_numeric(smart_blob const& lhs, smart_blob const& rhs, builtin_
         // (see FUTURE_WORK.md) -- numeric_literal_div_pattern rejects decimal operands before
         // this function is ever reached, so reaching here for decimal (or anything else) is a bug.
         THROW_INTERNAL_ERROR("divide_numeric: unsupported result type"sv);
+    }
+}
+
+smart_blob bit_and_numeric(smart_blob const& lhs, smart_blob const& rhs, builtin_eid result_type)
+{
+    switch (result_type) {
+    case builtin_eid::i8:
+        return i8_blob_result(static_cast<int8_t>(lhs.as<int8_t>() & rhs.as<int8_t>()));
+    case builtin_eid::u8:
+        return ui8_blob_result(static_cast<uint8_t>(lhs.as<uint8_t>() & rhs.as<uint8_t>()));
+    case builtin_eid::i16:
+        return i16_blob_result(static_cast<int16_t>(lhs.as<int16_t>() & rhs.as<int16_t>()));
+    case builtin_eid::u16:
+        return ui16_blob_result(static_cast<uint16_t>(lhs.as<uint16_t>() & rhs.as<uint16_t>()));
+    case builtin_eid::i32:
+        return i32_blob_result(static_cast<int32_t>(lhs.as<int32_t>() & rhs.as<int32_t>()));
+    case builtin_eid::u32:
+        return ui32_blob_result(static_cast<uint32_t>(lhs.as<uint32_t>() & rhs.as<uint32_t>()));
+    case builtin_eid::i64:
+        return i64_blob_result(static_cast<int64_t>(lhs.as<int64_t>() & rhs.as<int64_t>()));
+    case builtin_eid::u64:
+        return ui64_blob_result(static_cast<uint64_t>(lhs.as<uint64_t>() & rhs.as<uint64_t>()));
+    case builtin_eid::integer: {
+        auto conj = lhs.as<numetron::integer>() & rhs.as<numetron::integer_view>();
+        return smart_blob{ bigint_blob_result(conj) }.allocate();
+    }
+    default:
+        // builtin_eid::decimal/f16/f32/f64 deliberately excluded: bitwise AND isn't defined for
+        // them -- numeric_literal_bit_and_pattern rejects non-integral operands before this
+        // function is ever reached, so reaching here is a bug.
+        THROW_INTERNAL_ERROR("bit_and_numeric: unsupported result type"sv);
+    }
+}
+
+smart_blob bit_or_numeric(smart_blob const& lhs, smart_blob const& rhs, builtin_eid result_type)
+{
+    switch (result_type) {
+    case builtin_eid::i8:
+        return i8_blob_result(static_cast<int8_t>(lhs.as<int8_t>() | rhs.as<int8_t>()));
+    case builtin_eid::u8:
+        return ui8_blob_result(static_cast<uint8_t>(lhs.as<uint8_t>() | rhs.as<uint8_t>()));
+    case builtin_eid::i16:
+        return i16_blob_result(static_cast<int16_t>(lhs.as<int16_t>() | rhs.as<int16_t>()));
+    case builtin_eid::u16:
+        return ui16_blob_result(static_cast<uint16_t>(lhs.as<uint16_t>() | rhs.as<uint16_t>()));
+    case builtin_eid::i32:
+        return i32_blob_result(static_cast<int32_t>(lhs.as<int32_t>() | rhs.as<int32_t>()));
+    case builtin_eid::u32:
+        return ui32_blob_result(static_cast<uint32_t>(lhs.as<uint32_t>() | rhs.as<uint32_t>()));
+    case builtin_eid::i64:
+        return i64_blob_result(static_cast<int64_t>(lhs.as<int64_t>() | rhs.as<int64_t>()));
+    case builtin_eid::u64:
+        return ui64_blob_result(static_cast<uint64_t>(lhs.as<uint64_t>() | rhs.as<uint64_t>()));
+    case builtin_eid::integer: {
+        auto disj = lhs.as<numetron::integer>() | rhs.as<numetron::integer_view>();
+        return smart_blob{ bigint_blob_result(disj) }.allocate();
+    }
+    default:
+        // See bit_and_numeric's comment: numeric_literal_bit_or_pattern rejects non-integral
+        // operands before this function is ever reached.
+        THROW_INTERNAL_ERROR("bit_or_numeric: unsupported result type"sv);
     }
 }
 

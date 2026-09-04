@@ -1,0 +1,102 @@
+// __bit_and / a & b and __bit_or / a | b: bitwise AND/OR across any two integer-kind operand
+// types (i8..u64, integer). Follows the same "strongest of the two operand types" join as
+// __plus/__minus/__multiply/__divide -- see numeric_promotion.hpp's strongest_numeric_type() --
+// but decimal and the floating types (f16/f32/f64) are rejected as a compile error instead of
+// picking a join for them, since bitwise operations aren't defined for them (not exercised here,
+// same reasoning as __divide's decimal rejection in arithmetic.ann -- this suite only exercises
+// successful compiles).
+//
+// bool has its own, much simpler overload: no widening, both operands must already be bool. It
+// always evaluates both sides, unlike the short-circuiting && / || (bootstrap.ann's __and/__or).
+
+// same-type: routes through the generic runtime __bit_and_numeric/__bit_or_numeric externs.
+let aa: i32 = runtime_cast(12);  // 0b1100
+let ab: i32 = runtime_cast(10);  // 0b1010
+assert_equal(aa & ab, 8);        // 0b1000
+assert_equal(aa | ab, 14);       // 0b1110
+
+// arbitrary-precision integer (bigint): a value that needs more than 64 bits (2^64), ANDed/ORed
+// against one that doesn't -- confirms bigint bitwise ops aren't silently truncated to 64 bits.
+let bia: integer = runtime_cast(18446744073709551616);  // 2^64: a single bit set, above bit 63
+let bib: integer = runtime_cast(18446744073709551615);  // 2^64 - 1: bits 0..63 all set
+assert_equal(bia & bib, 0);                              // no overlapping bits
+assert_equal(bia | bib, 36893488147419103231);           // 2^65 - 1: every bit 0..64 set
+
+// mixed fixed-width, same family: the join still escalates from i8 to i16 based on the operand
+// *types* (i16 can't in general be represented in i8), independent of whether this particular
+// result would itself have fit in i8.
+let s8: i8 = runtime_cast(100);   // 0b01100100
+let s16: i16 = runtime_cast(58);  // 0b00111010
+assert_equal(s8 & s16, 32);       // 0b00100000
+assert_equal(s8 | s16, 126);      // 0b01111110
+
+// signed/unsigned collision at the same width: neither safely converts into the other, so the
+// join escalates to i64 -- same pair arithmetic.ann uses for __plus. si32 = -1 is all-ones in two's
+// complement, so ANDing with it is a no-op and ORing with it always yields -1.
+let su32: u32 = runtime_cast(4000000000);
+let si32: i32 = runtime_cast(-1);
+assert_equal(su32 & si32, 4000000000);
+assert_equal(su32 | si32, -1);
+
+// same collision at 64-bit width: escalates all the way to arbitrary-precision integer. qu64 max
+// is all-ones over 64 bits, so ORing with it can't add anything above bit 63, and ANDing with it
+// is a no-op for any value that fits in 64 bits.
+let qu64: u64 = runtime_cast(18446744073709551615); // u64 max, bits 0..63 all set
+let qi64: i64 = runtime_cast(1);
+assert_equal(qu64 & qi64, 1);
+assert_equal(qu64 | qi64, 18446744073709551615);
+
+// a runtime operand combined with a literal that fits its type as-is: no widening happens (the
+// assignment below would fail to compile if it had incorrectly widened to i16).
+let x8a: i8 = runtime_cast(5); // 0b101
+let y8a: i8 = x8a & 3;         // 0b011 -> 0b001
+assert_equal(y8a, 1);
+let y8b: i8 = x8a | 3;         // 0b101 | 0b011 -> 0b111
+assert_equal(y8b, 7);
+
+// a runtime operand combined with a literal that overflows its type: the literal (and only the
+// literal) adapts by widening the pair to the smallest type it fits (i16), not all the way to
+// `integer`. Checked in both argument positions.
+let x8b: i8 = runtime_cast(100); // 0b001100100
+assert_equal(x8b & 300, 36);     // 300 = 0b100101100
+assert_equal(300 & x8b, 36);
+assert_equal(x8b | 300, 364);
+assert_equal(300 | x8b, 364);
+
+// fully constexpr fold: no runtime __bit_and_numeric/__bit_or_numeric call is emitted at all.
+let cf1: i8 = 12 & 10;
+assert_equal(cf1, 8);
+let cf2: i8 = 12 | 10;
+assert_equal(cf2, 14);
+
+// constexpr fold stays exact at arbitrary precision: 10^20 is even, so its lowest bit is 0.
+let cf3: integer = 100000000000000000000 & 1;
+assert_equal(cf3, 0);
+let cf4: integer = 100000000000000000000 | 1;
+assert_equal(cf4, 100000000000000000001);
+
+// bool & / bool |: fully constexpr fold, all four truth-table combinations.
+assert_equal(true & true, true);
+assert_equal(true & false, false);
+assert_equal(false & true, false);
+assert_equal(false & false, false);
+assert_equal(true | true, true);
+assert_equal(true | false, true);
+assert_equal(false | true, true);
+assert_equal(false | false, false);
+
+// bool & / bool |: both operands runtime.
+let ba: bool = runtime_cast(true);
+let bb: bool = runtime_cast(false);
+assert_equal(ba & bb, false);
+assert_equal(ba | bb, true);
+assert_equal(ba & ba, true);
+assert_equal(bb | bb, false);
+
+// bool & / bool |: one operand constexpr, the other runtime -- exercises materializing the
+// constexpr bool side into a plain runtime blob (see bool_bit_and_pattern/bool_bit_or_pattern).
+assert_equal(ba & true, true);
+assert_equal(ba & false, false);
+assert_equal(true & bb, false);
+assert_equal(false | bb, false);
+assert_equal(true | bb, true);

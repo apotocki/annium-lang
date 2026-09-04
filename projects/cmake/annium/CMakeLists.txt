@@ -82,6 +82,8 @@ set (LIBRARY_SOURCES
     ${ANNIUM_SRC}/annium/entities/literals/numeric_literal_minus_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/literals/numeric_literal_mul_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/literals/numeric_literal_div_pattern.cpp
+    ${ANNIUM_SRC}/annium/entities/literals/numeric_literal_bit_and_pattern.cpp
+    ${ANNIUM_SRC}/annium/entities/literals/numeric_literal_bit_or_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/literals/numeric_promotion.cpp
     ${ANNIUM_SRC}/annium/entities/literals/numeric_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/literals/numeric_cast_constexpr_pattern.cpp
@@ -129,6 +131,8 @@ set (LIBRARY_SOURCES
     ${ANNIUM_SRC}/annium/functional/pattern_matcher.cpp
         
     ${ANNIUM_SRC}/annium/functional/general/assert_pattern.cpp
+    ${ANNIUM_SRC}/annium/functional/general/bool_bit_and_pattern.cpp
+    ${ANNIUM_SRC}/annium/functional/general/bool_bit_or_pattern.cpp
     ${ANNIUM_SRC}/annium/functional/general/create_identifier_pattern.cpp
     ${ANNIUM_SRC}/annium/functional/general/deref_pattern.cpp
     ${ANNIUM_SRC}/annium/functional/general/equal_pattern.cpp
