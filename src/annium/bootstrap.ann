@@ -231,14 +231,28 @@ inline fn abs($x: @numeric) => $x < 0 && -$x || $x;
 // unordered-false for NaN in both directions (see less_eq/greater_eq's comment above), min(NaN, x)
 // and min(x, NaN) can return different operands depending on argument order -- the same caveat
 // every `<`-based comparison in this file already carries, not a new one introduced here.
-inline fn min($a: @numeric, $b: @numeric) {
-    if $a < $b { return $a; }
-    return $b;
+inline fn min($a: @numeric, $rest: @numeric ...) {
+	if (empty($rest)) {
+		return $a;
+	} else {
+		if $a < head($rest)... {
+			return min($a, tail($rest)...);
+		}
+		return min(head($rest)..., tail($rest)...);
+	}
 }
-inline fn max($a: @numeric, $b: @numeric) {
-    if $a < $b { return $b; }
-    return $a;
+
+inline fn max($a: @numeric, $rest: @numeric ...) {
+    if empty($rest) {
+        return $a;
+    } else {
+        if $a < head($rest)... {
+            return max(head($rest)..., tail($rest)...);
+        }
+        return max($a, tail($rest)...);
+    }
 }
+
 
 // NUMERIC CASTS
 // explicit, context-driven counterpart to implicit_cast for the fixed-width numeric family:

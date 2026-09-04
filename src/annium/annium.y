@@ -189,7 +189,7 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 %left LOWEST
 
 %right ARROWEXPR
-%left ELLIPSIS
+//%left ELLIPSIS
 %left COLON
 
 // 15 priority
@@ -217,6 +217,8 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 
 // 5 priority
 %left ASTERISK SLASH PERCENT
+
+%left ELLIPSIS
 
 // 4 priority
 %right ARROW
@@ -295,6 +297,7 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 %type <parameter_list_t> parameter-list parameter-list-opt // for unification, empty assignment
 %type <parameter> parameter-decl
 %type <parameter::default_spec> parameter-default-value-opt
+%type <std::pair<resource_location, parameter::default_spec>> ellipsis-opt-assign-value-opt
 
 %token REQUIRES
 
@@ -790,6 +793,13 @@ parameter-default-value-opt:
     | ASSIGN syntax-expression[value] { $$ = ctx.make<syntax_expression>(std::move($value)); IGNORE_TERM($ASSIGN); }
     ;
 
+ellipsis-opt-assign-value-opt:
+      %empty { $$ = std::pair{ resource_location{}, required_t{} }; }
+    | ELLIPSIS { $$ = std::pair{ $ELLIPSIS, required_t{} }; }
+    | ASSIGN syntax-expression[value] { $$ = std::pair{ resource_location{}, ctx.make<syntax_expression>(std::move($value)) }; IGNORE_TERM($ASSIGN); }
+    | ELLIPSIS ASSIGN syntax-expression[value] { $$ = std::pair{ $ELLIPSIS, ctx.make<syntax_expression>(std::move($value)) }; IGNORE_TERM($ASSIGN); }
+    ;
+
 parameter-decl:
 // named parameter main case: foo(paramName [$internalParamName] : [constexpr | runtime] type-expression [...] [= expression])
       identifier[id] internal-identifier-opt[intid] COLON constraint-expression[ce] parameter-default-value-opt[default]
@@ -798,29 +808,31 @@ parameter-decl:
 // unnamed parameter main case: foo([$internalParamName] : [constexpr | runtime] type-expression [...] [= expression])
     | internal-identifier[intid] COLON constraint-expression[ce] parameter-default-value-opt[default]
         { $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint = std::move(get<0>($ce)), .default_value = std::move($default), .modifier = get<1>($ce) }; }
-    | COLON constraint-expression[ce] parameter-default-value-opt[default]
-        { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = std::move(get<0>($ce)), .default_value = std::move($default), .modifier = get<1>($ce) }; }
+//    | COLON constraint-expression[ce] parameter-default-value-opt[default]
+//        { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = std::move(get<0>($ce)), .default_value = std::move($default), .modifier = get<1>($ce) }; }
     
-// abbreviated main case: foo([constexpr | runtime] type-expression [...] [= expression])
+// abbreviated main case: foo((constexpr | runtime) type-expression [...] [= expression])
     | constraint-expression-specified[ce] parameter-default-value-opt[default]
         { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = std::move(get<0>($ce)), .default_value = std::move($default), .modifier = get<1>($ce) }; }
-    // abbreviated unnamed case with concept(s), no type-expression: foo([constexpr | runtime] @concept... [= expression])
-    | constraint-expression-specified-mod[mod] concept-expression-list[cpts] parameter-default-value-opt[default]
-        { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move(get<0>($mod)) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default), .modifier = get<1>($mod) }; }
-    // parse special case, when type-expression is just a qname and we have no 'constexpr' or 'runtime' modifier
-    | qname parameter-default-value-opt[default]
-        {
-            auto constraint = ctx.make<syntax_expression>(std::move($qname.location), qname_reference_expression{ ctx.make_qname_view(std::move($qname)) });
-            $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = constraint, .default_value = std::move($default), .modifier = parameter_constraint_modifier_t::constexpr_or_runtime_type };
+    | OPEN_SQUARE_BRACKET type-expr[type] CLOSE_SQUARE_BRACKET ellipsis-opt-assign-value-opt[default]
+        { 
+            auto * constraint = ctx.make<syntax_expression>(syntax_expression{ std::move($OPEN_SQUARE_BRACKET), bracket_expression{ ctx.make<syntax_expression>(std::move($type)) } });
+            auto modifier = $default.first ? parameter_constraint_modifier_t::constexpr_or_runtime_type | parameter_constraint_modifier_t::variadic : parameter_constraint_modifier_t::constexpr_or_runtime_type;
+            $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = constraint, .default_value = std::move($default.second), .modifier = modifier };
         }
-    | qname ELLIPSIS parameter-default-value-opt[default]
+// abbreviated unnamed case with concept(s), no type-expression: foo([constexpr | runtime] concepts [= expression])
+    | constraint-expression-specified-mod[mod] concept-expression-list[cpts] ellipsis-opt-assign-value-opt[default]
         {
-            auto constraint = ctx.make<syntax_expression>(std::move($qname.location), qname_reference_expression{ ctx.make_qname_view(std::move($qname)) });
-            $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = constraint, .default_value = std::move($default), .modifier = parameter_constraint_modifier_t::constexpr_or_runtime_type | parameter_constraint_modifier_t::variadic };
-            IGNORE_TERM($ELLIPSIS);
+            auto modifier = $default.first ? get<1>($mod) | parameter_constraint_modifier_t::variadic : get<1>($mod);
+            $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move(get<0>($mod)) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default.second), .modifier = modifier };
         }
-
-
+// parse special case, when type-expression is just a qname and we have no 'constexpr' or 'runtime' modifier
+    | qname ellipsis-opt-assign-value-opt[default]
+        {
+            auto * constraint = ctx.make<syntax_expression>(std::move($qname.location), qname_reference_expression{ ctx.make_qname_view(std::move($qname)) });
+            auto modifier = $default.first ? parameter_constraint_modifier_t::constexpr_or_runtime_type | parameter_constraint_modifier_t::variadic : parameter_constraint_modifier_t::constexpr_or_runtime_type;
+            $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = constraint, .default_value = std::move($default.second),.modifier = modifier };
+        }
     | identifier[id] internal-identifier-opt[intid] COLON pattern-mod[pm] parameter-default-value-opt[default]
         { $$ = parameter{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>(std::move(get<0>($pm))), .default_value = std::move($default), .modifier = get<1>($pm) }; }
     | identifier[id] internal-identifier-opt[intid] COLON concept-expression-list[cpts] parameter-default-value-opt[default]
@@ -837,8 +849,11 @@ parameter-decl:
 
     | internal-identifier[intid] COLON pattern-mod[pm] parameter-default-value-opt[default]
         { $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>(std::move(get<0>($pm))), .default_value = std::move($default), .modifier = get<1>($pm) }; }
-    | internal-identifier[intid] COLON concept-expression-list[cpts] parameter-default-value-opt[default]
-        { $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint =  ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($intid.name.location) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default), .modifier =  parameter_constraint_modifier_t::constexpr_or_runtime_type };   }        
+    | internal-identifier[intid] COLON concept-expression-list[cpts] ellipsis-opt-assign-value-opt[default]
+        {
+            auto modifier = $default.first ? parameter_constraint_modifier_t::constexpr_or_runtime_type | parameter_constraint_modifier_t::variadic : parameter_constraint_modifier_t::constexpr_or_runtime_type;
+            $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint =  ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($intid.name.location) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default.second), .modifier = modifier };
+        }
     | internal-identifier[intid] COLON constraint-expression-specified-mod[mod] concept-expression-list[cpts] parameter-default-value-opt[default]
         { $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint =  ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($intid.name.location) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default), .modifier = get<1>($mod) }; }
     | COLON pattern-mod[pm] parameter-default-value-opt[default]
@@ -851,14 +866,21 @@ parameter-decl:
     //    { $$ = parameter{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($intid.name.location) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default), .modifier = parameter_constraint_modifier_t::constexpr_or_runtime_type }; }
     //| identifier[id] internal-identifier[intid] QMARK
     //    { $$ = parameter{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($intid.name.location) } } ), .default_value = optional_t{}, .modifier =  parameter_constraint_modifier_t::constexpr_or_runtime_type }; }
-    | internal-identifier[intid] concept-expression-list-opt[cpts] parameter-default-value-opt[default]
-        { $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($intid.name.location) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default), .modifier =  parameter_constraint_modifier_t::constexpr_or_runtime_type }; }
-    | UNDERSCORE concept-expression-list-opt[cpts] parameter-default-value-opt[default]
-        { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($UNDERSCORE) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default), .modifier =  parameter_constraint_modifier_t::constexpr_or_runtime_type }; }
-    | concept-expression-list[cpts] parameter-default-value-opt[default]
-        { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ $cpts.front().location }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default), .modifier =  parameter_constraint_modifier_t::constexpr_or_runtime_type }; }
-    | internal-identifier[intid] ELLIPSIS parameter-default-value-opt[default]
-        { $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($ELLIPSIS) } } ), .default_value = std::move($default), .modifier =  parameter_constraint_modifier_t::constexpr_or_runtime_type | parameter_constraint_modifier_t::variadic }; }
+    | internal-identifier[intid] concept-expression-list-opt[cpts] ellipsis-opt-assign-value-opt[default]
+        {
+            auto modifier = $default.first ? parameter_constraint_modifier_t::constexpr_or_runtime_type | parameter_constraint_modifier_t::variadic : parameter_constraint_modifier_t::constexpr_or_runtime_type;
+            $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($intid.name.location) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default.second), .modifier = modifier };
+        }
+    | UNDERSCORE concept-expression-list-opt[cpts] ellipsis-opt-assign-value-opt[default]
+        {
+            auto modifier = $default.first ? parameter_constraint_modifier_t::constexpr_or_runtime_type | parameter_constraint_modifier_t::variadic : parameter_constraint_modifier_t::constexpr_or_runtime_type;
+            $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($UNDERSCORE) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default.second), .modifier = modifier };
+        }
+    | concept-expression-list[cpts] ellipsis-opt-assign-value-opt[default]
+        {
+            auto modifier = $default.first ? parameter_constraint_modifier_t::constexpr_or_runtime_type | parameter_constraint_modifier_t::variadic : parameter_constraint_modifier_t::constexpr_or_runtime_type;
+            $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ $cpts.front().location }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default.second), .modifier = modifier };
+        }
     | ELLIPSIS parameter-default-value-opt[default]
         { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($ELLIPSIS) } } ), .default_value = std::move($default), .modifier =  parameter_constraint_modifier_t::constexpr_or_runtime_type | parameter_constraint_modifier_t::variadic }; }
     
