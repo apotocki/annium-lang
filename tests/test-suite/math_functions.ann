@@ -127,3 +127,38 @@ let mfa: f64 = runtime_cast(1.5);
 let mfb: f64 = runtime_cast(2.5);
 assert_equal(min(mfa, mfb), 1.5);
 assert_equal(max(mfa, mfb), 2.5);
+
+// MIN / MAX -- variadic ($rest: @numeric ...), recursing via head($rest)...  / tail($rest)...
+// (bootstrap.ann). Single argument exercises the empty($rest) base case directly.
+assert_equal(min(3), 3);
+assert_equal(max(3), 3);
+
+// three-plus constexpr arguments, extremum in each position (first/middle/last)
+assert_equal(min(1, 5, 3), 1);
+assert_equal(min(5, 1, 3), 1);
+assert_equal(min(5, 3, 1), 1);
+assert_equal(max(1, 5, 3), 5);
+assert_equal(max(5, 3, 1), 5);
+assert_equal(max(3, 1, 5), 5);
+
+// negatives and repeated extremum values among 5+ arguments
+assert_equal(min(-5, 10, -20, 3, 0), -20);
+assert_equal(max(-5, 10, -20, 3, 0), 10);
+assert_equal(min(5, 5, 5), 5);
+assert_equal(max(2, 7, 7, 2), 7);
+
+// runtime-typed variadic arguments: $rest has more than one runtime element, exercising the
+// ellipsis_pattern arrayify path (ellipsis_pattern.cpp's argcount > 1 case) rather than the
+// single-identifier push used by the 2-argument calls above.
+let va: i32 = runtime_cast(4);
+let vb: i32 = runtime_cast(9);
+let vc: i32 = runtime_cast(1);
+let vd: i32 = runtime_cast(6);
+assert_equal(min(va, vb, vc, vd), 1);
+assert_equal(max(va, vb, vc, vd), 9);
+
+let vfa: f64 = runtime_cast(3.5);
+let vfb: f64 = runtime_cast(1.25);
+let vfc: f64 = runtime_cast(2.75);
+assert_equal(min(vfa, vfb, vfc), 1.25);
+assert_equal(max(vfa, vfb, vfc), 3.5);

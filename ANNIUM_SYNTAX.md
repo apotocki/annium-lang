@@ -81,6 +81,12 @@ A parameter can require its argument to itself be a type (a `typename`-typed val
 
 `value as Type` — binary expression, `binary_operator_type::CAST` (`annium.y:1141-1142`). Example (`tests/test-suite/casts.ann`): `v0 as i32`, chainable: `v0 as i32 as i64`.
 
+## Postfix `...` (ellipsis expansion)
+
+`expr...` is a unary *postfix* operator (`compound-expression: syntax-expression[expr] ELLIPSIS`, `annium.y:1340-1343`; dispatches to the builtin `operator...(type: typename)`, implemented by `ellipsis_pattern` in `src/annium/entities/ellipsis/`). Its purpose is the same as C++'s pack expansion `pack...`: turn an identifier/tuple-of-identifiers pack into the values (or call arguments) it names. The mechanism differs, though — this isn't a template-style textual rewrite of a surrounding pattern; it's an ordinary operator that evaluates one constexpr operand (which must resolve to a `__qname`/identifier metaobject, or a signatured entity whose fields do) and pushes the corresponding value(s). Being a real operator over one operand rather than a textual pattern is exactly why it binds like one: **`ELLIPSIS` has the highest operator precedence in the grammar** (`annium.y:226`, above unary `-`/`!`/deref and every binary operator, just below the true postfix/primary tier — calls, member access, indexing), so `...` always grabs only the expression immediately to its left, not the widest enclosing expression the way C++'s pack expansion would.
+
+In practice this matches how it's actually written in `bootstrap.ann`'s `min`/`max`/`foldl`/`foldr`: `head($rest)...`, `tail($rest)...`, `$elements...` — the operand is always already atomic (an identifier or a call result), so tight binding is invisible. It only matters for a *computed* operand: `a + b...` means `a + (b...)`, not `(a + b)...`; to expand the result of a compound expression, parenthesize it explicitly — `(a + b)...` — since `grouped-expression` closes on `CLOSE_PARENTHESIS` before `...` is even seen, so it always applies to the parenthesized group as a whole regardless of `ELLIPSIS`'s precedence.
+
 ## `extern fn`
 
 ```

@@ -189,7 +189,6 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 %left LOWEST
 
 %right ARROWEXPR
-//%left ELLIPSIS
 %left COLON
 
 // 15 priority
@@ -218,13 +217,13 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 // 5 priority
 %left ASTERISK SLASH PERCENT
 
-%left ELLIPSIS
-
 // 4 priority
 %right ARROW
 
 // 3 priority
 %right DEREF EXCLPT PREFIXMINUS
+
+%left ELLIPSIS
 
 // 2 priority
 %left OPEN_BRACE OPEN_PARENTHESIS OPEN_SQUARE_BRACKET POINT INTEGER_INDEX
