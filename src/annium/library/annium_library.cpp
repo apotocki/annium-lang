@@ -322,6 +322,25 @@ void annium_tostring(vm::context & ctx)
     ctx.stack_push(std::move(r));
 }
 
+// Backs bootstrap.ann's `to_fancy_string(self, base, group_sz, group_sep, showbase)`, a thin
+// wrapper over numetron::fancy_print (integer_view.hpp) for human-readable, grouped-digit display.
+void annium_to_fancy_string(vm::context& ctx)
+{
+    numetron::integer_view v = ctx.stack_back(4).as<numetron::integer_view>();
+    uint32_t base = ctx.stack_back(3).as<uint32_t>();
+    uint8_t group_sz = ctx.stack_back(2).as<uint8_t>();
+    string_view group_sep = ctx.stack_back(1).as<string_view>();
+    bool showbase = ctx.stack_back().as<bool>();
+
+    std::ostringstream res;
+    numetron::fancy_print(res, v, base, group_sz, group_sep, showbase);
+
+    ctx.stack_pop(4);
+    smart_blob r{ string_blob_result(res.str()) };
+    r.allocate();
+    ctx.stack_back().replace(std::move(r));
+}
+
 void annium_print_string(vm::context& ctx)
 {
     size_t argcount = ctx.stack_back().as<size_t>();

@@ -91,6 +91,10 @@
   {
     "src": "consteval.ann",
     "output": ""
+  },
+  {
+    "src": "to_fancy_string.ann",
+    "output": ""
   }
   /*
     

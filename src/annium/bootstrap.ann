@@ -294,3 +294,10 @@ enum rounding_mode {
 // comment in numeric_promotion.hpp (its member order must match this enum's exactly).
 inline fn divide($a: @numeric, $b: @numeric, $scale: @numeric, $mode: rounding_mode = .half_even) -> decimal
     => consteval(is_const($a) & is_const($b) & is_const($scale) & is_const($mode)) __divide_decimal_rounded(runtime_cast($a), runtime_cast($b), runtime_cast($scale), runtime_cast(to_integer($mode)));
+
+// FANCY INTEGER FORMATTING
+// Human-readable rendering of a bigint with digit grouping (e.g. "1 234 567") and an optional
+// base prefix, backed by numetron::fancy_print (integer_view.hpp). All four options are named so
+// a caller can override just the one they need, e.g. 255.to_fancy_string(base: 16, showbase: true).
+inline fn to_fancy_string(self: ~ integer, base: u32 = 10, group_sz: u8 = 3, group_sep: string = " ", showbase: bool = false) -> string
+    => consteval(is_const(self) & is_const(base) & is_const(group_sz) & is_const(group_sep) & is_const(showbase)) __to_fancy_string(runtime_cast(self), runtime_cast(base), runtime_cast(group_sz), runtime_cast(group_sep), runtime_cast(showbase));

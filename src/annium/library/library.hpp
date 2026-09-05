@@ -15,6 +15,7 @@ void annium_any_equal(vm::context&);
 void annium_decimal_equal(vm::context&);
 void annium_numeric_less(vm::context&);
 void annium_tostring(vm::context&);
+void annium_to_fancy_string(vm::context&);
 void annium_print_string(vm::context&);
 void annium_concat(vm::context&);
 void annium_arrayify(vm::context&);

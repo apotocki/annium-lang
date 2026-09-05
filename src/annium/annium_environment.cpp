@@ -1693,6 +1693,7 @@ environment::environment()
     builtin_eids_[(size_t)builtin_eid::string_empty] = set_builtin_extern("empty(runtime string)->bool"sv, &annium_string_empty);
     builtin_eids_[(size_t)builtin_eid::string_size] = set_builtin_extern("size(runtime string)->integer"sv, &annium_string_size);
     builtin_eids_[(size_t)builtin_eid::to_string] = set_builtin_extern("__to_string(runtime)->string"sv, &annium_tostring);
+    set_builtin_extern("__to_fancy_string(runtime integer, runtime u32, runtime u8, runtime string, runtime bool)->string"sv, &annium_to_fancy_string);
     builtin_eids_[(size_t)builtin_eid::logical_not] = set_builtin_extern("__logical_not(runtime)->bool"sv, &annium_logical_not);
     builtin_eids_[(size_t)builtin_eid::unary_minus] = set_builtin_extern("__unary_minus(runtime)"sv, &annium_unary_minus);
     builtin_eids_[(size_t)builtin_eid::concat] = set_builtin_extern("__concat(runtime)->string"sv, &annium_concat);
