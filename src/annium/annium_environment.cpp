@@ -1687,6 +1687,17 @@ environment::environment()
     builtin_eids_[(size_t)builtin_eid::array_tail] = set_builtin_extern("__array_tail(~runtime tuple(_, $t...))->tuple($t...)"sv, &annium_array_tail);
     builtin_eids_[(size_t)builtin_eid::array_at] = set_builtin_extern("__array_at()"sv, &annium_array_at);
     builtin_eids_[(size_t)builtin_eid::array_set_at] = set_builtin_extern("__array_set_at($arr: runtime, $index: runtime integer, $value)"sv, &annium_array_set_at);
+    // ref_of is only ever invoked via a direct semantic::invoke_function emitted by
+    // base_expression_visitor::try_take_reference(), preceded by a semantic::push_local_variable_index
+    // that pushes the target variable's absolute stack index (never resolved through ordinary call/
+    // implicit_cast matching -- see IMPLEMENTATION_NOTES.md's `ref(T)` section for why implicit_cast
+    // can't see the original variable by the time it would run). Deliberately NOT built on top of
+    // vm::context::referify() -- see the comment on annium_ref_of itself for why that method
+    // (sketched out for a separate, never-finished weak/strong-object-reference feature) isn't
+    // reusable here.
+    builtin_eids_[(size_t)builtin_eid::ref_of] = set_builtin_extern("__ref_of(runtime integer)-> any"sv, &annium_ref_of);
+    builtin_eids_[(size_t)builtin_eid::ref_get] = set_builtin_extern("__ref_get(runtime)-> any"sv, &annium_ref_get);
+    builtin_eids_[(size_t)builtin_eid::ref_set] = set_builtin_extern("__ref_set(runtime, runtime)"sv, &annium_ref_set);
     builtin_eids_[(size_t)builtin_eid::equal] = set_builtin_extern("__equal(runtime, runtime)->bool"sv, &annium_any_equal);
     builtin_eids_[(size_t)builtin_eid::less] = set_builtin_extern("__less(runtime @numeric, runtime @numeric)->bool"sv, &annium_numeric_less);
     builtin_eids_[(size_t)builtin_eid::assert] = set_builtin_extern("__assert(runtime)"sv, &annium_assert);

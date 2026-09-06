@@ -51,7 +51,7 @@ set (LIBRARY_SOURCES
     
     ${ANNIUM_SRC}/annium/entities/array/array_from_iterator_make_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/array/array_implicit_cast_pattern.cpp
-    
+
     ${ANNIUM_SRC}/annium/entities/fixed_array/fixed_array_elements_implicit_cast_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/fixed_array/fixed_array_make_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/fixed_array/fixed_array_head_pattern.cpp

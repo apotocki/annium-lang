@@ -25,6 +25,10 @@ void annium_array_tail(vm::context&);
 void annium_array_at(vm::context&);
 void annium_array_set_at(vm::context&);
 
+void annium_ref_of(vm::context&);
+void annium_ref_get(vm::context&);
+void annium_ref_set(vm::context&);
+
 void annium_string_empty(vm::context&);
 void annium_string_size(vm::context&);
 

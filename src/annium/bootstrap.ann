@@ -125,6 +125,15 @@ inline viable fn implicit_cast(~ union(...)) ~> $T => apply(to: $0, visitor: (fn
 // STRUCTS
 inline viable fn::get(self: @is_struct, property: constexpr __identifier) => get(self: tuple_of(self), property: property);
 
+// REFERENCES
+// A ref(T) is always mutable and always backed by a genuine runtime slot -- see
+// ref_implicit_cast_pattern (entities/ref/) for the runtime T -> ref(T) conversion (which is the
+// only way to produce a ref(T) value; a constexpr source is rejected there, not here). get/set are
+// deliberately explicit (no automatic ref(T) -> T decay yet -- see IMPLEMENTATION_NOTES.md).
+typefn ref(of: typename);
+inline fn get(self: ~ref(of $T)) -> $T => reinterpret(__ref_get(self));
+inline fn set(self: ~ref(of $T), value: runtime $T) => __ref_set(self, value);
+
 // ARRAYS
 typefn array(of: typename, size?: constexpr integer);
 inline fn empty(~array(of, size $size)) => $size == 0;

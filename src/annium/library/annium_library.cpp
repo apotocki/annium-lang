@@ -538,6 +538,50 @@ void annium_array_set_at(vm::context& ctx)
     ctx.stack_pop(2);
 }
 
+// NOTE: this is deliberately NOT vm::context::referify() -- that method (and weak_create/
+// weak_lock alongside it) was sketched out for a different, never-finished weak/strong-object-
+// reference feature and mutates the target slot itself into a blob_reference pointing AT ITSELF,
+// which is unusable for a general "reference to a variable": dereferencing it (unref()) would
+// loop forever, since the slot's own bytes never stop reading back as a reference to themselves.
+// What we need instead is a NEW, separate blob_reference whose payload_ptr points at the ORIGINAL
+// slot, which itself is left completely untouched -- so reads/writes through the reference reach
+// a genuine, non-reference value. The absolute stack index is computed at compile time (see
+// base_expression_visitor::try_take_reference / semantic::push_local_variable_index) and pushed
+// by the caller; the target slot's address is safe to take and hold onto because the stack is a
+// std::deque (see BUGFIXES.md's `deque` entry).
+//
+// reference_blob_result's `false` here is load-bearing, not cosmetic -- see BUGFIXES.md's
+// `reference_blob_result silently snapshotted instead of aliasing` entry: its default
+// (`allocate=true`, added for the pre-existing weak/strong-reference sketch) copies the target's
+// bytes into a fresh heap buffer and repoints payload_ptr at THAT COPY, producing a frozen
+// snapshot rather than a live alias.
+void annium_ref_of(vm::context& ctx)
+{
+    size_t index = ctx.stack_back().as<size_t>();
+    ctx.stack_pop();
+    auto& target = ctx.stack_at(index);
+    ctx.stack_push(smart_blob{ reference_blob_result(*target, false) });
+}
+
+// Dereference: replace the ref(T) on top of stack with a genuine, independently-pinned copy of
+// the value it points to. unref() follows however many levels of blob_reference there are.
+void annium_ref_get(vm::context& ctx)
+{
+    ctx.stack_back().replace(smart_blob{ unref(*ctx.stack_back()) });
+}
+
+// Write-through: smart_blob::operator= already special-cases a destination that currently holds
+// a blob_reference (writes through to the pointed-to slot instead of clobbering the reference
+// itself) -- this is the same mechanism ordinary local-variable assignment relies on, reused here
+// as-is. Only the trailing `value` argument is popped, leaving `self` (now updated) on the stack
+// as the result, matching annium_array_set_at's convention just above.
+void annium_ref_set(vm::context& ctx)
+{
+    smart_blob value = std::move(ctx.stack_back());
+    ctx.stack_pop();
+    ctx.stack_back() = std::move(value);
+}
+
 void annium_array_tail(vm::context& ctx)
 {
     auto arr = ctx.stack_back().as<blob_result>();

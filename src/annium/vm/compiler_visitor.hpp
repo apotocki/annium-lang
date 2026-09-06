@@ -69,6 +69,17 @@ public:
         ++fpheight_;
     }
 
+    // Same resolution as push_local_variable, but pushes the variable's absolute stack index
+    // itself (fppushi/fnpushi) rather than a copy of its value -- see semantic.hpp's comment on
+    // push_local_variable_index.
+    void operator()(semantic::push_local_variable_index const& pv) const
+    {
+        BOOST_ASSERT(fn_context_);
+        intptr_t index = fn_context_->resolve_variable_index(pv.varid);
+        fnbuilder_.append_fpushi(index);
+        ++fpheight_;
+    }
+
     void operator()(semantic::push_by_offset const& pv) const
     {
         switch (pv.base) {

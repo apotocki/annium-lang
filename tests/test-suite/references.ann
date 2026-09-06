@@ -1,0 +1,26 @@
+// ref(T): a mutable reference type -- see IMPLEMENTATION_NOTES.md's `ref(T)` section.
+// Passing a plain local variable where a ref(T) parameter is expected implicitly takes a
+// reference to that variable's own storage slot (ref_implicit_cast_pattern); set()/get() then
+// read and write through it, mutating the CALLER's variable rather than a copy.
+
+fn increment($x: ref(of: i32)) {
+    set(self: $x, value: get(self: $x) + 1);
+}
+
+let counter: i32 = runtime_cast(41);
+increment(counter);
+assert_equal(counter, 42);
+
+// the reference isn't a one-shot snapshot -- a second, independent call still reaches the same
+// underlying variable.
+increment(counter);
+assert_equal(counter, 43);
+
+// exercise a non-scalar type too, not just a fixed-width integer.
+fn set_to_bye($s: ref(of: string)) {
+    set(self: $s, value: "bye");
+}
+
+let message: string = runtime_cast("hello");
+set_to_bye(message);
+assert_equal(message, "bye");

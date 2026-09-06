@@ -95,6 +95,15 @@ protected:
 
     result_type operator()(std::variant<entity_identifier, local_variable, functional_variable> const&, qname const&) const;
 
+    // If `expected_result.type` is ref(T) with T exactly this variable's type, evaluates to a
+    // genuine reference to the variable's own storage slot instead of an ordinary copy of its
+    // value -- must happen here, at the point a variable reference is first resolved, because
+    // apply_cast's implicit_cast fallback only ever sees an ALREADY-evaluated (copied) value, by
+    // which point the variable's identity is gone. See IMPLEMENTATION_NOTES.md's `ref(T)` section.
+    // Returns nullopt (not a std::expected: `nullopt` here means "not applicable", not failure) if
+    // `expected_result` doesn't call for this variable to become a reference.
+    optional<result_type> try_take_reference(entity_identifier vartype, variable_identifier varid, bool is_weak) const;
+
     result_type do_logic_and(binary_expression const&) const;
     result_type do_logic_or(binary_expression const&) const;
     result_type do_assign(binary_expression const&) const;

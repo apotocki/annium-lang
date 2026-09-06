@@ -160,8 +160,27 @@ base_expression_visitor::result_type base_expression_visitor::operator()(indirec
     return apply_cast(retrieve_indirect(env(), expressions, v));
 }
 
+optional<base_expression_visitor::result_type> base_expression_visitor::try_take_reference(entity_identifier vartype, variable_identifier varid, bool is_weak) const
+{
+    if (!expected_result.type || is_weak || !can_be_runtime(expected_result.modifier)) return nullopt;
+    entity const& exp_ent = get_entity(env(), expected_result.type);
+    entity_signature const* exp_sig = exp_ent.signature();
+    if (!exp_sig || exp_sig->name != env().get(builtin_qnid::ref)) return nullopt;
+    entity_identifier of_type = exp_sig->find_field(env().get(builtin_id::of))->entity_id();
+    if (of_type != vartype) return nullopt; // no coercion -- see IMPLEMENTATION_NOTES.md's `ref(T)` section
+
+    semantic::expression_span exprs_span;
+    env().push_back_expression(expressions, exprs_span, semantic::push_local_variable_index{ .varid = varid });
+    env().push_back_expression(expressions, exprs_span, semantic::invoke_function{ env().get(builtin_eid::ref_of) });
+    return std::pair{
+        syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = expected_result.type, .is_const_result = false },
+        false
+    };
+}
+
 base_expression_visitor::result_type base_expression_visitor::operator()(local_variable_expression const& lv) const
 {
+    if (auto refres = try_take_reference(lv.type, lv.varid, false); refres) return std::move(*refres);
     semantic::expression_span exprs_span;
     env().push_back_expression(expressions, exprs_span, semantic::push_local_variable{ .varid = lv.varid });
     return apply_cast(syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = lv.type, .is_const_result = false });
@@ -656,6 +675,7 @@ base_expression_visitor::result_type base_expression_visitor::operator()(fn_comp
             return std::unexpected(make_error<undeclared_identifier_error>(context_expression_.location, qn));
         },
         [this](local_variable const& lvar) -> result_type {
+            if (auto refres = try_take_reference(lvar.type, lvar.varid, lvar.is_weak); refres) return std::move(*refres);
             semantic::expression_span exprs_span;
             env().push_back_expression(expressions, exprs_span, semantic::push_local_variable::create(lvar));
             return apply_cast(syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = lvar.type, .is_const_result = false });
