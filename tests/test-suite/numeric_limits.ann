@@ -1,12 +1,12 @@
 // TypeName.min / TypeName.max: a typename-property lookup (bootstrap.ann's
-// `::get(self: ~ typename T, property: ~ consteval .min/.max) -> T`), already used elsewhere in this
+// `::get(self: typename T, property: consteval .min/.max) -> T`), already used elsewhere in this
 // codebase (e.g. `substring`'s `$length: runtime i32 = i32.max` default) but, before this file, never
 // directly exercised by the test suite for any type -- fixed-width integer or floating.
 
 // BOOL / FIXED-WIDTH INTEGER: .min/.max are the type's actual representable range, matching
 // bootstrap.ann's literal definitions one for one -- these are less about arithmetic correctness (the
 // values are just copied from the same literals bootstrap.ann uses) and more about confirming the
-// `::get(self: ~ typename T, ...)` property-lookup dispatch itself resolves to the right overload for
+// `::get(self: typename T, ...)` property-lookup dispatch itself resolves to the right overload for
 // every one of these types and doesn't, say, cross-wire i16.max with u16.max.
 assert_equal(bool.min, false);
 assert_equal(bool.max, true);
