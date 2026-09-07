@@ -16,35 +16,6 @@
 
 namespace annium {
 
-namespace {
-
-// Cheaply (no codegen at all) checks whether the call's `self` argument is, syntactically, a bare
-// reference to a plain local variable/parameter -- and if so, returns that variable's own info.
-// Needed to decide, BEFORE evaluating self at all, whether to ask for it as ref(of: its own type)
-// or as an ordinary value -- so self only ever gets evaluated ONCE. (Evaluating it unconstrained
-// first and then, separately, as a reference -- discarding whichever copy-vs-reference evaluation
-// isn't used -- was tried and found unsound: unlike the `property` argument's own double-resolution
-// a few lines below, self's evaluation is never const, so the discarded attempt's emitted
-// instructions are not zero-cost the way property's harmlessly-orphaned CONST attempts are.)
-optional<local_variable> peek_self_local_variable(fn_compiler_context& ctx, prepared_call const& call, identifier self_name)
-{
-    for (auto const& [argname, loc, arg_cache] : call.argument_caches_) {
-        if (argname != self_name) continue;
-        if (auto const* qref = std::get_if<qname_reference_expression>(&arg_cache.expression.value)) {
-            auto looked_up = ctx.lookup_entity(qref->name);
-            if (auto const* lvar = std::get_if<local_variable>(&looked_up)) {
-                return *lvar;
-            }
-        } else if (auto const* lvexpr = std::get_if<local_variable_expression>(&arg_cache.expression.value)) {
-            return local_variable{ .type = lvexpr->type, .varid = lvexpr->varid, .is_weak = false };
-        }
-        return nullopt;
-    }
-    return nullopt;
-}
-
-}
-
 std::expected<functional_match_descriptor_ptr, error_storage> tuple_get_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
 {
     environment& e = ctx.env();
@@ -52,12 +23,12 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_get_pattern:
 
     // If the caller wants some ref(of: E) out of this whole get() call, and self looks like a
     // plain variable, request self AS a reference to its own type from the very first (and only)
-    // evaluation -- see peek_self_local_variable's comment for why this must be decided upfront.
+    // evaluation -- see peek_argument_local_variable's comment for why this must be decided upfront.
     entity_identifier ref_tuple_eid;
     entity_identifier expected_ref_of;
     if (exp.type && can_be_runtime(exp.modifier)) {
         if (entity_identifier of = try_decompose_ref_of(e, exp.type); of) {
-            if (auto lvar = peek_self_local_variable(ctx, call, e.get(builtin_id::self)); lvar && !lvar->is_weak) {
+            if (auto lvar = peek_argument_local_variable(ctx, call, e.get(builtin_id::self)); lvar && !lvar->is_weak) {
                 entity_signature rsig{ e.get(builtin_qnid::ref), e.get(builtin_eid::typename_) };
                 rsig.emplace_back(e.get(builtin_id::of), lvar->type, true);
                 ref_tuple_eid = e.make_basic_signatured_entity(std::move(rsig)).id;

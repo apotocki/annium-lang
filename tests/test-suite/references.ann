@@ -65,3 +65,31 @@ increment(mt.0);
 assert_equal(mt.0, 6);
 set_to_bye(mt.1);
 assert_equal(mt.1, "bye");
+
+// ref(of: E) applied to an array element (arr[index]) -- same mechanism as tuple elements above,
+// entirely unchanged: fixed arrays use the same annium_arrayify/blob_reference machinery as
+// tuples. Unlike a tuple field's index (always a compile-time constant), an array's index can
+// itself be a runtime expression -- the common `arr[i]` shape -- exercised alongside the
+// const-index case below.
+
+// packed, const index (self runtime, property constant).
+let av0: i32 = runtime_cast(10);
+let av1: i32 = runtime_cast(20);
+let av2: i32 = runtime_cast(30);
+let arr = [av0, av1, av2];
+increment(arr[0]);
+assert_equal(arr[0], 11);
+assert_equal(av0, 10); // arr holds its own copy of av0's value from construction
+
+// packed, runtime index (self and property both runtime) -- the common `arr[i]` case.
+let idx = runtime_cast(2);
+increment(arr[idx]);
+assert_equal(arr[2], 31);
+assert_equal(arr[1], 20); // untouched
+
+// boxed: a string array isn't one of annium_arrayify's packed native types, so it's stored as a
+// boxed blob_result[] -- exercises ref_at's other branch (the element already is a blob_result).
+let sarr = [runtime_cast("a"), runtime_cast("b")];
+set_to_bye(sarr[1]);
+assert_equal(sarr[1], "bye");
+assert_equal(sarr[0], "a");

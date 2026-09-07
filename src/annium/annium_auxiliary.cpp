@@ -9,6 +9,8 @@
 
 #include "annium/entities/literals/literal_entity.hpp"
 #include "annium/entities/signatured_entity.hpp"
+#include "annium/entities/prepared_call.hpp"
+#include "annium/ast/fn_compiler_context.hpp"
 #include "sonia/utility/invocation/invocation.hpp"
 
 namespace annium {
@@ -45,6 +47,23 @@ entity_identifier try_decompose_ref_of(environment const& env, entity_identifier
     if (!sig || sig->name != env.get(builtin_qnid::ref)) return entity_identifier{};
     field_descriptor const* of = sig->find_field(env.get(builtin_id::of));
     return of ? of->entity_id() : entity_identifier{};
+}
+
+optional<local_variable> peek_argument_local_variable(fn_compiler_context& ctx, prepared_call const& call, identifier arg_name)
+{
+    for (auto const& [argname, loc, arg_cache] : call.argument_caches_) {
+        if (argname != arg_name) continue;
+        if (auto const* qref = std::get_if<qname_reference_expression>(&arg_cache.expression.value)) {
+            auto looked_up = ctx.lookup_entity(qref->name);
+            if (auto const* lvar = std::get_if<local_variable>(&looked_up)) {
+                return *lvar;
+            }
+        } else if (auto const* lvexpr = std::get_if<local_variable_expression>(&arg_cache.expression.value)) {
+            return local_variable{ .type = lvexpr->type, .varid = lvexpr->varid, .is_weak = false };
+        }
+        return nullopt;
+    }
+    return nullopt;
 }
 
 resource_location get_start_location(syntax_pattern const& ptrn)

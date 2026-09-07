@@ -12,6 +12,8 @@ class environment;
 class entity;
 struct syntax_expression_result;
 struct field_descriptor;
+class fn_compiler_context;
+class prepared_call;
 
 entity const& get_entity(environment const&, entity_identifier);
 entity_identifier get_entity_type(environment const&, field_descriptor const&);
@@ -24,8 +26,20 @@ inline entity const& get_entity(environment const& e, annotated_entity_identifie
 entity_identifier get_result_type(environment const&, syntax_expression_result const&, entity const** ppe = nullptr);
 
 // If `eid` is a `ref(of: T)` signature entity, returns T; otherwise a null entity_identifier.
-// Shared by base_expression_visitor::try_take_reference and tuple_get_pattern's ref-mode probe.
+// Shared by base_expression_visitor::try_take_reference and tuple_get_pattern's/
+// fixed_array_get_pattern's ref-mode probes.
 entity_identifier try_decompose_ref_of(environment const&, entity_identifier eid);
+
+// Cheaply (no codegen at all) checks whether a call's named argument is, syntactically, a bare
+// reference to a plain local variable/parameter -- and if so, returns that variable's own info.
+// Needed to decide, BEFORE evaluating the argument at all, whether to ask for it as
+// ref(of: its own type) or as an ordinary value -- so it only ever gets evaluated ONCE.
+// (Evaluating it unconstrained first and then, separately, as a reference -- discarding whichever
+// copy-vs-reference evaluation isn't used -- was tried and found unsound: unlike a call's purely
+// constexpr arguments, which cost nothing to speculatively re-evaluate and discard, a plain
+// variable's evaluation is never const, so the discarded attempt's emitted instructions are not
+// zero-cost the same way.) Shared by tuple_get_pattern's and fixed_array_get_pattern's `self`.
+optional<local_variable> peek_argument_local_variable(fn_compiler_context&, prepared_call const&, identifier arg_name);
 
 bool all_paths_return(semantic::expression_span span);
 
