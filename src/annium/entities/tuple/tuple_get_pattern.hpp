@@ -31,11 +31,21 @@ protected:
         entity const& tpl_entity;
         entity_signature const& arg_sig;
 
-        // Set only when `self` is a plain local variable/parameter and the caller's expected
-        // result is `ref(of: E)` for some E -- try_match already resolved `self` (matches[0],
-        // read via `slfer` in apply) AS ref(of: TupleType) in this case, see try_match's peek.
-        entity_identifier expected_ref_type; // the whole ref(of: E) entity
-        entity_identifier expected_ref_of;   // E
+        // Empty when `self` is a plain tuple value; otherwise `self` (matches[0], read via `slfer`
+        // in apply) IS a `ref(of: self_ref_of)` -- self_ref_of is that tuple's own type (never the
+        // ref(of:...) entity itself). Decided once in try_match, by resolving `self` unconstrained
+        // and then, only if it wasn't already a reference and the caller wants one, resolving it a
+        // second time with an expected type of ref(of: <self's own plain type>) -- see
+        // IMPLEMENTATION_NOTES.md's `ref(T)` section for why this never inspects self's raw
+        // expression.
+        entity_identifier self_ref_of;
+
+        // The whole ref(of: E) entity this get() call's own caller wants as its result, or empty if
+        // the caller doesn't want a reference at all -- captured verbatim from try_match's `exp`,
+        // since apply() has no access to it. Used only to decide apply()'s output shape (keep the
+        // field reference vs. dereference it); independent of self_ref_of (self can be a reference
+        // while this particular call's own result isn't wanted as one, e.g. `let x: i32 = ref(t).0;`).
+        entity_identifier expected_ref_type;
     };
 };
 

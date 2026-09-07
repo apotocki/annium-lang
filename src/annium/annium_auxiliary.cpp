@@ -49,21 +49,11 @@ entity_identifier try_decompose_ref_of(environment const& env, entity_identifier
     return of ? of->entity_id() : entity_identifier{};
 }
 
-optional<local_variable> peek_argument_local_variable(fn_compiler_context& ctx, prepared_call const& call, identifier arg_name)
+entity_identifier make_ref_of_type(environment& env, entity_identifier of_type)
 {
-    for (auto const& [argname, loc, arg_cache] : call.argument_caches_) {
-        if (argname != arg_name) continue;
-        if (auto const* qref = std::get_if<qname_reference_expression>(&arg_cache.expression.value)) {
-            auto looked_up = ctx.lookup_entity(qref->name);
-            if (auto const* lvar = std::get_if<local_variable>(&looked_up)) {
-                return *lvar;
-            }
-        } else if (auto const* lvexpr = std::get_if<local_variable_expression>(&arg_cache.expression.value)) {
-            return local_variable{ .type = lvexpr->type, .varid = lvexpr->varid, .is_weak = false };
-        }
-        return nullopt;
-    }
-    return nullopt;
+    entity_signature rsig{ env.get(builtin_qnid::ref), env.get(builtin_eid::typename_) };
+    rsig.emplace_back(env.get(builtin_id::of), of_type, true);
+    return env.make_basic_signatured_entity(std::move(rsig)).id;
 }
 
 resource_location get_start_location(syntax_pattern const& ptrn)

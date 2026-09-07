@@ -23,6 +23,7 @@
 #include "annium/functional/general/runtime_cast_pattern.hpp"
 #include "annium/functional/general/qname_implicit_cast_pattern.hpp"
 #include "annium/functional/general/deref_pattern.hpp"
+#include "annium/functional/general/ref_pattern.hpp"
 #include "annium/functional/general/equal_pattern.hpp"
 #include "annium/functional/general/typeof_pattern.hpp"
 #include "annium/functional/general/to_string_pattern.hpp"
@@ -1511,6 +1512,10 @@ environment::environment()
     // operator*(type: typename)
     functional& deref_fnl = fregistry_resolve(get(builtin_qnid::deref));
     deref_fnl.push(make_shared<deref_pattern>());
+
+    // ref(self: runtime auto) -> ref(of: auto) -- alongside typefn ref(of: typename) (bootstrap.ann)
+    functional& ref_fnl = fregistry_resolve(get(builtin_qnid::ref));
+    ref_fnl.push(make_shared<ref_pattern>());
 
     // operator...(type: typename)
     functional& ellipsis_fnl = fregistry_resolve(get(builtin_qnid::ellipsis));

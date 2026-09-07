@@ -130,6 +130,7 @@
     <ClCompile Include="..\..\..\src\annium\functional\general\bool_bit_or_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\create_identifier_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\deref_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\functional\general\ref_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\equal_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\error_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\is_const_pattern.cpp" />
@@ -290,6 +291,7 @@
     <ClInclude Include="..\..\..\src\annium\functional\general\bool_bit_or_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\create_identifier_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\deref_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\functional\general\ref_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\equal_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\error_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\is_const_pattern.hpp" />

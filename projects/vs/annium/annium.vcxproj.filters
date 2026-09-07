@@ -255,6 +255,9 @@
     <ClCompile Include="..\..\..\src\annium\functional\general\deref_pattern.cpp">
       <Filter>annium\functional\general</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\general\ref_pattern.cpp">
+      <Filter>annium\functional\general</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\functional\general\equal_pattern.cpp">
       <Filter>annium\functional\general</Filter>
     </ClCompile>
@@ -684,6 +687,9 @@
       <Filter>annium\functional\general</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\functional\general\deref_pattern.hpp">
+      <Filter>annium\functional\general</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\general\ref_pattern.hpp">
       <Filter>annium\functional\general</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\functional\general\equal_pattern.hpp">

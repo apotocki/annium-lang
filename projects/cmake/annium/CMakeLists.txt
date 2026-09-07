@@ -135,6 +135,7 @@ set (LIBRARY_SOURCES
     ${ANNIUM_SRC}/annium/functional/general/bool_bit_or_pattern.cpp
     ${ANNIUM_SRC}/annium/functional/general/create_identifier_pattern.cpp
     ${ANNIUM_SRC}/annium/functional/general/deref_pattern.cpp
+    ${ANNIUM_SRC}/annium/functional/general/ref_pattern.cpp
     ${ANNIUM_SRC}/annium/functional/general/equal_pattern.cpp
     ${ANNIUM_SRC}/annium/functional/general/error_pattern.cpp
     ${ANNIUM_SRC}/annium/functional/general/is_const_pattern.cpp
