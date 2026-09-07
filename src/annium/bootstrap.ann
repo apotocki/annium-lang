@@ -132,7 +132,7 @@ inline viable fn::get(self: @is_struct, property: constexpr __identifier) => get
 // deliberately explicit (no automatic ref(T) -> T decay yet -- see IMPLEMENTATION_NOTES.md).
 typefn ref(of: typename);
 inline fn get(self: ~ref(of $T)) -> $T => reinterpret(__ref_get(self));
-inline fn set(self: ~ref(of $T), value: runtime $T) => __ref_set(self, value);
+inline fn set(self: ~ref(of $T), value: runtime $T) -> $T => reinterpret(__ref_set(self, value));
 
 // ARRAYS
 typefn array(of: typename, size?: constexpr integer);

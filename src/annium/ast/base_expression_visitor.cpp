@@ -21,7 +21,7 @@
 
 #include "annium/errors/cast_error.hpp"
 
-//#include "annium/auxiliary.hpp"
+#include "annium/auxiliary.hpp"
 
 namespace annium {
 
@@ -163,10 +163,8 @@ base_expression_visitor::result_type base_expression_visitor::operator()(indirec
 optional<base_expression_visitor::result_type> base_expression_visitor::try_take_reference(entity_identifier vartype, variable_identifier varid, bool is_weak) const
 {
     if (!expected_result.type || is_weak || !can_be_runtime(expected_result.modifier)) return nullopt;
-    entity const& exp_ent = get_entity(env(), expected_result.type);
-    entity_signature const* exp_sig = exp_ent.signature();
-    if (!exp_sig || exp_sig->name != env().get(builtin_qnid::ref)) return nullopt;
-    entity_identifier of_type = exp_sig->find_field(env().get(builtin_id::of))->entity_id();
+    entity_identifier of_type = try_decompose_ref_of(env(), expected_result.type);
+    if (!of_type) return nullopt;
     if (of_type != vartype) return nullopt; // no coercion -- see IMPLEMENTATION_NOTES.md's `ref(T)` section
 
     semantic::expression_span exprs_span;

@@ -200,18 +200,15 @@ builtin_eid strongest_numeric_type(builtin_eid a, builtin_eid b)
 
 builtin_eid numeric_builtin_eid_of(blob_result const& b)
 {
-    blob_result const* p = &b;
-    while (p->type == blob_type::blob_reference) {
-        p = data_of<blob_result>(*p);
-    }
+    blob_result const& p = unref(b);
 
-    switch (p->type) {
+    switch (p.type) {
     case blob_type::bigint: return builtin_eid::integer;
     case blob_type::decimal: return builtin_eid::decimal;
     default: break;
     }
 
-    blob_type decayed = (blob_type)(((uint8_t)p->type) & 0x7f);
+    blob_type decayed = (blob_type)(((uint8_t)p.type) & 0x7f);
     switch (decayed) {
     case blob_type::boolean: return builtin_eid::boolean;
     case blob_type::i8: return builtin_eid::i8;

@@ -8,6 +8,7 @@
 #include "semantic.hpp"
 
 #include "annium/entities/literals/literal_entity.hpp"
+#include "annium/entities/signatured_entity.hpp"
 #include "sonia/utility/invocation/invocation.hpp"
 
 namespace annium {
@@ -34,6 +35,16 @@ entity_identifier get_result_type(environment const& env, syntax_expression_resu
         return ent.get_type();
     }
     return er.type();
+}
+
+entity_identifier try_decompose_ref_of(environment const& env, entity_identifier eid)
+{
+    if (!eid) return entity_identifier{};
+    entity const& ent = get_entity(env, eid);
+    entity_signature const* sig = ent.signature();
+    if (!sig || sig->name != env.get(builtin_qnid::ref)) return entity_identifier{};
+    field_descriptor const* of = sig->find_field(env.get(builtin_id::of));
+    return of ? of->entity_id() : entity_identifier{};
 }
 
 resource_location get_start_location(syntax_pattern const& ptrn)

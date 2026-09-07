@@ -567,7 +567,12 @@ void annium_ref_of(vm::context& ctx)
 // the value it points to. unref() follows however many levels of blob_reference there are.
 void annium_ref_get(vm::context& ctx)
 {
-    ctx.stack_back().replace(smart_blob{ unref(*ctx.stack_back()) });
+    // NOT `ctx.stack_back().replace(smart_blob{ unref(*ctx.stack_back()) });` -- unref() returns
+    // by value (a prvalue), which would select smart_blob(blob_result&&) (no pin, see its ctor)
+    // instead of smart_blob(blob_result const&) (pins) -- silently leaving `need_unpin` unset on a
+    // blob that needs it, i.e. a refcount underflow on the target. Bind to a named lvalue first.
+    blob_result v = unref(*ctx.stack_back());
+    ctx.stack_back().replace(smart_blob{ v });
 }
 
 // Write-through: smart_blob::operator= already special-cases a destination that currently holds
@@ -580,6 +585,43 @@ void annium_ref_set(vm::context& ctx)
     smart_blob value = std::move(ctx.stack_back());
     ctx.stack_pop();
     ctx.stack_back() = std::move(value);
+}
+
+// Turns a ref(of: TupleType) (aliasing the tuple's own persistent storage -- see annium_ref_of)
+// plus a runtime field index into a ref(of: E) to that specific element, for a tuple with more
+// than one runtime field (see tuple_get_pattern.cpp). Deliberately does NOT do
+// `ctx.stack_back(1).as<blob_result>()`: that would COPY the tuple's blob_result, and for an
+// inplace (<=14-byte) tuple the element data lives INSIDE that struct -- data_of<> on a copy would
+// point into a temporary that dies with this call, not into the variable's real storage. Chasing
+// pointers via unref_ptr() instead reaches the actual, persistent tuple blob.
+void annium_ref_at(vm::context& ctx)
+{
+    size_t idx = ctx.stack_back().as<size_t>();
+    blob_result const* arr = unref_ptr(*ctx.stack_back(1));
+    if (!is_array(*arr)) {
+        throw exception("expected array, got %1%"_fmt % *arr);
+    }
+    smart_blob result = blob_type_selector(*arr, [idx](auto ident, blob_result const& b) -> blob_result {
+        using type = typename decltype(ident)::type;
+        if constexpr (std::is_same_v<type, std::nullptr_t> || std::is_void_v<type> || std::is_same_v<type, sonia::invocation::object>) {
+            THROW_INTERNAL_ERROR("unexpected array element type");
+        } else {
+            using fstype = std::conditional_t<std::is_same_v<type, bool>, uint8_t, type>;
+            size_t sz = array_size_of<fstype>(b);
+            if (idx >= sz) {
+                throw exception("index out of range");
+            }
+            fstype* e = const_cast<fstype*>(data_of<fstype>(b)) + idx;
+            if constexpr (std::is_same_v<fstype, blob_result>) {
+                return reference_blob_result(*e, false); // boxed tuple: element already is a blob_result
+            } else {
+                blob_type decayed = (blob_type)(((uint8_t)b.type) & 0x7f);
+                return raw_reference_blob_result(e, decayed, sizeof(fstype)); // packed tuple
+            }
+        }
+    });
+    ctx.stack_pop();
+    ctx.stack_back().replace(std::move(result));
 }
 
 void annium_array_tail(vm::context& ctx)
@@ -631,10 +673,7 @@ void annium_array_tail(vm::context& ctx)
 
 void annium_logical_not(vm::context& ctx)
 {
-    auto val = *ctx.stack_back();
-    while (val.type == blob_type::blob_reference) {
-        val = *data_of<blob_result>(val);
-    }
+    auto val = unref(*ctx.stack_back());
     val = blob_type_selector(val, [](auto ident, blob_result const& b) {
         using type = typename decltype(ident)::type;
         if (!is_array(b)) {
@@ -656,10 +695,7 @@ void annium_logical_not(vm::context& ctx)
 
 void annium_unary_minus(vm::context& ctx)
 {
-    auto val = *ctx.stack_back();
-    while (val.type == blob_type::blob_reference) {
-        val = *data_of<blob_result>(val);
-    }
+    auto val = unref(*ctx.stack_back());
     val = blob_type_selector(val, [](auto ident, blob_result const& b) -> blob_result {
         using type = typename decltype(ident)::type;
         if (!is_array(b)) {

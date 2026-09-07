@@ -30,6 +30,12 @@ protected:
 
         entity const& tpl_entity;
         entity_signature const& arg_sig;
+
+        // Set only when `self` is a plain local variable/parameter and the caller's expected
+        // result is `ref(of: E)` for some E -- try_match already resolved `self` (matches[0],
+        // read via `slfer` in apply) AS ref(of: TupleType) in this case, see try_match's peek.
+        entity_identifier expected_ref_type; // the whole ref(of: E) entity
+        entity_identifier expected_ref_of;   // E
     };
 };
 

@@ -16,12 +16,67 @@
 
 namespace annium {
 
-std::expected<functional_match_descriptor_ptr, error_storage> tuple_get_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const&) const
+namespace {
+
+// Cheaply (no codegen at all) checks whether the call's `self` argument is, syntactically, a bare
+// reference to a plain local variable/parameter -- and if so, returns that variable's own info.
+// Needed to decide, BEFORE evaluating self at all, whether to ask for it as ref(of: its own type)
+// or as an ordinary value -- so self only ever gets evaluated ONCE. (Evaluating it unconstrained
+// first and then, separately, as a reference -- discarding whichever copy-vs-reference evaluation
+// isn't used -- was tried and found unsound: unlike the `property` argument's own double-resolution
+// a few lines below, self's evaluation is never const, so the discarded attempt's emitted
+// instructions are not zero-cost the way property's harmlessly-orphaned CONST attempts are.)
+optional<local_variable> peek_self_local_variable(fn_compiler_context& ctx, prepared_call const& call, identifier self_name)
+{
+    for (auto const& [argname, loc, arg_cache] : call.argument_caches_) {
+        if (argname != self_name) continue;
+        if (auto const* qref = std::get_if<qname_reference_expression>(&arg_cache.expression.value)) {
+            auto looked_up = ctx.lookup_entity(qref->name);
+            if (auto const* lvar = std::get_if<local_variable>(&looked_up)) {
+                return *lvar;
+            }
+        } else if (auto const* lvexpr = std::get_if<local_variable_expression>(&arg_cache.expression.value)) {
+            return local_variable{ .type = lvexpr->type, .varid = lvexpr->varid, .is_weak = false };
+        }
+        return nullopt;
+    }
+    return nullopt;
+}
+
+}
+
+std::expected<functional_match_descriptor_ptr, error_storage> tuple_get_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
 {
     environment& e = ctx.env();
     auto call_session = call.new_session(ctx);
-    auto slf_arg_descr = call_session.get_named_argument(e.get(builtin_id::self));
+
+    // If the caller wants some ref(of: E) out of this whole get() call, and self looks like a
+    // plain variable, request self AS a reference to its own type from the very first (and only)
+    // evaluation -- see peek_self_local_variable's comment for why this must be decided upfront.
+    entity_identifier ref_tuple_eid;
+    entity_identifier expected_ref_of;
+    if (exp.type && can_be_runtime(exp.modifier)) {
+        if (entity_identifier of = try_decompose_ref_of(e, exp.type); of) {
+            if (auto lvar = peek_self_local_variable(ctx, call, e.get(builtin_id::self)); lvar && !lvar->is_weak) {
+                entity_signature rsig{ e.get(builtin_qnid::ref), e.get(builtin_eid::typename_) };
+                rsig.emplace_back(e.get(builtin_id::of), lvar->type, true);
+                ref_tuple_eid = e.make_basic_signatured_entity(std::move(rsig)).id;
+                expected_ref_of = of;
+            }
+        }
+    }
+
+    auto slf_arg_descr = ref_tuple_eid
+        ? call_session.get_named_argument(e.get(builtin_id::self), expected_result_t{ .type = ref_tuple_eid, .modifier = value_modifier_t::runtime_value })
+        : call_session.get_named_argument(e.get(builtin_id::self));
     if (!slf_arg_descr) return std::unexpected(std::move(slf_arg_descr.error()));
+
+    // Discriminator for "self really did come back as a reference" -- try_take_reference is the
+    // only thing that can produce this exact value_or_type (no implicit_cast to ref(T) exists), so
+    // this can only be false here if peek_self_local_variable's cheap check somehow disagreed with
+    // try_take_reference's own (extremely unlikely, since ref_tuple_eid is built from the very type
+    // the peek just reported) -- in which case falling back to ordinary handling below is correct.
+    bool self_is_ref = ref_tuple_eid && slf_arg_descr->result.value_or_type == ref_tuple_eid;
 
     prepared_call::argument_descriptor_t prop_arg_descr;
     alt_error prop_errors;
@@ -49,7 +104,10 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_get_pattern:
     shared_ptr<tuple_get_match_descriptor> pmd;
     entity_identifier slftype;
     syntax_expression_result& slf_arg_er = slf_arg_descr->result;
-    if (slf_arg_er.is_const_result) {
+    if (self_is_ref) {
+        // self came back as ref(of: TupleType) -- slftype is that TupleType, unwrapped.
+        slftype = try_decompose_ref_of(e, slf_arg_er.value_or_type);
+    } else if (slf_arg_er.is_const_result) {
         entity const& slf_entity = get_entity(e, slf_arg_er.value());
         if (auto psig = slf_entity.signature(); psig && psig->name == e.get(builtin_qnid::tuple)) {
             // Skip typename tuples - they are handled by tuple_typename_get_pattern
@@ -60,7 +118,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_get_pattern:
     } else {
         slftype = slf_arg_er.type();
     }
-    
+
     entity const& tpl_entity = get_entity(e, slftype);
     entity_signature const* psig = tpl_entity.signature();
     if (!psig || psig->name != e.get(builtin_qnid::tuple)) {
@@ -70,10 +128,15 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_get_pattern:
         return std::unexpected(make_error<type_mismatch_error>(slf_arg_descr->expression->location, slftype, "a not empty tuple"sv));
     }
     pmd = make_shared<tuple_get_match_descriptor>(call, tpl_entity, *tpl_entity.signature());
-    
+
     pmd->append_arg(slf_arg_er, slf_arg_descr->expression->location);
     pmd->append_arg(prop_arg_descr.result, prop_arg_descr.expression->location);
-    
+
+    if (self_is_ref) {
+        pmd->expected_ref_type = exp.type;
+        pmd->expected_ref_of   = expected_ref_of;
+    }
+
     return pmd;
 }
 
@@ -218,12 +281,33 @@ std::expected<syntax_expression_result, error_storage> tuple_get_pattern::apply(
             }
         }
 
+        // Ref mode: try_match already resolved self AS ref(of: TupleType) in this case (that's
+        // what `slfer` -- matches[0] -- holds here instead of an ordinary copy, see try_match's
+        // peek), confirmed obtainable there. expected_ref_of matches this field's own -- unwrapped
+        // -- type; NOT result_type, which for a named field is the tuple(name, E) wrapper, not E
+        // itself. ref_at turns self's own-storage-aliasing reference into a reference to this one
+        // field, without ever copying the tuple.
+        if (tmd.expected_ref_type && tmd.expected_ref_of == field->entity_id()) {
+            syntax_expression_result r = std::move(slfer);
+            if (non_const_count > 1) {
+                e.push_back_expression(el, r.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(runtime_index) } });
+                e.push_back_expression(el, r.expressions, semantic::invoke_function(e.get(builtin_eid::ref_at)));
+            }
+            // non_const_count == 1: tuple_make_pattern skips arrayify entirely for a tuple's sole
+            // runtime field, so the variable's own slot already directly holds the element's raw
+            // value -- the ref(of: TupleType) we already have points at exactly the right thing;
+            // only the compile-time type needs relabeling to ref(of: E).
+            r.value_or_type = tmd.expected_ref_type;
+            r.is_const_result = false;
+            return r;
+        }
+
         // Optimization: if only one runtime field, just return 'self' with the requested type
         if (non_const_count > 1) {
             e.push_back_expression(el, slfer.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(runtime_index) } });
             e.push_back_expression(el, slfer.expressions, semantic::invoke_function(e.get(builtin_eid::array_at)));
         }
-        
+
         return std::move(slfer);
     }
 

@@ -1697,7 +1697,11 @@ environment::environment()
     // reusable here.
     builtin_eids_[(size_t)builtin_eid::ref_of] = set_builtin_extern("__ref_of(runtime integer)-> any"sv, &annium_ref_of);
     builtin_eids_[(size_t)builtin_eid::ref_get] = set_builtin_extern("__ref_get(runtime)-> any"sv, &annium_ref_get);
-    builtin_eids_[(size_t)builtin_eid::ref_set] = set_builtin_extern("__ref_set(runtime, runtime)"sv, &annium_ref_set);
+    builtin_eids_[(size_t)builtin_eid::ref_set] = set_builtin_extern("__ref_set(runtime, runtime)->any"sv, &annium_ref_set);
+    // Like array_at just above: never resolved through overload matching, always emitted directly
+    // by tuple_get_pattern once it's confirmed self is a plain variable and expected_result asks
+    // for a matching ref(of: E) -- the signature string is inert.
+    builtin_eids_[(size_t)builtin_eid::ref_at] = set_builtin_extern("__ref_at()"sv, &annium_ref_at);
     builtin_eids_[(size_t)builtin_eid::equal] = set_builtin_extern("__equal(runtime, runtime)->bool"sv, &annium_any_equal);
     builtin_eids_[(size_t)builtin_eid::less] = set_builtin_extern("__less(runtime @numeric, runtime @numeric)->bool"sv, &annium_numeric_less);
     builtin_eids_[(size_t)builtin_eid::assert] = set_builtin_extern("__assert(runtime)"sv, &annium_assert);

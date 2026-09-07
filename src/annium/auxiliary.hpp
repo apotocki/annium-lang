@@ -23,6 +23,10 @@ inline entity const& get_entity(environment const& e, annotated_entity_identifie
 
 entity_identifier get_result_type(environment const&, syntax_expression_result const&, entity const** ppe = nullptr);
 
+// If `eid` is a `ref(of: T)` signature entity, returns T; otherwise a null entity_identifier.
+// Shared by base_expression_visitor::try_take_reference and tuple_get_pattern's ref-mode probe.
+entity_identifier try_decompose_ref_of(environment const&, entity_identifier eid);
+
 bool all_paths_return(semantic::expression_span span);
 
 // Per-element entity ids of a compile-time-known array value (`array_value_eid`), regardless of
