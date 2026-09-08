@@ -402,8 +402,9 @@ public:
     //entity_identifier result_value_or_type;
     //bool is_const_value_result = false;
     entity_identifier result_type;
-    // Set from internal_function_entity::result's own `__result_wants_reference`-tagged name marker
-    // (see basic_fn_pattern.cpp's try_match) before this function's body is compiled, so
+    // Read from this function's own bound `builtin_id::result_wants_reference` parameter, if it
+    // declared one (see internal_function_entity::build(), parameter_matcher.cpp's `reference(IDENT)`
+    // modifier, and bootstrap.ann's struct-get overload), before this function's body is compiled, so
     // append_return() can request `value_modifier_t::runtime_reference` for the real return
     // expression instead of the default modifier -- this is what makes the compiled body's own
     // reference-vs-value decision (e.g. inside a delegated tuple_get_pattern call) depend on what

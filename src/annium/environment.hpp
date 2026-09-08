@@ -46,6 +46,7 @@ class arena;
 #define ANNIUM_BUILTIN_ID_SEQ              \
     ((location, "location"sv))             \
     ((call_location, "__call_location"sv)) \
+    ((call_wants_reference, "__call_wants_reference"sv)) \
     ((type, "__type"sv))                   \
     ((to, "to"sv))                         \
     ((self, "self"sv))                     \

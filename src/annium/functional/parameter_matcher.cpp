@@ -182,7 +182,23 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
             // `~ reference ref(of @is_struct)` take a reference to a plain struct variable directly,
             // the way native C++ patterns (tuple_get_pattern, fixed_array_get_pattern, ref_pattern)
             // already could but ordinary `.ann`-declared structural parameters never could before.
-            cmatcher.argexp = expected_result_t{ .modifier = value_modifier_t::runtime_reference };
+            //
+            // `~ reference(IDENT)` makes this conditional: IDENT names an earlier parameter in the
+            // same pattern -- already matched and bound by now, since parameters are matched strictly
+            // in declaration order -- whose bound compile-time bool value gates whether a reference is
+            // requested at all. A bare `~ reference` (no parens, IDENT empty) keeps the unconditional
+            // behavior above. This is what lets a struct-get overload only pay for a reference-take
+            // when its own caller actually wants one back, instead of always taking one and falling
+            // back to a plain-value overload never getting a chance to match.
+            bool want_ref = true;
+            if (annotated_identifier cond = param_it->reference_condition(); cond) {
+                functional_binding::value_type const* bound = md.bindings.lookup(cond.value);
+                entity_identifier const* pbound_eid = bound ? get_if<entity_identifier>(bound) : nullptr;
+                want_ref = pbound_eid && *pbound_eid == env.get(builtin_eid::true_);
+            }
+            if (want_ref) {
+                cmatcher.argexp = expected_result_t{ .modifier = value_modifier_t::runtime_reference };
+            }
         }
 
         bool is_variadic_param = has(param_it->modifier(), parameter_constraint_modifier_t::variadic);
@@ -215,6 +231,16 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
                         if (try_backtrack(callee_ctx)) continue;
                         return result_error();
                     }
+                    // Unlike the "argument found" path (retrieve_next_argument(), via
+                    // use_named_argument/use_next_positioned_argument), resolving through a default
+                    // value never touches cmatcher.arg_descr at all -- it's a plain, uninitialized
+                    // member (prepared_call::argument_descriptor_t has no default member
+                    // initializers), not zero/null-initialized. append_arg() below (and the
+                    // "cannot match argument" error path above) unconditionally dereferences
+                    // arg_descr.expression, so it must be set here too -- the default value
+                    // expression itself is the only sensible source of a location for this argument.
+                    cmatcher.arg_descr.expression = default_expr;
+                    cmatcher.arg_descr.name = annotated_identifier{};
                     cmatcher.arg_er = std::move(res->first);
                     cmatcher.has_cast = res->second;
                     argindex = argindex_for_default--;

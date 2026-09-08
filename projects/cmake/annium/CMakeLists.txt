@@ -93,10 +93,8 @@ set (LIBRARY_SOURCES
     ${ANNIUM_SRC}/annium/entities/struct/is_struct_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/struct/struct_entity.cpp
     ${ANNIUM_SRC}/annium/entities/struct/struct_fn_pattern.cpp
-    ${ANNIUM_SRC}/annium/entities/struct/struct_get_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/struct/struct_init_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/struct/struct_new_pattern.cpp
-    ${ANNIUM_SRC}/annium/entities/struct/struct_set_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/struct/tuple_of_pattern.cpp
     
     ${ANNIUM_SRC}/annium/entities/tuple/tuple_empty_pattern.cpp

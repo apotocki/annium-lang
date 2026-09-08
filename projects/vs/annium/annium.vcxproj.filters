@@ -198,9 +198,6 @@
     <ClCompile Include="..\..\..\src\annium\entities\struct\struct_fn_pattern.cpp">
       <Filter>annium\entities\struct</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\struct\struct_get_pattern.cpp">
-      <Filter>annium\entities\struct</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\struct\struct_init_pattern.cpp">
       <Filter>annium\entities\struct</Filter>
     </ClCompile>
@@ -356,9 +353,6 @@
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\functional\typefn_pattern.cpp">
       <Filter>annium\functional</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\struct\struct_set_pattern.cpp">
-      <Filter>annium\entities\struct</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\array\array_from_iterator_make_pattern.cpp">
       <Filter>annium\entities\array</Filter>
@@ -623,9 +617,6 @@
     <ClInclude Include="..\..\..\src\annium\entities\struct\struct_fn_pattern.hpp">
       <Filter>annium\entities\struct</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\struct\struct_get_pattern.hpp">
-      <Filter>annium\entities\struct</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\struct\struct_init_pattern.hpp">
       <Filter>annium\entities\struct</Filter>
     </ClInclude>
@@ -790,9 +781,6 @@
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\functional\typefn_pattern.hpp">
       <Filter>annium\functional</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\struct\struct_set_pattern.hpp">
-      <Filter>annium\entities\struct</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\array\array_from_iterator_make_pattern.hpp">
       <Filter>annium\entities\array</Filter>

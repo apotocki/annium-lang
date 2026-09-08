@@ -70,10 +70,8 @@
 #include "annium/entities/tuple/tuple_project_size_pattern.hpp"
 
 #include "annium/entities/struct/struct_new_pattern.hpp"
-#include "annium/entities/struct/struct_get_pattern.hpp"
 //#include "entities/struct/struct_implicit_cast_pattern.hpp"
 #include "annium/entities/struct/struct_init_pattern.hpp"
-#include "annium/entities/struct/struct_set_pattern.hpp"
 #include "annium/entities/struct/is_struct_pattern.hpp"
 #include "annium/entities/struct/tuple_of_pattern.hpp"
 #include "annium/entities/literals/numeric_pattern.hpp"
@@ -1619,12 +1617,7 @@ environment::environment()
     get_fnl.push(make_shared<tuple_get_pattern>());
     get_fnl.push(make_shared<fixed_array_get_pattern>());
     get_fnl.push(make_shared<tuple_project_get_pattern>());
-    //get_fnl.push(make_shared<struct_get_pattern>());
     get_fnl.push(make_shared<enum_get_pattern>());
-
-
-    functional& set_fnl = fregistry_resolve(get(builtin_qnid::set));
-    set_fnl.push(make_shared<struct_set_pattern>());
 
     // size(signatured_entity)->integer
     functional& sz_fnl = fregistry_resolve(get(builtin_qnid::size));

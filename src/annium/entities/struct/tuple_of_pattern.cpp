@@ -50,10 +50,11 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_of_pattern::
 
     entity const* arg_entity;
     entity_identifier arg_type = get_result_type(env, arg_er, &arg_entity);
-    // Reference-aware: `ref(structval).field` (via the `get`/`set` overloads below) passes a
-    // `ref(of: StructType)` self here, not a plain struct value -- decompose it first and check
-    // struct-ness against the unwrapped type, same as tuple_get_pattern/fixed_array_get_pattern
-    // already do for their own `self`.
+    // Reference-aware: `ref(structval).field` (via bootstrap.ann's struct `get` overload, or via
+    // do_assign's generic `ref(lhs)` + `set(...)` for a write) passes a `ref(of: StructType)` self
+    // here, not a plain struct value -- decompose it first and check struct-ness against the
+    // unwrapped type, same as tuple_get_pattern/fixed_array_get_pattern already do for their own
+    // `self`.
     entity_identifier ref_of = try_decompose_ref_of(env, arg_type);
     entity_identifier struct_type = ref_of ? ref_of : arg_type;
     struct_entity const* arg_as_struct = dynamic_cast<struct_entity const*>(&get_entity(env, struct_type));

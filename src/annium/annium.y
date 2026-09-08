@@ -340,7 +340,8 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 //%type <parameter_constraint_modifier_t> constraint-expression-mod
 %type <std::pair<resource_location, parameter_constraint_modifier_t>> constraint-expression-mod constraint-expression-specified-mod
 %type <std::pair<std::variant<syntax_expression const*, syntax_pattern const*>, parameter_constraint_modifier_t>> constraint-expression constraint-expression-specified
-%type <std::pair<syntax_pattern, parameter_constraint_modifier_t>> pattern-mod pattern-sfx
+%type <std::tuple<syntax_pattern, parameter_constraint_modifier_t, annotated_identifier>> pattern-mod
+%type <std::pair<syntax_pattern, parameter_constraint_modifier_t>> pattern-sfx
 %type <syntax_pattern> pattern
 %type <syntax_pattern::field> pattern-field pattern-field-sfx
 %type <syntax_pattern_field_list_t> subpatterns pattern-list
@@ -837,16 +838,16 @@ parameter-decl:
             $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = constraint, .default_value = std::move($default.second),.modifier = modifier };
         }
     | identifier[id] internal-identifier-opt[intid] COLON pattern-mod[pm] parameter-default-value-opt[default]
-        { $$ = parameter{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>(std::move(get<0>($pm))), .default_value = std::move($default), .modifier = get<1>($pm) }; }
+        { $$ = parameter{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>(std::move(get<0>($pm))), .default_value = std::move($default), .modifier = get<1>($pm), .reference_condition = std::move(get<2>($pm)) }; }
     | identifier[id] internal-identifier-opt[intid] COLON concept-expression-list[cpts] parameter-default-value-opt[default]
         { $$ = parameter{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint =  ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($id.location) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default), .modifier =  parameter_constraint_modifier_t::constexpr_or_runtime_type };  }
     | identifier[id] internal-identifier-opt[intid] COLON constraint-expression-specified-mod[mod] concept-expression-list[cpts] parameter-default-value-opt[default]
         { $$ = parameter{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint =  ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($id.location) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default), .modifier = get<1>($mod) };  }
     | identifier[id] internal-identifier-opt[intid] QMARK COLON pattern-mod[pm]
-        { $$ = parameter{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>(std::move(get<0>($pm))), .default_value = optional_t{}, .modifier = get<1>($pm) }; IGNORE_TERM($QMARK); }
+        { $$ = parameter{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>(std::move(get<0>($pm))), .default_value = optional_t{}, .modifier = get<1>($pm), .reference_condition = std::move(get<2>($pm)) }; IGNORE_TERM($QMARK); }
 
     | internal-identifier[intid] COLON pattern-mod[pm] parameter-default-value-opt[default]
-        { $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>(std::move(get<0>($pm))), .default_value = std::move($default), .modifier = get<1>($pm) }; }
+        { $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>(std::move(get<0>($pm))), .default_value = std::move($default), .modifier = get<1>($pm), .reference_condition = std::move(get<2>($pm)) }; }
     | internal-identifier[intid] COLON concept-expression-list[cpts] ellipsis-opt-assign-value-opt[default]
         {
             auto modifier = $default.first ? parameter_constraint_modifier_t::constexpr_or_runtime_type | parameter_constraint_modifier_t::variadic : parameter_constraint_modifier_t::constexpr_or_runtime_type;
@@ -855,9 +856,9 @@ parameter-decl:
     | internal-identifier[intid] COLON constraint-expression-specified-mod[mod] concept-expression-list[cpts] parameter-default-value-opt[default]
         { $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint =  ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($intid.name.location) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default), .modifier = get<1>($mod) }; }
     | COLON pattern-mod[pm] parameter-default-value-opt[default]
-        { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>(std::move(get<0>($pm))), .default_value = std::move($default), .modifier = get<1>($pm) }; }
+        { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>(std::move(get<0>($pm))), .default_value = std::move($default), .modifier = get<1>($pm), .reference_condition = std::move(get<2>($pm)) }; }
     | pattern-mod[pm] parameter-default-value-opt[default]
-        { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>(std::move(get<0>($pm))), .default_value = std::move($default), .modifier = get<1>($pm) }; }
+        { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>(std::move(get<0>($pm))), .default_value = std::move($default), .modifier = get<1>($pm), .reference_condition = std::move(get<2>($pm)) }; }
 
     // sugar for simple placeholder types
     //| identifier[id] internal-identifier-opt[intid] concept-expression-list-opt[cpts] parameter-default-value-opt[default] 
@@ -993,13 +994,19 @@ pattern-field:
     ;
 
 pattern-mod:
-      TILDA pattern-sfx[ps]                   { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::constexpr_or_runtime_type }; }
-    | TILDA CONSTEXPR pattern-sfx[ps]         { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::constexpr_type }; IGNORE_TERM($CONSTEXPR); }
-    | TILDA RUNTIME pattern-sfx[ps]           { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::runtime_type }; IGNORE_TERM($RUNTIME); }
-    | TILDA REFERENCE pattern-sfx[ps]         { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::reference_type }; IGNORE_TERM($REFERENCE); }
-    | CONSTEVAL syntax-expression[expr]       { $$ = std::pair{ syntax_pattern{ .descriptor = ctx.make<syntax_expression>(std::move($expr)) }, parameter_constraint_modifier_t::constexpr_not_a_typename_value }; IGNORE_TERM($CONSTEVAL); }
-    | TYPENAME pattern-sfx[ps]                { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::typename_value }; IGNORE_TERM($TYPENAME); }
-    | TYPENAME                                { $$ = std::pair{ syntax_pattern{ .descriptor = placeholder{ std::move($TYPENAME) } }, parameter_constraint_modifier_t::typename_value }; }
+      TILDA pattern-sfx[ps]                   { $$ = std::tuple{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::constexpr_or_runtime_type, annotated_identifier{} }; }
+    | TILDA CONSTEXPR pattern-sfx[ps]         { $$ = std::tuple{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::constexpr_type, annotated_identifier{} }; IGNORE_TERM($CONSTEXPR); }
+    | TILDA RUNTIME pattern-sfx[ps]           { $$ = std::tuple{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::runtime_type, annotated_identifier{} }; IGNORE_TERM($RUNTIME); }
+    | TILDA REFERENCE pattern-sfx[ps]         { $$ = std::tuple{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::reference_type, annotated_identifier{} }; IGNORE_TERM($REFERENCE); }
+    // `~ reference(IDENT)` -- conditional reference-taking: IDENT names an earlier parameter in the
+    // same pattern (already matched and bound -- parameters are matched strictly in declaration
+    // order, see parameter_matcher.cpp) whose bound compile-time bool value gates whether a
+    // reference is actually requested here. See parameter_matcher.cpp's reference_type branch.
+    | TILDA REFERENCE OPEN_PARENTHESIS identifier[cond] CLOSE_PARENTHESIS pattern-sfx[ps]
+        { $$ = std::tuple{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::reference_type, std::move($cond) }; IGNORE_TERM($REFERENCE); IGNORE_TERM($OPEN_PARENTHESIS); }
+    | CONSTEVAL syntax-expression[expr]       { $$ = std::tuple{ syntax_pattern{ .descriptor = ctx.make<syntax_expression>(std::move($expr)) }, parameter_constraint_modifier_t::constexpr_not_a_typename_value, annotated_identifier{} }; IGNORE_TERM($CONSTEVAL); }
+    | TYPENAME pattern-sfx[ps]                { $$ = std::tuple{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::typename_value, annotated_identifier{} }; IGNORE_TERM($TYPENAME); }
+    | TYPENAME                                { $$ = std::tuple{ syntax_pattern{ .descriptor = placeholder{ std::move($TYPENAME) } }, parameter_constraint_modifier_t::typename_value, annotated_identifier{} }; }
     ;
 
 pattern-sfx:

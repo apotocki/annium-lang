@@ -99,7 +99,8 @@ error_storage basic_fn_pattern::init(fn_compiler_context& ctx, fn_pure const& fn
             internal_name ? *internal_name : iname,
             param.constraint,
             param.default_value,
-            param.modifier);
+            param.modifier,
+            param.reference_condition);
 
         if (alias_name) {
             parameters_.back().set_alias(alias_name);
@@ -121,20 +122,18 @@ std::expected<functional_match_descriptor_ptr, error_storage> basic_fn_pattern::
     // The caller's own `wants a reference back` intent (`exp.type`/`exp.modifier`) is otherwise a
     // "hidden" input: it drives what the compiled body actually does (e.g. whether a delegated
     // tuple_get_pattern call keeps a reference or dereferences it) without being part of the
-    // function's own parameters. Tag `call_sig.result`'s otherwise-unused name slot with a reserved
-    // marker so two calls that are IDENTICAL in every parameter but differ in this one respect get
-    // DIFFERENT internal_function_entity instances instead of silently sharing one whose behavior
-    // was fixed by whichever caller happened to trigger the first build -- see
-    // IMPLEMENTATION_NOTES.md's `ref(T)` section for the bug this fixes and why. Threaded through to
-    // the real body compilation via fn_compiler_context::result_wants_reference (see
-    // internal_function_entity::build() and fn_compiler_context::append_return()). Mirrors
+    // function's own parameters. Rather than smuggling it through the signature directly, it's
+    // exposed as an ordinary compiler-injected constant (`__call_wants_reference`, right below,
+    // alongside `__call_location`) that a `.ann` function can opt into by declaring a parameter
+    // defaulted to it (see `bootstrap.ann`'s struct-get overload and its `~ reference(IDENT)`
+    // modifier, parameter_matcher.cpp) -- once it's a real matched parameter, it naturally
+    // participates in the signature/cache key like any other, with no special-casing needed. Mirrors
     // tuple_get_pattern's own want_ref_result formula exactly, for the same two reasons: a
     // caller-prescribed concrete `ref(of:...)` type, or (when no type is prescribed) the
     // `runtime_reference` modifier alone.
     bool result_wants_ref = exp.type
         ? (can_be_runtime(exp.modifier) && (bool)try_decompose_ref_of(env, exp.type))
         : wants_reference(exp.modifier);
-    identifier result_name = result_wants_ref ? env.get(builtin_id::result_wants_reference) : identifier{};
 
     shared_ptr<fn_compiler_context> callee_ctx = make_shared<fn_compiler_context>(env, caller_ctx.ns() / call.functional_name());
     // prepare binding
@@ -143,6 +142,10 @@ std::expected<functional_match_descriptor_ptr, error_storage> basic_fn_pattern::
     ct_call_binding.emplace_back(
         annotated_identifier{ env.get(builtin_id::call_location) },
         env.make_string_entity(env.print(call.location)).id
+    );
+    ct_call_binding.emplace_back(
+        annotated_identifier{ env.get(builtin_id::call_wants_reference) },
+        env.get(result_wants_ref ? builtin_eid::true_ : builtin_eid::false_)
     );
     callee_ctx->push_binding(ct_call_binding);
 #else
@@ -171,9 +174,9 @@ std::expected<functional_match_descriptor_ptr, error_storage> basic_fn_pattern::
         //pmd->weight -= static_cast<int>(pmd->bindings.size());
         // to do: not only void_type can produce only constexpr result
         if (exp.type == env.get(builtin_eid::void_type)) {
-            call_sig.result.emplace(result_name, env.get(builtin_eid::void_), true);
+            call_sig.result.emplace(env.get(builtin_eid::void_), true);
         } else {
-            call_sig.result.emplace(result_name, exp.type, false);
+            call_sig.result.emplace(exp.type, false);
         }
     }
 
@@ -206,24 +209,10 @@ std::expected<functional_match_descriptor_ptr, error_storage> basic_fn_pattern::
         // any more.
         if (res_er.is_const_result) {
             entity const& res_ent = get_entity(env, res_er.value());
-            call_sig.result.emplace(result_name, res_er.value(), res_ent.get_type() != env.get(builtin_eid::typename_));
+            call_sig.result.emplace(res_er.value(), res_ent.get_type() != env.get(builtin_eid::typename_));
         } else {
-            call_sig.result.emplace(result_name, res_er.type(), false);
+            call_sig.result.emplace(res_er.type(), false);
         }
-    }
-
-    // `=> expr` declarations with no explicit `->`/`~>` leave result_ as the `nullptr_t` ("auto")
-    // alternative -- neither branch above runs, and call_sig.result is deliberately left empty since
-    // the real result type isn't known until the body is actually built (see
-    // signatured_entity.hpp's entity_signature::result comment). That means the result_wants_ref
-    // marker above never reaches the signature/cache key for exactly this (very common) declaration
-    // style -- struct field get/set in bootstrap.ann included -- so a marker-only field (no resolved
-    // type, just the name) is attached here instead, purely to keep the two builds (reference wanted
-    // vs not) from colliding in eregistry_find_or_create. internal_function_entity::build() reads
-    // result.name() regardless of whether result.entity_id() is set, so this is enough to thread the
-    // flag through despite carrying no type.
-    if (!call_sig.result && result_wants_ref) {
-        call_sig.result.emplace(result_name, entity_identifier{}, false);
     }
 
     return pmd;

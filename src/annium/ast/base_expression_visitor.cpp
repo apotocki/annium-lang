@@ -1341,10 +1341,8 @@ base_expression_visitor::result_type base_expression_visitor::do_assign(binary_e
         if (!ref_res) return std::unexpected(std::move(ref_res.error()));
 
         // `value` must be a NAMED argument here -- bootstrap.ann's `set(self: ~ref(of $T), value:
-        // runtime $T)` declares it by name, and (unlike struct_set_pattern's own native try_match,
-        // which reads its third argument via get_next_positioned_argument() regardless of its
-        // declared name) an `.ann`-declared parameter's general matching machinery does not bind a
-        // positional argument to a differently-supplied named one.
+        // runtime $T)` declares it by name, and an `.ann`-declared parameter's general matching
+        // machinery does not bind a positional argument to a differently-supplied named one.
         call_builder set_call{ context_expression_.location };
         set_call.emplace_back(env().get(builtin_id::self), make_indirect_value(env(), expressions, std::move(*ref_res), context_expression_.location));
         set_call.emplace_back(env().make_identifier("value"sv), rhs);
@@ -1357,30 +1355,6 @@ base_expression_visitor::result_type base_expression_visitor::do_assign(binary_e
             ));
         }
         return apply_cast(match->apply(ctx));
-    }
-
-    // Fallback for a member access whose object can't be turned into a reference -- today, that's
-    // exactly a struct field, since struct references aren't wired up yet (STRUCT_FIELDS_PLAN.md's
-    // Part B): dispatch `set(self:, property:, value:)` directly, matching `struct_set_pattern`'s
-    // existing support. This isn't just a safety net for hypothetical user code -- `bootstrap.ann`'s
-    // own array `iterator`'s `next()` relies on exactly this for `$0.index = index + 1;` (`iterator`
-    // is a struct; see `array_operations.ann`'s iterator tests), so dropping this fallback entirely
-    // broke array iteration outright, not just struct field writes in general. `struct_set_pattern`
-    // correctly handles a struct with exactly one runtime field (as `iterator` effectively has --
-    // `array` is fixed at construction, only `index` is mutable); its confirmed write-loss bug for
-    // *multiple* runtime fields (STRUCT_FIELDS_PLAN.md's Part A.4) is unaffected by this fallback
-    // either way and remains tracked separately. No equivalent fallback exists for `index_expression`
-    // (`arr[i] = v`) -- no `set(...)` pattern is registered for an array self at all, so it would
-    // fail the same way regardless.
-    if (auto const* me = get_if<member_expression>(&lhs.value)) {
-        call_builder set_call{ context_expression_.location };
-        set_call.emplace_back(env().get(builtin_id::self), *me->object);
-        set_call.emplace_back(env().get(builtin_id::property), *me->property);
-        set_call.emplace_back(rhs);
-
-        if (auto match = ctx.find(builtin_qnid::set, set_call, expressions); match) {
-            return apply_cast(match->apply(ctx));
-        }
     }
 
     return std::unexpected(make_error<assign_error>(context_expression_.location, lhs));

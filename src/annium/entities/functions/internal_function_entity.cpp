@@ -141,17 +141,20 @@ error_storage internal_function_entity::build(fn_compiler_context& fnctx)
 {
     BOOST_ASSERT(!is_built());
 
-    // See basic_fn_pattern.cpp's try_match: `result`'s own name is a reserved marker (not a real
-    // field name -- return values don't have one) tagged there when the ORIGINAL caller's own
-    // exp wanted a reference back. Read it here, before it's overwritten below by the body's own
-    // inferred result, so append_return() can request the real return expression as a reference
-    // too -- this is what makes THIS specific build (as opposed to another, differently-tagged
-    // build of the exact same function for a caller that didn't want a reference) actually
-    // produce one. Checked unconditionally (not gated behind result.entity_id()): a `=> expr`
-    // declaration with no explicit `->`/`~>` return type gets a marker-only field (name set, no
-    // resolved entity_id -- see try_match's fallback for the nullptr_t/"auto" result_ case), so
-    // entity_id() alone can't be used to decide whether the marker is present.
-    fnctx.result_wants_reference = result.name() == fnctx.env().get(builtin_id::result_wants_reference);
+    // A `.ann` function opts into knowing "did the caller want a reference back" by declaring a
+    // parameter named builtin_id::result_wants_reference (conventionally defaulted to the
+    // compiler-injected __call_wants_reference constant -- see basic_fn_pattern.cpp's try_match and
+    // bootstrap.ann's struct-get overload's `~ reference(IDENT)` modifier, parameter_matcher.cpp).
+    // Read directly from this function's own bound parameters -- not from `result`, which for a
+    // `=> expr` declaration isn't known until the body is actually compiled below -- so a function
+    // that doesn't declare such a parameter simply has nothing bound under this name and the flag
+    // stays false.
+    fnctx.result_wants_reference = false;
+    if (functional_binding::value_type const* bound = bindings.lookup(fnctx.env().get(builtin_id::result_wants_reference))) {
+        if (entity_identifier const* peid = get_if<entity_identifier>(bound)) {
+            fnctx.result_wants_reference = (*peid == fnctx.env().get(builtin_eid::true_));
+        }
+    }
     if (result.entity_id()) {
         fnctx.result_type = get_entity_type(fnctx.env(), result);
     }

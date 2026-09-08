@@ -1331,14 +1331,15 @@ void fn_compiler_context::append_stored_expressions(semantic::expression_list_t&
 
 error_storage fn_compiler_context::append_return(syntax_expression const& expr)
 {
-    // result_wants_reference (set from internal_function_entity::result's own name marker just
-    // before the body is compiled -- see internal_function_entity::build()) makes THIS specific
-    // build's return expression request a genuine reference, so a nested reference-aware pattern
-    // (e.g. tuple_get_pattern, reached through get(self: tuple_of(self), property: property)) keeps
-    // the reference instead of dereferencing it -- see basic_fn_pattern.cpp's try_match and
-    // IMPLEMENTATION_NOTES.md's `ref(T)` section for why this can't just be `runtime_value` always:
-    // a differently-tagged build of the exact same function (a caller that didn't want a reference)
-    // gets its own, separately-compiled instance instead of sharing this one.
+    // result_wants_reference (read from this function's own bound `builtin_id::result_wants_reference`
+    // parameter, if it declared one, just before the body is compiled -- see
+    // internal_function_entity::build()) makes THIS specific build's return expression request a
+    // genuine reference, so a nested reference-aware pattern (e.g. tuple_get_pattern, reached through
+    // get(self: tuple_of(self), property: property)) keeps the reference instead of dereferencing it
+    // -- see basic_fn_pattern.cpp's try_match and IMPLEMENTATION_NOTES.md's `ref(T)` section for why
+    // this can't just be `runtime_value` always: a call that resolved that parameter to a different
+    // value (a caller that didn't want a reference) gets its own, separately-compiled instance
+    // instead of sharing this one.
     expected_result_t exp{
         .type = result_type,
         .location = expr.location,
