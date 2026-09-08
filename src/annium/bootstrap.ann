@@ -125,6 +125,35 @@ inline viable fn implicit_cast(~ union(...)) ~> $T => apply(to: $0, visitor: (fn
 // STRUCTS
 inline viable fn::get(self: @is_struct, property: constexpr __identifier) => get(self: tuple_of(self), property: property);
 
+// A reference to a struct (`ref(structval).field`, `structval.field` directly -- see below -- or a
+// chained `t.0.field`/`s.field.0` where an outer level already produced one): `self` is (or becomes)
+// `ref(of: SomeStruct)`, not a plain struct value, so the plain-value overload above doesn't match
+// (its `self: @is_struct` never accepts a ref). The `~ reference` modifier (as opposed to plain `~`)
+// is what makes this work for a plain struct variable directly, not just an already-referenced one:
+// it requests `self` via `value_modifier_t::runtime_reference` (see terms.hpp/parameter_matcher.cpp)
+// instead of the unconstrained resolution every other structural pattern parameter gets, so
+// try_take_reference fires for a plain `self` the same way it would for a native C++ pattern's own
+// self. The nested `@is_struct` is checked against the *unwrapped* type by pattern_matcher itself
+// (see IMPLEMENTATION_NOTES.md's `@concept` section), so this needs no reference-awareness from
+// is_struct_pattern -- only tuple_of() had to learn to relabel a reference's own type instead of a
+// plain value's (see tuple_of_pattern.cpp). Delegates to tuple_get_pattern exactly like the
+// plain-value overload does, just with a reference all the way through: tuple_of(self) reinterprets
+// self as ref(of: TupleType) at zero cost, and tuple_get_pattern is already fully reference-aware
+// (see the `ref(T)` section), so it narrows to the field as a reference or dereferences it, whichever
+// this call's own caller wants.
+inline viable fn::get(self: ~ reference ref(of @is_struct), property: constexpr __identifier) => get(self: tuple_of(self), property: property);
+
+// Mirrors the get overload above: reinterpret self's own struct reference as a tuple reference, then
+// get() that field back out AS a reference (wrapping in ref(...) so tuple_get_pattern's own
+// want_ref_result sees a reference is wanted), and hand that off to set(self: ~ref(of $T), value)
+// below -- the same write-through (`__ref_set`) already used for every other ref(T) mutation. This
+// makes struct_set_pattern's confirmed multi-runtime-field write-loss bug (STRUCT_FIELDS_PLAN.md's
+// Part A.4) unreachable from ordinary `s.field = value` syntax: base_expression_visitor::do_assign
+// tries `ref(lhs)` first and only falls back to struct_set_pattern when that fails, and `ref(lhs)`
+// now succeeds for a struct field via this exact overload -- `~ reference` is what lets it succeed
+// for a plain (not already-referenced) struct variable, exactly the common `s.field = value` case.
+inline viable fn::set(self: ~ reference ref(of @is_struct), property: constexpr __identifier, $value) => set(self: ref(get(self: tuple_of(self), property: property)), value: $value);
+
 // REFERENCES
 // A ref(T) is always mutable and always backed by a genuine runtime slot -- see
 // ref_implicit_cast_pattern (entities/ref/) for the runtime T -> ref(T) conversion (which is the

@@ -118,6 +118,24 @@ std::expected<functional_match_descriptor_ptr, error_storage> basic_fn_pattern::
 
     environment& env = caller_ctx.env();
 
+    // The caller's own `wants a reference back` intent (`exp.type`/`exp.modifier`) is otherwise a
+    // "hidden" input: it drives what the compiled body actually does (e.g. whether a delegated
+    // tuple_get_pattern call keeps a reference or dereferences it) without being part of the
+    // function's own parameters. Tag `call_sig.result`'s otherwise-unused name slot with a reserved
+    // marker so two calls that are IDENTICAL in every parameter but differ in this one respect get
+    // DIFFERENT internal_function_entity instances instead of silently sharing one whose behavior
+    // was fixed by whichever caller happened to trigger the first build -- see
+    // IMPLEMENTATION_NOTES.md's `ref(T)` section for the bug this fixes and why. Threaded through to
+    // the real body compilation via fn_compiler_context::result_wants_reference (see
+    // internal_function_entity::build() and fn_compiler_context::append_return()). Mirrors
+    // tuple_get_pattern's own want_ref_result formula exactly, for the same two reasons: a
+    // caller-prescribed concrete `ref(of:...)` type, or (when no type is prescribed) the
+    // `runtime_reference` modifier alone.
+    bool result_wants_ref = exp.type
+        ? (can_be_runtime(exp.modifier) && (bool)try_decompose_ref_of(env, exp.type))
+        : wants_reference(exp.modifier);
+    identifier result_name = result_wants_ref ? env.get(builtin_id::result_wants_reference) : identifier{};
+
     shared_ptr<fn_compiler_context> callee_ctx = make_shared<fn_compiler_context>(env, caller_ctx.ns() / call.functional_name());
     // prepare binding
 #if 1
@@ -153,9 +171,9 @@ std::expected<functional_match_descriptor_ptr, error_storage> basic_fn_pattern::
         //pmd->weight -= static_cast<int>(pmd->bindings.size());
         // to do: not only void_type can produce only constexpr result
         if (exp.type == env.get(builtin_eid::void_type)) {
-            call_sig.result.emplace(env.get(builtin_eid::void_), true);
+            call_sig.result.emplace(result_name, env.get(builtin_eid::void_), true);
         } else {
-            call_sig.result.emplace(exp.type, false);
+            call_sig.result.emplace(result_name, exp.type, false);
         }
     }
 
@@ -166,7 +184,14 @@ std::expected<functional_match_descriptor_ptr, error_storage> basic_fn_pattern::
     }
 
     if (syntax_expression const* rexpr = get_if<syntax_expression>(&result_)) {
-        auto res = base_expression_visitor::visit(*callee_ctx, call.expressions, expected_result_t{ .modifier = value_modifier_t::constexpr_value }, *rexpr);
+        // Match the probe's own modifier to what the real build will use (see append_return()):
+        // otherwise this probe would infer the DEREFERENCED type (want_ref_result computed from a
+        // plain constexpr-modifier exp always comes out false), which would then get baked into
+        // call_sig.result/result_type and silently override the modifier-driven decision during the
+        // real body compile (want_ref_result prefers an already-known exp.type over the modifier).
+        auto res = base_expression_visitor::visit(*callee_ctx, call.expressions,
+            expected_result_t{ .modifier = result_wants_ref ? value_modifier_t::runtime_reference : value_modifier_t::constexpr_value },
+            *rexpr);
         if (!res) {
             return std::unexpected(append_cause(
                 make_error<basic_general_error>(call.location, "Cannot evaluate result expression"sv, nullptr, rexpr->location),
@@ -174,8 +199,31 @@ std::expected<functional_match_descriptor_ptr, error_storage> basic_fn_pattern::
             ));
         }
         syntax_expression_result& res_er = res->first;
-        entity const& res_ent = get_entity(env, res_er.value());
-        call_sig.result.emplace(res_er.value(), res_ent.get_type() != env.get(builtin_eid::typename_));
+        // `runtime_reference` (unlike the old, always-constexpr probe) can legitimately come back
+        // with a genuine runtime result -- a reference is never constexpr-foldable (terms.hpp's
+        // value_modifier_t::runtime_reference bakes in runtime_value, excluding any constexpr bit) --
+        // so res_er.value() (which asserts is_const_result) isn't safe to call unconditionally here
+        // any more.
+        if (res_er.is_const_result) {
+            entity const& res_ent = get_entity(env, res_er.value());
+            call_sig.result.emplace(result_name, res_er.value(), res_ent.get_type() != env.get(builtin_eid::typename_));
+        } else {
+            call_sig.result.emplace(result_name, res_er.type(), false);
+        }
+    }
+
+    // `=> expr` declarations with no explicit `->`/`~>` leave result_ as the `nullptr_t` ("auto")
+    // alternative -- neither branch above runs, and call_sig.result is deliberately left empty since
+    // the real result type isn't known until the body is actually built (see
+    // signatured_entity.hpp's entity_signature::result comment). That means the result_wants_ref
+    // marker above never reaches the signature/cache key for exactly this (very common) declaration
+    // style -- struct field get/set in bootstrap.ann included -- so a marker-only field (no resolved
+    // type, just the name) is attached here instead, purely to keep the two builds (reference wanted
+    // vs not) from colliding in eregistry_find_or_create. internal_function_entity::build() reads
+    // result.name() regardless of whether result.entity_id() is set, so this is enough to thread the
+    // flag through despite carrying no type.
+    if (!call_sig.result && result_wants_ref) {
+        call_sig.result.emplace(result_name, entity_identifier{}, false);
     }
 
     return pmd;

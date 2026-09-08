@@ -59,7 +59,8 @@ class arena;
     ((mask, "mask"sv))                     \
     ((visitor, "visitor"sv))               \
     ((numargs, "$$"sv))                    \
-    ((init, "init"sv))
+    ((init, "init"sv))                     \
+    ((result_wants_reference, "__result_wants_reference"sv))
 
 #define ANNIUM_BUILTIN_QNAMES_SEQ          \
     ((fn, "__fn"sv))                       \

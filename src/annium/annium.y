@@ -312,6 +312,10 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 // relying on Bison's default conflict resolution for the two to coexist.
 %token <resource_location> CONSTEVAL_GUARD "guarded consteval modifier"
 %token <resource_location> RUNTIME "runctime modifier"
+// `~ reference <pattern>` -- requests the argument via `value_modifier_t::runtime_reference`
+// (terms.hpp) instead of the unconstrained resolution every other structural pattern parameter
+// gets. See `parameter_constraint_modifier_t::reference_type` and `parameter_matcher.cpp::match`.
+%token <resource_location> REFERENCE "reference modifier"
 
 // EXPRESSIONS
 %token <annotated_nil> NIL_WORD "nil"
@@ -992,6 +996,7 @@ pattern-mod:
       TILDA pattern-sfx[ps]                   { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::constexpr_or_runtime_type }; }
     | TILDA CONSTEXPR pattern-sfx[ps]         { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::constexpr_type }; IGNORE_TERM($CONSTEXPR); }
     | TILDA RUNTIME pattern-sfx[ps]           { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::runtime_type }; IGNORE_TERM($RUNTIME); }
+    | TILDA REFERENCE pattern-sfx[ps]         { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::reference_type }; IGNORE_TERM($REFERENCE); }
     | CONSTEVAL syntax-expression[expr]       { $$ = std::pair{ syntax_pattern{ .descriptor = ctx.make<syntax_expression>(std::move($expr)) }, parameter_constraint_modifier_t::constexpr_not_a_typename_value }; IGNORE_TERM($CONSTEVAL); }
     | TYPENAME pattern-sfx[ps]                { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::typename_value }; IGNORE_TERM($TYPENAME); }
     | TYPENAME                                { $$ = std::pair{ syntax_pattern{ .descriptor = placeholder{ std::move($TYPENAME) } }, parameter_constraint_modifier_t::typename_value }; }

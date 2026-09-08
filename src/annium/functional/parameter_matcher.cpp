@@ -172,6 +172,17 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
                 return result_error();
             }
             cmatcher.argexp = std::move(*argexp_res);
+        } else if (has(param_it->modifier(), parameter_constraint_modifier_t::reference_type)) {
+            // `self: ~ reference <pattern>` -- unlike every other structural (`~`) pattern parameter,
+            // which resolves its argument once, unconstrained, and only then checks whether the
+            // already-resolved type happens to match the pattern, this one explicitly asks for the
+            // argument via `runtime_reference`: a hard requirement (see terms.hpp), not a preference
+            // -- if the argument can't be turned into a reference, this parameter simply fails to
+            // match, same as any other failed constraint. This is what lets a pattern like
+            // `~ reference ref(of @is_struct)` take a reference to a plain struct variable directly,
+            // the way native C++ patterns (tuple_get_pattern, fixed_array_get_pattern, ref_pattern)
+            // already could but ordinary `.ann`-declared structural parameters never could before.
+            cmatcher.argexp = expected_result_t{ .modifier = value_modifier_t::runtime_reference };
         }
 
         bool is_variadic_param = has(param_it->modifier(), parameter_constraint_modifier_t::variadic);

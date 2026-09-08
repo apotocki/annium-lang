@@ -141,6 +141,17 @@ error_storage internal_function_entity::build(fn_compiler_context& fnctx)
 {
     BOOST_ASSERT(!is_built());
 
+    // See basic_fn_pattern.cpp's try_match: `result`'s own name is a reserved marker (not a real
+    // field name -- return values don't have one) tagged there when the ORIGINAL caller's own
+    // exp wanted a reference back. Read it here, before it's overwritten below by the body's own
+    // inferred result, so append_return() can request the real return expression as a reference
+    // too -- this is what makes THIS specific build (as opposed to another, differently-tagged
+    // build of the exact same function for a caller that didn't want a reference) actually
+    // produce one. Checked unconditionally (not gated behind result.entity_id()): a `=> expr`
+    // declaration with no explicit `->`/`~>` return type gets a marker-only field (name set, no
+    // resolved entity_id -- see try_match's fallback for the nullptr_t/"auto" result_ case), so
+    // entity_id() alone can't be used to decide whether the marker is present.
+    fnctx.result_wants_reference = result.name() == fnctx.env().get(builtin_id::result_wants_reference);
     if (result.entity_id()) {
         fnctx.result_type = get_entity_type(fnctx.env(), result);
     }

@@ -150,6 +150,7 @@ TYPENAME				 "typename"
 CONSTEXPR				 "constexpr"
 CONSTEVAL				 "consteval"
 RUNTIME					 "runtime"
+REFERENCE				 "reference"
 
 APOSTROPHE				 "`"
 AT_SYMBOL				 "@"
@@ -340,6 +341,7 @@ HASHTAG					"#"
 	{CONSTEVAL}/{OPEN_PARENTHESIS} { variant_emplace(location); return (annium_lang::parser::token::CONSTEVAL_GUARD); }
 	{CONSTEVAL} { variant_emplace(location); return (annium_lang::parser::token::CONSTEVAL); }
 	{RUNTIME} { variant_emplace(location); return (annium_lang::parser::token::RUNTIME); }
+	{REFERENCE} { variant_emplace(location); return (annium_lang::parser::token::REFERENCE); }
 
 	{NIL_WORD} {
 		variant_emplace(annotated_nil{location});
