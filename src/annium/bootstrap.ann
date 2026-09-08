@@ -173,9 +173,13 @@ inline viable fn::get(__result_wants_reference: bool = __call_wants_reference, s
 
 // REFERENCES
 // A ref(T) is always mutable and always backed by a genuine runtime slot -- see
-// ref_implicit_cast_pattern (entities/ref/) for the runtime T -> ref(T) conversion (which is the
-// only way to produce a ref(T) value; a constexpr source is rejected there, not here). get/set are
-// deliberately explicit (no automatic ref(T) -> T decay yet -- see IMPLEMENTATION_NOTES.md).
+// base_expression_visitor::try_take_reference (ast/base_expression_visitor.cpp) for the runtime
+// T -> ref(T) conversion (which is the only way to produce a ref(T) value; a constexpr source is
+// rejected there, not here). get/set themselves stay deliberately explicit -- there's no type-level
+// ref(T) -> T decay -- but an ordinary operator/function call on a ref(T) argument still works with
+// no per-call changes needed: base_expression_visitor::operator()(FnIdT&&, args) retries a failed
+// call with any ref(of: T)-typed argument transparently unwrapped via get(...) first. See
+// IMPLEMENTATION_NOTES.md's `ref(T)` section.
 typefn ref(of: typename);
 inline fn get(self: ~ref(of $T)) -> $T => reinterpret(__ref_get(self));
 inline fn set(self: ~ref(of $T), value: runtime $T) -> $T => reinterpret(__ref_set(self, value));

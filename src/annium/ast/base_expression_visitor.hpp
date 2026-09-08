@@ -104,6 +104,16 @@ protected:
     // `expected_result` doesn't call for this variable to become a reference.
     optional<result_type> try_take_reference(entity_identifier vartype, variable_identifier varid, bool is_weak) const;
 
+    // Fallback for operator()(FnIdT&&, args) (base_expression_visitor.ipp): when a call fails to
+    // match anything, this re-resolves each argument on its own and, for any whose OWN type is
+    // ref(of: T), wraps it in get(self: ...) -- so the caller can retry the SAME call with those
+    // arguments transparently dereferenced. Returns nullopt if no argument was ref-typed (nothing
+    // to retry) or if an argument fails to resolve even on its own (can't safely build a retry) --
+    // NOT a std::expected, since neither case is itself an error to report; the ORIGINAL call's
+    // error is what the caller should surface if the retry doesn't happen or doesn't help either.
+    // See IMPLEMENTATION_NOTES.md's `ref(T)` section.
+    optional<small_vector<opt_named_expression_t, 8>> try_deref_ref_arguments(span<const opt_named_expression_t> args) const;
+
     result_type do_logic_and(binary_expression const&) const;
     result_type do_logic_or(binary_expression const&) const;
     result_type do_assign(binary_expression const&) const;

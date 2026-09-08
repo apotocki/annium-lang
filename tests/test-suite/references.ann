@@ -431,4 +431,39 @@ p4.0 = 110;
 p4.1 = 120;
 assert_equal(p4.0, 110);
 assert_equal(p4.1, 120);
+
+// --- ref(T) operands in ordinary operators/functions, via base_expression_visitor's generic
+// deref-and-retry fallback -----------------------------------------------------------------------
+// operator()(FnIdT&&, args) (base_expression_visitor.ipp) is the single choke point every operator
+// and ordinary named call goes through. When the direct call finds no match at all, it retries once
+// with every ref(of: T)-typed argument transparently unwrapped via get(self: ...)
+// (try_deref_ref_arguments) -- so `+` (numeric_literal_plus_pattern, which only ever checks
+// is_numeric_eid directly and has no idea ref(T) exists) works on a ref(of: i32) operand with no
+// changes to the operator itself, and the same holds for every other operator/function, present or
+// future. See IMPLEMENTATION_NOTES.md's `ref(T)` section.
+
+// ref on the left only -- the motivating case (`y + 1`).
+let opa: i32 = runtime_cast(10);
+let ra_ref = ref(opa);
+assert_equal(ra_ref + 1, 11);
+assert_equal(opa, 10); // reading through + doesn't mutate the target
+
+// ref on the right only -- proves the fallback isn't LHS-specific (it dereferences whichever
+// argument(s) are actually ref-typed, not just the first).
+assert_equal(1 + ra_ref, 11);
+
+// BOTH operands are references -- the case a `self`-only/`invoke`-based fallback design (considered
+// and rejected in favor of this one) could not have handled, since it only ever derefs one
+// designated argument.
+let opb: i32 = runtime_cast(20);
+let rb_ref = ref(opb);
+assert_equal(ra_ref + rb_ref, 30);
+
+// Composes with a genuinely runtime (not just constexpr-literal) other operand too.
+let plain: i32 = runtime_cast(5);
+assert_equal(ra_ref + plain, 15);
+
+// The fallback only fires on total failure of the direct call -- get/set/ref/rebind's own
+// self-as-a-reference calls above are completely unaffected (their direct call already succeeds),
+// confirmed by every assertion above this section still passing.
 assert_equal(p4x, 11); // p4 holds its own copy from construction
