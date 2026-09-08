@@ -24,6 +24,7 @@
 #include "annium/functional/general/qname_implicit_cast_pattern.hpp"
 #include "annium/functional/general/deref_pattern.hpp"
 #include "annium/functional/general/ref_pattern.hpp"
+#include "annium/functional/general/rebind_pattern.hpp"
 #include "annium/functional/general/equal_pattern.hpp"
 #include "annium/functional/general/typeof_pattern.hpp"
 #include "annium/functional/general/to_string_pattern.hpp"
@@ -1514,6 +1515,13 @@ environment::environment()
     functional& ref_fnl = fregistry_resolve(get(builtin_qnid::ref));
     ref_fnl.push(make_shared<ref_pattern>());
 
+    // rebind(self: ref(of: T), value: runtime ref(of: T)) -> ref(of: T) -- native, not `.ann`-
+    // declared: needs a genuine reference to self's OWN slot (ref(of: ref(of: T))), which the
+    // ordinary `.ann` generic-parameter machinery can't express (a named type constraint that
+    // auto-references can't also carry a `$T` structural capture) -- see rebind_pattern.cpp.
+    functional& rebind_fnl = fregistry_resolve(get(builtin_qnid::rebind));
+    rebind_fnl.push(make_shared<rebind_pattern>());
+
     // operator...(type: typename)
     functional& ellipsis_fnl = fregistry_resolve(get(builtin_qnid::ellipsis));
     ellipsis_fnl.push(make_shared<ellipsis_pattern>());
@@ -1694,6 +1702,10 @@ environment::environment()
     builtin_eids_[(size_t)builtin_eid::ref_of] = set_builtin_extern("__ref_of(runtime integer)-> any"sv, &annium_ref_of);
     builtin_eids_[(size_t)builtin_eid::ref_get] = set_builtin_extern("__ref_get(runtime)-> any"sv, &annium_ref_get);
     builtin_eids_[(size_t)builtin_eid::ref_set] = set_builtin_extern("__ref_set(runtime, runtime)->any"sv, &annium_ref_set);
+    // Like array_at/ref_at just below: never resolved through overload matching, always emitted
+    // directly by rebind_pattern once it's confirmed self is already ref(of: T) and re-resolved it
+    // as an OUTER reference to its own slot -- the signature string is inert.
+    builtin_eids_[(size_t)builtin_eid::ref_rebind] = set_builtin_extern("__ref_rebind()"sv, &annium_ref_rebind);
     // Like array_at just above: never resolved through overload matching, always emitted directly
     // by tuple_get_pattern once it's confirmed self is a plain variable and expected_result asks
     // for a matching ref(of: E) -- the signature string is inert.

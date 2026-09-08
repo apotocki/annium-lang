@@ -75,6 +75,7 @@ class arena;
     ((tuple_project, "tuple_project"sv))   \
     ((array, "array"sv))                   \
     ((ref, "ref"sv))                       \
+    ((rebind, "rebind"sv))                 \
     ((function, "function"sv))             \
     ((functor, "functor"sv))               \
     ((data, "data"sv))                     \
@@ -222,6 +223,7 @@ enum class builtin_eid : entity_identifier::value_type
     ref_of, // builtin ::__ref_of(runtime integer) -- given a variable's absolute stack index, pushes a NEW blob_reference pointing at it (the variable's own slot is left untouched), see ref_implicit_cast_pattern
     ref_get, // builtin ::__ref_get(runtime ref(T))-> T -- dereferences a ref(T), backs bootstrap.ann's `get`
     ref_set, // builtin ::__ref_set(runtime ref(T), runtime T) -- writes through a ref(T), backs bootstrap.ann's `set`
+    ref_rebind, // builtin ::__ref_rebind(runtime ref(of: ref(of: T)), runtime ref(of: T)) -- given an OUTER reference to a ref(T)-typed variable's own slot, overwrites that slot's bytes wholesale with a new ref(T) value (bypassing smart_blob::operator='s write-through special case, unlike ref_set). Like ref_at, never resolved through overload matching -- always emitted directly by rebind_pattern; the signature string is inert
     ref_at, // builtin ::__ref_at(runtime ref(TupleType), runtime integer)-> ref(elementT) -- turns a whole-tuple reference (see ref_of) into a reference to one of its runtime fields, see tuple_get_pattern
     eof_builtin_eid_value
 };

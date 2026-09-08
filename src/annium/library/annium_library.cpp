@@ -587,6 +587,40 @@ void annium_ref_set(vm::context& ctx)
     ctx.stack_back() = std::move(value);
 }
 
+// Rebind: given self as an OUTER reference to a ref(of: T)-typed variable's own SLOT (see
+// rebind_pattern.cpp -- self is resolved through try_take_reference's caller-prescribed-exact-type
+// path with an explicit ref(of: ref(of: T)) expected type, NOT the plain `~ref(of $T)` self
+// get()/set() use, which would only hand back a COPY of the variable's current value, not a handle
+// onto the variable's own storage), overwrite that slot's own bytes wholesale with a genuinely NEW
+// ref(of: T) value -- the rare counterpart to annium_ref_set's write-through.
+//
+// `operator=`/annium_ref_set can't be reused here: their whole point is writing a plain VALUE
+// through to whatever a reference currently points at (smart_blob::operator='s is_ref(type)
+// branch always unref()s its rhs first) -- exactly the opposite of what rebind needs (install a
+// NEW reference itself, not follow the old one and overwrite what IT points at).
+void annium_ref_rebind(vm::context& ctx)
+{
+    smart_blob new_ref = std::move(ctx.stack_back());
+    ctx.stack_pop();
+
+    // self (now stack_back()) is the OUTER reference; dereference EXACTLY one level (not
+    // unref_ptr's full chase, which would walk straight through the variable's CURRENT reference
+    // value into whatever IT points at) to reach the variable's own, real, persistent storage.
+    blob_result const& outer = *ctx.stack_back();
+    blob_result* target_slot = mutable_data_of<blob_result>(outer);
+
+    // Overwrite the slot's own bytes -- mirrors smart_blob::operator='s own
+    // mutable_data_of<blob_result>(*this) + explicit pin/unpin idiom (its is_ref(type) branch),
+    // except installing the new reference itself rather than writing a dereferenced value through it.
+    blob_result_unpin(target_slot);
+    *target_slot = *new_ref;
+    blob_result_pin(target_slot);
+
+    // Leave the freshly-installed ref(of: T) value itself as this call's own result, matching
+    // rebind_pattern::apply's declared return shape.
+    ctx.stack_back().replace(std::move(new_ref));
+}
+
 // Turns a ref(of: TupleType) (aliasing the tuple's own persistent storage -- see annium_ref_of)
 // plus a runtime field index into a ref(of: E) to that specific element, for a tuple with more
 // than one runtime field (see tuple_get_pattern.cpp). Deliberately does NOT do

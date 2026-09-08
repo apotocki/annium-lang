@@ -119,6 +119,68 @@ let counter3: i32 = runtime_cast(100);
 increment_via_forwarded_ref(counter3);
 assert_equal(counter3, 101);
 
+// Same idea, but forwarding into an ordinary `ref(of: T)`-declared PARAMETER instead of an
+// explicit `ref(...)` call -- try_take_reference's OTHER path (the caller-prescribed-exact-type
+// one, expected_result.type already `ref(of: i32)`) must also hand back the SAME reference
+// unchanged rather than trying to take a reference to the reference itself. This works today
+// because `of_type != vartype` (i32 != ref(of: i32)) declines path (a) and falls through to
+// apply_cast, which sees the types already match and passes $x through as a plain copy of the
+// reference value -- see base_expression_visitor.cpp's try_take_reference and
+// IMPLEMENTATION_NOTES.md's `ref(T)` section.
+fn increment_ref_of(y: ref(of: i32)) {
+    set(self: y, value: get(self: y) + 1);
+}
+
+fn increment_via_forwarded_param($x: ref(of: i32)) {
+    increment_ref_of(y: $x);
+}
+
+let counter4: i32 = runtime_cast(200);
+increment_via_forwarded_param(counter4);
+assert_equal(counter4, 201);
+
+// --- bare `y = value;` on a `ref(of: T)`-typed variable writes THROUGH, not rebinds -------------
+// base_expression_visitor::do_assign's plain-variable fast path is skipped whenever the variable's
+// own declared type is itself `ref(of: T)`; it falls through to the same ref(lhs)+set(...) path
+// `arr[i] = v`/`t.field = v` already use below, so `y = value;` here writes through to whatever `y`
+// currently points at -- exactly like `set(self: y, value: value);`, just with ordinary `=` syntax.
+// See IMPLEMENTATION_NOTES.md's `ref(T)` section.
+fn increment_via_bare_assign(y: ref(of: i32)) {
+    y = get(self: y) + 1;
+    y = y + 1;
+}
+
+let counter5: i32 = runtime_cast(300);
+increment_via_bare_assign(y: counter5);
+assert_equal(counter5, 301);
+
+// Bare `=` write-through composes with forwarding too, same as the explicit-set version above.
+fn increment_via_bare_assign_forwarded($x: ref(of: i32)) {
+    increment_via_bare_assign(y: $x);
+}
+
+let counter6: i32 = runtime_cast(400);
+increment_via_bare_assign_forwarded(counter6);
+assert_equal(counter6, 401);
+
+// --- rebind(self, value) -- the separate, explicit, rare operation that `=` deliberately does NOT
+// perform for a ref(of: T)-typed variable anymore -- repoints `self` at a DIFFERENT target instead
+// of writing through to its current one. A native pattern (functional/general/rebind_pattern.cpp),
+// positional-only like ref(x) itself (not `.ann`-declared like get/set -- see
+// IMPLEMENTATION_NOTES.md's `ref(T)` section for why).
+let ra: i32 = runtime_cast(1);
+let rb: i32 = runtime_cast(2);
+let rr = ref(ra);
+assert_equal(get(self: rr), 1);
+
+rebind(rr, ref(rb));
+assert_equal(get(self: rr), 2);
+assert_equal(ra, 1); // rr no longer points at ra -- writing through rr must not touch it anymore
+
+set(self: rr, value: 20);
+assert_equal(rb, 20); // rr's write-through now reaches rb, its new target
+assert_equal(ra, 1);  // still untouched
+
 // A 2-level chain -- a tuple nested inside a tuple. `nt.0.0` requires the INNER get() (property 0
 // of nt) to hand its own result to the OUTER get() (property 0 of that) as a reference, which in
 // turn requires `self` (nt) itself to be resolved as a reference -- each level decided purely from

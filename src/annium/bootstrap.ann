@@ -179,6 +179,14 @@ inline viable fn::get(__result_wants_reference: bool = __call_wants_reference, s
 typefn ref(of: typename);
 inline fn get(self: ~ref(of $T)) -> $T => reinterpret(__ref_get(self));
 inline fn set(self: ~ref(of $T), value: runtime $T) -> $T => reinterpret(__ref_set(self, value));
+// Rebinding (pointing self at a DIFFERENT target) is deliberately a separate, explicit call from
+// `set` (which writes THROUGH self to its current target) -- plain `y = value;` for a `y: ref(of:
+// T)` variable now always means write-through (base_expression_visitor::do_assign), matching every
+// other ref(T) mutation syntax (arr[i] = v, t.field = v); rebinding is the rare case and has no `=`
+// spelling at all. `rebind(self:, value:)` itself is NOT declared here like get/set -- it's a
+// native pattern (functional/general/rebind_pattern.cpp), because it needs a genuine reference to
+// self's OWN slot (ref(of: ref(of: $T))), which `~ref(of $T)` (a plain-value self, same as get/set
+// use) can't produce. See IMPLEMENTATION_NOTES.md's `ref(T)` section.
 
 // ARRAYS
 typefn array(of: typename, size?: constexpr integer);

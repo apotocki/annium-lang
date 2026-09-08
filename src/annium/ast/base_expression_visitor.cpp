@@ -167,7 +167,14 @@ optional<base_expression_visitor::result_type> base_expression_visitor::try_take
     if (expected_result.type) {
         entity_identifier of_type = try_decompose_ref_of(env(), expected_result.type);
         if (!of_type) return nullopt;
-        if (of_type != vartype) return nullopt; // no coercion -- see IMPLEMENTATION_NOTES.md's `ref(T)` section
+        // No coercion -- see IMPLEMENTATION_NOTES.md's `ref(T)` section. This is also what makes
+        // forwarding an already-`ref(of: T)`-typed parameter into another `ref(of: T)`-declared
+        // parameter (`foo($x)`, both `T`-typed) work correctly: `vartype` is already `ref(of: T)`,
+        // so `of_type` (`T`, decomposed from the callee's expected `ref(of: T)`) never equals it,
+        // this path declines, and the fall-through `apply_cast` sees the (already-reference) types
+        // match exactly and passes `$x` through as a plain value-copy of the reference -- correct
+        // aliasing, not a coercion. Covered by references.ann's `increment_via_forwarded_param`.
+        if (of_type != vartype) return nullopt;
         ref_type = expected_result.type;
     } else if (wants_reference(expected_result.modifier)) {
         // No specific type prescribed -- the caller just wants *a* reference and will read the type
@@ -179,9 +186,12 @@ optional<base_expression_visitor::result_type> base_expression_visitor::try_take
         // But if the variable's OWN declared type is already a reference (e.g. a `$x: ref(of: T)`
         // parameter), don't wrap it in a second one -- fall through to the ordinary path below, which
         // returns $x's own value (itself already ref(of: T)) unchanged, correctly forwarding the
-        // existing reference instead of taking the address of the variable that holds it (see
-        // FUTURE_WORK.md's `ref(T)` item 5 -- forwarding a reference into another ref(T)-taking
-        // call must stay a plain value-copy of the reference, not a new level of referencing).
+        // existing reference instead of taking the address of the variable that holds it. This is
+        // the guard against `ref(of: ref(of: T))` -- see FUTURE_WORK.md's `ref(T)` item 4 ("nested
+        // references"), still untested/unspecified beyond this guard. The OTHER forwarding case --
+        // `foo($x)` into an ordinary `ref(of: T)`-declared parameter, not an explicit `ref(...)`
+        // call -- goes through path (a) above instead (`of_type != vartype`), and is deliberate and
+        // tested (see that branch's comment and references.ann's `increment_via_forwarded_param`).
         if (try_decompose_ref_of(env(), vartype)) return nullopt;
         ref_type = make_ref_of_type(env(), vartype);
     } else {
@@ -1283,57 +1293,78 @@ base_expression_visitor::result_type base_expression_visitor::do_assign(binary_e
     syntax_expression const& rhs = op.args[1].value();
 
     // Fast path: a plain variable name writes directly into its own slot (set_local_variable /
-    // set_variable). Deliberately NOT routed through ref(...)/set(self: ~ref(of $T), value) below --
-    // that would cost a real blob_reference construction and an extra indirection on every ordinary
-    // `x = value;`, the single hottest write path in the interpreter, just for the sake of using one
-    // uniform mechanism everywhere.
+    // set_variable) UNLESS the variable's own declared type is itself `ref(of: T)` -- see the guard
+    // just below. Deliberately NOT routed through ref(...)/set(self: ~ref(of $T), value) for the
+    // ordinary case -- that would cost a real blob_reference construction and an extra indirection
+    // on every ordinary `x = value;`, the single hottest write path in the interpreter, just for the
+    // sake of using one uniform mechanism everywhere.
     if (auto const* v = get_if<qname_reference_expression>(&lhs.value)) {
         auto e = ctx.lookup_entity(v->name);
-        auto res = std::visit([this, v, &lhs, &rhs](auto& eid_or_var) -> std::expected<syntax_expression_result, error_storage> {
-            entity_identifier assign_type;
-            if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, local_variable>) {
-                assign_type = eid_or_var.type;
-            } else if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, functional_variable>) {
-                assign_type = eid_or_var.type;
-            } else {
-                static_assert(std::is_same_v<std::decay_t<decltype(eid_or_var)>, entity_identifier>);
-                if (!eid_or_var) return std::unexpected(make_error<undeclared_identifier_error>(lhs.location, v->name));
-                return std::unexpected(make_error<assign_error>(context_expression_.location, lhs));
-            }
 
-            auto rres = base_expression_visitor::visit(
-                ctx,
-                expressions,
-                expected_result_t{
-                    .type = assign_type,
-                    .location = context_expression_.location,
-                    .modifier = value_modifier_t::runtime_value },
-                rhs);
-            if (!rres) return std::unexpected(std::move(rres.error()));
-            auto& ser = rres->first;
-            BOOST_ASSERT(!ser.is_const_result);
+        // But if `y`'s OWN declared type is already `ref(of: T)`, bare `y = value;` must NOT take
+        // that fast path: for such a `y`, plain assignment means "write through to the current
+        // target" (matching `arr[i] = v`/`t.field = v`, and matching what a caller who received a
+        // `ref(of: T)` parameter actually wants), not "rebind y to point somewhere else" --
+        // rebinding is a separate, explicit, deliberately rare operation (`rebind(self, value)`,
+        // functional/general/rebind_pattern.cpp). Falling through to the shared ref(lhs)+set(...) path below gets
+        // write-through for free: `ref(y)` on an already-reference-typed `y` hands back `y`'s own
+        // value unchanged (try_take_reference's "already a reference" guard), so `set(self: <that
+        // ref>, value: rhs)` writes through exactly as intended. See IMPLEMENTATION_NOTES.md's
+        // `ref(T)` section.
+        entity_identifier lhs_own_type;
+        if (auto const* lv = get_if<local_variable>(&e)) lhs_own_type = lv->type;
+        else if (auto const* fv = get_if<functional_variable>(&e)) lhs_own_type = fv->type;
 
-            if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, local_variable>) {
-                if (eid_or_var.is_weak) {
-                    THROW_NOT_IMPLEMENTED_ERROR("base_expression_visitor binary_operator_type::ASSIGN weak");
+        if (!lhs_own_type || !try_decompose_ref_of(env(), lhs_own_type)) {
+            auto res = std::visit([this, v, &lhs, &rhs](auto& eid_or_var) -> std::expected<syntax_expression_result, error_storage> {
+                entity_identifier assign_type;
+                if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, local_variable>) {
+                    assign_type = eid_or_var.type;
+                } else if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, functional_variable>) {
+                    assign_type = eid_or_var.type;
+                } else {
+                    static_assert(std::is_same_v<std::decay_t<decltype(eid_or_var)>, entity_identifier>);
+                    if (!eid_or_var) return std::unexpected(make_error<undeclared_identifier_error>(lhs.location, v->name));
+                    return std::unexpected(make_error<assign_error>(context_expression_.location, lhs));
                 }
-                env().push_back_expression(expressions, ser.expressions, semantic::set_local_variable::create(eid_or_var));
-            } else if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, functional_variable>) {
-                env().push_back_expression(expressions, ser.expressions, semantic::set_variable{ eid_or_var });
-            } else {
-                THROW_INTERNAL_ERROR("unhandled base_expression_visitor::do_assign qname_reference_expression case");
-            }
-            return std::move(ser);
-        }, e);
 
-        return apply_cast(std::move(res));
+                auto rres = base_expression_visitor::visit(
+                    ctx,
+                    expressions,
+                    expected_result_t{
+                        .type = assign_type,
+                        .location = context_expression_.location,
+                        .modifier = value_modifier_t::runtime_value },
+                    rhs);
+                if (!rres) return std::unexpected(std::move(rres.error()));
+                auto& ser = rres->first;
+                BOOST_ASSERT(!ser.is_const_result);
+
+                if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, local_variable>) {
+                    if (eid_or_var.is_weak) {
+                        THROW_NOT_IMPLEMENTED_ERROR("base_expression_visitor binary_operator_type::ASSIGN weak");
+                    }
+                    env().push_back_expression(expressions, ser.expressions, semantic::set_local_variable::create(eid_or_var));
+                } else if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, functional_variable>) {
+                    env().push_back_expression(expressions, ser.expressions, semantic::set_variable{ eid_or_var });
+                } else {
+                    THROW_INTERNAL_ERROR("unhandled base_expression_visitor::do_assign qname_reference_expression case");
+                }
+                return std::move(ser);
+            }, e);
+
+            return apply_cast(std::move(res));
+        }
+        // else: lhs is a plain `ref(of: T)`-typed variable -- fall through to the shared
+        // ref(lhs)+set(...) path below instead of the fast path above.
     }
 
-    // Everything else (member access `.field`/`.0`, index access `[i]`, ...) prefers going through
-    // `ref(lhs)` + `set(self: ~ref(of $T), value: $T)` (bootstrap.ann:135) -- the same, already-
-    // proven machinery tuple/array element reads and mutation already use (see
-    // IMPLEMENTATION_NOTES.md's `ref(T)` section) -- rather than any per-lhs-shape special casing.
-    // This covers `t.0 = v` and `arr[i] = v` uniformly with no bespoke handler for either.
+    // Everything else (member access `.field`/`.0`, index access `[i]`, and a plain `ref(of: T)`-
+    // typed variable, see the guard above) prefers going through `ref(lhs)` + `set(self: ~ref(of
+    // $T), value: $T)` (bootstrap.ann) -- the same, already-proven machinery tuple/array element
+    // reads and mutation already use (see IMPLEMENTATION_NOTES.md's `ref(T)` section) -- rather than
+    // any per-lhs-shape special casing. This covers `t.0 = v`, `arr[i] = v`, and `y = v` (for a `y:
+    // ref(of: T)`) uniformly with no bespoke handler for any of them.
     call_builder ref_call{ context_expression_.location };
     ref_call.emplace_back(lhs);
     if (auto ref_match = ctx.find(builtin_qnid::ref, ref_call, expressions); ref_match) {
