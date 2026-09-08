@@ -346,12 +346,13 @@ struct parameter
 
     parameter_constraint_modifier_t modifier = parameter_constraint_modifier_t::constexpr_or_runtime_type;
 
-    // Only meaningful together with parameter_constraint_modifier_t::reference_type: `~ reference(IDENT)`
-    // names an earlier parameter in the same pattern (already matched and bound by the time this one
-    // is reached -- parameter_matcher.cpp matches parameters strictly in declaration order) whose
-    // bound compile-time bool value gates whether a reference is actually requested for this parameter.
-    // Empty for a bare `~ reference` (unconditional, as before).
-    annotated_identifier reference_condition;
+    // Only meaningful together with parameter_constraint_modifier_t::reference_type: `~ reference(EXPR)`
+    // evaluates EXPR (typically referencing an earlier parameter in the same pattern -- already
+    // matched and bound by the time this one is reached, since parameter_matcher.cpp matches
+    // parameters strictly in declaration order -- but any expression that folds to a compile-time
+    // bool works) to decide whether a reference is actually requested for this parameter. Null for a
+    // bare `~ reference` (unconditional, as before).
+    syntax_expression const* reference_condition = nullptr;
 };
 
 using parameter_list_t = small_vector<parameter, 4>;

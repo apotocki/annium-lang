@@ -403,7 +403,7 @@ public:
     //bool is_const_value_result = false;
     entity_identifier result_type;
     // Read from this function's own bound `builtin_id::result_wants_reference` parameter, if it
-    // declared one (see internal_function_entity::build(), parameter_matcher.cpp's `reference(IDENT)`
+    // declared one (see internal_function_entity::build(), parameter_matcher.cpp's `reference(EXPR)`
     // modifier, and bootstrap.ann's struct-get overload), before this function's body is compiled, so
     // append_return() can request `value_modifier_t::runtime_reference` for the real return
     // expression instead of the default modifier -- this is what makes the compiled body's own

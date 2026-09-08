@@ -183,18 +183,35 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
             // the way native C++ patterns (tuple_get_pattern, fixed_array_get_pattern, ref_pattern)
             // already could but ordinary `.ann`-declared structural parameters never could before.
             //
-            // `~ reference(IDENT)` makes this conditional: IDENT names an earlier parameter in the
-            // same pattern -- already matched and bound by now, since parameters are matched strictly
-            // in declaration order -- whose bound compile-time bool value gates whether a reference is
-            // requested at all. A bare `~ reference` (no parens, IDENT empty) keeps the unconditional
-            // behavior above. This is what lets a struct-get overload only pay for a reference-take
-            // when its own caller actually wants one back, instead of always taking one and falling
-            // back to a plain-value overload never getting a chance to match.
+            // `~ reference(EXPR)` makes this conditional: EXPR is evaluated as an ordinary compile-time
+            // expression -- typically just naming an earlier parameter in the same pattern (already
+            // matched and bound by now, since parameters are matched strictly in declaration order,
+            // so plain identifier lookup resolves it the same way `pattern_matcher.cpp`'s
+            // `context_identifier`/`$T`-reuse reads an earlier binding back), but any expression that
+            // folds to a compile-time bool works (e.g. `!flag`, `flag_a && flag_b`) -- and its value
+            // gates whether a reference is requested at all. A bare `~ reference` (no parens, EXPR
+            // null) keeps the unconditional behavior above. This is what lets a struct-get overload
+            // only pay for a reference-take when its own caller actually wants one back, instead of
+            // always taking one and falling back to a plain-value overload never getting a chance to
+            // match.
             bool want_ref = true;
-            if (annotated_identifier cond = param_it->reference_condition(); cond) {
-                functional_binding::value_type const* bound = md.bindings.lookup(cond.value);
-                entity_identifier const* pbound_eid = bound ? get_if<entity_identifier>(bound) : nullptr;
-                want_ref = pbound_eid && *pbound_eid == env.get(builtin_eid::true_);
+            if (syntax_expression const* cond = param_it->reference_condition()) {
+                auto cond_res = base_expression_visitor::visit(callee_ctx, call.expressions,
+                    expected_result_t{ .type = env.get(builtin_eid::boolean), .location = cond->location }, *cond);
+                if (!cond_res) {
+                    match_errors.alternatives.emplace_back(append_cause(
+                        make_error<basic_general_error>(cond->location, "cannot evaluate reference(...) condition"sv),
+                        std::move(cond_res.error())
+                    ));
+                    return result_error();
+                }
+                syntax_expression_result& cond_er = cond_res->first;
+                if (!cond_er.is_const_result) {
+                    match_errors.alternatives.emplace_back(make_error<basic_general_error>(
+                        cond->location, "reference(...) condition must be a compile-time boolean"sv));
+                    return result_error();
+                }
+                want_ref = cond_er.value() == env.get(builtin_eid::true_);
             }
             if (want_ref) {
                 cmatcher.argexp = expected_result_t{ .modifier = value_modifier_t::runtime_reference };

@@ -340,7 +340,7 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 //%type <parameter_constraint_modifier_t> constraint-expression-mod
 %type <std::pair<resource_location, parameter_constraint_modifier_t>> constraint-expression-mod constraint-expression-specified-mod
 %type <std::pair<std::variant<syntax_expression const*, syntax_pattern const*>, parameter_constraint_modifier_t>> constraint-expression constraint-expression-specified
-%type <std::tuple<syntax_pattern, parameter_constraint_modifier_t, annotated_identifier>> pattern-mod
+%type <std::tuple<syntax_pattern, parameter_constraint_modifier_t, syntax_expression const*>> pattern-mod
 %type <std::pair<syntax_pattern, parameter_constraint_modifier_t>> pattern-sfx
 %type <syntax_pattern> pattern
 %type <syntax_pattern::field> pattern-field pattern-field-sfx
@@ -994,19 +994,20 @@ pattern-field:
     ;
 
 pattern-mod:
-      TILDA pattern-sfx[ps]                   { $$ = std::tuple{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::constexpr_or_runtime_type, annotated_identifier{} }; }
-    | TILDA CONSTEXPR pattern-sfx[ps]         { $$ = std::tuple{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::constexpr_type, annotated_identifier{} }; IGNORE_TERM($CONSTEXPR); }
-    | TILDA RUNTIME pattern-sfx[ps]           { $$ = std::tuple{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::runtime_type, annotated_identifier{} }; IGNORE_TERM($RUNTIME); }
-    | TILDA REFERENCE pattern-sfx[ps]         { $$ = std::tuple{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::reference_type, annotated_identifier{} }; IGNORE_TERM($REFERENCE); }
-    // `~ reference(IDENT)` -- conditional reference-taking: IDENT names an earlier parameter in the
-    // same pattern (already matched and bound -- parameters are matched strictly in declaration
-    // order, see parameter_matcher.cpp) whose bound compile-time bool value gates whether a
-    // reference is actually requested here. See parameter_matcher.cpp's reference_type branch.
-    | TILDA REFERENCE OPEN_PARENTHESIS identifier[cond] CLOSE_PARENTHESIS pattern-sfx[ps]
-        { $$ = std::tuple{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::reference_type, std::move($cond) }; IGNORE_TERM($REFERENCE); IGNORE_TERM($OPEN_PARENTHESIS); }
-    | CONSTEVAL syntax-expression[expr]       { $$ = std::tuple{ syntax_pattern{ .descriptor = ctx.make<syntax_expression>(std::move($expr)) }, parameter_constraint_modifier_t::constexpr_not_a_typename_value, annotated_identifier{} }; IGNORE_TERM($CONSTEVAL); }
-    | TYPENAME pattern-sfx[ps]                { $$ = std::tuple{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::typename_value, annotated_identifier{} }; IGNORE_TERM($TYPENAME); }
-    | TYPENAME                                { $$ = std::tuple{ syntax_pattern{ .descriptor = placeholder{ std::move($TYPENAME) } }, parameter_constraint_modifier_t::typename_value, annotated_identifier{} }; }
+      TILDA pattern-sfx[ps]                   { $$ = std::tuple{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::constexpr_or_runtime_type, static_cast<syntax_expression const*>(nullptr) }; }
+    | TILDA CONSTEXPR pattern-sfx[ps]         { $$ = std::tuple{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::constexpr_type, static_cast<syntax_expression const*>(nullptr) }; IGNORE_TERM($CONSTEXPR); }
+    | TILDA RUNTIME pattern-sfx[ps]           { $$ = std::tuple{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::runtime_type, static_cast<syntax_expression const*>(nullptr) }; IGNORE_TERM($RUNTIME); }
+    | TILDA REFERENCE pattern-sfx[ps]         { $$ = std::tuple{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::reference_type, static_cast<syntax_expression const*>(nullptr) }; IGNORE_TERM($REFERENCE); }
+    // `~ reference(EXPR)` -- conditional reference-taking: EXPR is evaluated (typically an earlier
+    // parameter in the same pattern -- already matched and bound by now, since parameters are
+    // matched strictly in declaration order, see parameter_matcher.cpp -- but any expression that
+    // folds to a compile-time bool works) to decide whether a reference is actually requested here.
+    // See parameter_matcher.cpp's reference_type branch.
+    | TILDA REFERENCE OPEN_PARENTHESIS syntax-expression[cond] CLOSE_PARENTHESIS pattern-sfx[ps]
+        { $$ = std::tuple{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::reference_type, ctx.make<syntax_expression>(std::move($cond)) }; IGNORE_TERM($REFERENCE); IGNORE_TERM($OPEN_PARENTHESIS); }
+    | CONSTEVAL syntax-expression[expr]       { $$ = std::tuple{ syntax_pattern{ .descriptor = ctx.make<syntax_expression>(std::move($expr)) }, parameter_constraint_modifier_t::constexpr_not_a_typename_value, static_cast<syntax_expression const*>(nullptr) }; IGNORE_TERM($CONSTEVAL); }
+    | TYPENAME pattern-sfx[ps]                { $$ = std::tuple{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::typename_value, static_cast<syntax_expression const*>(nullptr) }; IGNORE_TERM($TYPENAME); }
+    | TYPENAME                                { $$ = std::tuple{ syntax_pattern{ .descriptor = placeholder{ std::move($TYPENAME) } }, parameter_constraint_modifier_t::typename_value, static_cast<syntax_expression const*>(nullptr) }; }
     ;
 
 pattern-sfx:

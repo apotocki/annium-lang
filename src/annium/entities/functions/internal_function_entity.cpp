@@ -144,7 +144,7 @@ error_storage internal_function_entity::build(fn_compiler_context& fnctx)
     // A `.ann` function opts into knowing "did the caller want a reference back" by declaring a
     // parameter named builtin_id::result_wants_reference (conventionally defaulted to the
     // compiler-injected __call_wants_reference constant -- see basic_fn_pattern.cpp's try_match and
-    // bootstrap.ann's struct-get overload's `~ reference(IDENT)` modifier, parameter_matcher.cpp).
+    // bootstrap.ann's struct-get overload's `~ reference(EXPR)` modifier, parameter_matcher.cpp).
     // Read directly from this function's own bound parameters -- not from `result`, which for a
     // `=> expr` declaration isn't known until the body is actually compiled below -- so a function
     // that doesn't declare such a parameter simply has nothing bound under this name and the flag

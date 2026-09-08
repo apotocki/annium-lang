@@ -547,7 +547,7 @@ namespace annium_lang {
       char dummy32[sizeof (std::pair<syntax_pattern, parameter_constraint_modifier_t>)];
 
       // pattern-mod
-      char dummy33[sizeof (std::tuple<syntax_pattern, parameter_constraint_modifier_t, annotated_identifier>)];
+      char dummy33[sizeof (std::tuple<syntax_pattern, parameter_constraint_modifier_t, syntax_expression const*>)];
 
       // field-list-opt
       // field-list
@@ -1192,7 +1192,7 @@ namespace annium_lang {
         break;
 
       case symbol_kind::S_170_pattern_mod: // pattern-mod
-        value.move< std::tuple<syntax_pattern, parameter_constraint_modifier_t, annotated_identifier> > (std::move (that.value));
+        value.move< std::tuple<syntax_pattern, parameter_constraint_modifier_t, syntax_expression const*> > (std::move (that.value));
         break;
 
       case symbol_kind::S_152_field_list_opt: // field-list-opt
@@ -1722,13 +1722,13 @@ namespace annium_lang {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, std::tuple<syntax_pattern, parameter_constraint_modifier_t, annotated_identifier>&& v, location_type&& l)
+      basic_symbol (typename Base::kind_type t, std::tuple<syntax_pattern, parameter_constraint_modifier_t, syntax_expression const*>&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const std::tuple<syntax_pattern, parameter_constraint_modifier_t, annotated_identifier>& v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const std::tuple<syntax_pattern, parameter_constraint_modifier_t, syntax_expression const*>& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -2852,7 +2852,7 @@ switch (yykind)
         break;
 
       case symbol_kind::S_170_pattern_mod: // pattern-mod
-        value.template destroy< std::tuple<syntax_pattern, parameter_constraint_modifier_t, annotated_identifier> > ();
+        value.template destroy< std::tuple<syntax_pattern, parameter_constraint_modifier_t, syntax_expression const*> > ();
         break;
 
       case symbol_kind::S_152_field_list_opt: // field-list-opt
@@ -5143,7 +5143,7 @@ switch (yykind)
     /// Constants.
     enum
     {
-      yylast_ = 1810,     ///< Last index in yytable_.
+      yylast_ = 1912,     ///< Last index in yytable_.
       yynnts_ = 76,  ///< Number of nonterminal symbols.
       yyfinal_ = 101 ///< Termination state number.
     };

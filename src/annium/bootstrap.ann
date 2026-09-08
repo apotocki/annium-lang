@@ -135,7 +135,9 @@ inline viable fn::get(self: @is_struct, property: constexpr) => get(self: tuple_
 // `ref(of: SomeStruct)`, not a plain struct value, so the plain-value overload above doesn't match
 // (its `self: @is_struct` never accepts a ref). `~ reference(__result_wants_reference)` (as opposed
 // to plain `~`) is what makes this work for a plain struct variable directly, not just an
-// already-referenced one: it requests `self` via `value_modifier_t::runtime_reference` (see
+// already-referenced one: `reference(EXPR)` evaluates EXPR (here, simply the bound parameter's own
+// name, though it can be any expression that folds to a compile-time bool -- see
+// parameter_matcher.cpp) and only then requests `self` via `value_modifier_t::runtime_reference` (see
 // terms.hpp/parameter_matcher.cpp) instead of the unconstrained resolution every other structural
 // pattern parameter gets, so try_take_reference fires for a plain `self` the same way it would for a
 // native C++ pattern's own self -- but only when __result_wants_reference (bound above, defaulted to

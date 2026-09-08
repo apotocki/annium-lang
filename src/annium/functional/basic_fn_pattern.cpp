@@ -125,7 +125,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> basic_fn_pattern::
     // function's own parameters. Rather than smuggling it through the signature directly, it's
     // exposed as an ordinary compiler-injected constant (`__call_wants_reference`, right below,
     // alongside `__call_location`) that a `.ann` function can opt into by declaring a parameter
-    // defaulted to it (see `bootstrap.ann`'s struct-get overload and its `~ reference(IDENT)`
+    // defaulted to it (see `bootstrap.ann`'s struct-get overload and its `~ reference(EXPR)`
     // modifier, parameter_matcher.cpp) -- once it's a real matched parameter, it naturally
     // participates in the signature/cache key like any other, with no special-casing needed. Mirrors
     // tuple_get_pattern's own want_ref_result formula exactly, for the same two reasons: a
