@@ -147,7 +147,6 @@ assert_equal(counter4, 201);
 // See IMPLEMENTATION_NOTES.md's `ref(T)` section.
 fn increment_via_bare_assign(y: ref(of: i32)) {
     y = get(self: y) + 1;
-    y = y + 1;
 }
 
 let counter5: i32 = runtime_cast(300);
