@@ -61,7 +61,6 @@
 #include "annium/entities/tuple/tuple_size_pattern.hpp"
 #include "annium/entities/tuple/tuple_get_pattern.hpp"
 #include "annium/entities/tuple/tuple_typename_get_pattern.hpp"
-#include "annium/entities/tuple/tuple_set_pattern.hpp"
 #include "annium/entities/tuple/tuple_empty_pattern.hpp"
 #include "annium/entities/tuple/tuple_head_pattern.hpp"
 #include "annium/entities/tuple/tuple_tail_pattern.hpp"
@@ -1625,7 +1624,6 @@ environment::environment()
 
 
     functional& set_fnl = fregistry_resolve(get(builtin_qnid::set));
-    set_fnl.push(make_shared<tuple_set_pattern>());
     set_fnl.push(make_shared<struct_set_pattern>());
 
     // size(signatured_entity)->integer

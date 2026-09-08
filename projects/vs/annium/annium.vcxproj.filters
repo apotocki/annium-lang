@@ -108,9 +108,6 @@
     <ClCompile Include="..\..\..\src\annium\entities\variable_entity.cpp">
       <Filter>annium\entities</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\ast\assign_expression_visitor.cpp">
-      <Filter>annium\ast</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\ast\base_expression_visitor.cpp">
       <Filter>annium\ast</Filter>
     </ClCompile>
@@ -184,9 +181,6 @@
       <Filter>annium\entities\tuple</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_project_size_pattern.cpp">
-      <Filter>annium\entities\tuple</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_set_pattern.cpp">
       <Filter>annium\entities\tuple</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_size_pattern.cpp">
@@ -527,9 +521,6 @@
     <ClInclude Include="..\..\..\src\annium\entities\variable_entity.hpp">
       <Filter>annium\entities</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\ast\assign_expression_visitor.hpp">
-      <Filter>annium\ast</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\src\annium\ast\base_expression_visitor.hpp">
       <Filter>annium\ast</Filter>
     </ClInclude>
@@ -612,9 +603,6 @@
       <Filter>annium\entities\tuple</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_project_size_pattern.hpp">
-      <Filter>annium\entities\tuple</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_set_pattern.hpp">
       <Filter>annium\entities\tuple</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_size_pattern.hpp">

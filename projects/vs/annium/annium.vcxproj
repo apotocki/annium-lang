@@ -42,7 +42,6 @@
     <ClCompile Include="..\..\..\src\annium\annium_parser.cpp" />
     <ClCompile Include="..\..\..\src\annium\annium_semantic.cpp" />
     <ClCompile Include="..\..\..\src\annium\annium_environment.cpp" />
-    <ClCompile Include="..\..\..\src\annium\ast\assign_expression_visitor.cpp" />
     <ClCompile Include="..\..\..\src\annium\ast\base_expression_visitor.cpp" />
     <ClCompile Include="..\..\..\src\annium\ast\consteval_evaluator.cpp" />
     <ClCompile Include="..\..\..\src\annium\ast\declaration_visitor.cpp" />
@@ -99,7 +98,6 @@
     <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_pattern_base.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_project_get_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_project_size_pattern.cpp" />
-    <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_set_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_size_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_tail_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_typename_get_pattern.cpp" />
@@ -200,7 +198,6 @@
     <ClInclude Include="..\..\..\src\annium\annium.hpp" />
     <ClInclude Include="..\..\..\src\annium\annium.tab.hpp" />
     <ClInclude Include="..\..\..\src\annium\annium.yy.hpp" />
-    <ClInclude Include="..\..\..\src\annium\ast\assign_expression_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\base_expression_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\consteval_evaluator.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\declaration_visitor.hpp" />
@@ -257,7 +254,6 @@
     <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_pattern_base.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_project_get_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_project_size_pattern.hpp" />
-    <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_set_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_size_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_tail_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_typename_get_pattern.hpp" />

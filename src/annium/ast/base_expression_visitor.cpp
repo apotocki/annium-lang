@@ -11,8 +11,6 @@
 
 #include <boost/container/flat_set.hpp>
 
-#include "assign_expression_visitor.hpp"
-
 #include "annium/entities/prepared_call.hpp"
 #include "annium/entities/literals/literal_entity.hpp"
 #include "annium/entities/functions/internal_function_entity.hpp"
@@ -20,6 +18,7 @@
 #include "annium/functional/internal_fn_pattern.hpp"
 
 #include "annium/errors/cast_error.hpp"
+#include "annium/errors/assign_error.hpp"
 
 #include "annium/auxiliary.hpp"
 
@@ -1279,19 +1278,112 @@ base_expression_visitor::result_type base_expression_visitor::do_logic_or(binary
 
 base_expression_visitor::result_type base_expression_visitor::do_assign(binary_expression const& op) const
 {
-    //THROW_NOT_IMPLEMENTED_ERROR("base_expression_visitor binary_operator_type::ASSIGN");
-    //GLOBAL_LOG_INFO() << "left expression: " << ctx.env().print(op.left);
-    //size_t start_result_pos = result.size();
     BOOST_ASSERT(op.args.size() == 2);
-    assign_expression_visitor lvis{ ctx, expressions, context_expression_.location, op.args[0].value(), op.args[1].value() };
+    syntax_expression const& lhs = op.args[0].value();
+    syntax_expression const& rhs = op.args[1].value();
 
-    auto res = std::visit(lvis, op.args[0].value().value);
-    if (!res) return std::unexpected(std::move(res.error()));
+    // Fast path: a plain variable name writes directly into its own slot (set_local_variable /
+    // set_variable). Deliberately NOT routed through ref(...)/set(self: ~ref(of $T), value) below --
+    // that would cost a real blob_reference construction and an extra indirection on every ordinary
+    // `x = value;`, the single hottest write path in the interpreter, just for the sake of using one
+    // uniform mechanism everywhere.
+    if (auto const* v = get_if<qname_reference_expression>(&lhs.value)) {
+        auto e = ctx.lookup_entity(v->name);
+        auto res = std::visit([this, v, &lhs, &rhs](auto& eid_or_var) -> std::expected<syntax_expression_result, error_storage> {
+            entity_identifier assign_type;
+            if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, local_variable>) {
+                assign_type = eid_or_var.type;
+            } else if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, functional_variable>) {
+                assign_type = eid_or_var.type;
+            } else {
+                static_assert(std::is_same_v<std::decay_t<decltype(eid_or_var)>, entity_identifier>);
+                if (!eid_or_var) return std::unexpected(make_error<undeclared_identifier_error>(lhs.location, v->name));
+                return std::unexpected(make_error<assign_error>(context_expression_.location, lhs));
+            }
 
-    return apply_cast(std::move(res));
+            auto rres = base_expression_visitor::visit(
+                ctx,
+                expressions,
+                expected_result_t{
+                    .type = assign_type,
+                    .location = context_expression_.location,
+                    .modifier = value_modifier_t::runtime_value },
+                rhs);
+            if (!rres) return std::unexpected(std::move(rres.error()));
+            auto& ser = rres->first;
+            BOOST_ASSERT(!ser.is_const_result);
 
-    //ctx.context_type = ctx.env().get(builtin_eid::void_);
-    //return std::pair{ semantic::managed_expression_list{ ctx.env() }, false };
+            if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, local_variable>) {
+                if (eid_or_var.is_weak) {
+                    THROW_NOT_IMPLEMENTED_ERROR("base_expression_visitor binary_operator_type::ASSIGN weak");
+                }
+                env().push_back_expression(expressions, ser.expressions, semantic::set_local_variable::create(eid_or_var));
+            } else if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, functional_variable>) {
+                env().push_back_expression(expressions, ser.expressions, semantic::set_variable{ eid_or_var });
+            } else {
+                THROW_INTERNAL_ERROR("unhandled base_expression_visitor::do_assign qname_reference_expression case");
+            }
+            return std::move(ser);
+        }, e);
+
+        return apply_cast(std::move(res));
+    }
+
+    // Everything else (member access `.field`/`.0`, index access `[i]`, ...) prefers going through
+    // `ref(lhs)` + `set(self: ~ref(of $T), value: $T)` (bootstrap.ann:135) -- the same, already-
+    // proven machinery tuple/array element reads and mutation already use (see
+    // IMPLEMENTATION_NOTES.md's `ref(T)` section) -- rather than any per-lhs-shape special casing.
+    // This covers `t.0 = v` and `arr[i] = v` uniformly with no bespoke handler for either.
+    call_builder ref_call{ context_expression_.location };
+    ref_call.emplace_back(lhs);
+    if (auto ref_match = ctx.find(builtin_qnid::ref, ref_call, expressions); ref_match) {
+        auto ref_res = ref_match->apply(ctx);
+        if (!ref_res) return std::unexpected(std::move(ref_res.error()));
+
+        // `value` must be a NAMED argument here -- bootstrap.ann's `set(self: ~ref(of $T), value:
+        // runtime $T)` declares it by name, and (unlike struct_set_pattern's own native try_match,
+        // which reads its third argument via get_next_positioned_argument() regardless of its
+        // declared name) an `.ann`-declared parameter's general matching machinery does not bind a
+        // positional argument to a differently-supplied named one.
+        call_builder set_call{ context_expression_.location };
+        set_call.emplace_back(env().get(builtin_id::self), make_indirect_value(env(), expressions, std::move(*ref_res), context_expression_.location));
+        set_call.emplace_back(env().make_identifier("value"sv), rhs);
+
+        auto match = ctx.find(builtin_qnid::set, set_call, expressions);
+        if (!match) {
+            return std::unexpected(append_cause(
+                make_error<assign_error>(context_expression_.location, lhs),
+                std::move(match.error())
+            ));
+        }
+        return apply_cast(match->apply(ctx));
+    }
+
+    // Fallback for a member access whose object can't be turned into a reference -- today, that's
+    // exactly a struct field, since struct references aren't wired up yet (STRUCT_FIELDS_PLAN.md's
+    // Part B): dispatch `set(self:, property:, value:)` directly, matching `struct_set_pattern`'s
+    // existing support. This isn't just a safety net for hypothetical user code -- `bootstrap.ann`'s
+    // own array `iterator`'s `next()` relies on exactly this for `$0.index = index + 1;` (`iterator`
+    // is a struct; see `array_operations.ann`'s iterator tests), so dropping this fallback entirely
+    // broke array iteration outright, not just struct field writes in general. `struct_set_pattern`
+    // correctly handles a struct with exactly one runtime field (as `iterator` effectively has --
+    // `array` is fixed at construction, only `index` is mutable); its confirmed write-loss bug for
+    // *multiple* runtime fields (STRUCT_FIELDS_PLAN.md's Part A.4) is unaffected by this fallback
+    // either way and remains tracked separately. No equivalent fallback exists for `index_expression`
+    // (`arr[i] = v`) -- no `set(...)` pattern is registered for an array self at all, so it would
+    // fail the same way regardless.
+    if (auto const* me = get_if<member_expression>(&lhs.value)) {
+        call_builder set_call{ context_expression_.location };
+        set_call.emplace_back(env().get(builtin_id::self), *me->object);
+        set_call.emplace_back(env().get(builtin_id::property), *me->property);
+        set_call.emplace_back(rhs);
+
+        if (auto match = ctx.find(builtin_qnid::set, set_call, expressions); match) {
+            return apply_cast(match->apply(ctx));
+        }
+    }
+
+    return std::unexpected(make_error<assign_error>(context_expression_.location, lhs));
 }
 
 base_expression_visitor::result_type base_expression_visitor::do_cast(binary_expression const& be) const

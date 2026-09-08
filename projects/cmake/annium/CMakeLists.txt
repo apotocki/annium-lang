@@ -38,7 +38,6 @@ set (LIBRARY_SOURCES
     ${ANNIUM_SRC}/annium/annium_semantic.cpp
     ${ANNIUM_SRC}/annium/annium_environment.cpp
     ${ANNIUM_SRC}/annium/annium_auxiliary.cpp
-    ${ANNIUM_SRC}/annium/ast/assign_expression_visitor.cpp
     ${ANNIUM_SRC}/annium/ast/ast_resource.cpp
     ${ANNIUM_SRC}/annium/ast/base_expression_visitor.cpp
     ${ANNIUM_SRC}/annium/ast/consteval_evaluator.cpp
@@ -110,7 +109,6 @@ set (LIBRARY_SOURCES
     ${ANNIUM_SRC}/annium/entities/tuple/tuple_pattern_base.cpp
     ${ANNIUM_SRC}/annium/entities/tuple/tuple_project_get_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/tuple/tuple_project_size_pattern.cpp
-    ${ANNIUM_SRC}/annium/entities/tuple/tuple_set_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/tuple/tuple_size_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/tuple/tuple_tail_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/tuple/tuple_typename_get_pattern.cpp

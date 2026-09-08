@@ -142,3 +142,120 @@ set(self: ref_to_nb, value: get(self: ref_to_nb) + 100);
 assert_equal(nt.0.1, 120);
 assert_equal(nt.0.0, 11); // untouched by this second mutation
 assert_equal(nt.1, 30);   // untouched
+
+// --- direct assignment syntax (`t.0 = value`, `arr[i] = value`) --------------------------------
+// base_expression_visitor::do_assign's non-plain-variable branch (`member_expression`/
+// `index_expression` alike) desugars `lhs = rhs` into `ref(lhs)` + `set(self: <ref>, value: rhs)`
+// -- exercised directly here, rather than through a `ref(of: T)`-typed parameter the way
+// increment()/set_to_bye() above do.
+
+// packed + inplace tuple, dot-index assignment.
+let da: i32 = runtime_cast(1);
+let db: i32 = runtime_cast(2);
+let dt = (da, db);
+dt.0 = 10;
+assert_equal(dt.0, 10);
+assert_equal(dt.1, 2);
+assert_equal(da, 1); // dt holds its own copy from construction
+
+// same tuple, bracket-index assignment (`index_expression`, not `member_expression` -- a
+// different AST node than `.0`, going through the same code path).
+dt[1] = 20;
+assert_equal(dt.1, 20);
+assert_equal(dt.0, 10); // untouched
+
+// boxed tuple (mixed field types).
+let dmn: i32 = runtime_cast(5);
+let dms: string = runtime_cast("hi");
+let dmt = (dmn, dms);
+dmt.0 = 50;
+assert_equal(dmt.0, 50);
+dmt.1 = "bye";
+assert_equal(dmt.1, "bye");
+
+// Named tuple fields (`(x: 1, y: 2)`), not just positional ones (`.0`/`[i]`) -- a `member_expression`
+// with an identifier property goes through the exact same ref(lhs)+set(...) path as an integer one;
+// tuple_get_pattern's field lookup doesn't care whether a field was found by name or by index.
+let nx: i32 = runtime_cast(1);
+let ny: i32 = runtime_cast(2);
+let dnt = (x: nx, y: ny);
+dnt.x = 10;
+assert_equal(dnt.x, 10);
+assert_equal(dnt.y, 2); // untouched
+assert_equal(nx, 1);    // dnt holds its own copy from construction
+
+dnt.y = 20;
+assert_equal(dnt.y, 20);
+assert_equal(dnt.x, 10); // untouched
+
+// A tuple mixing named and positional (unnamed) fields in one value (see tuple_operations.ann for
+// the general mechanic) -- assigning to one kind of field leaves the others untouched, and `.2`
+// still means "the third field overall", counting named and unnamed fields together.
+let mp0: i32 = runtime_cast(100);
+let mp1: string = runtime_cast("hi");
+let mp2: i32 = runtime_cast(7);
+let dmix = (mp0, name: mp1, mp2);
+dmix.0 = 111;
+assert_equal(dmix.0, 111);
+assert_equal(dmix.name, "hi"); // untouched
+assert_equal(dmix.2, 7);       // untouched
+
+dmix.name = "bye";
+assert_equal(dmix.name, "bye");
+assert_equal(dmix.0, 111); // untouched
+assert_equal(dmix.2, 7);   // untouched
+
+dmix.2 = 77;
+assert_equal(dmix.2, 77);
+assert_equal(dmix.0, 111);     // untouched
+assert_equal(dmix.name, "bye"); // untouched
+
+// array element assignment, const index.
+let darr = [runtime_cast(10), runtime_cast(20), runtime_cast(30)];
+darr[0] = 100;
+assert_equal(darr[0], 100);
+assert_equal(darr[1], 20); // untouched
+
+// array element assignment, runtime index -- the common `arr[i] = value` shape.
+let didx = runtime_cast(2);
+darr[didx] = 300;
+assert_equal(darr[2], 300);
+assert_equal(darr[1], 20); // untouched
+
+// boxed array (string elements).
+let dsarr = [runtime_cast("a"), runtime_cast("b")];
+dsarr[1] = "bye";
+assert_equal(dsarr[1], "bye");
+assert_equal(dsarr[0], "a"); // untouched
+
+// packed + heap tuple (4 x i64, 32 bytes, forces a real heap-backed buffer -- see increment64()
+// above), direct assignment instead of going through a ref(of: i64)-typed parameter.
+let dha: i64 = runtime_cast(100);
+let dhb: i64 = runtime_cast(200);
+let dhc: i64 = runtime_cast(300);
+let dhd: i64 = runtime_cast(400);
+let dht = (dha, dhb, dhc, dhd);
+dht.2 = 999;
+assert_equal(dht.2, 999);
+assert_equal(dht.0, 100); // untouched
+assert_equal(dht.3, 400); // untouched
+
+// Nested assignment through multiple `.field` levels (a tuple nested inside a tuple, same shape
+// as the nt/ref(nt.0.1) chain earlier in this file) -- exercised via bare `=` this time, which
+// means do_assign's ref(lhs) call has to resolve the WHOLE nested chain (ref(nt2.0.0)) itself,
+// exactly the way an explicit ref(...) call on the same expression already does.
+let n2a: i32 = runtime_cast(1);
+let n2b: i32 = runtime_cast(2);
+let n2c: i32 = runtime_cast(3);
+let nt2 = ((n2a, n2b), n2c);
+
+nt2.0.0 = 11;
+assert_equal(nt2.0.0, 11);
+assert_equal(nt2.0.1, 2); // untouched
+assert_equal(nt2.1, 3);   // untouched
+assert_equal(n2a, 1);     // nt2 holds its own copy from construction
+
+nt2.0.1 = 22;
+assert_equal(nt2.0.1, 22);
+assert_equal(nt2.0.0, 11); // untouched by this second mutation
+assert_equal(nt2.1, 3);    // untouched

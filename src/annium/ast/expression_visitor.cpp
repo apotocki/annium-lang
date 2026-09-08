@@ -4,7 +4,6 @@
 #include "sonia/config.hpp"
 #include "expression_visitor.hpp"
 
-#include "assign_expression_visitor.hpp"
 #include "declaration_visitor.hpp"
 
 #include "sonia/utility/scope_exit.hpp"
@@ -172,15 +171,21 @@ expression_visitor::result_type expression_visitor::operator()(qname_reference c
 
 expression_visitor::result_type expression_visitor::do_assign(binary_expression_t const& op) const
 {
-    //THROW_NOT_IMPLEMENTED_ERROR("expression_visitor binary_operator_type::ASSIGN");
-    //GLOBAL_LOG_INFO() << "left expression: " << ctx.env().print(op.left);
-    //size_t start_result_pos = result.size();
+    // expression_visitor predates base_expression_visitor and is no longer instantiated anywhere in
+    // the active compiler (see base_expression_visitor.cpp's own do_assign for the live mechanism).
+    // This used to delegate to assign_expression_visitor, which has since been removed entirely
+    // (folded into base_expression_visitor::do_assign) -- don't resurrect that dependency here; this
+    // whole function is unreachable dead code, kept only because the surrounding class still needs
+    // to compile.
+    THROW_NOT_IMPLEMENTED_ERROR("expression_visitor binary_operator_type::ASSIGN (superseded by base_expression_visitor)");
+#if 0
     assign_expression_visitor lvis{ ctx, op.location(), op[1].value() };
 
     auto e = apply_visitor(lvis, op[0].value());
     if (e) return std::unexpected(std::move(e));
 
     return false;
+#endif
 #if 0
     if (variable_entity const* ve = dynamic_cast<variable_entity const*>(*e); ve) {
         expression_visitor rvis{ ctx, annotated_entity_identifier{ ve->get_type(), op.location() } };
