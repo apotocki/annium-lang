@@ -21,14 +21,48 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_get_pattern:
     environment& e = ctx.env();
     auto call_session = call.new_session(ctx);
 
-    // Always resolve self unconstrained first -- never request a reference speculatively, and
-    // never inspect self's raw expression. See IMPLEMENTATION_NOTES.md's `ref(T)` section.
-    auto slf_arg_descr = call_session.get_named_argument(e.get(builtin_id::self));
+    // Whether THIS get() call's own caller wants its result to be a reference -- computed purely from
+    // `exp`, before self is resolved at all (self can already be a reference while THIS call's result
+    // still isn't wanted as one, or vice versa). Two ways this can be true: `exp.type` is itself a
+    // concrete ref(of:...) (from a `let`/parameter/return-type annotation naming an exact reference
+    // type), or -- with no specific type prescribed -- `exp.modifier` simply carries `runtime_reference`
+    // (from ref(...) or a chained get() one level up, which only know "a reference is wanted", not
+    // which concrete type). Either way this decides apply()'s output shape only; any actual type
+    // mismatch against a caller-prescribed exact type is left for the ordinary apply_cast that wraps
+    // this whole call to catch, same as for any other pattern.
+    bool want_ref_result = exp.type
+        ? (can_be_runtime(exp.modifier) && (bool)try_decompose_ref_of(e, exp.type))
+        : wants_reference(exp.modifier);
+
+    // Resolve self in ONE pass: when our own caller wants a reference back, ask for one directly via
+    // `runtime_reference` -- self's plain type doesn't need to be known up front to do this (unlike
+    // requesting a specific `ref(of: T)`), because try_take_reference now derives ref(of:...) from
+    // whatever self actually resolves to. This is a hard requirement, not a preference: if self can't
+    // be referenced, this resolve fails and this candidate simply doesn't match (same outcome as
+    // before, just reached without a second resolution). Otherwise resolve unconstrained. Never
+    // inspect self's raw expression. Resolving self only once, regardless of the reference decision,
+    // is what keeps a chained `a.b.c...` access linear in chain length -- the old two-request retry
+    // fully re-resolved the whole sub-chain a second time at every level that wanted a reference,
+    // which made it quadratic. See IMPLEMENTATION_NOTES.md's `ref(T)` section.
+    auto slf_arg_descr = want_ref_result
+        ? call_session.get_named_argument(e.get(builtin_id::self), expected_result_t{ .modifier = value_modifier_t::runtime_reference })
+        : call_session.get_named_argument(e.get(builtin_id::self));
     if (!slf_arg_descr) return std::unexpected(std::move(slf_arg_descr.error()));
 
     entity const* slf_ent = nullptr;
     entity_identifier slftype = get_result_type(e, slf_arg_descr->result, &slf_ent);
     entity_identifier self_ref_of = try_decompose_ref_of(e, slftype); // non-empty => self already IS a reference
+
+    if (want_ref_result && !self_ref_of) {
+        // We asked for `runtime_reference` above precisely because a reference was required, but
+        // resolution can legitimately still hand back a plain value (e.g. try_take_reference
+        // declined because self is weak, or self isn't a plain-variable expression at all) instead of
+        // failing outright -- `runtime_reference` only enables producing a reference where possible,
+        // it doesn't by itself reject a resolution that came back without one (apply_cast never
+        // objects when `.type` is left unconstrained, which it must be here -- see try_match's own
+        // comment above). So the hard-requirement check happens here, explicitly.
+        return std::unexpected(make_error<type_mismatch_error>(slf_arg_descr->expression->location, slftype, "an addressable value (a reference could not be taken)"sv));
+    }
 
     if (!self_ref_of && slf_ent) {
         // self is a constexpr result -- guard against the const VALUE itself being a typename-tuple
@@ -47,23 +81,6 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_get_pattern:
     }
     if (psig->empty()) {
         return std::unexpected(make_error<type_mismatch_error>(slf_arg_descr->expression->location, tuple_type, "a not empty tuple"sv));
-    }
-
-    // The whole ref(of: E) this get() call's own caller wants, if any -- independent of self_ref_of
-    // (self can already be a reference while THIS call's result still isn't wanted as one).
-    entity_identifier expected_ref_type = (exp.type && can_be_runtime(exp.modifier) && try_decompose_ref_of(e, exp.type)) ? exp.type : entity_identifier{};
-
-    if (!self_ref_of && expected_ref_type) {
-        // The caller wants a reference and self isn't one yet -- try once more, now asking for
-        // ref(of: tuple_type) specifically (same technique as ref_pattern: re-resolve the same
-        // argument through the normal, cached path; try_take_reference fires inside that second,
-        // ordinary visit if self is a plain variable, and this fails on its own otherwise).
-        entity_identifier ref_type = make_ref_of_type(e, tuple_type);
-        call_session.reuse_argument(slf_arg_descr->arg_index);
-        auto retry = call_session.get_named_argument(e.get(builtin_id::self), expected_result_t{ .type = ref_type, .modifier = value_modifier_t::runtime_value });
-        if (!retry) return std::unexpected(std::move(retry.error()));
-        slf_arg_descr = std::move(retry);
-        self_ref_of = tuple_type;
     }
 
     prepared_call::argument_descriptor_t prop_arg_descr;
@@ -94,7 +111,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> tuple_get_pattern:
     pmd->append_arg(slf_arg_descr->result, slf_arg_descr->expression->location);
     pmd->append_arg(prop_arg_descr.result, prop_arg_descr.expression->location);
     pmd->self_ref_of = self_ref_of;
-    pmd->expected_ref_type = expected_ref_type;
+    pmd->want_ref_result = want_ref_result;
 
     return pmd;
 }
@@ -241,15 +258,14 @@ std::expected<syntax_expression_result, error_storage> tuple_get_pattern::apply(
         }
 
         // Ref mode: self is a genuine reference (self is `ref(of: <this tuple's type>)`, either
-        // because the caller wrote `ref(t).0` explicitly or because try_match's own retry produced
+        // because the caller wrote `ref(t).0` explicitly or because try_match's own request produced
         // one) -- ref_at turns self's own-storage-aliasing reference into a reference to this one
-        // field, without ever copying the tuple. expected_ref_of below is this field's own --
-        // unwrapped -- type; NOT result_type, which for a named field is the tuple(name, E) wrapper,
-        // not E itself.
+        // field, without ever copying the tuple. The presented reference type below is this field's
+        // own -- unwrapped -- type; NOT result_type, which for a named field is the tuple(name, E)
+        // wrapper, not E itself. Any mismatch against a caller-prescribed exact reference type (e.g.
+        // `let x: ref(of: u8) = ...` naming the wrong field type) is left for the ordinary apply_cast
+        // wrapping this whole call to catch -- same as for any other pattern.
         if (tmd.self_ref_of) {
-            entity_identifier expected_ref_of = try_decompose_ref_of(e, tmd.expected_ref_type);
-            bool want_ref = expected_ref_of && expected_ref_of == field->entity_id();
-
             syntax_expression_result r = std::move(slfer);
             if (non_const_count > 1) {
                 e.push_back_expression(el, r.expressions, semantic::push_value{ smart_blob{ ui64_blob_result(runtime_index) } });
@@ -258,8 +274,8 @@ std::expected<syntax_expression_result, error_storage> tuple_get_pattern::apply(
             // non_const_count == 1: tuple_make_pattern skips arrayify entirely for a tuple's sole
             // runtime field, so the variable's own slot already directly holds the element's raw
             // value -- self's own reference already points at exactly the right thing.
-            if (want_ref) {
-                r.value_or_type = tmd.expected_ref_type;
+            if (tmd.want_ref_result) {
+                r.value_or_type = make_ref_of_type(e, field->entity_id());
                 r.is_const_result = false;
                 return r;
             }

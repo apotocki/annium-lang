@@ -9,6 +9,8 @@
 #include "annium/entities/prepared_call.hpp"
 #include "annium/entities/signatured_entity.hpp"
 
+#include "annium/errors/type_mismatch_error.hpp"
+
 #include "annium/auxiliary.hpp"
 
 namespace annium {
@@ -18,22 +20,25 @@ std::expected<functional_match_descriptor_ptr, error_storage> ref_pattern::try_m
     environment& e = ctx.env();
     auto call_session = call.new_session(ctx);
 
-    // Resolve the sole argument unconstrained first -- through the normal, sanctioned argument
-    // resolution path, never by inspecting its raw expression. If it isn't already a reference,
-    // build ref(of: <the type just learned>) and resolve the SAME argument again with that as the
-    // expected type: this re-runs base_expression_visitor::visit on the unchanged raw expression,
-    // and if it's a plain, non-weak local variable, the existing try_take_reference fires naturally
-    // inside that second, ordinary visit -- see IMPLEMENTATION_NOTES.md's `ref(T)` section.
-    auto arg_descr = call_session.get_next_positioned_argument("self"sv);
+    // Ask for a reference directly via `runtime_reference` -- a hard requirement, not a preference:
+    // if the argument can't be turned into a reference (not a plain, non-weak local variable, or
+    // already something else entirely), this resolve fails outright and that failure is the real
+    // error (no separate cast-failure step needed). try_take_reference derives ref(of:...) from
+    // whatever the argument actually resolves to, so its plain type never needs to be known up front
+    // -- unlike the old two-request retry (resolve unconstrained, learn the type, resolve again with
+    // ref(of: <that type>)), which cost a full second resolution of the argument every time. If the
+    // argument is already a reference, this is a no-op pass-through, same as before. Never inspect
+    // the argument's raw expression. See IMPLEMENTATION_NOTES.md's `ref(T)` section.
+    auto arg_descr = call_session.get_next_positioned_argument(expected_result_t{ .modifier = value_modifier_t::runtime_reference }, "self"sv);
     if (!arg_descr) return std::unexpected(std::move(arg_descr.error()));
 
+    // `runtime_reference` only enables producing a reference where possible -- it doesn't by itself
+    // reject a resolution that came back without one (apply_cast never objects when `.type` is left
+    // unconstrained, which it must be here, since the argument's plain type isn't known up front).
+    // Since ref(x) has nothing useful to return otherwise, check explicitly.
     entity_identifier argtype = get_result_type(e, arg_descr->result);
     if (!try_decompose_ref_of(e, argtype)) {
-        entity_identifier ref_type = make_ref_of_type(e, argtype);
-        call_session.reuse_argument(arg_descr->arg_index);
-        auto retry = call_session.get_next_positioned_argument(expected_result_t{ .type = ref_type, .modifier = value_modifier_t::runtime_value }, "self"sv);
-        if (!retry) return std::unexpected(std::move(retry.error())); // not addressable -- the cast failure already says so
-        arg_descr = std::move(retry);
+        return std::unexpected(make_error<type_mismatch_error>(arg_descr->expression->location, argtype, "an addressable value (a reference could not be taken)"sv));
     }
 
     if (auto argterm = call_session.unused_argument(); argterm) {

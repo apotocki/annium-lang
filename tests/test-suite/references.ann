@@ -93,3 +93,52 @@ let sarr = [runtime_cast("a"), runtime_cast("b")];
 set_to_bye(sarr[1]);
 assert_equal(sarr[1], "bye");
 assert_equal(sarr[0], "a");
+
+// --- explicit ref(x), forwarding, and chained references --------------------------------------
+// Everything above exercises `ref(of: T)` only via implicit parameter coercion (increment()/
+// set_to_bye() themselves declare a `ref(of: T)` parameter, so the caller-prescribed exact type is
+// always known up front). The cases below go through `value_modifier_t::runtime_reference`
+// instead -- no exact type prescribed, derived from whatever the argument actually resolves to --
+// see IMPLEMENTATION_NOTES.md's `ref(T)` section, "From two resolutions to one".
+
+// A bare `ref(x)` call on a plain variable, used directly rather than via parameter coercion.
+let counter2: i32 = runtime_cast(41);
+let rc = ref(counter2);
+set(self: rc, value: get(self: rc) + 1);
+assert_equal(counter2, 42);
+
+// Forwarding an already-`ref(of: T)`-typed parameter through another `ref(...)` call must hand
+// back the SAME reference unchanged, not wrap it in a second layer (`ref(of: ref(of: T))`) -- see
+// try_take_reference's "already a reference" guard in base_expression_visitor.cpp.
+fn increment_via_forwarded_ref($x: ref(of: i32)) {
+    let rr = ref($x);
+    set(self: rr, value: get(self: rr) + 1);
+}
+
+let counter3: i32 = runtime_cast(100);
+increment_via_forwarded_ref(counter3);
+assert_equal(counter3, 101);
+
+// A 2-level chain -- a tuple nested inside a tuple. `nt.0.0` requires the INNER get() (property 0
+// of nt) to hand its own result to the OUTER get() (property 0 of that) as a reference, which in
+// turn requires `self` (nt) itself to be resolved as a reference -- each level decided purely from
+// its own expected result, in a single resolution, with no re-resolution of the levels beneath it.
+let na: i32 = runtime_cast(10);
+let nb: i32 = runtime_cast(20);
+let nc: i32 = runtime_cast(30);
+let nt = ((na, nb), nc);
+
+increment(nt.0.0);
+assert_equal(nt.0.0, 11);
+assert_equal(nt.0.1, 20); // untouched
+assert_equal(nt.1, 30);   // untouched
+assert_equal(na, 10);     // nt holds its own copy from construction
+
+// Same chain, driven by an explicit `ref(...)` at the top instead of implicit parameter coercion --
+// exercises ref_pattern's own single-pass request cascading two levels down entirely through the
+// `runtime_reference` modifier (no caller-prescribed exact type at any level of the chain).
+let ref_to_nb = ref(nt.0.1);
+set(self: ref_to_nb, value: get(self: ref_to_nb) + 100);
+assert_equal(nt.0.1, 120);
+assert_equal(nt.0.0, 11); // untouched by this second mutation
+assert_equal(nt.1, 30);   // untouched

@@ -11,8 +11,8 @@ namespace annium {
 // `ref(of: i32)` (constexpr type argument) resolves to that typefn; `ref(x)` (a single runtime
 // argument) resolves here. Given any argument, returns it unchanged if it's already a reference,
 // otherwise turns it into one -- see ref_pattern.cpp's try_match for the mechanism (never inspects
-// the argument's raw expression; resolves it twice through prepared_call::session's own cached,
-// type-keyed argument resolution instead).
+// the argument's raw expression; resolves it once, via `value_modifier_t::runtime_reference`,
+// through prepared_call::session's own cached, type-keyed argument resolution instead).
 class ref_pattern : public functional::pattern
 {
 public:

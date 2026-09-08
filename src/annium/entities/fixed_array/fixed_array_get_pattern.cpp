@@ -173,17 +173,16 @@ public:
 
     // Empty when `self` is a plain array value; otherwise `self` (matches[0], read via `slfer` in
     // apply) IS a `ref(of: self_ref_of)` -- self_ref_of is that array's own type (never the
-    // ref(of:...) entity itself). Decided once in try_match, by resolving `self` unconstrained and
-    // then, only if it wasn't already a reference and the caller wants one, resolving it a second
-    // time with an expected type of ref(of: <self's own plain type>) -- see IMPLEMENTATION_NOTES.md's
+    // ref(of:...) entity itself). Decided once in try_match, by resolving `self` in a single pass with
+    // the `runtime_reference` modifier when `want_ref_result` is set -- see IMPLEMENTATION_NOTES.md's
     // `ref(T)` section for why this never inspects self's raw expression (mirrors tuple_get_pattern's
     // identical mechanism).
     entity_identifier self_ref_of;
 
-    // The whole ref(of: E) this get() call's own caller wants, if any -- independent of self_ref_of;
-    // captured verbatim from try_match's `exp` since apply() has no access to it. See
+    // Whether this get() call's own caller wants ITS result to be a reference -- independent of
+    // self_ref_of; captured from try_match's `exp` since apply() has no access to it. See
     // tuple_get_pattern's identical field for why this is tracked separately from self_ref_of.
-    entity_identifier expected_ref_type;
+    bool want_ref_result = false;
 };
 
 std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_get_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
@@ -191,37 +190,54 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_get_pa
     environment& env = ctx.env();
     auto call_session = call.new_session(ctx);
 
-    // Always resolve self unconstrained first -- never request a reference speculatively, and
-    // never inspect self's raw expression. See IMPLEMENTATION_NOTES.md's `ref(T)` section (mirrors
+    // Whether THIS get() call's own caller wants its result to be a reference -- computed purely from
+    // `exp`, before self is resolved at all (self can already be a reference while THIS call's result
+    // still isn't wanted as one, or vice versa). Two ways this can be true: `exp.type` is itself a
+    // concrete ref(of:...) (from a `let`/parameter/return-type annotation naming an exact reference
+    // type), or -- with no specific type prescribed -- `exp.modifier` simply carries `runtime_reference`
+    // (from ref(...) or a chained get() one level up). Either way this decides apply()'s output shape
+    // only; any actual type mismatch against a caller-prescribed exact type is left for the ordinary
+    // apply_cast that wraps this whole call to catch, same as for any other pattern.
+    bool want_ref_result = exp.type
+        ? (can_be_runtime(exp.modifier) && (bool)try_decompose_ref_of(env, exp.type))
+        : wants_reference(exp.modifier);
+
+    // Resolve self in ONE pass: when our own caller wants a reference back, ask for one directly via
+    // `runtime_reference` -- self's plain type doesn't need to be known up front to do this (unlike
+    // requesting a specific `ref(of: T)`), because try_take_reference now derives ref(of:...) from
+    // whatever self actually resolves to. This is a hard requirement, not a preference: if self can't
+    // be referenced, this resolve fails and this candidate simply doesn't match (same outcome as
+    // before, just reached without a second resolution). Otherwise resolve unconstrained. Never
+    // inspect self's raw expression. Resolving self only once, regardless of the reference decision,
+    // is what keeps a chained `a[i][j]...` access linear in chain length -- the old two-request retry
+    // fully re-resolved the whole sub-chain a second time at every level that wanted a reference,
+    // which made it quadratic. See IMPLEMENTATION_NOTES.md's `ref(T)` section (mirrors
     // tuple_get_pattern's identical mechanism).
-    auto slf_arg_descr = call_session.get_named_argument(builtin_id::self);
+    auto slf_arg_descr = want_ref_result
+        ? call_session.get_named_argument(builtin_id::self, expected_result_t{ .modifier = value_modifier_t::runtime_reference })
+        : call_session.get_named_argument(builtin_id::self);
     if (!slf_arg_descr) return std::unexpected(std::move(slf_arg_descr.error()));
 
     entity_identifier slftype = get_result_type(env, slf_arg_descr->result);
     entity_identifier self_ref_of = try_decompose_ref_of(env, slftype); // non-empty => self already IS a reference
+
+    if (want_ref_result && !self_ref_of) {
+        // We asked for `runtime_reference` above precisely because a reference was required, but
+        // resolution can legitimately still hand back a plain value (e.g. try_take_reference declined
+        // because self is weak, or self isn't a plain-variable expression at all) instead of failing
+        // outright -- `runtime_reference` only enables producing a reference where possible, it
+        // doesn't by itself reject a resolution that came back without one (apply_cast never objects
+        // when `.type` is left unconstrained, which it must be here -- see try_match's own comment
+        // above). So the hard-requirement check happens here, explicitly.
+        return std::unexpected(make_error<type_mismatch_error>(slf_arg_descr->expression->location, slftype, "an addressable value (a reference could not be taken)"sv));
+    }
+
     entity_identifier array_type = self_ref_of ? self_ref_of : slftype;
 
     entity const& slf_type_entity = get_entity(env, array_type);
     entity_signature const* psig = slf_type_entity.signature();
     if (!psig || psig->name != env.get(builtin_qnid::array)) {
         return std::unexpected(make_error<type_mismatch_error>(slf_arg_descr->expression->location, array_type, "an array"sv));
-    }
-
-    // The whole ref(of: E) this get() call's own caller wants, if any -- independent of self_ref_of
-    // (self can already be a reference while THIS call's result still isn't wanted as one).
-    entity_identifier expected_ref_type = (exp.type && can_be_runtime(exp.modifier) && try_decompose_ref_of(env, exp.type)) ? exp.type : entity_identifier{};
-
-    if (!self_ref_of && expected_ref_type) {
-        // The caller wants a reference and self isn't one yet -- try once more, now asking for
-        // ref(of: array_type) specifically (same technique as ref_pattern: re-resolve the same
-        // argument through the normal, cached path; try_take_reference fires inside that second,
-        // ordinary visit if self is a plain variable, and this fails on its own otherwise).
-        entity_identifier ref_type = make_ref_of_type(env, array_type);
-        call_session.reuse_argument(slf_arg_descr->arg_index);
-        auto retry = call_session.get_named_argument(builtin_id::self, expected_result_t{ .type = ref_type, .modifier = value_modifier_t::runtime_value });
-        if (!retry) return std::unexpected(std::move(retry.error()));
-        slf_arg_descr = std::move(retry);
-        self_ref_of = array_type;
     }
 
     auto prop_arg_descr = call_session.get_named_argument(builtin_id::property, builtin_eid::integer);
@@ -236,7 +252,7 @@ std::expected<functional_match_descriptor_ptr, error_storage> fixed_array_get_pa
     pmd->append_arg(env.get(builtin_id::self), slf_arg_descr->result, slf_arg_descr->expression->location);
     pmd->append_arg(env.get(builtin_id::property), prop_arg_descr->result, prop_arg_descr->expression->location);
     pmd->self_ref_of = self_ref_of;
-    pmd->expected_ref_type = expected_ref_type;
+    pmd->want_ref_result = want_ref_result;
 
     return pmd;
 }
@@ -295,16 +311,15 @@ std::expected<syntax_expression_result, error_storage> fixed_array_get_pattern::
     // Case 2: self is not constant, property is constant
     if (!slfer.is_const_result && proper.is_const_result) {
         // Ref mode: self is a genuine reference (self is `ref(of: <this array's type>)`, either
-        // because the caller wrote `ref(arr)[i]` explicitly or because try_match's own retry
-        // produced one). expected_ref_of matches the array's element type (there's only one, unlike
-        // a tuple's per-field types). ref_at turns self's own-storage-aliasing reference into a
-        // reference to this one element, without ever copying the array.
+        // because the caller wrote `ref(arr)[i]` explicitly or because try_match's own request
+        // produced one). The presented reference type matches the array's element type (there's only
+        // one, unlike a tuple's per-field types); any mismatch against a caller-prescribed exact type
+        // is left for the ordinary apply_cast wrapping this whole call to catch. ref_at turns self's
+        // own-storage-aliasing reference into a reference to this one element, without ever copying
+        // the array.
         if (amd.self_ref_of) {
-            entity_identifier expected_ref_of = try_decompose_ref_of(env, amd.expected_ref_type);
-            bool want_ref = expected_ref_of && expected_ref_of == of_fd->entity_id();
-
             syntax_expression_result result{
-                .value_or_type = want_ref ? amd.expected_ref_type : of_fd->entity_id(),
+                .value_or_type = amd.want_ref_result ? make_ref_of_type(env, of_fd->entity_id()) : of_fd->entity_id(),
                 .is_const_result = false
             };
             append_semantic_result(el, slfer, result);
@@ -315,7 +330,7 @@ std::expected<syntax_expression_result, error_storage> fixed_array_get_pattern::
             }
             // array_size == 1: fixed_array_make_pattern skips arrayify entirely for a single-
             // element array, so self's own reference already points at exactly the right thing.
-            if (!want_ref) {
+            if (!amd.want_ref_result) {
                 // This call's own caller doesn't want the reference -- dereference back to a plain
                 // value, composing the same way bootstrap.ann's own
                 // get(self: ~ref(of $T)) => reinterpret(__ref_get(self)) does.
@@ -344,16 +359,13 @@ std::expected<syntax_expression_result, error_storage> fixed_array_get_pattern::
         // Ref mode: same as Case 2 above, but the index itself is also a runtime expression
         // (`proper`) rather than a compile-time constant -- the common `arr[i]` shape.
         if (amd.self_ref_of) {
-            entity_identifier expected_ref_of = try_decompose_ref_of(env, amd.expected_ref_type);
-            bool want_ref = expected_ref_of && expected_ref_of == of_fd->entity_id();
-
             syntax_expression_result result = slfer;
             if (array_size > 1) {
                 append_semantic_result(el, proper, result);
                 env.push_back_expression(el, result.expressions, semantic::invoke_function(env.get(builtin_eid::ref_at)));
             }
-            if (want_ref) {
-                result.value_or_type = amd.expected_ref_type;
+            if (amd.want_ref_result) {
+                result.value_or_type = make_ref_of_type(env, of_fd->entity_id());
             } else {
                 env.push_back_expression(el, result.expressions, semantic::invoke_function(env.get(builtin_eid::ref_get)));
                 result.value_or_type = of_fd->entity_id();

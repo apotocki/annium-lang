@@ -162,16 +162,38 @@ base_expression_visitor::result_type base_expression_visitor::operator()(indirec
 
 optional<base_expression_visitor::result_type> base_expression_visitor::try_take_reference(entity_identifier vartype, variable_identifier varid, bool is_weak) const
 {
-    if (!expected_result.type || is_weak || !can_be_runtime(expected_result.modifier)) return nullopt;
-    entity_identifier of_type = try_decompose_ref_of(env(), expected_result.type);
-    if (!of_type) return nullopt;
-    if (of_type != vartype) return nullopt; // no coercion -- see IMPLEMENTATION_NOTES.md's `ref(T)` section
+    if (is_weak || !can_be_runtime(expected_result.modifier)) return nullopt;
+
+    entity_identifier ref_type;
+    if (expected_result.type) {
+        entity_identifier of_type = try_decompose_ref_of(env(), expected_result.type);
+        if (!of_type) return nullopt;
+        if (of_type != vartype) return nullopt; // no coercion -- see IMPLEMENTATION_NOTES.md's `ref(T)` section
+        ref_type = expected_result.type;
+    } else if (wants_reference(expected_result.modifier)) {
+        // No specific type prescribed -- the caller just wants *a* reference and will read the type
+        // back off the result (via try_decompose_ref_of) to learn what it got. Derive ref(of:...)
+        // from this variable's own real type instead of requiring it to already be known top-down --
+        // this is what lets a chained get()-pattern (tuple/array element access) resolve `self` as a
+        // reference in one pass instead of two. See IMPLEMENTATION_NOTES.md's `ref(T)` section.
+        //
+        // But if the variable's OWN declared type is already a reference (e.g. a `$x: ref(of: T)`
+        // parameter), don't wrap it in a second one -- fall through to the ordinary path below, which
+        // returns $x's own value (itself already ref(of: T)) unchanged, correctly forwarding the
+        // existing reference instead of taking the address of the variable that holds it (see
+        // FUTURE_WORK.md's `ref(T)` item 5 -- forwarding a reference into another ref(T)-taking
+        // call must stay a plain value-copy of the reference, not a new level of referencing).
+        if (try_decompose_ref_of(env(), vartype)) return nullopt;
+        ref_type = make_ref_of_type(env(), vartype);
+    } else {
+        return nullopt;
+    }
 
     semantic::expression_span exprs_span;
     env().push_back_expression(expressions, exprs_span, semantic::push_local_variable_index{ .varid = varid });
     env().push_back_expression(expressions, exprs_span, semantic::invoke_function{ env().get(builtin_eid::ref_of) });
     return std::pair{
-        syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = expected_result.type, .is_const_result = false },
+        syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = ref_type, .is_const_result = false },
         false
     };
 }
