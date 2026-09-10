@@ -710,6 +710,18 @@ base_expression_visitor::result_type base_expression_visitor::operator()(fn_comp
             return apply_cast(syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = lvar.type, .is_const_result = false });
         },
         [this](functional_variable const& fvar) -> result_type {
+            // Unlike a `local_variable`, an `extern var` has no VM-managed storage slot at all --
+            // it's fetched/stored purely by name via an ecall (`extern_variable_get`/`_set`,
+            // `vm/compiler_visitor.hpp`), never a `blob_result` a `blob_reference` could point at.
+            // So there is no `try_take_reference` call here (contrast the `local_variable` branch
+            // above): referencing an extern variable is impossible by construction, not merely
+            // unimplemented -- reject it explicitly with a clear cause instead of falling through
+            // to `apply_cast`'s generic, uninformative cast-mismatch error. Mirrors
+            // `prepared_call.cpp`'s `deref()` rejection for the assignment-target path. See
+            // IMPLEMENTATION_NOTES.md's `ref(T)` section and RESOLVED.md's `ref(T)` item 3.
+            if (wants_reference(expected_result.modifier) || (expected_result.type && try_decompose_ref_of(env(), expected_result.type))) {
+                return std::unexpected(make_error<basic_general_error>(fvar.name.location, "cannot take a reference to an extern variable"sv, fvar.name.value));
+            }
             semantic::expression_span exprs_span;
             env().push_back_expression(expressions, exprs_span, semantic::push_variable{ fvar });
             return apply_cast(syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = fvar.type, .is_const_result = false });
