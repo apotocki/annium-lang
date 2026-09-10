@@ -96,21 +96,21 @@ struct constraint_matcher
             entity const& arg_res_entity = get_entity(env, arg_er.value());
             if (has(pd.modifier(), parameter_constraint_modifier_t::typename_value)) { // typename as constexpr value matching
                 if (arg_res_entity.get_type() != env.get(builtin_eid::typename_)) {
-                    return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, arg_er.value(), "a typename"sv));
+                    return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, arg_er.value(), "a typename"sv, pd.name().location));
                 }
                 type_or_value_to_match = arg_er.value();
             } else if (has(pd.modifier(), parameter_constraint_modifier_t::constexpr_not_a_typename_value)) { // a pattern-constrained parameter that is a constexpr value
                 if (arg_res_entity.get_type() == env.get(builtin_eid::typename_)) {
-                    return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, arg_er.value(), "a consteval"sv));
+                    return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, arg_er.value(), "a consteval"sv, pd.name().location));
                 }
                 type_or_value_to_match = arg_er.value();
             } else if (!has(pd.modifier(), parameter_constraint_modifier_t::constexpr_type)) {
-                return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, arg_er.value(), "a runtime value"sv));
+                return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, arg_er.value(), "a runtime value"sv, pd.name().location));
             } else {
                 type_or_value_to_match = arg_res_entity.get_type();
             }
         } else if (!has(pd.modifier(), parameter_constraint_modifier_t::runtime_type)) {
-            return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, arg_er.type(), "a compile time value"sv));
+            return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, arg_er.type(), "a compile time value"sv, pd.name().location));
         } else {
             type_or_value_to_match = arg_er.type();
         }
@@ -120,7 +120,7 @@ struct constraint_matcher
         if (err) {
             annotated_identifier param_name = pd.name();
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(param_name.location, "cannot match argument pattern"sv, param_name.value),
+                make_error<basic_general_error>(param_name.location, "cannot match argument pattern"sv, param_name.value, arg_descr.expression->location),
                 std::move(err)
             ));
         }
@@ -262,6 +262,14 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
                     cmatcher.has_cast = res->second;
                     argindex = argindex_for_default--;
                 } else if (param_it->is_required_value()) {
+                    // Deliberately no refloc pointing at a leftover unclaimed argument here (tried,
+                    // then reverted): `basic_general_error`'s refloc only ever renders as a bare
+                    // "see <location>" with no room for an explanation, which pointed at e.g. an
+                    // extra positional `10` without ever saying *why* it's relevant (that it's
+                    // unnamed and so invisible to this name-only parameter) -- more confusing than
+                    // helpful. `functional::find`'s call-site "required by" frame (see BUGFIXES.md)
+                    // already shows the whole call, which is enough for the reader to spot a stray
+                    // argument themselves once they know which parameter is missing.
                     match_errors.alternatives.emplace_back(make_error<basic_general_error>(param_name.location, "missing required argument"sv, param_name.value));
                     if (param_it != param_bit) --param_it;
                     if (try_backtrack(callee_ctx)) continue;

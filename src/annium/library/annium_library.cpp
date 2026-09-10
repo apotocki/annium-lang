@@ -564,14 +564,23 @@ void annium_ref_of(vm::context& ctx)
 }
 
 // Dereference: replace the ref(T) on top of stack with a genuine, independently-pinned copy of
-// the value it points to. unref() follows however many levels of blob_reference there are.
+// the value it points to -- EXACTLY one level, matching get(self: ~ref(of $T)) -> $T's own
+// single-unwrap contract (bootstrap.ann). NOT unref()/unref_ptr(), which chase through however
+// many chained blob_reference levels exist -- correct for the pre-nested-ref(T) code this was
+// written against (every chain was at most one level deep in practice, so "one level" and "fully
+// resolved" coincided), but wrong now that `self` can genuinely be ref(of: ref(of: T)): fully
+// chasing would silently collapse straight to the innermost T and reinterpret its raw bytes as
+// the (nonexistent) reference value $T = ref(of: U) is supposed to be, producing a corrupt
+// blob_reference to garbage -- see FUTURE_WORK.md's `ref(T)` item 4 and BUGFIXES.md. Mirrors
+// annium_ref_rebind's own one-level dereference just below (same reasoning, same fix shape).
 void annium_ref_get(vm::context& ctx)
 {
-    // NOT `ctx.stack_back().replace(smart_blob{ unref(*ctx.stack_back()) });` -- unref() returns
-    // by value (a prvalue), which would select smart_blob(blob_result&&) (no pin, see its ctor)
-    // instead of smart_blob(blob_result const&) (pins) -- silently leaving `need_unpin` unset on a
-    // blob that needs it, i.e. a refcount underflow on the target. Bind to a named lvalue first.
-    blob_result v = unref(*ctx.stack_back());
+    // NOT `ctx.stack_back().replace(smart_blob{ deref_one_level(*ctx.stack_back()) });` -- the
+    // result is returned by value (a prvalue), which would select smart_blob(blob_result&&) (no
+    // pin, see its ctor) instead of smart_blob(blob_result const&) (pins) -- silently leaving
+    // `need_unpin` unset on a blob that needs it, i.e. a refcount underflow on the target. Bind to
+    // a named lvalue first.
+    blob_result v = deref_one_level(*ctx.stack_back());
     ctx.stack_back().replace(smart_blob{ v });
 }
 

@@ -467,3 +467,59 @@ assert_equal(ra_ref + plain, 15);
 // self-as-a-reference calls above are completely unaffected (their direct call already succeeds),
 // confirmed by every assertion above this section still passing.
 assert_equal(p4x, 11); // p4 holds its own copy from construction
+
+// --- nested references (ref(of: ref(of: T))) -----------------------------------------------------
+// A reference-to-a-reference is a legitimate, deliberately un-auto-collapsed construction -- see
+// FUTURE_WORK.md's `ref(T)` item 4. get()/set()'s generic `self: ~ref(of $T)` pattern (bootstrap.ann)
+// captures whatever's inside the outer ref AS-IS, with no special-casing for $T itself being another
+// ref(of: U): each call unwraps exactly ONE level, symmetric with deref_call_pattern's operator
+// fallback (functional/general/deref_call_pattern.cpp) and rebind_pattern's own single outer level.
+// Reaching the innermost value takes an explicit second call, chained by hand -- the same principle
+// as nt.0.0 chaining two tuple-element get()s above, just one level of `ref` instead of `tuple`.
+
+fn read_through_nested($rr: ref(of: ref(of: i32))) -> i32 {
+    // get(self: $rr) unwraps ONE level -- yields the ref(of: i32) value $rr's target slot holds
+    // (an alias of whatever `qr` below currently points at), not the innermost i32.
+    let inner = get(self: $rr);
+    return get(self: inner);
+}
+
+fn write_through_nested($rr: ref(of: ref(of: i32)), delta: i32) {
+    let inner = get(self: $rr);
+    set(self: inner, value: get(self: inner) + delta);
+}
+
+let qa: i32 = runtime_cast(5);
+let qr = ref(qa); // qr: ref(of: i32)
+
+// Implicit coercion wraps qr's OWN slot -> ref(of: ref(of: i32)); confirmed by try_take_reference's
+// path (a) (base_expression_visitor.cpp): of_type (ref(of: i32), decomposed from the callee's
+// declared ref(of: ref(of: i32))) equals qr's own vartype (ref(of: i32)) exactly, so it takes a
+// reference to qr's storage rather than forwarding qr's existing reference unchanged.
+assert_equal(read_through_nested(qr), 5);
+write_through_nested(qr, delta: 10);
+assert_equal(qa, 15); // reached through two explicit levels
+assert_equal(get(self: qr), 15);
+
+// set() on a nested self writes through exactly ONE level: it overwrites the OUTER ref's target
+// slot with a brand-new ref(of: i32) value -- i.e. it silently repoints qr itself at a DIFFERENT
+// i32, rather than reaching through to whatever qr used to point at. This is item 4's resolved
+// answer: no special-casing was needed, set()'s existing generic signature already behaves this way.
+fn repoint_via_set($rr: ref(of: ref(of: i32)), newtarget: ref(of: i32)) {
+    set(self: $rr, value: newtarget);
+}
+
+let qb: i32 = runtime_cast(20);
+let qc: i32 = runtime_cast(30);
+let qr2 = ref(qb);
+
+repoint_via_set(qr2, newtarget: ref(qc));
+assert_equal(get(self: qr2), 30); // qr2 now points at qc, not qb
+assert_equal(qb, 20);             // qb itself untouched -- only qr2's OWN slot was overwritten
+assert_equal(qc, 30);
+
+// qr2's write-through now genuinely reaches qc, confirming the repoint took effect on qr2 itself
+// (not just a local copy inside repoint_via_set).
+set(self: qr2, value: 35);
+assert_equal(qc, 35);
+assert_equal(qb, 20); // still untouched
