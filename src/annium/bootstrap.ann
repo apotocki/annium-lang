@@ -177,8 +177,10 @@ inline viable fn::get(__result_wants_reference: bool = __call_wants_reference, s
 // T -> ref(T) conversion (which is the only way to produce a ref(T) value; a constexpr source is
 // rejected there, not here). get/set themselves stay deliberately explicit -- there's no type-level
 // ref(T) -> T decay -- but an ordinary operator/function call on a ref(T) argument still works with
-// no per-call changes needed: base_expression_visitor::operator()(FnIdT&&, args) retries a failed
-// call with any ref(of: T)-typed argument transparently unwrapped via get(...) first. See
+// no per-call changes needed: a failed call falls back to `deref_call` (functional/general/
+// deref_call_pattern.cpp), which retries with any ref(of: T)-typed argument transparently unwrapped
+// via get(...) first -- and, being an ordinary low-weight functional pattern, can be overridden by
+// a more specific `.ann`-declared `deref_call` overload if ever needed. See
 // IMPLEMENTATION_NOTES.md's `ref(T)` section.
 typefn ref(of: typename);
 inline fn get(self: ~ref(of $T)) -> $T => reinterpret(__ref_get(self));

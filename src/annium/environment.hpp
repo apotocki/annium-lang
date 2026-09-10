@@ -76,6 +76,7 @@ class arena;
     ((array, "array"sv))                   \
     ((ref, "ref"sv))                       \
     ((rebind, "rebind"sv))                 \
+    ((deref_call, "deref_call"sv))         \
     ((function, "function"sv))             \
     ((functor, "functor"sv))               \
     ((data, "data"sv))                     \

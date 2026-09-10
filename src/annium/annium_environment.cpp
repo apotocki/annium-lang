@@ -25,6 +25,7 @@
 #include "annium/functional/general/deref_pattern.hpp"
 #include "annium/functional/general/ref_pattern.hpp"
 #include "annium/functional/general/rebind_pattern.hpp"
+#include "annium/functional/general/deref_call_pattern.hpp"
 #include "annium/functional/general/equal_pattern.hpp"
 #include "annium/functional/general/typeof_pattern.hpp"
 #include "annium/functional/general/to_string_pattern.hpp"
@@ -1521,6 +1522,14 @@ environment::environment()
     // auto-references can't also carry a `$T` structural capture) -- see rebind_pattern.cpp.
     functional& rebind_fnl = fregistry_resolve(get(builtin_qnid::rebind));
     rebind_fnl.push(make_shared<rebind_pattern>());
+
+    // deref_call(method: constexpr qname, args: ...) -- last-resort fallback base_expression_
+    // visitor::operator()(FnIdT&&, args) reaches for when a direct call finds nothing: retries
+    // `method` with any ref(of: T)-typed argument dereferenced first. Low weight (default_pattern_
+    // implementation_weight) -- an `.ann`-declared overload on the same functional can intercept
+    // specific cases ahead of this generic one. See deref_call_pattern.cpp.
+    functional& deref_call_fnl = fregistry_resolve(get(builtin_qnid::deref_call));
+    deref_call_fnl.push(make_shared<deref_call_pattern>());
 
     // operator...(type: typename)
     functional& ellipsis_fnl = fregistry_resolve(get(builtin_qnid::ellipsis));

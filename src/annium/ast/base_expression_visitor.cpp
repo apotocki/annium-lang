@@ -207,54 +207,6 @@ optional<base_expression_visitor::result_type> base_expression_visitor::try_take
     };
 }
 
-optional<small_vector<opt_named_expression_t, 8>> base_expression_visitor::try_deref_ref_arguments(span<const opt_named_expression_t> args) const
-{
-    small_vector<opt_named_expression_t, 8> result;
-    result.reserve(args.size());
-    bool any_deref = false;
-
-    for (opt_named_expression_t const& arg : args) {
-        auto [pname, expr] = *arg;
-
-        // Resolve the argument entirely on its own -- unconstrained, exactly the way the failed
-        // call's own try_match would have resolved it in isolation. A discarded resolution attempt
-        // is a dead, unspliced expression_list_t span -- safe to abandon if it turns out this
-        // argument isn't ref-typed after all (see IMPLEMENTATION_NOTES.md's `ref(T)` section, "A
-        // discarded resolution attempt...").
-        auto peek = base_expression_visitor::visit(ctx, expressions, expected_result_t{}, expr);
-        if (!peek) return nullopt; // can't safely build a retry if an argument doesn't even resolve alone
-
-        syntax_expression_result& per = peek->first;
-        entity_identifier ref_of = try_decompose_ref_of(env(), get_result_type(env(), per));
-
-        if (ref_of) {
-            call_builder get_call{ expr.location };
-            get_call.emplace_back(env().get(builtin_id::self), make_indirect_value(env(), expressions, std::move(per), expr.location));
-            auto deref_res = ctx.find_and_apply(builtin_qnid::get, get_call, expressions, expected_result_t{});
-            if (!deref_res) return nullopt;
-            per = std::move(*deref_res);
-            any_deref = true;
-        }
-
-        // per may still be a constexpr (const) result here -- e.g. an ordinary literal argument
-        // that was never ref-typed in the first place (ref(T) itself is always runtime, never
-        // const, so the ref_of branch above always leaves per as a runtime result; this matters
-        // for every OTHER, unrelated argument of the same failed call). make_indirect_value asserts
-        // !is_const_result -- make_indirect_expression is its const-result counterpart.
-        syntax_expression new_expr = per.is_const_result
-            ? make_indirect_expression(env(), expressions, std::move(per), expr.location)
-            : make_indirect_value(env(), expressions, std::move(per), expr.location);
-        if (pname) {
-            result.emplace_back(*pname, std::move(new_expr));
-        } else {
-            result.emplace_back(std::move(new_expr));
-        }
-    }
-
-    if (!any_deref) return nullopt; // nothing to retry differently -- let the original error stand
-    return result;
-}
-
 base_expression_visitor::result_type base_expression_visitor::operator()(local_variable_expression const& lv) const
 {
     if (auto refres = try_take_reference(lv.type, lv.varid, false); refres) return std::move(*refres);
