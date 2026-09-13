@@ -322,6 +322,25 @@ void annium_tostring(vm::context & ctx)
     ctx.stack_push(std::move(r));
 }
 
+// Backs bootstrap.ann's `to_fancy_string(self, base, group_sz, group_sep, showbase)`, a thin
+// wrapper over numetron::fancy_print (integer_view.hpp) for human-readable, grouped-digit display.
+void annium_to_fancy_string(vm::context& ctx)
+{
+    numetron::integer_view v = ctx.stack_back(4).as<numetron::integer_view>();
+    uint32_t base = ctx.stack_back(3).as<uint32_t>();
+    uint8_t group_sz = ctx.stack_back(2).as<uint8_t>();
+    string_view group_sep = ctx.stack_back(1).as<string_view>();
+    bool showbase = ctx.stack_back().as<bool>();
+
+    std::ostringstream res;
+    numetron::fancy_print(res, v, base, group_sz, group_sep, showbase);
+
+    ctx.stack_pop(4);
+    smart_blob r{ string_blob_result(res.str()) };
+    r.allocate();
+    ctx.stack_back().replace(std::move(r));
+}
+
 void annium_print_string(vm::context& ctx)
 {
     size_t argcount = ctx.stack_back().as<size_t>();
@@ -431,7 +450,7 @@ void annium_unfold(vm::context& ctx)
 
 void annium_array_size(vm::context& ctx)
 {
-    auto arr = ctx.stack_back(1).as<blob_result>();
+    auto arr = ctx.stack_back().as<blob_result>();
     if (!is_array(arr)) {
         throw exception("expected array, got %1%"_fmt % arr);
     }
@@ -519,6 +538,135 @@ void annium_array_set_at(vm::context& ctx)
     ctx.stack_pop(2);
 }
 
+// NOTE: this is deliberately NOT vm::context::referify() -- that method (and weak_create/
+// weak_lock alongside it) was sketched out for a different, never-finished weak/strong-object-
+// reference feature and mutates the target slot itself into a blob_reference pointing AT ITSELF,
+// which is unusable for a general "reference to a variable": dereferencing it (unref()) would
+// loop forever, since the slot's own bytes never stop reading back as a reference to themselves.
+// What we need instead is a NEW, separate blob_reference whose payload_ptr points at the ORIGINAL
+// slot, which itself is left completely untouched -- so reads/writes through the reference reach
+// a genuine, non-reference value. The absolute stack index is computed at compile time (see
+// base_expression_visitor::try_take_reference / semantic::push_local_variable_index) and pushed
+// by the caller; the target slot's address is safe to take and hold onto because the stack is a
+// std::deque (see BUGFIXES.md's `deque` entry).
+//
+// reference_blob_result's `false` here is load-bearing, not cosmetic -- see BUGFIXES.md's
+// `reference_blob_result silently snapshotted instead of aliasing` entry: its default
+// (`allocate=true`, added for the pre-existing weak/strong-reference sketch) copies the target's
+// bytes into a fresh heap buffer and repoints payload_ptr at THAT COPY, producing a frozen
+// snapshot rather than a live alias.
+void annium_ref_of(vm::context& ctx)
+{
+    size_t index = ctx.stack_back().as<size_t>();
+    ctx.stack_pop();
+    auto& target = ctx.stack_at(index);
+    ctx.stack_push(smart_blob{ reference_blob_result(*target, false) });
+}
+
+// Dereference: replace the ref(T) on top of stack with a genuine, independently-pinned copy of
+// the value it points to -- EXACTLY one level, matching get(self: ~ref(of $T)) -> $T's own
+// single-unwrap contract (bootstrap.ann). NOT unref()/unref_ptr(), which chase through however
+// many chained blob_reference levels exist -- correct for the pre-nested-ref(T) code this was
+// written against (every chain was at most one level deep in practice, so "one level" and "fully
+// resolved" coincided), but wrong now that `self` can genuinely be ref(of: ref(of: T)): fully
+// chasing would silently collapse straight to the innermost T and reinterpret its raw bytes as
+// the (nonexistent) reference value $T = ref(of: U) is supposed to be, producing a corrupt
+// blob_reference to garbage -- see FUTURE_WORK.md's `ref(T)` item 4 and BUGFIXES.md. Mirrors
+// annium_ref_rebind's own one-level dereference just below (same reasoning, same fix shape).
+void annium_ref_get(vm::context& ctx)
+{
+    // NOT `ctx.stack_back().replace(smart_blob{ deref_one_level(*ctx.stack_back()) });` -- the
+    // result is returned by value (a prvalue), which would select smart_blob(blob_result&&) (no
+    // pin, see its ctor) instead of smart_blob(blob_result const&) (pins) -- silently leaving
+    // `need_unpin` unset on a blob that needs it, i.e. a refcount underflow on the target. Bind to
+    // a named lvalue first.
+    blob_result v = deref_one_level(*ctx.stack_back());
+    ctx.stack_back().replace(smart_blob{ v });
+}
+
+// Write-through: smart_blob::operator= already special-cases a destination that currently holds
+// a blob_reference (writes through to the pointed-to slot instead of clobbering the reference
+// itself) -- this is the same mechanism ordinary local-variable assignment relies on, reused here
+// as-is. Only the trailing `value` argument is popped, leaving `self` (now updated) on the stack
+// as the result, matching annium_array_set_at's convention just above.
+void annium_ref_set(vm::context& ctx)
+{
+    smart_blob value = std::move(ctx.stack_back());
+    ctx.stack_pop();
+    ctx.stack_back() = std::move(value);
+}
+
+// Rebind: given self as an OUTER reference to a ref(of: T)-typed variable's own SLOT (see
+// rebind_pattern.cpp -- self is resolved through try_take_reference's caller-prescribed-exact-type
+// path with an explicit ref(of: ref(of: T)) expected type, NOT the plain `~ref(of $T)` self
+// get()/set() use, which would only hand back a COPY of the variable's current value, not a handle
+// onto the variable's own storage), overwrite that slot's own bytes wholesale with a genuinely NEW
+// ref(of: T) value -- the rare counterpart to annium_ref_set's write-through.
+//
+// `operator=`/annium_ref_set can't be reused here: their whole point is writing a plain VALUE
+// through to whatever a reference currently points at (smart_blob::operator='s is_ref(type)
+// branch always unref()s its rhs first) -- exactly the opposite of what rebind needs (install a
+// NEW reference itself, not follow the old one and overwrite what IT points at).
+void annium_ref_rebind(vm::context& ctx)
+{
+    smart_blob new_ref = std::move(ctx.stack_back());
+    ctx.stack_pop();
+
+    // self (now stack_back()) is the OUTER reference; dereference EXACTLY one level (not
+    // unref_ptr's full chase, which would walk straight through the variable's CURRENT reference
+    // value into whatever IT points at) to reach the variable's own, real, persistent storage.
+    blob_result const& outer = *ctx.stack_back();
+    blob_result* target_slot = mutable_data_of<blob_result>(outer);
+
+    // Overwrite the slot's own bytes -- mirrors smart_blob::operator='s own
+    // mutable_data_of<blob_result>(*this) + explicit pin/unpin idiom (its is_ref(type) branch),
+    // except installing the new reference itself rather than writing a dereferenced value through it.
+    blob_result_unpin(target_slot);
+    *target_slot = *new_ref;
+    blob_result_pin(target_slot);
+
+    // Leave the freshly-installed ref(of: T) value itself as this call's own result, matching
+    // rebind_pattern::apply's declared return shape.
+    ctx.stack_back().replace(std::move(new_ref));
+}
+
+// Turns a ref(of: TupleType) (aliasing the tuple's own persistent storage -- see annium_ref_of)
+// plus a runtime field index into a ref(of: E) to that specific element, for a tuple with more
+// than one runtime field (see tuple_get_pattern.cpp). Deliberately does NOT do
+// `ctx.stack_back(1).as<blob_result>()`: that would COPY the tuple's blob_result, and for an
+// inplace (<=14-byte) tuple the element data lives INSIDE that struct -- data_of<> on a copy would
+// point into a temporary that dies with this call, not into the variable's real storage. Chasing
+// pointers via unref_ptr() instead reaches the actual, persistent tuple blob.
+void annium_ref_at(vm::context& ctx)
+{
+    size_t idx = ctx.stack_back().as<size_t>();
+    blob_result const* arr = unref_ptr(*ctx.stack_back(1));
+    if (!is_array(*arr)) {
+        throw exception("expected array, got %1%"_fmt % *arr);
+    }
+    smart_blob result = blob_type_selector(*arr, [idx](auto ident, blob_result const& b) -> blob_result {
+        using type = typename decltype(ident)::type;
+        if constexpr (std::is_same_v<type, std::nullptr_t> || std::is_void_v<type> || std::is_same_v<type, sonia::invocation::object>) {
+            THROW_INTERNAL_ERROR("unexpected array element type");
+        } else {
+            using fstype = std::conditional_t<std::is_same_v<type, bool>, uint8_t, type>;
+            size_t sz = array_size_of<fstype>(b);
+            if (idx >= sz) {
+                throw exception("index out of range");
+            }
+            fstype* e = const_cast<fstype*>(data_of<fstype>(b)) + idx;
+            if constexpr (std::is_same_v<fstype, blob_result>) {
+                return reference_blob_result(*e, false); // boxed tuple: element already is a blob_result
+            } else {
+                blob_type decayed = (blob_type)(((uint8_t)b.type) & 0x7f);
+                return raw_reference_blob_result(e, decayed, sizeof(fstype)); // packed tuple
+            }
+        }
+    });
+    ctx.stack_pop();
+    ctx.stack_back().replace(std::move(result));
+}
+
 void annium_array_tail(vm::context& ctx)
 {
     auto arr = ctx.stack_back().as<blob_result>();
@@ -568,10 +716,7 @@ void annium_array_tail(vm::context& ctx)
 
 void annium_logical_not(vm::context& ctx)
 {
-    auto val = *ctx.stack_back();
-    while (val.type == blob_type::blob_reference) {
-        val = *data_of<blob_result>(val);
-    }
+    auto val = unref(*ctx.stack_back());
     val = blob_type_selector(val, [](auto ident, blob_result const& b) {
         using type = typename decltype(ident)::type;
         if (!is_array(b)) {
@@ -593,10 +738,7 @@ void annium_logical_not(vm::context& ctx)
 
 void annium_unary_minus(vm::context& ctx)
 {
-    auto val = *ctx.stack_back();
-    while (val.type == blob_type::blob_reference) {
-        val = *data_of<blob_result>(val);
-    }
+    auto val = unref(*ctx.stack_back());
     val = blob_type_selector(val, [](auto ident, blob_result const& b) -> blob_result {
         using type = typename decltype(ident)::type;
         if (!is_array(b)) {
@@ -678,6 +820,48 @@ void annium_operator_div_numeric(vm::context& ctx)
     smart_blob const& r = ctx.stack_back();
     builtin_eid result_type = strongest_numeric_type(numeric_builtin_eid_of(*l), numeric_builtin_eid_of(*r));
     smart_blob res = divide_numeric(l, r, result_type);
+
+    ctx.stack_pop();
+    ctx.stack_back().replace(std::move(res));
+}
+
+void annium_operator_bitand_numeric(vm::context& ctx)
+{
+    smart_blob const& l = ctx.stack_back(1);
+    smart_blob const& r = ctx.stack_back();
+    builtin_eid result_type = strongest_numeric_type(numeric_builtin_eid_of(*l), numeric_builtin_eid_of(*r));
+    smart_blob res = bit_and_numeric(l, r, result_type);
+
+    ctx.stack_pop();
+    ctx.stack_back().replace(std::move(res));
+}
+
+void annium_operator_bitor_numeric(vm::context& ctx)
+{
+    smart_blob const& l = ctx.stack_back(1);
+    smart_blob const& r = ctx.stack_back();
+    builtin_eid result_type = strongest_numeric_type(numeric_builtin_eid_of(*l), numeric_builtin_eid_of(*r));
+    smart_blob res = bit_or_numeric(l, r, result_type);
+
+    ctx.stack_pop();
+    ctx.stack_back().replace(std::move(res));
+}
+
+void annium_operator_bitand_bool(vm::context& ctx)
+{
+    bool l = ctx.stack_back(1).as<bool>();
+    bool r = ctx.stack_back().as<bool>();
+    smart_blob res = bool_blob_result(l & r);
+
+    ctx.stack_pop();
+    ctx.stack_back().replace(std::move(res));
+}
+
+void annium_operator_bitor_bool(vm::context& ctx)
+{
+    bool l = ctx.stack_back(1).as<bool>();
+    bool r = ctx.stack_back().as<bool>();
+    smart_blob res = bool_blob_result(l | r);
 
     ctx.stack_pop();
     ctx.stack_back().replace(std::move(res));
@@ -849,6 +1033,66 @@ void annium_numeric_to_decimal(vm::context& ctx)
     smart_blob result{ decimal_blob_result(dv) };
     result.allocate();
     arg.replace(std::move(result));
+}
+
+// sqrt/log/floor/ceil/pow/round: f64-only for now (see FUTURE_WORK.md for decimal). Every operand is
+// read through numetron::decimal_view the same way annium_numeric_to_f64 is, so any numeric source
+// (fixed-width int, bigint, f16/f32/f64, decimal) is accepted -- these back bootstrap.ann's
+// `sqrt`/`log`/`floor`/`ceil`/`pow`/`round`, declared `runtime @numeric`, always returning f64.
+void annium_numeric_sqrt(vm::context& ctx)
+{
+    smart_blob& arg = ctx.stack_back();
+    double val = static_cast<double>(arg.as<numetron::decimal_view>());
+    arg.replace(smart_blob{ f64_blob_result(std::sqrt(val)) });
+}
+
+void annium_numeric_log(vm::context& ctx)
+{
+    smart_blob& arg = ctx.stack_back();
+    double val = static_cast<double>(arg.as<numetron::decimal_view>());
+    arg.replace(smart_blob{ f64_blob_result(std::log(val)) });
+}
+
+void annium_numeric_floor(vm::context& ctx)
+{
+    smart_blob& arg = ctx.stack_back();
+    double val = static_cast<double>(arg.as<numetron::decimal_view>());
+    arg.replace(smart_blob{ f64_blob_result(std::floor(val)) });
+}
+
+void annium_numeric_ceil(vm::context& ctx)
+{
+    smart_blob& arg = ctx.stack_back();
+    double val = static_cast<double>(arg.as<numetron::decimal_view>());
+    arg.replace(smart_blob{ f64_blob_result(std::ceil(val)) });
+}
+
+void annium_numeric_pow(vm::context& ctx)
+{
+    double base = static_cast<double>(ctx.stack_back(1).as<numetron::decimal_view>());
+    double exponent = static_cast<double>(ctx.stack_back().as<numetron::decimal_view>());
+    ctx.stack_pop();
+    ctx.stack_back().replace(smart_blob{ f64_blob_result(std::pow(base, exponent)) });
+}
+
+void annium_numeric_round(vm::context& ctx)
+{
+    smart_blob& arg = ctx.stack_back();
+    double val = static_cast<double>(arg.as<numetron::decimal_view>());
+    arg.replace(smart_blob{ f64_blob_result(std::round(val)) });
+}
+
+// Rounds to at most `digits` digits after the decimal point (negative digits round to the left of
+// the point), same "scale, round-to-nearest, unscale" shape as the standard textbook approach --
+// unlike bootstrap.ann's decimal `divide(...)`, this is f64 arithmetic so there's no exactness
+// concern to guard (a plain std::round of the scaled value is sufficient).
+void annium_numeric_round_digits(vm::context& ctx)
+{
+    double val = static_cast<double>(ctx.stack_back(1).as<numetron::decimal_view>());
+    double digits = static_cast<double>(ctx.stack_back().as<numetron::decimal_view>());
+    ctx.stack_pop();
+    double scale = std::pow(10.0, digits);
+    ctx.stack_back().replace(smart_blob{ f64_blob_result(std::round(val * scale) / scale) });
 }
 
 class annium_callable : public invocation::callable

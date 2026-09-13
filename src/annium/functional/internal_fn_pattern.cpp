@@ -42,7 +42,9 @@ std::expected<functional_match_descriptor_ptr, error_storage> internal_fn_patter
     if (!tg) return std::unexpected(
         make_error<circular_dependency_error>(make_error<basic_general_error>(location, "function build failed"sv, fne.id))
     );
-    if (fne.is_built()) return res; // already checked for vailability
+    if (fne.is_built()) {
+        return res; // already checked for vailability
+    }
     if (fne.build_errors || (fne.build_errors = fne.build())) {
         fne.set_provision(true); // this definition will be used as a provision only
         return std::unexpected(append_cause(

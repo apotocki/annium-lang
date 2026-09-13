@@ -164,6 +164,7 @@
     <None Include="..\..\..\tests\test-suite\arithmetic.ann" />
     <None Include="..\..\..\tests\test-suite\array_operations.ann" />
     <None Include="..\..\..\tests\test-suite\basic_print.ann" />
+    <None Include="..\..\..\tests\test-suite\bitwise.ann" />
     <None Include="..\..\..\tests\test-suite\boolean_logic.ann" />
     <None Include="..\..\..\tests\test-suite\callables.ann" />
     <None Include="..\..\..\tests\test-suite\casts.ann" />
@@ -181,8 +182,11 @@
     <None Include="..\..\..\tests\test-suite\includee.ann" />
     <None Include="..\..\..\tests\test-suite\includer.ann" />
     <None Include="..\..\..\tests\test-suite\match_priority.ann" />
+    <None Include="..\..\..\tests\test-suite\math_functions.ann" />
     <None Include="..\..\..\tests\test-suite\numeric_limits.ann" />
+    <None Include="..\..\..\tests\test-suite\references.ann" />
     <None Include="..\..\..\tests\test-suite\std.ann" />
+    <None Include="..\..\..\tests\test-suite\to_fancy_string.ann" />
     <None Include="..\..\..\tests\test-suite\tuple_operations.ann" />
     <None Include="..\..\..\tests\test-suite\unions.ann" />
     <None Include="..\..\..\tests\test-suite\whiles.ann" />

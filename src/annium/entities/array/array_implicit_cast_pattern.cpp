@@ -15,6 +15,8 @@
 #include "annium/errors/type_mismatch_error.hpp"
 #include "annium/errors/cast_error.hpp"
 
+#include "sonia/utility/invocation/invocation.hpp"
+
 namespace annium {
 
 class array_implicit_cast_match_descriptor : public functional_match_descriptor
@@ -111,9 +113,8 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_implicit_cas
         }
     } else {
         //value_modifier_t arg_mod = can_be_only_runtime(exp.modifier) ? value_modifier_t::runtime_value : value_modifier_t::constexpr_value;
-        entity_signature const* arg_data = get_entity(env, er.value()).signature();
-        BOOST_ASSERT(arg_data && arg_data->name == env.get(builtin_qnid::data));
-            
+        small_vector<entity_identifier, 8> element_ids = const_array_element_ids(env, er.value(), arg_element_type_eid);
+
         alt_error cast_errors;
 
         if (!can_be_only_runtime(exp.modifier)) {
@@ -121,18 +122,18 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_implicit_cas
 
             if (arg_element_type_eid == result_arr_element_type_eid) {
                 // we can just change the type of data and return
-                for (field_descriptor const& fd : arg_data->fields()) { res_vec_sig.push_back(fd); }
+                for (entity_identifier eid : element_ids) { res_vec_sig.emplace_back(eid, true); }
             } else {
                 // try to do constexpr casts and result
-                for (field_descriptor const& fd : arg_data->fields()) {
+                for (entity_identifier eid : element_ids) {
                     semantic::managed_expression_list temp_expressions{ env };
                     call_builder cast_call{ call.location };
-                    cast_call.emplace_back(argloc, fd.entity_id());
+                    cast_call.emplace_back(argloc, eid);
                     auto res = ctx.find_and_apply(builtin_qnid::implicit_cast, cast_call, temp_expressions,
                         expected_result_t{ .type = result_arr_element_type_eid, .location = exp.location, .modifier = value_modifier_t::constexpr_value });
                     if (!res) {
                         error_storage err = append_cause(
-                            make_error<basic_general_error>(call.location, "cannot cast constexpr array or vector type to constexpr vector type because element types are not compatible"sv, fd.entity_id()),
+                            make_error<basic_general_error>(call.location, "cannot cast constexpr array or vector type to constexpr vector type because element types are not compatible"sv, eid),
                             std::move(res.error()));
                         if (can_be_only_constexpr(exp.modifier)) return std::unexpected(std::move(err));
                         cast_errors.alternatives.emplace_back(std::move(err));
@@ -160,14 +161,14 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_implicit_cas
             .value_or_type = exp.type,
             .is_const_result = false
         });
-        for (field_descriptor const& fd : arg_data->fields()) {
+        for (entity_identifier eid : element_ids) {
             call_builder cast_call{ call.location };
-            cast_call.emplace_back(argloc, fd.entity_id());
+            cast_call.emplace_back(argloc, eid);
             auto res = ctx.find_and_apply(builtin_qnid::implicit_cast, cast_call, call.expressions,
                 expected_result_t{ .type = result_arr_element_type_eid, .location = exp.location, .modifier = value_modifier_t::runtime_value });
             if (!res) {
                 error_storage err = append_cause(
-                    make_error<basic_general_error>(call.location, "cannot cast constexpr array or vector type to runtime vector type because element types are not compatible"sv, fd.entity_id()),
+                    make_error<basic_general_error>(call.location, "cannot cast constexpr array or vector type to runtime vector type because element types are not compatible"sv, eid),
                     std::move(res.error()));
                 if (cast_errors.alternatives.empty()) {
                     return std::unexpected(std::move(err));
@@ -177,9 +178,9 @@ std::expected<functional_match_descriptor_ptr, error_storage> array_implicit_cas
             }
             append_semantic_result(call.expressions, *res, *pmd->result);
         }
-        env.push_back_expression(call.expressions, pmd->result->expressions, semantic::push_value{ smart_blob{ ui64_blob_result(arg_data->fields().size()) } });
+        env.push_back_expression(call.expressions, pmd->result->expressions, semantic::push_value{ smart_blob{ ui64_blob_result(element_ids.size()) } });
         env.push_back_expression(call.expressions, pmd->result->expressions, semantic::invoke_function{ env.get(builtin_eid::arrayify) });
-            
+
         pmd->append_arg(er, argloc);
         pmd->signature.result.emplace(exp.type, false);
     }

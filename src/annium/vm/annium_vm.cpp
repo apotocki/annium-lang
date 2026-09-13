@@ -161,7 +161,7 @@ size_t vm::context::callp(size_t ret_address)
         return pfinv->call(*this);
     }
     // external functor
-    auto sp = stack_span(0 /*2*/, std::abs(sigdescr) - 1);
+    auto sp = stack_subrange(0 /*2*/, std::abs(sigdescr) - 1);
     static_assert(sizeof(variable_type) == sizeof(blob_result));
     auto result = ftor(span{ (blob_result const*)sp.data(), sp.size() });
     stack_pop(std::abs(sigdescr) - 1);
@@ -391,7 +391,7 @@ void vm::context::call_function_object()
 {
     int64_t sigdescr = stack_back().as<int64_t>(); // (the number of args + 1) [ * (-1) if no result ]
     decltype(auto) ftor = stack_back(1).as<invocation::functor_object>();
-    auto sp = stack_span(2, std::abs(sigdescr) - 1);
+    auto sp = stack_subrange(2, std::abs(sigdescr) - 1);
     static_assert(sizeof(variable_type) == sizeof(blob_result));
     auto result = ftor(span{(blob_result const*)sp.data(), sp.size()});
     stack_pop(std::abs(sigdescr) + 1);

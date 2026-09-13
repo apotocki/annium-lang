@@ -1331,8 +1331,21 @@ void fn_compiler_context::append_stored_expressions(semantic::expression_list_t&
 
 error_storage fn_compiler_context::append_return(syntax_expression const& expr)
 {
-    expected_result_t exp{ .type = result_type, .location = expr.location, .modifier = value_modifier_t::constexpr_or_runtime_value };
-    
+    // result_wants_reference (read from this function's own bound `builtin_id::result_wants_reference`
+    // parameter, if it declared one, just before the body is compiled -- see
+    // internal_function_entity::build()) makes THIS specific build's return expression request a
+    // genuine reference, so a nested reference-aware pattern (e.g. tuple_get_pattern, reached through
+    // get(self: tuple_of(self), property: property)) keeps the reference instead of dereferencing it
+    // -- see basic_fn_pattern.cpp's try_match and IMPLEMENTATION_NOTES.md's `ref(T)` section for why
+    // this can't just be `runtime_value` always: a call that resolved that parameter to a different
+    // value (a caller that didn't want a reference) gets its own, separately-compiled instance
+    // instead of sharing this one.
+    expected_result_t exp{
+        .type = result_type,
+        .location = expr.location,
+        .modifier = result_wants_reference ? value_modifier_t::runtime_reference : value_modifier_t::constexpr_or_runtime_value
+    };
+
     semantic::managed_expression_list el{ environment_ };
     auto res = base_expression_visitor::visit(*this, el, exp, expr);
     if (!res) return std::move(res.error());

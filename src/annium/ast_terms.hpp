@@ -282,9 +282,17 @@ struct not_empty_expression
 
 // consteval <expr> -- forces compile-time evaluation of an otherwise-runtime expression.
 // See CONSTEVAL_CTFE_PLAN.md.
+//
+// Optional guarded form: consteval(condition) <expr>. `condition` is null for the plain,
+// unconditional `consteval <expr>` above; when present, it must itself resolve to a compile-time
+// bool, and it decides whether `value` is forced through CTFE at all -- true keeps the plain
+// behavior, false leaves `value` to its ordinary constexpr-or-runtime interpretation (see
+// IMPLEMENTATION_NOTES.md's `consteval` section for why this makes a single definition serve both
+// a `runtime` and a `constexpr` parameter, e.g. `sqrt`).
 struct consteval_expression
 {
     syntax_expression const* value;
+    syntax_expression const* condition = nullptr;
 };
 
 struct new_expression
@@ -337,6 +345,14 @@ struct parameter
     default_spec default_value = required_t{};
 
     parameter_constraint_modifier_t modifier = parameter_constraint_modifier_t::constexpr_or_runtime_type;
+
+    // Only meaningful together with parameter_constraint_modifier_t::reference_type: `~ reference(EXPR)`
+    // evaluates EXPR (typically referencing an earlier parameter in the same pattern -- already
+    // matched and bound by the time this one is reached, since parameter_matcher.cpp matches
+    // parameters strictly in declaration order -- but any expression that folds to a compile-time
+    // bool works) to decide whether a reference is actually requested for this parameter. Null for a
+    // bare `~ reference` (unconditional, as before).
+    syntax_expression const* reference_condition = nullptr;
 };
 
 using parameter_list_t = small_vector<parameter, 4>;

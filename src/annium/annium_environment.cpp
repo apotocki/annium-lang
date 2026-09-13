@@ -23,10 +23,15 @@
 #include "annium/functional/general/runtime_cast_pattern.hpp"
 #include "annium/functional/general/qname_implicit_cast_pattern.hpp"
 #include "annium/functional/general/deref_pattern.hpp"
+#include "annium/functional/general/ref_pattern.hpp"
+#include "annium/functional/general/rebind_pattern.hpp"
+#include "annium/functional/general/deref_call_pattern.hpp"
 #include "annium/functional/general/equal_pattern.hpp"
 #include "annium/functional/general/typeof_pattern.hpp"
 #include "annium/functional/general/to_string_pattern.hpp"
 #include "annium/functional/general/logical_not_pattern.hpp"
+#include "annium/functional/general/bool_bit_and_pattern.hpp"
+#include "annium/functional/general/bool_bit_or_pattern.hpp"
 #include "annium/functional/general/is_const_pattern.hpp"
 #include "annium/functional/general/create_identifier_pattern.hpp"
 
@@ -39,6 +44,8 @@
 #include "annium/entities/literals/numeric_literal_minus_pattern.hpp"
 #include "annium/entities/literals/numeric_literal_mul_pattern.hpp"
 #include "annium/entities/literals/numeric_literal_div_pattern.hpp"
+#include "annium/entities/literals/numeric_literal_bit_and_pattern.hpp"
+#include "annium/entities/literals/numeric_literal_bit_or_pattern.hpp"
 
 #include "annium/entities/literals/string/string_implicit_cast_pattern.hpp"
 #include "annium/entities/literals/string/string_concat_pattern.hpp"
@@ -56,7 +63,6 @@
 #include "annium/entities/tuple/tuple_size_pattern.hpp"
 #include "annium/entities/tuple/tuple_get_pattern.hpp"
 #include "annium/entities/tuple/tuple_typename_get_pattern.hpp"
-#include "annium/entities/tuple/tuple_set_pattern.hpp"
 #include "annium/entities/tuple/tuple_empty_pattern.hpp"
 #include "annium/entities/tuple/tuple_head_pattern.hpp"
 #include "annium/entities/tuple/tuple_tail_pattern.hpp"
@@ -66,10 +72,8 @@
 #include "annium/entities/tuple/tuple_project_size_pattern.hpp"
 
 #include "annium/entities/struct/struct_new_pattern.hpp"
-#include "annium/entities/struct/struct_get_pattern.hpp"
 //#include "entities/struct/struct_implicit_cast_pattern.hpp"
 #include "annium/entities/struct/struct_init_pattern.hpp"
-#include "annium/entities/struct/struct_set_pattern.hpp"
 #include "annium/entities/struct/is_struct_pattern.hpp"
 #include "annium/entities/struct/tuple_of_pattern.hpp"
 #include "annium/entities/literals/numeric_pattern.hpp"
@@ -1508,6 +1512,25 @@ environment::environment()
     functional& deref_fnl = fregistry_resolve(get(builtin_qnid::deref));
     deref_fnl.push(make_shared<deref_pattern>());
 
+    // ref(self: runtime auto) -> ref(of: auto) -- alongside typefn ref(of: typename) (bootstrap.ann)
+    functional& ref_fnl = fregistry_resolve(get(builtin_qnid::ref));
+    ref_fnl.push(make_shared<ref_pattern>());
+
+    // rebind(self: ref(of: T), value: runtime ref(of: T)) -> ref(of: T) -- native, not `.ann`-
+    // declared: needs a genuine reference to self's OWN slot (ref(of: ref(of: T))), which the
+    // ordinary `.ann` generic-parameter machinery can't express (a named type constraint that
+    // auto-references can't also carry a `$T` structural capture) -- see rebind_pattern.cpp.
+    functional& rebind_fnl = fregistry_resolve(get(builtin_qnid::rebind));
+    rebind_fnl.push(make_shared<rebind_pattern>());
+
+    // deref_call(method: constexpr qname, args: ...) -- last-resort fallback base_expression_
+    // visitor::operator()(FnIdT&&, args) reaches for when a direct call finds nothing: retries
+    // `method` with any ref(of: T)-typed argument dereferenced first. Low weight (default_pattern_
+    // implementation_weight) -- an `.ann`-declared overload on the same functional can intercept
+    // specific cases ahead of this generic one. See deref_call_pattern.cpp.
+    functional& deref_call_fnl = fregistry_resolve(get(builtin_qnid::deref_call));
+    deref_call_fnl.push(make_shared<deref_call_pattern>());
+
     // operator...(type: typename)
     functional& ellipsis_fnl = fregistry_resolve(get(builtin_qnid::ellipsis));
     ellipsis_fnl.push(make_shared<ellipsis_pattern>());
@@ -1580,9 +1603,18 @@ environment::environment()
     auto union_pattern = make_shared<union_bit_or_pattern>();
     functional& bit_or_fnl = fregistry_resolve(get(builtin_qnid::bit_or));
     bit_or_fnl.push(union_pattern);
+    bit_or_fnl.push(make_shared<numeric_literal_bit_or_pattern>());
+    bit_or_fnl.push(make_shared<bool_bit_or_pattern>());
 
     functional& union_fnl = fregistry_resolve(get(builtin_qnid::union_));
     union_fnl.push(union_pattern);
+
+    // "__bit_and" also carries bootstrap.ann's `typename tuple($l...) & typename tuple($r...)`
+    // compile-time tuple-concatenation overload (see bootstrap.ann) -- these two just add the
+    // runtime integer/bool overloads under the same qname.
+    functional& bit_and_fnl = fregistry_resolve(get(builtin_qnid::bit_and));
+    bit_and_fnl.push(make_shared<numeric_literal_bit_and_pattern>());
+    bit_and_fnl.push(make_shared<bool_bit_and_pattern>());
 
     // apply(union(...), visitor) -> auto  
     functional& apply_fnl = fregistry_resolve(get(builtin_qnid::apply));
@@ -1602,13 +1634,7 @@ environment::environment()
     get_fnl.push(make_shared<tuple_get_pattern>());
     get_fnl.push(make_shared<fixed_array_get_pattern>());
     get_fnl.push(make_shared<tuple_project_get_pattern>());
-    //get_fnl.push(make_shared<struct_get_pattern>());
     get_fnl.push(make_shared<enum_get_pattern>());
-
-
-    functional& set_fnl = fregistry_resolve(get(builtin_qnid::set));
-    set_fnl.push(make_shared<tuple_set_pattern>());
-    set_fnl.push(make_shared<struct_set_pattern>());
 
     // size(signatured_entity)->integer
     functional& sz_fnl = fregistry_resolve(get(builtin_qnid::size));
@@ -1674,12 +1700,32 @@ environment::environment()
     builtin_eids_[(size_t)builtin_eid::array_tail] = set_builtin_extern("__array_tail(~runtime tuple(_, $t...))->tuple($t...)"sv, &annium_array_tail);
     builtin_eids_[(size_t)builtin_eid::array_at] = set_builtin_extern("__array_at()"sv, &annium_array_at);
     builtin_eids_[(size_t)builtin_eid::array_set_at] = set_builtin_extern("__array_set_at($arr: runtime, $index: runtime integer, $value)"sv, &annium_array_set_at);
+    // ref_of is only ever invoked via a direct semantic::invoke_function emitted by
+    // base_expression_visitor::try_take_reference(), preceded by a semantic::push_local_variable_index
+    // that pushes the target variable's absolute stack index (never resolved through ordinary call/
+    // implicit_cast matching -- see IMPLEMENTATION_NOTES.md's `ref(T)` section for why implicit_cast
+    // can't see the original variable by the time it would run). Deliberately NOT built on top of
+    // vm::context::referify() -- see the comment on annium_ref_of itself for why that method
+    // (sketched out for a separate, never-finished weak/strong-object-reference feature) isn't
+    // reusable here.
+    builtin_eids_[(size_t)builtin_eid::ref_of] = set_builtin_extern("__ref_of(runtime integer)-> any"sv, &annium_ref_of);
+    builtin_eids_[(size_t)builtin_eid::ref_get] = set_builtin_extern("__ref_get(runtime)-> any"sv, &annium_ref_get);
+    builtin_eids_[(size_t)builtin_eid::ref_set] = set_builtin_extern("__ref_set(runtime, runtime)->any"sv, &annium_ref_set);
+    // Like array_at/ref_at just below: never resolved through overload matching, always emitted
+    // directly by rebind_pattern once it's confirmed self is already ref(of: T) and re-resolved it
+    // as an OUTER reference to its own slot -- the signature string is inert.
+    builtin_eids_[(size_t)builtin_eid::ref_rebind] = set_builtin_extern("__ref_rebind()"sv, &annium_ref_rebind);
+    // Like array_at just above: never resolved through overload matching, always emitted directly
+    // by tuple_get_pattern once it's confirmed self is a plain variable and expected_result asks
+    // for a matching ref(of: E) -- the signature string is inert.
+    builtin_eids_[(size_t)builtin_eid::ref_at] = set_builtin_extern("__ref_at()"sv, &annium_ref_at);
     builtin_eids_[(size_t)builtin_eid::equal] = set_builtin_extern("__equal(runtime, runtime)->bool"sv, &annium_any_equal);
     builtin_eids_[(size_t)builtin_eid::less] = set_builtin_extern("__less(runtime @numeric, runtime @numeric)->bool"sv, &annium_numeric_less);
     builtin_eids_[(size_t)builtin_eid::assert] = set_builtin_extern("__assert(runtime)"sv, &annium_assert);
     builtin_eids_[(size_t)builtin_eid::string_empty] = set_builtin_extern("empty(runtime string)->bool"sv, &annium_string_empty);
     builtin_eids_[(size_t)builtin_eid::string_size] = set_builtin_extern("size(runtime string)->integer"sv, &annium_string_size);
     builtin_eids_[(size_t)builtin_eid::to_string] = set_builtin_extern("__to_string(runtime)->string"sv, &annium_tostring);
+    set_builtin_extern("__to_fancy_string(runtime integer, runtime u32, runtime u8, runtime string, runtime bool)->string"sv, &annium_to_fancy_string);
     builtin_eids_[(size_t)builtin_eid::logical_not] = set_builtin_extern("__logical_not(runtime)->bool"sv, &annium_logical_not);
     builtin_eids_[(size_t)builtin_eid::unary_minus] = set_builtin_extern("__unary_minus(runtime)"sv, &annium_unary_minus);
     builtin_eids_[(size_t)builtin_eid::concat] = set_builtin_extern("__concat(runtime)->string"sv, &annium_concat);
@@ -1688,7 +1734,7 @@ environment::environment()
     //set_const_extern<to_string_pattern>("size(const metaobjct))->integer"sv);
 
     //set_extern<builtin_fn_pattern>("__error(mut string)"sv, &annium_error);
-    set_builtin_extern("__print(runtime ..., runtime integer)"sv, &annium_print_string);
+    set_builtin_extern("__print(runtime any ..., runtime integer)"sv, &annium_print_string);
 
     //set_extern("implicit_cast(to: typename string, _)->string"sv, &annium_tostring);
     //set_const_extern<to_string_pattern>("to_string(const __identifier)->string"sv);
@@ -1709,6 +1755,16 @@ environment::environment()
     set_builtin_extern("__to_f64(runtime @numeric)->f64"sv, &annium_numeric_to_f64);
     set_builtin_extern("__to_decimal(runtime @numeric)->decimal"sv, &annium_numeric_to_decimal);
 
+    // backing externs for bootstrap.ann's sqrt/log/floor/ceil/pow/round -- f64-only for now, see
+    // annium_numeric_sqrt's comment in annium_library.cpp.
+    set_builtin_extern("__sqrt(runtime @numeric)->f64"sv, &annium_numeric_sqrt);
+    set_builtin_extern("__log(runtime @numeric)->f64"sv, &annium_numeric_log);
+    set_builtin_extern("__floor(runtime @numeric)->f64"sv, &annium_numeric_floor);
+    set_builtin_extern("__ceil(runtime @numeric)->f64"sv, &annium_numeric_ceil);
+    set_builtin_extern("__pow(runtime @numeric, runtime @numeric)->f64"sv, &annium_numeric_pow);
+    set_builtin_extern("__round(runtime @numeric)->f64"sv, &annium_numeric_round);
+    set_builtin_extern("__round_digits(runtime @numeric, runtime @numeric)->f64"sv, &annium_numeric_round_digits);
+
     // backing externs for bootstrap.ann's f16/f32/f64 .inf/.nan typename-properties -- see the
     // comment above their annium_library.cpp implementations for why these need a real extern
     // instead of a plain literal like .min/.max use.
@@ -1724,8 +1780,8 @@ environment::environment()
     functional& numeric_cast_fnl = fregistry_resolve(qname{ make_identifier("numeric_cast"sv) });
     numeric_cast_fnl.push(make_shared<numeric_cast_constexpr_pattern>());
     set_builtin_extern("create_extern_object(runtime string)->object"sv, &annium_create_extern_object);
-    builtin_eids_[(size_t)builtin_eid::extern_invoke] = set_builtin_extern("__extern_invoke(runtime string, runtime ..., runtime u32)~>$R"sv, &annium_invoke);
-    builtin_eids_[(size_t)builtin_eid::extern_invoke_void] = set_builtin_extern("__extern_invoke(runtime string, runtime ..., runtime u32)~>()"sv, &annium_invoke_void);
+    builtin_eids_[(size_t)builtin_eid::extern_invoke] = set_builtin_extern("__extern_invoke(runtime string, runtime any ..., runtime u32)~>$R"sv, &annium_invoke);
+    builtin_eids_[(size_t)builtin_eid::extern_invoke_void] = set_builtin_extern("__extern_invoke(runtime string, runtime any ..., runtime u32)~>()"sv, &annium_invoke_void);
     //set_extern<builtin_fn_pattern>("set(self: object, property: const __identifier, any)"sv, &annium_set_object_property);
 
     set_builtin_extern("__set(runtime object, runtime string, runtime)->object"sv, &annium_set_object_property);
@@ -1741,6 +1797,10 @@ environment::environment()
     builtin_eids_[(size_t)builtin_eid::subtract_numeric] = set_builtin_extern("__minus_numeric(runtime @numeric, runtime @numeric)->any"sv, &annium_operator_minus_numeric);
     builtin_eids_[(size_t)builtin_eid::multiply_numeric] = set_builtin_extern("__mul_numeric(runtime @numeric, runtime @numeric)->any"sv, &annium_operator_mul_numeric);
     builtin_eids_[(size_t)builtin_eid::divide_numeric] = set_builtin_extern("__div_numeric(runtime @numeric, runtime @numeric)->any"sv, &annium_operator_div_numeric);
+    builtin_eids_[(size_t)builtin_eid::bitand_numeric] = set_builtin_extern("__bit_and_numeric(runtime @numeric, runtime @numeric)->any"sv, &annium_operator_bitand_numeric);
+    builtin_eids_[(size_t)builtin_eid::bitor_numeric] = set_builtin_extern("__bit_or_numeric(runtime @numeric, runtime @numeric)->any"sv, &annium_operator_bitor_numeric);
+    builtin_eids_[(size_t)builtin_eid::bitand_bool] = set_builtin_extern("__bit_and_bool(runtime bool, runtime bool)->bool"sv, &annium_operator_bitand_bool);
+    builtin_eids_[(size_t)builtin_eid::bitor_bool] = set_builtin_extern("__bit_or_bool(runtime bool, runtime bool)->bool"sv, &annium_operator_bitor_bool);
 
     // __isubtract: kept under its own private qname (distinct from the public "__minus" operator,
     // same reasoning as __unary_minus) purely so array_from_iterator_make_pattern.cpp can invoke it

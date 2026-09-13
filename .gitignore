@@ -12,9 +12,11 @@
 *.cmd
 *.sh
 *.md
+*.log
 !README.md
 !ANNIUM_SYNTAX.md
 !IMPLEMENTATION_NOTES.md
 !FUTURE_WORK.md
+!RESOLVED.md
 !BUGFIXES.md
 .github/*.md

@@ -11,8 +11,6 @@
 
 #include <boost/container/flat_set.hpp>
 
-#include "assign_expression_visitor.hpp"
-
 #include "annium/entities/prepared_call.hpp"
 #include "annium/entities/literals/literal_entity.hpp"
 #include "annium/entities/functions/internal_function_entity.hpp"
@@ -20,8 +18,9 @@
 #include "annium/functional/internal_fn_pattern.hpp"
 
 #include "annium/errors/cast_error.hpp"
+#include "annium/errors/assign_error.hpp"
 
-//#include "annium/auxiliary.hpp"
+#include "annium/auxiliary.hpp"
 
 namespace annium {
 
@@ -160,8 +159,57 @@ base_expression_visitor::result_type base_expression_visitor::operator()(indirec
     return apply_cast(retrieve_indirect(env(), expressions, v));
 }
 
+optional<base_expression_visitor::result_type> base_expression_visitor::try_take_reference(entity_identifier vartype, variable_identifier varid, bool is_weak) const
+{
+    if (is_weak || !can_be_runtime(expected_result.modifier)) return nullopt;
+
+    entity_identifier ref_type;
+    if (expected_result.type) {
+        entity_identifier of_type = try_decompose_ref_of(env(), expected_result.type);
+        if (!of_type) return nullopt;
+        // No coercion -- see IMPLEMENTATION_NOTES.md's `ref(T)` section. This is also what makes
+        // forwarding an already-`ref(of: T)`-typed parameter into another `ref(of: T)`-declared
+        // parameter (`foo($x)`, both `T`-typed) work correctly: `vartype` is already `ref(of: T)`,
+        // so `of_type` (`T`, decomposed from the callee's expected `ref(of: T)`) never equals it,
+        // this path declines, and the fall-through `apply_cast` sees the (already-reference) types
+        // match exactly and passes `$x` through as a plain value-copy of the reference -- correct
+        // aliasing, not a coercion. Covered by references.ann's `increment_via_forwarded_param`.
+        if (of_type != vartype) return nullopt;
+        ref_type = expected_result.type;
+    } else if (wants_reference(expected_result.modifier)) {
+        // No specific type prescribed -- the caller just wants *a* reference and will read the type
+        // back off the result (via try_decompose_ref_of) to learn what it got. Derive ref(of:...)
+        // from this variable's own real type instead of requiring it to already be known top-down --
+        // this is what lets a chained get()-pattern (tuple/array element access) resolve `self` as a
+        // reference in one pass instead of two. See IMPLEMENTATION_NOTES.md's `ref(T)` section.
+        //
+        // But if the variable's OWN declared type is already a reference (e.g. a `$x: ref(of: T)`
+        // parameter), don't wrap it in a second one -- fall through to the ordinary path below, which
+        // returns $x's own value (itself already ref(of: T)) unchanged, correctly forwarding the
+        // existing reference instead of taking the address of the variable that holds it. This is
+        // the guard against `ref(of: ref(of: T))` -- see FUTURE_WORK.md's `ref(T)` item 4 ("nested
+        // references"), still untested/unspecified beyond this guard. The OTHER forwarding case --
+        // `foo($x)` into an ordinary `ref(of: T)`-declared parameter, not an explicit `ref(...)`
+        // call -- goes through path (a) above instead (`of_type != vartype`), and is deliberate and
+        // tested (see that branch's comment and references.ann's `increment_via_forwarded_param`).
+        if (try_decompose_ref_of(env(), vartype)) return nullopt;
+        ref_type = make_ref_of_type(env(), vartype);
+    } else {
+        return nullopt;
+    }
+
+    semantic::expression_span exprs_span;
+    env().push_back_expression(expressions, exprs_span, semantic::push_local_variable_index{ .varid = varid });
+    env().push_back_expression(expressions, exprs_span, semantic::invoke_function{ env().get(builtin_eid::ref_of) });
+    return std::pair{
+        syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = ref_type, .is_const_result = false },
+        false
+    };
+}
+
 base_expression_visitor::result_type base_expression_visitor::operator()(local_variable_expression const& lv) const
 {
+    if (auto refres = try_take_reference(lv.type, lv.varid, false); refres) return std::move(*refres);
     semantic::expression_span exprs_span;
     env().push_back_expression(expressions, exprs_span, semantic::push_local_variable{ .varid = lv.varid });
     return apply_cast(syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = lv.type, .is_const_result = false });
@@ -656,6 +704,7 @@ base_expression_visitor::result_type base_expression_visitor::operator()(fn_comp
             return std::unexpected(make_error<undeclared_identifier_error>(context_expression_.location, qn));
         },
         [this](local_variable const& lvar) -> result_type {
+            if (auto refres = try_take_reference(lvar.type, lvar.varid, lvar.is_weak); refres) return std::move(*refres);
             semantic::expression_span exprs_span;
             env().push_back_expression(expressions, exprs_span, semantic::push_local_variable::create(lvar));
             return apply_cast(syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = lvar.type, .is_const_result = false });
@@ -1239,19 +1288,107 @@ base_expression_visitor::result_type base_expression_visitor::do_logic_or(binary
 
 base_expression_visitor::result_type base_expression_visitor::do_assign(binary_expression const& op) const
 {
-    //THROW_NOT_IMPLEMENTED_ERROR("base_expression_visitor binary_operator_type::ASSIGN");
-    //GLOBAL_LOG_INFO() << "left expression: " << ctx.env().print(op.left);
-    //size_t start_result_pos = result.size();
     BOOST_ASSERT(op.args.size() == 2);
-    assign_expression_visitor lvis{ ctx, expressions, context_expression_.location, op.args[0].value(), op.args[1].value() };
+    syntax_expression const& lhs = op.args[0].value();
+    syntax_expression const& rhs = op.args[1].value();
 
-    auto res = std::visit(lvis, op.args[0].value().value);
-    if (!res) return std::unexpected(std::move(res.error()));
+    // Fast path: a plain variable name writes directly into its own slot (set_local_variable /
+    // set_variable) UNLESS the variable's own declared type is itself `ref(of: T)` -- see the guard
+    // just below. Deliberately NOT routed through ref(...)/set(self: ~ref(of $T), value) for the
+    // ordinary case -- that would cost a real blob_reference construction and an extra indirection
+    // on every ordinary `x = value;`, the single hottest write path in the interpreter, just for the
+    // sake of using one uniform mechanism everywhere.
+    if (auto const* v = get_if<qname_reference_expression>(&lhs.value)) {
+        auto e = ctx.lookup_entity(v->name);
 
-    return apply_cast(std::move(res));
+        // But if `y`'s OWN declared type is already `ref(of: T)`, bare `y = value;` must NOT take
+        // that fast path: for such a `y`, plain assignment means "write through to the current
+        // target" (matching `arr[i] = v`/`t.field = v`, and matching what a caller who received a
+        // `ref(of: T)` parameter actually wants), not "rebind y to point somewhere else" --
+        // rebinding is a separate, explicit, deliberately rare operation (`rebind(self, value)`,
+        // functional/general/rebind_pattern.cpp). Falling through to the shared ref(lhs)+set(...) path below gets
+        // write-through for free: `ref(y)` on an already-reference-typed `y` hands back `y`'s own
+        // value unchanged (try_take_reference's "already a reference" guard), so `set(self: <that
+        // ref>, value: rhs)` writes through exactly as intended. See IMPLEMENTATION_NOTES.md's
+        // `ref(T)` section.
+        entity_identifier lhs_own_type;
+        if (auto const* lv = get_if<local_variable>(&e)) lhs_own_type = lv->type;
+        else if (auto const* fv = get_if<functional_variable>(&e)) lhs_own_type = fv->type;
 
-    //ctx.context_type = ctx.env().get(builtin_eid::void_);
-    //return std::pair{ semantic::managed_expression_list{ ctx.env() }, false };
+        if (!lhs_own_type || !try_decompose_ref_of(env(), lhs_own_type)) {
+            auto res = std::visit([this, v, &lhs, &rhs](auto& eid_or_var) -> std::expected<syntax_expression_result, error_storage> {
+                entity_identifier assign_type;
+                if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, local_variable>) {
+                    assign_type = eid_or_var.type;
+                } else if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, functional_variable>) {
+                    assign_type = eid_or_var.type;
+                } else {
+                    static_assert(std::is_same_v<std::decay_t<decltype(eid_or_var)>, entity_identifier>);
+                    if (!eid_or_var) return std::unexpected(make_error<undeclared_identifier_error>(lhs.location, v->name));
+                    return std::unexpected(make_error<assign_error>(context_expression_.location, lhs));
+                }
+
+                auto rres = base_expression_visitor::visit(
+                    ctx,
+                    expressions,
+                    expected_result_t{
+                        .type = assign_type,
+                        .location = context_expression_.location,
+                        .modifier = value_modifier_t::runtime_value },
+                    rhs);
+                if (!rres) return std::unexpected(std::move(rres.error()));
+                auto& ser = rres->first;
+                BOOST_ASSERT(!ser.is_const_result);
+
+                if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, local_variable>) {
+                    if (eid_or_var.is_weak) {
+                        THROW_NOT_IMPLEMENTED_ERROR("base_expression_visitor binary_operator_type::ASSIGN weak");
+                    }
+                    env().push_back_expression(expressions, ser.expressions, semantic::set_local_variable::create(eid_or_var));
+                } else if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, functional_variable>) {
+                    env().push_back_expression(expressions, ser.expressions, semantic::set_variable{ eid_or_var });
+                } else {
+                    THROW_INTERNAL_ERROR("unhandled base_expression_visitor::do_assign qname_reference_expression case");
+                }
+                return std::move(ser);
+            }, e);
+
+            return apply_cast(std::move(res));
+        }
+        // else: lhs is a plain `ref(of: T)`-typed variable -- fall through to the shared
+        // ref(lhs)+set(...) path below instead of the fast path above.
+    }
+
+    // Everything else (member access `.field`/`.0`, index access `[i]`, and a plain `ref(of: T)`-
+    // typed variable, see the guard above) prefers going through `ref(lhs)` + `set(self: ~ref(of
+    // $T), value: $T)` (bootstrap.ann) -- the same, already-proven machinery tuple/array element
+    // reads and mutation already use (see IMPLEMENTATION_NOTES.md's `ref(T)` section) -- rather than
+    // any per-lhs-shape special casing. This covers `t.0 = v`, `arr[i] = v`, and `y = v` (for a `y:
+    // ref(of: T)`) uniformly with no bespoke handler for any of them.
+    call_builder ref_call{ context_expression_.location };
+    ref_call.emplace_back(lhs);
+    if (auto ref_match = ctx.find(builtin_qnid::ref, ref_call, expressions); ref_match) {
+        auto ref_res = ref_match->apply(ctx);
+        if (!ref_res) return std::unexpected(std::move(ref_res.error()));
+
+        // `value` must be a NAMED argument here -- bootstrap.ann's `set(self: ~ref(of $T), value:
+        // runtime $T)` declares it by name, and an `.ann`-declared parameter's general matching
+        // machinery does not bind a positional argument to a differently-supplied named one.
+        call_builder set_call{ context_expression_.location };
+        set_call.emplace_back(env().get(builtin_id::self), make_indirect_value(env(), expressions, std::move(*ref_res), context_expression_.location));
+        set_call.emplace_back(env().make_identifier("value"sv), rhs);
+
+        auto match = ctx.find(builtin_qnid::set, set_call, expressions);
+        if (!match) {
+            return std::unexpected(append_cause(
+                make_error<assign_error>(context_expression_.location, lhs),
+                std::move(match.error())
+            ));
+        }
+        return apply_cast(match->apply(ctx));
+    }
+
+    return std::unexpected(make_error<assign_error>(context_expression_.location, lhs));
 }
 
 base_expression_visitor::result_type base_expression_visitor::do_cast(binary_expression const& be) const
@@ -1391,16 +1528,47 @@ base_expression_visitor::result_type base_expression_visitor::operator()(not_emp
 
 base_expression_visitor::result_type base_expression_visitor::operator()(consteval_expression const& ce) const
 {
+    // Guard for the `consteval(condition) expr` form (null `condition` is the plain, always-forced
+    // `consteval expr`). `condition` gets the same constexpr-or-runtime treatment as the operand
+    // below -- resolved normally first, and only pushed through evaluate_consteval if it didn't
+    // already fold to a compile-time value on its own -- since the condition must itself be a
+    // compile-time bool regardless of how it happens to be written.
+    bool forced = true;
+    if (ce.condition) {
+        auto cond_res = base_expression_visitor::visit(ctx, expressions,
+            expected_result_t{ .type = env().get(builtin_eid::boolean), .location = ce.condition->location },
+            *ce.condition);
+        if (!cond_res) return std::unexpected(std::move(cond_res.error()));
+        syntax_expression_result cond_er = cond_res->first;
+        if (!cond_er.is_const_result) {
+            auto cond_eval_res = evaluate_consteval(ctx, ce.condition->location, std::move(cond_er));
+            if (!cond_eval_res) return std::unexpected(std::move(cond_eval_res.error()));
+            cond_er = std::move(*cond_eval_res);
+        }
+        forced = static_cast<generic_literal_entity const&>(get_entity(env(), cond_er.value())).value().as<bool>();
+    }
+
     // Ordinary runtime semantics for the operand -- the same overloads a normal compilation
-    // would pick (CONSTEVAL_CTFE_PLAN.md section 3.1). No expected type/modifier is forced here:
-    // that's exactly what lets a `runtime` parameter materialise a constexpr literal argument
-    // the normal way, and what keeps this from becoming a second, competing constexpr-folding
-    // path alongside apply_cast's.
-    auto res = base_expression_visitor::visit(ctx, expressions, *ce.value);
+    // would pick (CONSTEVAL_CTFE_PLAN.md section 3.1). The *modifier* is deliberately left
+    // unconstrained (constexpr_or_runtime_value, the expected_result_t default): that's what lets
+    // a `runtime` parameter materialise a constexpr literal argument the normal way -- argument
+    // binding is driven by the callee's own parameter modifiers, not by this. The ambient *type*
+    // (from whatever expected_result this whole consteval_expression node was itself constructed
+    // with, e.g. the enclosing function's declared return type) IS forwarded, though: it plays no
+    // part in choosing between differently-named-the-same overload candidates (match_penalty.hpp
+    // has no type-vs-expected-type field at all -- only per-argument casts/placeholders/variadics
+    // feed overload ranking) and only two things can happen with it -- a pattern-typed/generic-
+    // result candidate (like `reinterpret`, which has no fixed return type of its own and requires
+    // a type up front) becomes matchable that otherwise couldn't be, or apply_cast below ends up
+    // with nothing left to do because the operand already produced the right type. Either way,
+    // a genuine tie still surfaces honestly as ambiguity_error, never a silent wrong pick.
+    auto res = base_expression_visitor::visit(ctx, expressions,
+        expected_result_t{ .type = expected_result.type, .location = ce.value->location }, *ce.value);
     if (!res) return std::unexpected(std::move(res.error()));
     syntax_expression_result& er = res->first;
-    if (er.is_const_result) {
-        // the operand already folded to a compile-time value on its own; nothing to evaluate
+    if (!forced || er.is_const_result) {
+        // the condition asked to skip CTFE, or the operand already folded to a compile-time value
+        // on its own; nothing to evaluate
         return apply_cast(std::move(er));
     }
     auto eval_res = evaluate_consteval(ctx, context_expression_.location, std::move(er));

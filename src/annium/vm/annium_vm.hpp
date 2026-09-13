@@ -4,6 +4,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <ranges>
 
 #include "sonia/variant.hpp"
 #include "sonia/shared_ptr.hpp"
@@ -182,13 +183,17 @@ public:
         return stack()[i];
     }
 
-    span<const variable_type> stack_span(size_t last_offset, size_t count) const
+    // a subrange rather than a span: the stack is a std::deque (see vm2.hpp's stack_type), whose
+    // storage isn't contiguous, but every caller just iterates the result, so a non-owning view
+    // over deque's own (random-access, just not contiguous) iterators is enough - no copy needed.
+    std::ranges::subrange<stack_type::const_iterator> stack_subrange(size_t last_offset, size_t count) const
     {
         size_t ssz = stack_size();
         if (ssz < last_offset + count) [[unlikely]] {
             THROW_INTERNAL_ERROR("wrong stack index");
         }
-        return span{ stack().data() + (ssz - last_offset - count), count };
+        auto begin = stack().begin() + (ssz - last_offset - count);
+        return { begin, begin + count };
     }
 
     void stack_collapse(size_t n = 1)

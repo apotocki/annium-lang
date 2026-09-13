@@ -50,7 +50,6 @@ struct constraint_matcher
         : pmatcher{ pmatcher_val }
         , callee_ctx{ callee_ctx_val }
         , pd{ pd_val }
-        , argexp{ .modifier = to_value_modifier(pd.modifier()) }
     {}
 
     std::expected<bool, error_storage> do_retrieve_next_argument()
@@ -74,12 +73,12 @@ struct constraint_matcher
         return std::pair{ arg_descr.result, !!arg_descr.has_been_casted };
     }
 
-    std::expected<match_penalty, error_storage> operator()(syntax_expression const* constraint) const
+    std::expected<match_penalty, error_storage> operator()(syntax_expression const& constraint) const
     {
         if (has(pd.modifier(), parameter_constraint_modifier_t::constexpr_value)) {
             BOOST_ASSERT(pconstraint_value_eid); // shuld be set by resolve_expression_expected_result call
             if (arg_er.value() != pconstraint_value_eid) {
-                return std::unexpected(make_error<value_mismatch_error>(arg_descr.expression->location, arg_er.value(), pconstraint_value_eid, constraint->location));
+                return std::unexpected(make_error<value_mismatch_error>(arg_descr.expression->location, arg_er.value(), pconstraint_value_eid, constraint.location));
                 //return append_cause(
                 //    make_error<basic_general_error>(call.location, "argument value does not match constraint"sv, param_name.value, param_name.location),
                 //    make_error<value_mismatch_error>(arg_descr.expression->location, arg_er.value(), pconstraint_value_eid, get_start_location(constraint))
@@ -89,7 +88,7 @@ struct constraint_matcher
         return match_penalty{ .casts = has_cast, .cast_capable_matches = 1 };
     }
 
-    std::expected<match_penalty, error_storage> operator()(syntax_pattern const* constraint) const
+    std::expected<match_penalty, error_storage> operator()(syntax_pattern const& constraint) const
     {
         environment& env = callee_ctx.env();
         entity_identifier type_or_value_to_match;
@@ -97,27 +96,31 @@ struct constraint_matcher
             entity const& arg_res_entity = get_entity(env, arg_er.value());
             if (has(pd.modifier(), parameter_constraint_modifier_t::typename_value)) { // typename as constexpr value matching
                 if (arg_res_entity.get_type() != env.get(builtin_eid::typename_)) {
-                    return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, arg_er.value(), "a typename"sv));
+                    return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, arg_er.value(), "a typename"sv, pd.name().location));
                 }
                 type_or_value_to_match = arg_er.value();
             } else if (has(pd.modifier(), parameter_constraint_modifier_t::constexpr_not_a_typename_value)) { // a pattern-constrained parameter that is a constexpr value
                 if (arg_res_entity.get_type() == env.get(builtin_eid::typename_)) {
-                    return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, arg_er.value(), "a consteval"sv));
+                    return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, arg_er.value(), "a consteval"sv, pd.name().location));
                 }
                 type_or_value_to_match = arg_er.value();
+            } else if (!has(pd.modifier(), parameter_constraint_modifier_t::constexpr_type)) {
+                return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, arg_er.value(), "a runtime value"sv, pd.name().location));
             } else {
                 type_or_value_to_match = arg_res_entity.get_type();
             }
+        } else if (!has(pd.modifier(), parameter_constraint_modifier_t::runtime_type)) {
+            return std::unexpected(make_error<type_mismatch_error>(arg_descr.expression->location, arg_er.type(), "a compile time value"sv, pd.name().location));
         } else {
             type_or_value_to_match = arg_er.type();
         }
         match_penalty pattern_penalty;
         error_storage err = pattern_matcher{ callee_ctx, pmatcher.md.bindings, pmatcher.call.expressions, pattern_penalty }
-            .match(*constraint, annotated_entity_identifier{ type_or_value_to_match, arg_descr.expression->location });
+            .match(constraint, annotated_entity_identifier{ type_or_value_to_match, arg_descr.expression->location });
         if (err) {
             annotated_identifier param_name = pd.name();
             return std::unexpected(append_cause(
-                make_error<basic_general_error>(param_name.location, "cannot match argument pattern"sv, param_name.value),
+                make_error<basic_general_error>(param_name.location, "cannot match argument pattern"sv, param_name.value, arg_descr.expression->location),
                 std::move(err)
             ));
         }
@@ -161,14 +164,58 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
         
         // resolve the parameter constraint value if it is specified
         if (param_it->has_expression_constraint()) {
-            syntax_expression const* param_expr = param_it->expression_constraint(); // get_if<syntax_expression const*>(&param_it->constraint)) {
-            auto argexp_res = resolve_expression_expected_result(callee_ctx, param_name, param_it->modifier(), *param_expr, cmatcher.pconstraint_value_eid);
+            syntax_expression const& param_expr = param_it->expression_constraint(); // get_if<syntax_expression const*>(&param_it->constraint)) {
+            auto argexp_res = resolve_expression_expected_result(callee_ctx, param_name, param_it->modifier(), param_expr, cmatcher.pconstraint_value_eid);
             if (!argexp_res) {
                 match_errors.alternatives.emplace_back(std::move(argexp_res.error()));
                 if (try_backtrack(callee_ctx)) continue;
                 return result_error();
             }
             cmatcher.argexp = std::move(*argexp_res);
+        } else if (has(param_it->modifier(), parameter_constraint_modifier_t::reference_type)) {
+            // `self: ~ reference <pattern>` -- unlike every other structural (`~`) pattern parameter,
+            // which resolves its argument once, unconstrained, and only then checks whether the
+            // already-resolved type happens to match the pattern, this one explicitly asks for the
+            // argument via `runtime_reference`: a hard requirement (see terms.hpp), not a preference
+            // -- if the argument can't be turned into a reference, this parameter simply fails to
+            // match, same as any other failed constraint. This is what lets a pattern like
+            // `~ reference ref(of @is_struct)` take a reference to a plain struct variable directly,
+            // the way native C++ patterns (tuple_get_pattern, fixed_array_get_pattern, ref_pattern)
+            // already could but ordinary `.ann`-declared structural parameters never could before.
+            //
+            // `~ reference(EXPR)` makes this conditional: EXPR is evaluated as an ordinary compile-time
+            // expression -- typically just naming an earlier parameter in the same pattern (already
+            // matched and bound by now, since parameters are matched strictly in declaration order,
+            // so plain identifier lookup resolves it the same way `pattern_matcher.cpp`'s
+            // `context_identifier`/`$T`-reuse reads an earlier binding back), but any expression that
+            // folds to a compile-time bool works (e.g. `!flag`, `flag_a && flag_b`) -- and its value
+            // gates whether a reference is requested at all. A bare `~ reference` (no parens, EXPR
+            // null) keeps the unconditional behavior above. This is what lets a struct-get overload
+            // only pay for a reference-take when its own caller actually wants one back, instead of
+            // always taking one and falling back to a plain-value overload never getting a chance to
+            // match.
+            bool want_ref = true;
+            if (syntax_expression const* cond = param_it->reference_condition()) {
+                auto cond_res = base_expression_visitor::visit(callee_ctx, call.expressions,
+                    expected_result_t{ .type = env.get(builtin_eid::boolean), .location = cond->location }, *cond);
+                if (!cond_res) {
+                    match_errors.alternatives.emplace_back(append_cause(
+                        make_error<basic_general_error>(cond->location, "cannot evaluate reference(...) condition"sv),
+                        std::move(cond_res.error())
+                    ));
+                    return result_error();
+                }
+                syntax_expression_result& cond_er = cond_res->first;
+                if (!cond_er.is_const_result) {
+                    match_errors.alternatives.emplace_back(make_error<basic_general_error>(
+                        cond->location, "reference(...) condition must be a compile-time boolean"sv));
+                    return result_error();
+                }
+                want_ref = cond_er.value() == env.get(builtin_eid::true_);
+            }
+            if (want_ref) {
+                cmatcher.argexp = expected_result_t{ .modifier = value_modifier_t::runtime_reference };
+            }
         }
 
         bool is_variadic_param = has(param_it->modifier(), parameter_constraint_modifier_t::variadic);
@@ -201,10 +248,28 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
                         if (try_backtrack(callee_ctx)) continue;
                         return result_error();
                     }
+                    // Unlike the "argument found" path (retrieve_next_argument(), via
+                    // use_named_argument/use_next_positioned_argument), resolving through a default
+                    // value never touches cmatcher.arg_descr at all -- it's a plain, uninitialized
+                    // member (prepared_call::argument_descriptor_t has no default member
+                    // initializers), not zero/null-initialized. append_arg() below (and the
+                    // "cannot match argument" error path above) unconditionally dereferences
+                    // arg_descr.expression, so it must be set here too -- the default value
+                    // expression itself is the only sensible source of a location for this argument.
+                    cmatcher.arg_descr.expression = default_expr;
+                    cmatcher.arg_descr.name = annotated_identifier{};
                     cmatcher.arg_er = std::move(res->first);
                     cmatcher.has_cast = res->second;
                     argindex = argindex_for_default--;
                 } else if (param_it->is_required_value()) {
+                    // Deliberately no refloc pointing at a leftover unclaimed argument here (tried,
+                    // then reverted): `basic_general_error`'s refloc only ever renders as a bare
+                    // "see <location>" with no room for an explanation, which pointed at e.g. an
+                    // extra positional `10` without ever saying *why* it's relevant (that it's
+                    // unnamed and so invisible to this name-only parameter) -- more confusing than
+                    // helpful. `functional::find`'s call-site "required by" frame (see BUGFIXES.md)
+                    // already shows the whole call, which is enough for the reader to spot a stray
+                    // argument themselves once they know which parameter is missing.
                     match_errors.alternatives.emplace_back(make_error<basic_general_error>(param_name.location, "missing required argument"sv, param_name.value));
                     if (param_it != param_bit) --param_it;
                     if (try_backtrack(callee_ctx)) continue;
@@ -370,12 +435,12 @@ bool parameter_matcher::try_backtrack(fn_compiler_context& callee_ctx)
         }
         // star is empty, remove it
         star_stack.pop_back();
-        md.remove_last_arg();
         // to do: pop star binding
         if (param_it == param_bit) {
             BOOST_ASSERT(star_stack.empty());
             break;
         }
+        md.remove_last_arg();
         --param_it;
     }
     return false;

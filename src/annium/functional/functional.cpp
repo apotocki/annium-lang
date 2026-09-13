@@ -401,13 +401,31 @@ std::expected<functional::match, error_storage> functional::find(
     }
 
     if (alternatives.empty()) {
-        if (err.alternatives.size() == 1) {
-            return std::unexpected(std::move(err.alternatives.front()));
-        }
         if (err.alternatives.empty()) {
             return std::unexpected(make_error<function_call_match_error>(annotated_qname_identifier{ id_, call_location }, nullptr));
         }
-        return std::unexpected(make_error<alt_error>(std::move(err)));
+        // Every alternative in `err` is a pattern_match_error located at its own candidate's
+        // *declaration* (see pattern_match_error::location()) -- none of them carries the call
+        // site. Without a wrapper frame anchored at call_location, the printed "required by"
+        // chain never points back to where the offending call was actually written, leaving the
+        // reader to guess which call caused the failure (see BUGFIXES.md).
+        error_storage cause;
+        if (err.alternatives.size() == 1) {
+            // With only one candidate, pattern_match_error's own frame (the declaration's
+            // location plus its printed signature, e.g. an unreadable internal placeholder like
+            // `($rr $0: CALL(ref)(args), delta: i32)->auto`) disambiguates nothing -- there was
+            // never anything to disambiguate between. It's pure noise once the call-site frame
+            // below and the leaf error's own (already-in-that-declaration) location are present,
+            // so unwrap it and keep only its cause. Multi-candidate failures still go through
+            // the alt_error branch below, where each pattern_match_error's declaration/signature
+            // is exactly what tells overloads apart.
+            cause = err.alternatives.front()->cause();
+        } else {
+            cause = make_error<alt_error>(std::move(err));
+        }
+        return std::unexpected(append_cause(
+            make_error<basic_general_error>(call_location, "can't match the function call"sv, id_),
+            std::move(cause)));
     }
     if (alternatives.size() > 1) {
         std::vector<ambiguity_error::alternative> as;

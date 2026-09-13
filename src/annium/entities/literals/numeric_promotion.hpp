@@ -18,6 +18,15 @@ namespace annium {
 // numeric literal casts but is not itself an arithmetic operand.
 bool is_numeric_eid(builtin_eid type) noexcept;
 
+// True for the 9 integral-kind types (fixed-width integers and the arbitrary-precision integer
+// type) among is_numeric_eid's 13 -- excludes decimal and the floating types, and (like
+// is_numeric_eid) excludes bool. Bitwise & and | are only defined for these: see
+// numeric_literal_bit_and_pattern/numeric_literal_bit_or_pattern, which use this to reject a
+// float/decimal operand before ever reaching bit_and_numeric/bit_or_numeric below (bool's own
+// & and | go through the separate bool_bit_and_pattern/bool_bit_or_pattern instead, since bool
+// isn't itself numeric).
+bool is_integral_kind_eid(builtin_eid type) noexcept;
+
 // Is a runtime value of `source_type` always representable as `target_type` without any
 // possibility of precision loss, independent of the actual value? This is the directed
 // safe-conversion graph implicit casts rely on; strongest_numeric_type() takes its join.
@@ -60,6 +69,15 @@ smart_blob multiply_numeric(smart_blob const& lhs, smart_blob const& rhs, builti
 // operands truncate (C++ integer division semantics), matching the caller's join rule of picking
 // an integral result_type only when both operands are integral-kind.
 smart_blob divide_numeric(smart_blob const& lhs, smart_blob const& rhs, builtin_eid result_type);
+
+// Same shape as add_numeric, but lhs & rhs. `result_type` must be one of the 9 integral-kind
+// types (see is_integral_kind_eid) -- numeric_literal_bit_and_pattern rejects any other type
+// (decimal, f16/f32/f64) before this is ever called, same reasoning as divide_numeric excluding
+// decimal.
+smart_blob bit_and_numeric(smart_blob const& lhs, smart_blob const& rhs, builtin_eid result_type);
+
+// Same shape as bit_and_numeric, but lhs | rhs.
+smart_blob bit_or_numeric(smart_blob const& lhs, smart_blob const& rhs, builtin_eid result_type);
 
 // Attempts an exact constexpr `decimal / decimal` division. Unlike +, -, * (see divide_numeric's
 // comment), decimal division has no general definition here: most quotients (e.g. 1/3) don't have

@@ -42,7 +42,6 @@
     <ClCompile Include="..\..\..\src\annium\annium_parser.cpp" />
     <ClCompile Include="..\..\..\src\annium\annium_semantic.cpp" />
     <ClCompile Include="..\..\..\src\annium\annium_environment.cpp" />
-    <ClCompile Include="..\..\..\src\annium\ast\assign_expression_visitor.cpp" />
     <ClCompile Include="..\..\..\src\annium\ast\base_expression_visitor.cpp" />
     <ClCompile Include="..\..\..\src\annium\ast\consteval_evaluator.cpp" />
     <ClCompile Include="..\..\..\src\annium\ast\declaration_visitor.cpp" />
@@ -72,6 +71,8 @@
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_minus_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_mul_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_div_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_bit_and_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_bit_or_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_promotion.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_cast_constexpr_pattern.cpp" />
@@ -82,10 +83,8 @@
     <ClCompile Include="..\..\..\src\annium\entities\struct\is_struct_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\struct\struct_entity.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\struct\struct_fn_pattern.cpp" />
-    <ClCompile Include="..\..\..\src\annium\entities\struct\struct_get_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\struct\struct_init_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\struct\struct_new_pattern.cpp" />
-    <ClCompile Include="..\..\..\src\annium\entities\struct\struct_set_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\struct\tuple_of_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_empty_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_equal_pattern.cpp" />
@@ -97,7 +96,6 @@
     <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_pattern_base.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_project_get_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_project_size_pattern.cpp" />
-    <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_set_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_size_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_tail_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_typename_get_pattern.cpp" />
@@ -124,8 +122,13 @@
     <ClCompile Include="..\..\..\src\annium\functional\general\reinterpret_any_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\any_implicit_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\assert_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\functional\general\bool_bit_and_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\functional\general\bool_bit_or_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\create_identifier_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\deref_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\functional\general\ref_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\functional\general\rebind_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\functional\general\deref_call_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\equal_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\error_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\functional\general\is_const_pattern.cpp" />
@@ -195,7 +198,6 @@
     <ClInclude Include="..\..\..\src\annium\annium.hpp" />
     <ClInclude Include="..\..\..\src\annium\annium.tab.hpp" />
     <ClInclude Include="..\..\..\src\annium\annium.yy.hpp" />
-    <ClInclude Include="..\..\..\src\annium\ast\assign_expression_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\base_expression_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\consteval_evaluator.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\declaration_visitor.hpp" />
@@ -223,6 +225,8 @@
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_minus_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_mul_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_div_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_bit_and_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_bit_or_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_promotion.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_cast_constexpr_pattern.hpp" />
@@ -234,10 +238,8 @@
     <ClInclude Include="..\..\..\src\annium\entities\struct\is_struct_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\struct\struct_entity.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\struct\struct_fn_pattern.hpp" />
-    <ClInclude Include="..\..\..\src\annium\entities\struct\struct_get_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\struct\struct_init_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\struct\struct_new_pattern.hpp" />
-    <ClInclude Include="..\..\..\src\annium\entities\struct\struct_set_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\struct\tuple_of_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\tuple\generic_get_pattern_matcher.ipp" />
     <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_empty_pattern.hpp" />
@@ -250,7 +252,6 @@
     <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_pattern_base.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_project_get_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_project_size_pattern.hpp" />
-    <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_set_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_size_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_tail_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_typename_get_pattern.hpp" />
@@ -280,8 +281,13 @@
     <ClInclude Include="..\..\..\src\annium\functional\general\reinterpret_any_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\any_implicit_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\assert_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\functional\general\bool_bit_and_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\functional\general\bool_bit_or_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\create_identifier_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\deref_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\functional\general\ref_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\functional\general\rebind_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\functional\general\deref_call_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\equal_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\error_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\functional\general\is_const_pattern.hpp" />

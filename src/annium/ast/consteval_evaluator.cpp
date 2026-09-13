@@ -51,6 +51,7 @@ struct dependency_walker
     void operator()(T const&, bool) {}
 
     void operator()(semantic::push_local_variable const&, bool top_level) { if (top_level) has_frame_reference = true; }
+    void operator()(semantic::push_local_variable_index const&, bool top_level) { if (top_level) has_frame_reference = true; }
     void operator()(semantic::set_local_variable const&, bool top_level) { if (top_level) has_frame_reference = true; }
 
     void operator()(semantic::push_by_offset const& pv, bool top_level)

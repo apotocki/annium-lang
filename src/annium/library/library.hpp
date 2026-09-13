@@ -15,6 +15,7 @@ void annium_any_equal(vm::context&);
 void annium_decimal_equal(vm::context&);
 void annium_numeric_less(vm::context&);
 void annium_tostring(vm::context&);
+void annium_to_fancy_string(vm::context&);
 void annium_print_string(vm::context&);
 void annium_concat(vm::context&);
 void annium_arrayify(vm::context&);
@@ -23,6 +24,12 @@ void annium_array_size(vm::context&);
 void annium_array_tail(vm::context&);
 void annium_array_at(vm::context&);
 void annium_array_set_at(vm::context&);
+
+void annium_ref_of(vm::context&);
+void annium_ref_get(vm::context&);
+void annium_ref_set(vm::context&);
+void annium_ref_rebind(vm::context&);
+void annium_ref_at(vm::context&);
 
 void annium_string_empty(vm::context&);
 void annium_string_size(vm::context&);
@@ -46,6 +53,10 @@ void annium_operator_minus_integer(vm::context&);
 void annium_operator_minus_numeric(vm::context&);
 void annium_operator_mul_numeric(vm::context&);
 void annium_operator_div_numeric(vm::context&);
+void annium_operator_bitand_numeric(vm::context&);
+void annium_operator_bitor_numeric(vm::context&);
+void annium_operator_bitand_bool(vm::context&);
+void annium_operator_bitor_bool(vm::context&);
 void annium_divide_decimal_rounded(vm::context&);
 
 void annium_to_integer(vm::context&);
@@ -66,6 +77,14 @@ void annium_numeric_to_f16(vm::context&);
 void annium_numeric_to_f32(vm::context&);
 void annium_numeric_to_f64(vm::context&);
 void annium_numeric_to_decimal(vm::context&);
+
+void annium_numeric_sqrt(vm::context&);
+void annium_numeric_log(vm::context&);
+void annium_numeric_floor(vm::context&);
+void annium_numeric_ceil(vm::context&);
+void annium_numeric_pow(vm::context&);
+void annium_numeric_round(vm::context&);
+void annium_numeric_round_digits(vm::context&);
 
 void annium_f16_infinity(vm::context&);
 void annium_f32_infinity(vm::context&);

@@ -70,9 +70,22 @@ struct annotated_nil
 enum class value_modifier_t : uint8_t
 {
     none = 0,
-    runtime_value = 1,
-    constexpr_value = 6,
-    constexpr_or_runtime_value = 7
+    runtime_value = 1,                // 0b0001
+    // A runtime reference specifically (`ref(of: T)`, T derived from whatever the argument actually
+    // resolves to -- see base_expression_visitor::try_take_reference), not just any runtime value.
+    // Requesting it is a hard requirement: if the argument can't be turned into a reference, resolution
+    // fails, it never silently falls back to a plain value. Bakes in the `runtime_value` bit itself
+    // (mirrors constexpr_value below) so a caller never needs `runtime_value | runtime_reference`.
+    runtime_reference = 3,            // 0b0011 = runtime_value | (1 << 1)
+    // 2 bits (not 1) are deliberately reserved here, mirroring runtime_reference's pattern, for a
+    // possible future `typename` sub-category of constexpr (a constexpr value that is specifically a
+    // typename, vs. constexpr in general) -- not implemented, no current consumer needs it, so no
+    // separate named flag exists yet. Don't add one speculatively; wire it up when something actually
+    // needs to request that distinction through value_modifier_t specifically (today "is this argument
+    // a typename" is answered at the type level instead -- see ANNIUM_SYNTAX.md's `typename`-mode
+    // parameters section).
+    constexpr_value = 12,             // 0b1100
+    constexpr_or_runtime_value = 13,  // 0b1101 = runtime_value | constexpr_value
 };
 
 inline value_modifier_t operator|(value_modifier_t lhs, value_modifier_t rhs) noexcept
@@ -93,6 +106,11 @@ inline bool can_be_constexpr(value_modifier_t m) noexcept
 inline bool can_be_runtime(value_modifier_t m) noexcept
 {
     return (m & value_modifier_t::runtime_value) == value_modifier_t::runtime_value;
+}
+
+inline bool wants_reference(value_modifier_t m) noexcept
+{
+    return (m & value_modifier_t::runtime_reference) == value_modifier_t::runtime_reference;
 }
 
 inline bool can_be_only_constexpr(value_modifier_t m) noexcept
@@ -120,7 +138,15 @@ enum class parameter_constraint_modifier_t : uint8_t
     constexpr_not_a_typename_value = 8,
     constexpr_value = 12,
     any_constexpr = 14,
-    variadic = 16
+    variadic = 16,
+    // `self: ~ reference <pattern>` (annium.y's `pattern-mod`, `TILDA REFERENCE pattern-sfx`) --
+    // requests the argument via `value_modifier_t::runtime_reference` (see terms.hpp) instead of the
+    // default unconstrained resolution every other structural (`~`) pattern parameter gets. A
+    // reference is inherently a runtime-only concept (bakes in `runtime_type`, mirroring how
+    // `value_modifier_t::runtime_reference` bakes in `runtime_value`), so there's no `~ reference
+    // constexpr` counterpart. See `parameter_matcher.cpp::match` for where this actually changes the
+    // argument-resolution request.
+    reference_type = 33, // runtime_type | (1 << 5)
 };
 
 inline parameter_constraint_modifier_t operator|(parameter_constraint_modifier_t lhs, parameter_constraint_modifier_t rhs) noexcept

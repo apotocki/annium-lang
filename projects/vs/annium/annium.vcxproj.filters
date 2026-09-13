@@ -108,9 +108,6 @@
     <ClCompile Include="..\..\..\src\annium\entities\variable_entity.cpp">
       <Filter>annium\entities</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\ast\assign_expression_visitor.cpp">
-      <Filter>annium\ast</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\ast\base_expression_visitor.cpp">
       <Filter>annium\ast</Filter>
     </ClCompile>
@@ -186,9 +183,6 @@
     <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_project_size_pattern.cpp">
       <Filter>annium\entities\tuple</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_set_pattern.cpp">
-      <Filter>annium\entities\tuple</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_size_pattern.cpp">
       <Filter>annium\entities\tuple</Filter>
     </ClCompile>
@@ -202,9 +196,6 @@
       <Filter>annium\entities\struct</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\struct\struct_fn_pattern.cpp">
-      <Filter>annium\entities\struct</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\struct\struct_get_pattern.cpp">
       <Filter>annium\entities\struct</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\struct\struct_init_pattern.cpp">
@@ -255,6 +246,15 @@
     <ClCompile Include="..\..\..\src\annium\functional\general\deref_pattern.cpp">
       <Filter>annium\functional\general</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\general\ref_pattern.cpp">
+      <Filter>annium\functional\general</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\general\rebind_pattern.cpp">
+      <Filter>annium\functional\general</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\general\deref_call_pattern.cpp">
+      <Filter>annium\functional\general</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\functional\general\equal_pattern.cpp">
       <Filter>annium\functional\general</Filter>
     </ClCompile>
@@ -265,6 +265,12 @@
       <Filter>annium\functional\general</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\functional\general\logical_not_pattern.cpp">
+      <Filter>annium\functional\general</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\general\bool_bit_and_pattern.cpp">
+      <Filter>annium\functional\general</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\functional\general\bool_bit_or_pattern.cpp">
       <Filter>annium\functional\general</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\functional\general\runtime_cast_pattern.cpp">
@@ -354,9 +360,6 @@
     <ClCompile Include="..\..\..\src\annium\functional\typefn_pattern.cpp">
       <Filter>annium\functional</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\entities\struct\struct_set_pattern.cpp">
-      <Filter>annium\entities\struct</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\array\array_from_iterator_make_pattern.cpp">
       <Filter>annium\entities\array</Filter>
     </ClCompile>
@@ -379,6 +382,12 @@
       <Filter>annium\entities\literals</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_div_pattern.cpp">
+      <Filter>annium\entities\literals</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_bit_and_pattern.cpp">
+      <Filter>annium\entities\literals</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_bit_or_pattern.cpp">
       <Filter>annium\entities\literals</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_promotion.cpp">
@@ -512,9 +521,6 @@
     <ClInclude Include="..\..\..\src\annium\entities\variable_entity.hpp">
       <Filter>annium\entities</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\ast\assign_expression_visitor.hpp">
-      <Filter>annium\ast</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\src\annium\ast\base_expression_visitor.hpp">
       <Filter>annium\ast</Filter>
     </ClInclude>
@@ -599,9 +605,6 @@
     <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_project_size_pattern.hpp">
       <Filter>annium\entities\tuple</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_set_pattern.hpp">
-      <Filter>annium\entities\tuple</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_size_pattern.hpp">
       <Filter>annium\entities\tuple</Filter>
     </ClInclude>
@@ -618,9 +621,6 @@
       <Filter>annium\entities\struct</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\struct\struct_fn_pattern.hpp">
-      <Filter>annium\entities\struct</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\struct\struct_get_pattern.hpp">
       <Filter>annium\entities\struct</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\struct\struct_init_pattern.hpp">
@@ -674,6 +674,15 @@
     <ClInclude Include="..\..\..\src\annium\functional\general\deref_pattern.hpp">
       <Filter>annium\functional\general</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\general\ref_pattern.hpp">
+      <Filter>annium\functional\general</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\general\rebind_pattern.hpp">
+      <Filter>annium\functional\general</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\general\deref_call_pattern.hpp">
+      <Filter>annium\functional\general</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\src\annium\functional\general\equal_pattern.hpp">
       <Filter>annium\functional\general</Filter>
     </ClInclude>
@@ -684,6 +693,12 @@
       <Filter>annium\functional\general</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\functional\general\logical_not_pattern.hpp">
+      <Filter>annium\functional\general</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\general\bool_bit_and_pattern.hpp">
+      <Filter>annium\functional\general</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\functional\general\bool_bit_or_pattern.hpp">
       <Filter>annium\functional\general</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\functional\general\runtime_cast_pattern.hpp">
@@ -779,9 +794,6 @@
     <ClInclude Include="..\..\..\src\annium\functional\typefn_pattern.hpp">
       <Filter>annium\functional</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\entities\struct\struct_set_pattern.hpp">
-      <Filter>annium\entities\struct</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\array\array_from_iterator_make_pattern.hpp">
       <Filter>annium\entities\array</Filter>
     </ClInclude>
@@ -807,6 +819,12 @@
       <Filter>annium\entities\literals</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_div_pattern.hpp">
+      <Filter>annium\entities\literals</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_bit_and_pattern.hpp">
+      <Filter>annium\entities\literals</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_bit_or_pattern.hpp">
       <Filter>annium\entities\literals</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_promotion.hpp">

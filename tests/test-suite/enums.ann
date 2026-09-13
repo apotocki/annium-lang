@@ -4,7 +4,7 @@ enum test_enum {
     C
 }
 
-fn to_test_enum(:__identifier) -> test_enum {
+fn to_test_enum(__identifier) -> test_enum {
     return $0;
 }
 
