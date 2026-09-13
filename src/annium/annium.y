@@ -771,6 +771,11 @@ field:
         { $$ = field{ .name = std::move($identifier), .modifier = parameter_constraint_modifier_t::runtime_type, .type_or_value = std::move($type), .value = std::move($default) }; }
     | identifier ARROWEXPR syntax-expression[value]
         { $$ = field{ .name = std::move($identifier), .modifier = parameter_constraint_modifier_t::constexpr_value, .type_or_value = std::move($value) }; }
+    // positional (unnamed) field, e.g. the `integer` in `Leaf(name: string, integer)`:
+    // field.name stays default-constructed (empty annotated_identifier), the established
+    // "no name" convention already handled by struct_entity::build / struct_init_pattern.
+    | type-expr[type] field-default-value-opt[default]
+        { $$ = field{ .name = annotated_identifier{}, .modifier = parameter_constraint_modifier_t::runtime_type, .type_or_value = std::move($type), .value = std::move($default) }; }
     ;
 
 ////////////////////// PARAMETERS (function parameters declaration)

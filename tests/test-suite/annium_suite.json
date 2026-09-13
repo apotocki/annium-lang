@@ -103,6 +103,10 @@
   {
     "src": "nested_concepts.ann",
     "output": ""
+  },
+  {
+    "src": "positional_struct_fields.ann",
+    "output": ""
   }
   /*
     

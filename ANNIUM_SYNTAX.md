@@ -54,6 +54,14 @@ This is why `bootstrap.ann`'s `starts_with(self: ~ runtime string, $prefix: runt
 
 A parameter can declare *both* a caller-facing external name and a separate implementation-facing internal name, e.g. `f(count $n: integer)`: the call site writes `count:`, the body refers to the value as `$n` (like Swift's external/internal parameter name pairs). This is `named_parameter_name` (`ast_terms.hpp`) with both `external_name` and `internal_name` set. Plain `name: constraint` is the same struct with `internal_name` left empty (the body then refers to the parameter by its external name directly); plain `$name: constraint` is the other variant, `unnamed_parameter_name` (no external name — positional, per above).
 
+## Struct field declaration
+
+`struct Name => (fields)` / `struct Name(params) => (fields)` (`annium.y`'s `field:` production). Each field is one of:
+
+- **Named, runtime-typed**: `name: type-expr [= default]` — e.g. `x: i32`, `radius: f64 = 1.0`.
+- **Named, constexpr-valued**: `name => expr` — a compile-time-computed field, not a caller-supplied one.
+- **Positional (unnamed)**: just a `type-expr` (optionally with a default), no name — e.g. the second field in `Point => (x: i32, i32)`. Struct construction still accepts it, matched positionally (`Point(1, 2)`), because a struct is backed by an underlying tuple (`tuple_of`) and tuples have always supported unnamed elements — `struct_entity`/`struct_init_pattern` already branch on the field having a name or not. There is no `x.property`-style named accessor for a positional field (nothing to key it on); read it back positionally off the underlying tuple, or via a structural pattern (`~PointLike($x, $y)`).
+
 ## Member calls (`a.b(args)`) desugar to ordinary functional lookup
 
 `a.b(args)` is sugar, resolved in two steps, tried in order:
