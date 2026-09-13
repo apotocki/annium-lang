@@ -62,6 +62,17 @@ A parameter can declare *both* a caller-facing external name and a separate impl
 - **Named, constexpr-valued**: `name => expr` — a compile-time-computed field, not a caller-supplied one.
 - **Positional (unnamed)**: just a `type-expr` (optionally with a default), no name — e.g. the second field in `Point => (x: i32, i32)`. Struct construction still accepts it, matched positionally (`Point(1, 2)`), because a struct is backed by an underlying tuple (`tuple_of`) and tuples have always supported unnamed elements — `struct_entity`/`struct_init_pattern` already branch on the field having a name or not. There is no `x.property`-style named accessor for a positional field (nothing to key it on); read it back positionally off the underlying tuple, or via a structural pattern (`~PointLike($x, $y)`).
 
+## Structural enums
+
+`enum Name { case-decl, ... };` (`annium.y`'s `case-decl`). Each case is one of:
+
+- **Bare**: just an identifier, e.g. `Empty`. If *every* case in the enum is bare, this is the plain, integer-backed enum unchanged from before (`enum_entity`).
+- **Structural**: `Name(fields)` — same field syntax as a struct (named, constexpr, or positional; see "Struct field declaration" above) — e.g. `Leaf(name: string, value: integer)`. Declares a real nested struct type, `EnumName::CaseName`, reachable and usable exactly like any other `struct`.
+
+The two kinds mix freely in one `enum`. As soon as at least one case is structural, `EnumName` itself becomes `union(EnumName::Case1, EnumName::Case2, ...)`, where a bare case contributes the constexpr identifier atom `.CaseName` (the same value `.CaseName` written on its own would evaluate to) as a `union` member, and a structural case contributes its nested struct type. A concrete case value (a `EnumName::Case` struct instance, or a bare case's `.CaseName` atom) implicitly casts into the `EnumName` union the same way any value casts into a `union(...)` it's a member of.
+
+There is currently no `match`/`switch` to narrow a `EnumName`-typed union value back down to its active case — consume it either by working with the concrete case type directly (before it's cast into the union) or by overloading a function per case type and dispatching before wrapping the value.
+
 ## Member calls (`a.b(args)`) desugar to ordinary functional lookup
 
 `a.b(args)` is sugar, resolved in two steps, tried in order:

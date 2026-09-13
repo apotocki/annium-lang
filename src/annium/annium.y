@@ -272,8 +272,8 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 // ENUMERATIONS
 %token ENUM
 %type <enum_decl> enum-decl
-%type <std::vector<identifier>> case-list-opt case-list
-%type <identifier> case-decl
+%type <std::vector<enum_case>> case-list-opt case-list
+%type <enum_case> case-decl
 
 // TYPES
 %token STRUCT
@@ -645,7 +645,7 @@ fn-decl:
 ///////////////////////////////////////////////// ENUMERATIONS
 enum-decl:
     qname OPEN_BRACE case-list-opt[cases] CLOSE_BRACE
-        { $$ = enum_decl{ ctx.make_qname_view(std::move($qname)), ctx.make_array<identifier>($cases) }; IGNORE_TERM($OPEN_BRACE); }
+        { $$ = enum_decl{ ctx.make_qname_view(std::move($qname)), ctx.make_array<enum_case>($cases) }; IGNORE_TERM($OPEN_BRACE); }
     ;
 
 case-list-opt:
@@ -655,14 +655,16 @@ case-list-opt:
 
 case-list:
       case-decl[case]
-        { $$ = std::vector<identifier>{ std::move($case) }; }
+        { $$ = std::vector<enum_case>{ std::move($case) }; }
     | case-list[list] COMMA case-decl[case]
         { $$ = std::move($list); $$.emplace_back(std::move($case)); }
     ;
 
 case-decl:
     identifier
-        { $$ = $1.value; }
+        { $$ = enum_case{ .name = $identifier.value }; }
+    | identifier OPEN_PARENTHESIS field-list-opt[fields] CLOSE_PARENTHESIS
+        { $$ = enum_case{ .name = $identifier.value, .fields = ctx.make_array<field>($fields) }; IGNORE_TERM($OPEN_PARENTHESIS); }
     ;
 ///////////////////////////////////////////////// TYPES
 

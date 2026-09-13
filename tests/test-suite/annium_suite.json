@@ -107,6 +107,10 @@
   {
     "src": "positional_struct_fields.ann",
     "output": ""
+  },
+  {
+    "src": "structural_enums.ann",
+    "output": ""
   }
   /*
     

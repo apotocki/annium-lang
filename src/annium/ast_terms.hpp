@@ -718,10 +718,18 @@ struct struct_decl
     }
 };
 
+struct enum_case
+{
+    identifier name;
+    // nullopt = bare case (a constexpr atom, e.g. `Empty`); present = structural case (a nested
+    // struct, possibly with zero fields, e.g. `Leaf(name: string, integer)` or `Empty()`).
+    optional<span<const field>> fields;
+};
+
 struct enum_decl
 {
     annotated_qname_view name;
-    span<const identifier> cases;
+    span<const enum_case> cases;
 };
 
 struct extern_var

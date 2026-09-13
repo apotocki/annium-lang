@@ -1,0 +1,41 @@
+// Structural enums: an enum case can carry fields -- `Leaf(name: string, value: integer)` --
+// becoming a nested struct `Tree::Leaf`; a bare case with no parens -- `Empty` -- becomes a
+// constexpr identifier atom instead (the same value `.Empty` would evaluate to on its own).
+// Both kinds can be freely mixed in one enum: `Tree` itself becomes
+// union(Tree::Leaf, Tree::Inner, .Empty) -- see declaration_visitor.cpp's enum_decl handling and
+// IMPLEMENTATION_NOTES.md's "Structural (mixed) enums" section.
+//
+// There is no `match`/`switch` yet to narrow a `Tree`-typed value back down to its active case
+// (deliberately out of scope for now, see FUTURE_WORK.md) -- this test exercises what's already
+// wired: declaring the nested structs, constructing/reading them directly, embedding the union
+// type recursively (Inner holds Tree-typed fields, by value), and implicitly casting a concrete
+// case (both a struct case and a bare atom) into the union.
+
+enum Tree {
+    Leaf(name: string, value: integer),
+    Inner(name: string, left: Tree, right: Tree),
+    Empty
+};
+
+// direct construction/field access on the generated nested structs
+let leaf1: Tree::Leaf = init(name: "a", value: runtime_cast(1));
+assert_equal(leaf1.name, "a");
+assert_equal(leaf1.value, 1);
+
+let leaf2: Tree::Leaf = init(name: "b", value: runtime_cast(2));
+assert_equal(leaf2.name, "b");
+assert_equal(leaf2.value, 2);
+
+// recursive embedding: Inner's `left`/`right` fields are Tree-typed (the union itself), filled in
+// with concrete Tree::Leaf values here -- exercises the implicit cast into the union happening
+// during struct construction, plus the finite-size self-reference discussed for `ref(T)` (this
+// needs none: a struct field of a union-with-a-struct-variant type is blob-backed, not inlined).
+let node: Tree::Inner = init(name: "root", left: leaf1, right: leaf2);
+assert_equal(node.name, "root");
+
+// implicit cast of a concrete case into the union type itself
+let t1: Tree = leaf1;
+let t2: Tree = node;
+
+// a bare case is just the constexpr atom `.Empty` -- assignable to the union the same way
+let t3: Tree = .Empty;

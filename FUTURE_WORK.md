@@ -183,3 +183,13 @@ A tuple-element reference (`ref(of: E)` from `t.0`, see `RESOLVED.md`'s `ref(T)`
 
 **Why deferred:** auditing every builtin pattern kind's error-construction sites is a much larger, separate task from the immediate bug fix that motivated it, and doing it opportunistically risks silently leaving some pattern kind's multi-candidate errors undisambiguated (all pointing at the same call-site line with no way to tell overloads apart) if the audit is incomplete.
 
+## A `match`/`switch` construct to narrow a `union`-typed value back down to its active case
+
+**Status:** not started, deliberately deferred.
+
+**Background:** structural enums (`enum Name { Case(fields), ... }`, see `ANNIUM_SYNTAX.md`'s "Structural enums" and `IMPLEMENTATION_NOTES.md`'s "Structural (mixed) enums" section) desugar `Name` into `union(Name::Case1, Name::Case2, ...)`, reusing the existing `union`/`to_union_implicit_cast_pattern` machinery to construct and implicit-cast *into* the union. Nothing symmetric exists to go the other way: given a `Name`-typed value, there's no syntax to ask "which case is this, and give me it back as its concrete type." The only current option is calling `apply` directly, which the language exposes but which is awkward for a value whose members are heterogeneous struct types (each with its own field shape) rather than a single callable signature.
+
+**Idea:** a dedicated `match`/`switch` expression or statement, dispatching on the union's active member and binding it to its concrete case type in each arm — the natural counterpart to how structural enums are declared. Exact syntax not decided.
+
+**Why deferred:** this needs its own design pass (surface syntax, whether it's an expression or statement, exhaustiveness checking against the union's known member set, how it interacts with a bare-case atom member vs. a structural member) rather than being bolted on opportunistically while wiring up structural enum *declaration* — which is deliberately scoped to not need it (see the structural-enums test, `tests/test-suite/structural_enums.ann`, which only exercises construction/casting into the union, not narrowing back out).
+

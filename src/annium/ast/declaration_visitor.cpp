@@ -623,9 +623,45 @@ declaration_visitor::result_type declaration_visitor::operator()(enum_decl const
 {
     environment& env = ctx.env();
     functional& fnl = env.fregistry_resolve(ctx.ns() / ed.name.value);
-    auto eent = make_shared<enum_entity>(env, fnl, ed.cases);
-    env.eregistry_insert(eent);
-    annotated_entity_identifier aeid{ eent->id, ed.name.location };
+
+    bool has_structural_case = false;
+    for (enum_case const& c : ed.cases) {
+        if (c.fields) { has_structural_case = true; break; }
+    }
+    if (!has_structural_case) {
+        // plain, all-bare enum: unchanged, integer-backed representation (enum_entity).
+        small_vector<identifier, 8> case_names;
+        case_names.reserve(ed.cases.size());
+        for (enum_case const& c : ed.cases) case_names.push_back(c.name);
+        auto eent = make_shared<enum_entity>(env, fnl, case_names);
+        env.eregistry_insert(eent);
+        annotated_entity_identifier aeid{ eent->id, ed.name.location };
+        fnl.set_default_entity(aeid);
+        return break_scope_kind::none;
+    }
+
+    // at least one structural case: `Node` becomes union(Node::Case1, Node::Case2, ...), where a
+    // structural case (`Leaf(fields...)`) is a nested struct_entity and a bare case (`Empty`) is a
+    // constexpr identifier atom -- exactly what `.Empty` would evaluate to (base_expression_visitor's
+    // `operator()(identifier)` -> `env.make_identifier_entity(...)`), and environment::make_union_type_entity
+    // already treats a non-typename element as a const union field, so no new union machinery is needed.
+    small_vector<entity_identifier, 8> items;
+    items.reserve(ed.cases.size());
+    for (enum_case const& c : ed.cases) {
+        if (c.fields) {
+            qname case_qname = ctx.ns() / ed.name.value / c.name;
+            functional& case_fnl = env.fregistry_resolve(case_qname);
+            auto sent = make_shared<struct_entity>(env, case_fnl, *c.fields);
+            env.eregistry_insert(sent);
+            annotated_entity_identifier case_aeid{ sent->id, ed.name.location };
+            case_fnl.set_default_entity(case_aeid);
+            items.push_back(sent->id);
+        } else {
+            items.push_back(env.make_identifier_entity(c.name).id);
+        }
+    }
+    entity const& uent = env.make_union_type_entity(items);
+    annotated_entity_identifier aeid{ uent.id, ed.name.location };
     fnl.set_default_entity(aeid);
     return break_scope_kind::none;
 }

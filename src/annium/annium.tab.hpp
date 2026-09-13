@@ -418,25 +418,25 @@ namespace annium_lang {
       // internal-identifier-opt
       char dummy9[sizeof (context_identifier)];
 
+      // case-decl
+      char dummy10[sizeof (enum_case)];
+
       // enum-decl
-      char dummy10[sizeof (enum_decl)];
+      char dummy11[sizeof (enum_decl)];
 
       // field
-      char dummy11[sizeof (field)];
+      char dummy12[sizeof (field)];
 
       // field-default-value-opt
-      char dummy12[sizeof (field::default_spec)];
+      char dummy13[sizeof (field::default_spec)];
 
       // fn-kind
       // fn-kind-set
-      char dummy13[sizeof (fn_kind)];
+      char dummy14[sizeof (fn_kind)];
 
       // fn-start-decl
       // fn-decl
-      char dummy14[sizeof (fn_pure)];
-
-      // case-decl
-      char dummy15[sizeof (identifier)];
+      char dummy15[sizeof (fn_pure)];
 
       // let-decl
       // let-decl-start
@@ -549,13 +549,13 @@ namespace annium_lang {
       // pattern-mod
       char dummy33[sizeof (std::tuple<syntax_pattern, parameter_constraint_modifier_t, syntax_expression const*>)];
 
-      // field-list-opt
-      // field-list
-      char dummy34[sizeof (std::vector<field>)];
-
       // case-list-opt
       // case-list
-      char dummy35[sizeof (std::vector<identifier>)];
+      char dummy34[sizeof (std::vector<enum_case>)];
+
+      // field-list-opt
+      // field-list
+      char dummy35[sizeof (std::vector<field>)];
 
       // struct-decl
       char dummy36[sizeof (struct_decl)];
@@ -1040,6 +1040,10 @@ namespace annium_lang {
         value.move< context_identifier > (std::move (that.value));
         break;
 
+      case symbol_kind::S_144_case_decl: // case-decl
+        value.move< enum_case > (std::move (that.value));
+        break;
+
       case symbol_kind::S_141_enum_decl: // enum-decl
         value.move< enum_decl > (std::move (that.value));
         break;
@@ -1060,10 +1064,6 @@ namespace annium_lang {
       case symbol_kind::S_138_fn_start_decl: // fn-start-decl
       case symbol_kind::S_140_fn_decl: // fn-decl
         value.move< fn_pure > (std::move (that.value));
-        break;
-
-      case symbol_kind::S_144_case_decl: // case-decl
-        value.move< identifier > (std::move (that.value));
         break;
 
       case symbol_kind::S_118_let_decl: // let-decl
@@ -1195,14 +1195,14 @@ namespace annium_lang {
         value.move< std::tuple<syntax_pattern, parameter_constraint_modifier_t, syntax_expression const*> > (std::move (that.value));
         break;
 
+      case symbol_kind::S_142_case_list_opt: // case-list-opt
+      case symbol_kind::S_143_case_list: // case-list
+        value.move< std::vector<enum_case> > (std::move (that.value));
+        break;
+
       case symbol_kind::S_152_field_list_opt: // field-list-opt
       case symbol_kind::S_153_field_list: // field-list
         value.move< std::vector<field> > (std::move (that.value));
-        break;
-
-      case symbol_kind::S_142_case_list_opt: // case-list-opt
-      case symbol_kind::S_143_case_list: // case-list
-        value.move< std::vector<identifier> > (std::move (that.value));
         break;
 
       case symbol_kind::S_145_struct_decl: // struct-decl
@@ -1400,6 +1400,20 @@ namespace annium_lang {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
+      basic_symbol (typename Base::kind_type t, enum_case&& v, location_type&& l)
+        : Base (t)
+        , value (std::move (v))
+        , location (std::move (l))
+      {}
+#else
+      basic_symbol (typename Base::kind_type t, const enum_case& v, const location_type& l)
+        : Base (t)
+        , value (v)
+        , location (l)
+      {}
+#endif
+
+#if 201103L <= YY_CPLUSPLUS
       basic_symbol (typename Base::kind_type t, enum_decl&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
@@ -1463,20 +1477,6 @@ namespace annium_lang {
       {}
 #else
       basic_symbol (typename Base::kind_type t, const fn_pure& v, const location_type& l)
-        : Base (t)
-        , value (v)
-        , location (l)
-      {}
-#endif
-
-#if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, identifier&& v, location_type&& l)
-        : Base (t)
-        , value (std::move (v))
-        , location (std::move (l))
-      {}
-#else
-      basic_symbol (typename Base::kind_type t, const identifier& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1736,13 +1736,13 @@ namespace annium_lang {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, std::vector<field>&& v, location_type&& l)
+      basic_symbol (typename Base::kind_type t, std::vector<enum_case>&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const std::vector<field>& v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const std::vector<enum_case>& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1750,13 +1750,13 @@ namespace annium_lang {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, std::vector<identifier>&& v, location_type&& l)
+      basic_symbol (typename Base::kind_type t, std::vector<field>&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const std::vector<identifier>& v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const std::vector<field>& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -2700,6 +2700,10 @@ switch (yykind)
         value.template destroy< context_identifier > ();
         break;
 
+      case symbol_kind::S_144_case_decl: // case-decl
+        value.template destroy< enum_case > ();
+        break;
+
       case symbol_kind::S_141_enum_decl: // enum-decl
         value.template destroy< enum_decl > ();
         break;
@@ -2720,10 +2724,6 @@ switch (yykind)
       case symbol_kind::S_138_fn_start_decl: // fn-start-decl
       case symbol_kind::S_140_fn_decl: // fn-decl
         value.template destroy< fn_pure > ();
-        break;
-
-      case symbol_kind::S_144_case_decl: // case-decl
-        value.template destroy< identifier > ();
         break;
 
       case symbol_kind::S_118_let_decl: // let-decl
@@ -2855,14 +2855,14 @@ switch (yykind)
         value.template destroy< std::tuple<syntax_pattern, parameter_constraint_modifier_t, syntax_expression const*> > ();
         break;
 
+      case symbol_kind::S_142_case_list_opt: // case-list-opt
+      case symbol_kind::S_143_case_list: // case-list
+        value.template destroy< std::vector<enum_case> > ();
+        break;
+
       case symbol_kind::S_152_field_list_opt: // field-list-opt
       case symbol_kind::S_153_field_list: // field-list
         value.template destroy< std::vector<field> > ();
-        break;
-
-      case symbol_kind::S_142_case_list_opt: // case-list-opt
-      case symbol_kind::S_143_case_list: // case-list
-        value.template destroy< std::vector<identifier> > ();
         break;
 
       case symbol_kind::S_145_struct_decl: // struct-decl
@@ -5143,7 +5143,7 @@ switch (yykind)
     /// Constants.
     enum
     {
-      yylast_ = 2032,     ///< Last index in yytable_.
+      yylast_ = 2007,     ///< Last index in yytable_.
       yynnts_ = 76,  ///< Number of nonterminal symbols.
       yyfinal_ = 101 ///< Termination state number.
     };
