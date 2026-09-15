@@ -32,6 +32,8 @@ public:
 
 std::expected<functional_match_descriptor_ptr, error_storage> union_get_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const& exp) const
 {
+    (void)exp;
+
     environment& env = ctx.env();
     auto call_session = call.new_session(ctx);
 

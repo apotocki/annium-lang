@@ -121,7 +121,7 @@ std::expected<syntax_expression_result, error_storage> internal_fn_pattern::appl
 
         BOOST_ASSERT(fne.result);
     }
-    bool f = fne.is_built();
+    
     result.value_or_type = fne.result.entity_id();
     result.is_const_result = fne.result.is_const();
 
