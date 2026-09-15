@@ -50,6 +50,8 @@ public:
 
     [[nodiscard]] result_type operator()(include_decl const&) const;
     [[nodiscard]] result_type operator()(fn_decl const&) const;
+    [[nodiscard]] result_type operator()(struct_decl const&) const;
+    [[nodiscard]] result_type operator()(enum_decl const&) const;
 
     // skipping non-forward declarations
     template <typename T> result_type operator()(T const&) const { return break_scope_kind::none; }

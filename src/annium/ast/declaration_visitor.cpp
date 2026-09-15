@@ -84,6 +84,84 @@ forward_declaration_visitor::result_type forward_declaration_visitor::operator()
     return break_scope_kind::none;
 }
 
+// Moved here (out of declaration_visitor's second pass), same reasoning as struct_decl below: an
+// enum's own identity (the union(...) built from its cases) and each structural case's own shell
+// (struct_entity) become available file-order-independently. This is safe to move wholesale --
+// unlike building a struct's *fields* (deliberately still left lazy), collecting each case's own
+// entity id and combining them into the union needs no field resolution at all: a struct_entity's
+// id (and its get_type(), which make_union_type_entity's const-vs-type decision reads) are both
+// already valid the instant it's constructed, well before struct_entity::build() ever runs. See
+// declaration_visitor::operator()(enum_decl const&) below for the second pass this now leaves
+// room for: eagerly forcing each structural case's *field* signature to build, now that every
+// other top-level struct/enum in the file already has its own shell registered by the time that
+// runs, closing the forward-reference hazard that made doing so unsafe from inside this same pass.
+forward_declaration_visitor::result_type forward_declaration_visitor::operator()(enum_decl const& ed) const
+{
+    environment& env = ctx.env();
+    functional& fnl = env.fregistry_resolve(ctx.ns() / ed.name.value);
+
+    // Every enum -- structural or plain, all-bare -- becomes union(Case1, Case2, ...): a
+    // structural case (`Leaf(fields...)`) is a nested struct_entity and a bare case (`Empty`) is a
+    // constexpr identifier atom -- exactly what `.Empty` would evaluate to (base_expression_visitor's
+    // `operator()(identifier)` -> `env.make_identifier_entity(...)`). For an all-bare enum this is
+    // the same "enum_union" fast path (a bare integer tag, no [value,tag] array) the union
+    // machinery already had for mixed enums -- see IMPLEMENTATION_NOTES.md's "Retiring
+    // enum_entity" section for why the old, integer-backed enum_entity representation was
+    // dropped entirely rather than kept as a special case.
+    small_vector<entity_identifier, 8> items;
+    items.reserve(ed.cases.size());
+    for (enum_case const& c : ed.cases) {
+        if (c.fields) {
+            qname case_qname = ctx.ns() / ed.name.value / c.name;
+            functional& case_fnl = env.fregistry_resolve(case_qname);
+            auto sent = make_shared<struct_entity>(env, case_fnl, *c.fields);
+            env.eregistry_insert(sent);
+            annotated_entity_identifier case_aeid{ sent->id, ed.name.location };
+            case_fnl.set_default_entity(case_aeid);
+            items.push_back(sent->id);
+        } else {
+            items.push_back(env.make_identifier_entity(c.name).id);
+        }
+    }
+    entity const& uent = env.make_union_type_entity(items);
+    annotated_entity_identifier aeid{ uent.id, ed.name.location };
+    fnl.set_default_entity(aeid);
+    return break_scope_kind::none;
+}
+
+// Moved here (out of declaration_visitor's second pass) so a struct's own identity/matchable shape
+// is available file-order-independently, mirroring fn_decl just above: a plain `struct Name =>
+// (fields)` registers its struct_entity shell immediately (name/identity only -- field resolution
+// stays lazy, struct_entity::build/underlying_tuple_eid, unaffected by which pass created the
+// shell), and a parameterized `struct Name(params) => (fields)` registers its struct_fn_pattern
+// (matched per distinct argument set later, same as any other functional pattern). Either way,
+// nothing here evaluates field types eagerly -- see IMPLEMENTATION_NOTES.md's "Structural pattern
+// destructuring of a struct's own fields" section for why eager field resolution specifically
+// would be unsafe (self-/forward-referencing struct fields, e.g. a structural enum case whose own
+// field type is the enclosing union).
+forward_declaration_visitor::result_type forward_declaration_visitor::operator()(struct_decl const& sd) const
+{
+    environment& env = ctx.env();
+    annotated_qname fn_qname = { ctx.ns() / sd.name.value, sd.name.location };
+    // to do: check the allowence of absolute qname
+
+    functional& fnl = env.fregistry_resolve(fn_qname.value);
+    if (sd.parameters.empty()) {
+        // case: struct STRUCT_NAME => ( fields )
+        auto sent = sonia::make_shared<struct_entity>(env, fnl, sd.body);
+        env.eregistry_insert(sent);
+        annotated_entity_identifier aeid{ sent->id, sd.name.location };
+        fnl.set_default_entity(aeid);
+    } else {
+        // case: struct STRUCT_NAME(parameters) => ( fields )
+        auto ptrn = sonia::make_shared<struct_fn_pattern>(sd.body);
+        if (error_storage err = ptrn->init(ctx, fn_qname, sd.parameters); err) return std::unexpected(std::move(err));
+        fnl.push(std::move(ptrn));
+    }
+
+    return break_scope_kind::none;
+}
+
 declaration_visitor::result_type declaration_visitor::apply(span<const statement> sts) const
 {
     return declaration_visitor_base::apply<declaration_visitor>(sts);
@@ -132,6 +210,31 @@ declaration_visitor::result_type declaration_visitor::operator()(using_decl cons
         //fnptrn->result_constraints.emplace(parameter_constraint_set_t{ .expression = ud.expression }, parameter_constraint_modifier_t::const_value);
         fnl.push(std::move(fnptrn));
         //return std::unexpected(std::move(err));
+    }
+    return break_scope_kind::none;
+}
+
+declaration_visitor::result_type declaration_visitor::operator()(struct_decl const& sd) const
+{
+    // Mirrors enum_decl's own structural-case validation below: a plain struct's shell is already
+    // registered by forward_declaration_visitor, so by this (second) pass every other top-level
+    // struct/enum in the file already has its own shell too -- safe to force the field signature to
+    // build right now instead of leaving it to whenever (if ever) something first demands it.
+    //
+    // Only the plain (non-parameterized) case: a parameterized struct (struct_fn_pattern) has no
+    // single "the" instantiation to eagerly validate here -- only concrete calls to it do, each with
+    // its own argument-dependent field types.
+    if (!sd.parameters.empty()) return break_scope_kind::none;
+
+    environment& env = ctx.env();
+    functional& fnl = env.fregistry_resolve(ctx.ns() / sd.name.value);
+    auto sd_default = fnl.default_entity(ctx);
+    entity_identifier const* sd_eid = get_if<entity_identifier>(&sd_default);
+    BOOST_ASSERT(sd_eid); // set to a plain entity_identifier by the forward pass above
+    auto const* sent = dynamic_cast<struct_entity const*>(&get_entity(env, *sd_eid));
+    BOOST_ASSERT(sent);
+    if (auto tup_eid = sent->underlying_tuple_eid(ctx); !tup_eid) {
+        return std::unexpected(std::move(tup_eid.error()));
     }
     return break_scope_kind::none;
 }
@@ -620,95 +723,29 @@ declaration_visitor::result_type declaration_visitor::operator()(typefn_decl con
 
 declaration_visitor::result_type declaration_visitor::operator()(enum_decl const& ed) const
 {
+    // The enum's own union identity and each structural case's own struct_entity shell are already
+    // registered by forward_declaration_visitor (see its operator()(enum_decl const&) above). This
+    // pass just eagerly forces each structural case's *field* signature to build right now, at the
+    // enum's own declaration site, instead of leaving it to whenever (if ever) something first
+    // demands it -- safe to do here, unlike inside the forward pass itself, because every other
+    // top-level struct/enum in the file already has its own shell registered by the time this
+    // (second-pass) visitor runs, so a case field referencing another, later-declared type can't
+    // fail to resolve purely due to declaration order.
     environment& env = ctx.env();
-    functional& fnl = env.fregistry_resolve(ctx.ns() / ed.name.value);
-
-    // Every enum -- structural or plain, all-bare -- becomes union(Case1, Case2, ...): a
-    // structural case (`Leaf(fields...)`) is a nested struct_entity and a bare case (`Empty`) is a
-    // constexpr identifier atom -- exactly what `.Empty` would evaluate to (base_expression_visitor's
-    // `operator()(identifier)` -> `env.make_identifier_entity(...)`). For an all-bare enum this is
-    // the same "enum_union" fast path (a bare integer tag, no [value,tag] array) the union
-    // machinery already had for mixed enums -- see IMPLEMENTATION_NOTES.md's "Retiring
-    // enum_entity" section for why the old, integer-backed enum_entity representation was
-    // dropped entirely rather than kept as a special case.
-    small_vector<entity_identifier, 8> items;
-    items.reserve(ed.cases.size());
     for (enum_case const& c : ed.cases) {
-        if (c.fields) {
-            qname case_qname = ctx.ns() / ed.name.value / c.name;
-            functional& case_fnl = env.fregistry_resolve(case_qname);
-            auto sent = make_shared<struct_entity>(env, case_fnl, *c.fields);
-            env.eregistry_insert(sent);
-            annotated_entity_identifier case_aeid{ sent->id, ed.name.location };
-            case_fnl.set_default_entity(case_aeid);
-            items.push_back(sent->id);
-        } else {
-            items.push_back(env.make_identifier_entity(c.name).id);
+        if (!c.fields) continue;
+        qname case_qname = ctx.ns() / ed.name.value / c.name;
+        functional& case_fnl = env.fregistry_resolve(case_qname);
+        auto case_default = case_fnl.default_entity(ctx);
+        entity_identifier const* case_eid = get_if<entity_identifier>(&case_default);
+        BOOST_ASSERT(case_eid); // set to a plain entity_identifier by the forward pass above
+        auto const* sent = dynamic_cast<struct_entity const*>(&get_entity(env, *case_eid));
+        BOOST_ASSERT(sent);
+        if (auto tup_eid = sent->underlying_tuple_eid(ctx); !tup_eid) {
+            return std::unexpected(std::move(tup_eid.error()));
         }
     }
-    entity const& uent = env.make_union_type_entity(items);
-    annotated_entity_identifier aeid{ uent.id, ed.name.location };
-    fnl.set_default_entity(aeid);
     return break_scope_kind::none;
-}
-
-declaration_visitor::result_type declaration_visitor::operator()(struct_decl const& sd) const
-{
-    environment& env = ctx.env();
-    annotated_qname fn_qname = { ctx.ns() / sd.name.value, sd.name.location };
-    // to do: check the allowence of absolute qname
-    
-    functional& fnl = env.fregistry_resolve(fn_qname.value);
-    if (sd.parameters.empty()) {
-        // case: struct STRUCT_NAME => ( fields )
-        auto sent = sonia::make_shared<struct_entity>(env, fnl, sd.body);
-        env.eregistry_insert(sent);
-        annotated_entity_identifier aeid{ sent->id, sd.name.location };
-        fnl.set_default_entity(aeid);
-    } else {
-        // case: struct STRUCT_NAME(parameters) => ( fields )
-        auto ptrn = sonia::make_shared<struct_fn_pattern>(sd.body);
-        if (error_storage err = ptrn->init(ctx, fn_qname, sd.parameters); err) return std::unexpected(std::move(err));
-        fnl.push(std::move(ptrn));
-    }
-
-    return break_scope_kind::none;
-
-    //return apply_visitor(make_functional_visitor<error_storage>([this, &sd](auto const& v) {
-    //    environment& e = ctx.env();
-    //    if constexpr (std::is_same_v<annotated_qname const&, decltype(v)>) {
-    //        // case: struct STRUCT_NAME => ( fields )
-    //        annotated_qname const& qn = v;
-
-    //        functional& fnl = e.fregistry_resolve(ctx.ns() / qn.value);
-    //        auto sent = sonia::make_shared<struct_entity>(e, fnl, sd.body);
-    //        e.eregistry_insert(sent);
-    //        annotated_entity_identifier aeid{ sent->id, qn.location };
-    //        fnl.set_default_entity(aeid);
-
-    //        functional& init_fnl = e.fregistry_resolve(e.get(builtin_qnid::init));
-    //        auto initptrn = sonia::make_shared<struct_init_pattern>(sd.body);
-    //        if (error_storage err = initptrn->init(ctx, aeid); err) return err;
-    //        init_fnl.push(std::move(initptrn));
-    //    } else { // if constexpr (std::is_same_v<fn_pure const&, decltype(v)>) {
-    //        // case: struct STRUCT_NAME(parameters) => ( fields )
-    //        
-    //        // to do: check the allowence of absolute qname
-    //        fn_pure const& fn = v;
-    //        qname fn_qname = ctx.ns() / fn.name();
-    //        functional& fnl = e.fregistry_resolve(fn_qname);
-    //        auto ptrn = sonia::make_shared<struct_fn_pattern>(sd.body);
-    //        if (error_storage err = ptrn->init(ctx, fn); err) return err;
-    //        fnl.push(std::move(ptrn));
-
-    //        functional& init_fnl = e.fregistry_resolve(e.get(builtin_qnid::init));
-    //        auto initptrn = sonia::make_shared<struct_init_pattern>(sd.body);
-    //        if (error_storage err = initptrn->init(ctx, fn_qname, fn); err) return err;
-    //        //if (error_storage err = initptrn->init(ctx, annotated_qname{ fn_qname, fn.location() }, fn.parameters); err) return err;
-    //        init_fnl.push(std::move(initptrn));
-    //    }
-    //    return error_storage{};
-    //}), sd.decl);
 }
 
 declaration_visitor::result_type declaration_visitor::operator()(let_statement const& ld) const

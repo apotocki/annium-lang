@@ -13,10 +13,16 @@
 // positional-argument reference an ordinary unnamed parameter already uses -- see
 // array_operations.ann's `iterator($0)`), or, if the arm is written `$name: Pattern => ...`, via
 // that `$name` instead -- still positional-only (no external name, so apply's own unnamed probe
-// call still matches it), just a nicer name than `$0` to read in the body. Destructuring a
-// struct's *named* fields directly in the pattern (`Leaf(name $n)`) is NOT exercised here -- that
-// hits a separate, pre-existing gap, see FUTURE_WORK.md's "Structural pattern destructuring of a
-// struct's own named fields doesn't work".
+// call still matches it), just a nicer name than `$0` to read in the body.
+//
+// A field-destructuring arm (`Leaf(name $n, value $v) => ...`) is match-specific sugar, not
+// structural pattern matching against the struct's own fields (a struct's own signature describes
+// its constructor/type-selector shape, not its instance layout -- there's nothing there to
+// destructure against). `match` rewrites such an arm itself: the actual matched pattern is
+// stripped down to a bare type check, and `let $n = $0.name;`/`let $v = $0.value;` are prepended to
+// the arm's body -- so `$n`/`$v` are the field's real runtime *values* (unlike a bound pattern
+// variable anywhere else in the language, e.g. `of $ET`, which only ever binds a matched field's
+// declared *type*). See IMPLEMENTATION_NOTES.md's "match expression" section.
 
 enum Tree {
     Leaf(name: string, value: integer),
@@ -73,3 +79,26 @@ fn value_or_name($t: Tree) -> integer|string =>
 
 let vn1: integer|string = value_or_name(leaf1);
 let vn2: integer|string = value_or_name(empty);
+
+// field-destructuring arms: `$n`/`$v` are the leaf's actual runtime name/value, not just their
+// declared types -- both the arrow form and a block form (with an explicit `return`) work, and a
+// partial destructure (naming only `name`, ignoring `value` entirely) is fine too.
+fn leaf_name($t: Tree) -> string =>
+    match $t {
+        Leaf(name $n, value) => $n,
+        _ => "n/a"
+    };
+
+fn leaf_value($t: Tree) -> integer {
+    return match $t {
+        Leaf(name, value $v) {
+            return $v;
+        },
+        _ => -1
+    };
+}
+
+assert_equal(leaf_name(leaf1), "a");
+assert_equal(leaf_name(node), "n/a");
+assert_equal(leaf_value(leaf1), 1);
+assert_equal(leaf_value(leaf2), 2);

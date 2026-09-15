@@ -183,18 +183,6 @@ A tuple-element reference (`ref(of: E)` from `t.0`, see `RESOLVED.md`'s `ref(T)`
 
 **Why deferred:** auditing every builtin pattern kind's error-construction sites is a much larger, separate task from the immediate bug fix that motivated it, and doing it opportunistically risks silently leaving some pattern kind's multi-candidate errors undisambiguated (all pointing at the same call-site line with no way to tell overloads apart) if the audit is incomplete.
 
-## Structural pattern destructuring of a struct's own named fields doesn't work (`~Struct(field $x)`)
-
-**Status:** confirmed bug, not started.
-
-**Problem:** `pattern_matcher::do_match(syntax_pattern::signature_descriptor const&, ...)` (`functional/pattern_matcher.cpp:96-170`) matches a pattern's named/positional subfields against `ent_type.signature()->fields()`. For a `struct_entity`, that signature (`sig_`, set in the constructor to just `{name: qname, result: typename}`, `entities/struct/struct_entity.cpp`) carries **no field descriptors at all** — the real ones (`x: i32`, ...) live only on the struct's *underlying tuple* entity (`underlying_tuple_eid_`, populated in `struct_entity::build`). So any pattern that tries to destructure a struct's own named fields directly — `~Tree::Leaf(name $n, value $v)` — fails with "Cannot match named field in signature" (`smplfields.empty()` immediately, `pattern_matcher.cpp:159-162`), because there's nothing to consume. A *bare* type-name pattern with no subpatterns (`Tree::Leaf`, no parens) is unaffected — `do_match`'s field loop never runs when `sd.fields` is empty.
-
-Found while writing `tests/test-suite/match_expression.ann`: a `match` arm written as `Tree::Leaf(name $n, value $v) => $n` fails this way. Worked around in that test by using a bare `Tree::Leaf` pattern and reading the matched value back via `$0` instead — but the underlying capability (destructuring a struct's fields directly in *any* pattern, not just a `match` arm) is still broken for ordinary function parameters too, e.g. `fn f(~Tree::Leaf(name $n))` would hit the same error.
-
-**Likely fix:** mirror `bootstrap.ann`'s own struct-field access, which relabels `self` to `tuple_of(self)` before consulting field descriptors (`get(self: @is_struct, property:) => get(self: tuple_of(self), property: property)`) — `do_match` needs the equivalent: when `ent_type` is a struct (or more generally, whenever `psig->fields()` is empty but the type has a `tuple_of`-reachable underlying signature), match against the underlying tuple's signature instead of the struct's own.
-
-**Why deferred:** needs its own investigation (is the right fix in `do_match` itself, or in how `signature()` is resolved for a struct type before reaching `do_match`; whether `smplfields` should just default to the tuple's fields transparently) and its own regression coverage (parameter-pattern destructuring is a much older, more load-bearing path than `match`) — not safe to fix opportunistically as a side effect of the `match` test.
-
 ## `EnumName.CaseName(args)` — dotted construction of a structural case, immediately typed as the enum
 
 **Status:** not started, deliberately deferred.
@@ -204,4 +192,5 @@ Found while writing `tests/test-suite/match_expression.ann`: a `match` arm writt
 **Why this is a different mechanism, not an extension of `union_get_pattern`:** `EnumName.CaseName(args)` (with arguments) is `a.b(args)` *member-call* sugar (`ANNIUM_SYNTAX.md`'s "Member calls" section), not `member_expression`/`get` — it resolves through `b(self: <type of a>, args)` first (which won't find a plain, unqualified `CaseName` — same short-name problem `match`'s arm patterns hit, see `IMPLEMENTATION_NOTES.md`'s "match expression" section), then falls back to `invoke(self: <type of a>, method: __identifier, args)`. A native pattern for this would need to register on `invoke` — currently `invoke` has exactly **one** overload anywhere in the codebase, `bootstrap.ann`'s `self: ~ runtime object` one (the host/extern-object dynamic-dispatch fallback the `member_call` doc comment describes) — no native C++ pattern has ever been registered on `invoke`. A `self: typename union(...)` native pattern there wouldn't collide with that overload (different `self` shape — a typename reference vs. a runtime object instance — so ordinary overload resolution keeps them apart), but it would be the first of its kind, unlike `union_get_pattern`'s close mirroring of already-proven `to_union_implicit_cast_pattern` codegen.
 
 **Why deferred:** genuinely new territory (first native `invoke` pattern) rather than a close variation on an established pattern — worth its own verification pass (does `member_call`'s step-1→step-2 fallback actually reach a native pattern the way it reaches the `.ann`-declared `object` overload; does forwarding `args` into the struct's own `init`/constructor and then casting compose cleanly) rather than bundling it into the lower-risk bare-case work.
+
 

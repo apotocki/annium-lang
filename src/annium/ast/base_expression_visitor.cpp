@@ -11,12 +11,14 @@
 
 #include <boost/container/flat_set.hpp>
 
+#include <array>
 #include <deque>
 
 #include "annium/entities/prepared_call.hpp"
 #include "annium/entities/literals/literal_entity.hpp"
 #include "annium/entities/functions/internal_function_entity.hpp"
 #include "annium/entities/struct/struct_entity.hpp"
+#include "annium/ast/arena.hpp"
 
 #include "annium/functional/internal_fn_pattern.hpp"
 
@@ -24,6 +26,8 @@
 #include "annium/errors/assign_error.hpp"
 
 #include "annium/auxiliary.hpp"
+
+#include "sonia/utility/scope_exit.hpp"
 
 namespace annium {
 
@@ -1566,6 +1570,18 @@ base_expression_visitor::result_type base_expression_visitor::operator()(match_e
     std::deque<syntax_pattern> rewritten_patterns;
     std::deque<syntax_expression> rewritten_exprs;
 
+    // A field-destructuring arm (`Leaf(name $n, value $v) => ...`) needs genuinely long-lived
+    // storage instead: the rewritten *body* (synthesized `let`s prepended to the arm's own
+    // statements) becomes the eventual internal_function_entity's body_, built lazily -- possibly
+    // well after this function returns -- so it must outlive this call, unlike the pattern
+    // rewriting above. Lazily acquired only if some arm actually needs it, and returned to
+    // environment's arena pool (not freed -- see environment::acquire_arena/release_arena) once
+    // this whole match_expression is done being desugared.
+    std::unique_ptr<arena> synth_arena;
+    SCOPE_EXIT([this, &synth_arena]() { if (synth_arena) env().release_arena(std::move(synth_arena)); });
+    identifier zero_id = env().slregistry().resolve("$0"sv);
+    syntax_expression const* zero_expr = nullptr;
+
     for (match_arm const& arm : me.arms) {
         syntax_pattern const* pat = arm.pattern;
         bool is_value_pattern = std::holds_alternative<syntax_expression const*>(pat->descriptor);
@@ -1600,6 +1616,64 @@ base_expression_visitor::result_type base_expression_visitor::operator()(match_e
             }
         }
 
+        // Field-destructuring sugar: `Leaf(name $n, value $v) => body` does NOT match against a
+        // struct's own runtime field layout -- a struct's own signature (what pattern_matcher.cpp's
+        // do_match actually checks) describes its constructor/type-selector shape, not its instance
+        // fields (empty for a plain `struct Name => (fields)`; the constructor's own parameters for
+        // a parameterized one, e.g. `iterator(typename array(...))` -- see IMPLEMENTATION_NOTES.md's
+        // "match expression" section). So instead of trying to teach do_match about instance
+        // fields, `match` rewrites the arm itself: the matched pattern is stripped down to a bare
+        // type check (`~Leaf`), and one `let $n = $0.name;` per bound field is prepended to the
+        // arm's own body, reusing the already-correct, generic `get(self:, property:)`/`tuple_of`
+        // field-access machinery -- exactly as if the caller had written `$0.name` by hand. This
+        // also gives `$n` the field's actual runtime *value*, not just its type (unlike a bound
+        // pattern variable anywhere else in the language, e.g. `of $ET`/`of $T` -- those only ever
+        // bind a matched field's declared type, since pattern_matcher has no notion of "the value").
+        span<const statement> arm_body = arm.body;
+        if (auto const* sd = get_if<syntax_pattern::signature_descriptor>(&pat->descriptor); sd && !sd->fields.empty()) {
+            if (!synth_arena) synth_arena = env().acquire_arena();
+            arena& ar = *synth_arena;
+            if (!zero_expr) zero_expr = ar.make<syntax_expression>(get_start_location(*arm.pattern), name_reference_expression{ zero_id });
+
+            std::vector<statement> new_body;
+            new_body.reserve(sd->fields.size() + arm.body.size());
+            for (syntax_pattern::field const& field : sd->fields) {
+                if (field.ellipsis) {
+                    return std::unexpected(make_error<basic_general_error>(get_start_location(*arm.pattern),
+                        "match arm field destructuring does not support '...'"sv));
+                }
+                annotated_identifier const* fname = get_if<annotated_identifier>(&field.name);
+                if (!fname) {
+                    return std::unexpected(make_error<basic_general_error>(get_start_location(*arm.pattern),
+                        "match arm field destructuring requires a named field"sv));
+                }
+                bool trivial = std::holds_alternative<placeholder>(field.value->descriptor) && field.value->concepts.empty();
+                if (!trivial) {
+                    return std::unexpected(make_error<basic_general_error>(fname->location,
+                        "match arm field destructuring does not support an additional constraint on a field"sv, fname->value));
+                }
+                if (!field.bound_variable) continue; // named but unbound: documentation only, no-op
+
+                syntax_expression const* prop_expr = ar.make<syntax_expression>(fname->location, fname->value);
+                std::array<opt_named_expression_t, 1> local_exprs{
+                    opt_named_expression_t{ syntax_expression{ fname->location, member_expression{ zero_expr, prop_expr } } }
+                };
+                span<const opt_named_expression_t> let_args = ar.make_array<opt_named_expression_t>(span<const opt_named_expression_t>{ local_exprs });
+                new_body.emplace_back(let_statement{
+                    .aname = field.bound_variable,
+                    .expressions = let_args,
+                    .assign_location = fname->location,
+                    .weakness = false
+                });
+            }
+            new_body.insert(new_body.end(), arm.body.begin(), arm.body.end());
+            arm_body = ar.make_array<statement>(span<const statement>{ new_body });
+
+            syntax_pattern::signature_descriptor stripped_sd = *sd;
+            stripped_sd.fields = {};
+            pat = &rewritten_patterns.emplace_back(syntax_pattern{ .descriptor = stripped_sd, .concepts = pat->concepts });
+        }
+
         // each arm becomes a one-parameter overload whose sole parameter's constraint is the arm's
         // own (possibly just-rewritten) pattern -- the same shape `~Case(...)` gives an ordinary
         // function parameter, so destructuring/binding and the `_` placeholder fallback need no new
@@ -1624,7 +1698,7 @@ base_expression_visitor::result_type base_expression_visitor::operator()(match_e
                 ? parameter_constraint_modifier_t::constexpr_not_a_typename_value
                 : parameter_constraint_modifier_t::constexpr_or_runtime_type
         } };
-        fn_decl arm_fn{ fn_pure{ .parameters = params, .result = nullptr }, arm.body };
+        fn_decl arm_fn{ fn_pure{ .parameters = params, .result = nullptr }, arm_body };
         auto fnptrn = make_shared<internal_fn_pattern>();
         error_storage err = fnptrn->init(ctx, arm_fn);
         if (err) {
