@@ -455,6 +455,24 @@ struct bracket_expression
     syntax_expression const* type;
 };
 
+// one `pattern function-body` arm of a `match` expression -- see annium.y's `match-arm` and
+// IMPLEMENTATION_NOTES.md's "match expression" section.
+struct match_arm
+{
+    // `$name: pattern => ...` binds the arm's own matched value under `$name` (positional-only,
+    // like any other `$name` parameter) instead of the default `$0`; empty (the usual "no name"
+    // convention) when the arm is written without it.
+    annotated_identifier bind_name;
+    syntax_pattern const* pattern;
+    span<const statement> body;
+};
+
+struct match_expression
+{
+    syntax_expression const* scrutinee;
+    span<const match_arm> arms;
+};
+
 struct syntax_expression
 {
     resource_location location;
@@ -486,6 +504,7 @@ struct syntax_expression
         unary_expression, // like -value
         binary_expression, // like left + right
         consteval_expression, // like consteval <expr>
+        match_expression, // like match scrutinee { pattern => expr, ... }
         /*not_empty_expression, // like value?
 
         // special statements

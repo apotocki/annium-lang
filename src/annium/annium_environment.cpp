@@ -57,6 +57,8 @@
 #include "annium/entities/union/union_bit_or_pattern.hpp"
 #include "annium/entities/union/union_apply_pattern.hpp"
 #include "annium/entities/union/to_union_implicit_cast_pattern.hpp"
+#include "annium/entities/union/union_to_integer_pattern.hpp"
+#include "annium/entities/union/union_get_pattern.hpp"
 
 #include "annium/entities/tuple/tuple_pattern.hpp"
 #include "annium/entities/tuple/tuple_make_pattern.hpp"
@@ -78,13 +80,6 @@
 #include "annium/entities/struct/tuple_of_pattern.hpp"
 #include "annium/entities/literals/numeric_pattern.hpp"
 #include "annium/entities/literals/numeric_cast_constexpr_pattern.hpp"
-
-#include "annium/entities/enum/enum_implicit_cast_pattern.hpp"
-#include "annium/entities/enum/enum_implicit_runtime_cast_pattern.hpp"
-#include "annium/entities/enum/enum_get_pattern.hpp"
-#include "annium/entities/enum/enum_equal_pattern.hpp"
-#include "annium/entities/enum/enum_to_string_pattern.hpp"
-#include "annium/entities/enum/enum_to_integer_pattern.hpp"
 
 #include "annium/entities/array/array_implicit_cast_pattern.hpp"
 #include "annium/entities/array/array_from_iterator_make_pattern.hpp"
@@ -1545,7 +1540,6 @@ environment::environment()
 
     // equal(_, _) -> bool
     functional& equal_fnl = fregistry_resolve(get(builtin_qnid::eq));
-    equal_fnl.push(make_shared<enum_equal_pattern>());
     equal_fnl.push(make_shared<tuple_equal_pattern>());
     equal_fnl.push(make_shared<numeric_literal_equal_pattern>());
     equal_fnl.push(make_shared<equal_pattern>());
@@ -1574,18 +1568,15 @@ environment::environment()
 
     functional& to_string_fnl = fregistry_resolve(get(builtin_qnid::to_string));
     to_string_fnl.push(make_shared<to_string_pattern>());
-    to_string_fnl.push(make_shared<enum_to_string_pattern>());
 
     functional& to_integer_fnl = fregistry_resolve(get(builtin_qnid::to_integer));
-    to_integer_fnl.push(make_shared<enum_to_integer_pattern>());
+    to_integer_fnl.push(make_shared<union_to_integer_pattern>());
 
     functional& tuple_fnl = fregistry_resolve(get(builtin_qnid::tuple));
     tuple_fnl.push(make_shared<tuple_pattern>());
 
     functional& implicit_cast_fnl = fregistry_resolve(get(builtin_qnid::implicit_cast));
     //implicit_cast_fnl.push(make_shared<struct_implicit_cast_pattern>());
-    implicit_cast_fnl.push(make_shared<enum_implicit_cast_pattern>());
-    implicit_cast_fnl.push(make_shared<enum_implicit_runtime_cast_pattern>());
     //implicit_cast_fnl.push(make_shared<fixed_array_implicit_cast_pattern>()); // array to vector
     implicit_cast_fnl.push(make_shared<array_implicit_cast_pattern>()); // vector to vector
     //implicit_cast_fnl.push(make_shared<fixed_array_elements_implicit_cast_pattern>());
@@ -1634,7 +1625,7 @@ environment::environment()
     get_fnl.push(make_shared<tuple_get_pattern>());
     get_fnl.push(make_shared<fixed_array_get_pattern>());
     get_fnl.push(make_shared<tuple_project_get_pattern>());
-    get_fnl.push(make_shared<enum_get_pattern>());
+    get_fnl.push(make_shared<union_get_pattern>());
 
     // size(signatured_entity)->integer
     functional& sz_fnl = fregistry_resolve(get(builtin_qnid::size));

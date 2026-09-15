@@ -1034,20 +1034,32 @@ std::expected<std::tuple<entity_identifier, bool, bool>, error_storage> fn_compi
 
     if (const_value_result) {
         bool is_empty_function = fent.arg_count() == 0 && !has_procedures(env(), expressions());
-        //if (!is_empty_function) {
-        //    // e.g. to handle: return print( <something> );
-        //    for (auto& [rts, el, er, loc] : return_statements_) {
 
-        //        push_scopes_to_stash();
-        //        semantic::expression_span dsp;
-        //        pop_all_scopes(expression_store_, dsp, !er.is_const_result);
-        //        rts->scope_deconstruction = expressions();
-        //        pop_scopes_from_stash();
-        //        pop_chain();
-        //    }
-        //}
+        if (!fent.is_runtime_committed()) {
+            return std::tuple{ const_value_result, true, is_empty_function };
+        }
 
-        return std::tuple{ const_value_result, true, is_empty_function };
+        // some call site already resolved a call to this function before it was built,
+        // and committed to a real runtime call expecting a value on the stack (see
+        // BUGFIXES.md) -- even though the result is constexpr, we must still materialize
+        // an actual runtime push for every return statement, the same way a genuinely
+        // non-const result would be cast to result_type below.
+        expected_result_t expected_result{ .type = result_type, .modifier = value_modifier_t::runtime_value };
+        for (return_statement_descriptor& rsd : return_statements_) {
+            call_builder cast_call{ rsd.location };
+            expected_result.location = rsd.location;
+            cast_call.emplace_back(syntax_expression{ rsd.location, entity_identifier{ const_value_result } });
+            auto res = find_and_apply(builtin_qnid::implicit_cast, cast_call, expression_store_, expected_result);
+            if (!res) {
+                return std::unexpected(append_cause(
+                    make_error<basic_general_error>(rsd.location, "failed to cast constexpr result to runtime value"sv, result_type),
+                    std::move(res.error())
+                ));
+            }
+            rsd.stmt->scope_deconstruction = expression_store_.concat(rsd.stmt->scope_deconstruction, res->expressions);
+        }
+
+        return std::tuple{ const_value_result, true, false };
     }
 
     expected_result_t expected_result{ .type = result_type, .modifier = value_modifier_t::runtime_value };

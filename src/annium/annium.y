@@ -136,6 +136,7 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 %token <resource_location> BREAK      "`break`"
 %token <resource_location> RETURN     "`return`"
 %token <resource_location> YIELD      "`yield`"
+%token <resource_location> MATCH      "`match`"
 
 %token AUTO
 %token USING
@@ -328,7 +329,9 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 %type <syntax_expression> type-expr
 //%type <syntax_expression> parenthesized-expression
 %type <syntax_expression> syntax-expression-base grouped-expression any-reference-expression concept-expression syntax-expression
-%type <syntax_expression> new-expression call-expression lambda-expression compound-expression
+%type <syntax_expression> new-expression call-expression lambda-expression compound-expression match-expression
+%type <std::vector<match_arm>> match-arm-list-opt match-arm-list
+%type <match_arm> match-arm
 //%type <syntax_expression> apostrophe-expression 
 %type <opt_named_expression_list_t> pack-expression pack-expression-opt
 
@@ -1285,8 +1288,62 @@ syntax-expression:
     | new-expression
     | compound-expression
     | lambda-expression
+    | match-expression
     | grouped-expression
     //| parenthesized-expression
+    ;
+
+////////////////////// MATCH (structural-enum/union case dispatch)
+// `match scrutinee { pattern1 => expr1, pattern2 { block2 } }` desugars (in
+// base_expression_visitor.cpp's operator()(match_expression const&)) to
+// `apply(to: scrutinee, visitor: <a fresh anonymous functional with one overload per arm>)`,
+// reusing the existing `apply(to:, visitor:)` union-dispatch builtin (entities/union/union_apply_pattern.cpp)
+// wholesale -- runtime dispatch, per-arm result-type unification, and casting into an already-known
+// expected result type are therefore not reimplemented here. Each arm's pattern is an ordinary
+// `pattern` (the same nonterminal `~Pattern(...)`-shaped parameter constraints already use), so
+// destructuring/binding (`Leaf(name $n)`) and the `_` placeholder fallback work unchanged, with no
+// new pattern-matching machinery either. See IMPLEMENTATION_NOTES.md's "match expression" section.
+match-expression:
+    MATCH syntax-expression[scrutinee] OPEN_BRACE match-arm-list-opt[arms] CLOSE_BRACE
+        { $$ = syntax_expression{ std::move($MATCH), match_expression{ ctx.make<syntax_expression>(std::move($scrutinee)), ctx.make_array<match_arm>($arms) } }; IGNORE_TERM($OPEN_BRACE); }
+    ;
+
+match-arm-list-opt:
+      %empty { $$ = {}; }
+    | match-arm-list
+    ;
+
+// A comma between arms is mandatory even for a block-bodied arm (`pattern { ... }`), which is
+// otherwise self-terminating via its closing brace -- tried making it optional (juxtaposed arms,
+// no separator) and it does NOT parse cleanly: an arrow-bodied arm's own `syntax-expression` body
+// can be mid-parse of a still-open construct (e.g. a call-expression waiting on `(`/`::`) when the
+// next arm's pattern-start token arrives, and the grammar genuinely cannot tell "keep extending
+// this expression" from "start the next arm" without deeper lookahead -- confirmed by bison itself
+// (9 shift/reduce + 3 reduce/reduce conflicts, `-Wcounterexamples` pointing at exactly this). Kept
+// mandatory, unconditionally, to stay conflict-free.
+// A comma between arms is mandatory even for a block-bodied arm (`pattern { ... }`), which is
+// otherwise self-terminating via its closing brace. Tried making it optional twice: fully
+// (juxtaposed arms with no separator at all) and narrower (no comma required only right before a
+// block-bodied arm) -- both fail the same way, confirmed with bison directly (9 shift/reduce + 3
+// reduce/reduce conflicts, `-Wcounterexamples` pointing at it): an arrow-bodied arm's own
+// `syntax-expression` body can still be mid-parse of an open construct (e.g. a call-expression
+// waiting on further `(`/`::`) at the point the *next* arm's tokens start arriving, and LALR(1)
+// has to commit to "keep extending this expression" vs "the arm ended here" before it can know
+// whether what follows will turn out to be a block-arm or not -- narrowing which arm-kind is
+// allowed to skip the comma doesn't help, since the ambiguity is in the arrow-arm's own parse, not
+// in what follows it. Kept mandatory, unconditionally, to stay conflict-free.
+match-arm-list:
+      match-arm[arm]
+        { $$ = std::vector<match_arm>{ std::move($arm) }; }
+    | match-arm-list[list] COMMA match-arm[arm]
+        { $$ = std::move($list); $$.emplace_back(std::move($arm)); }
+    ;
+
+match-arm:
+      pattern[pat] function-body[body]
+        { $$ = match_arm{ .pattern = ctx.make<syntax_pattern>(std::move($pat)), .body = ctx.make_array<statement>($body) }; }
+    | internal-identifier[iid] COLON pattern[pat] function-body[body]
+        { $$ = match_arm{ .bind_name = std::move($iid.name), .pattern = ctx.make<syntax_pattern>(std::move($pat)), .body = ctx.make_array<statement>($body) }; }
     ;
 
 lambda-start-decl:

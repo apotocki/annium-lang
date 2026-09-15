@@ -110,6 +110,10 @@
   },
   {
     "src": "structural_enums.ann",
+    "output": "[\"a\", 1:bigint][\"root\", [[\"a\", 1:bigint], 0:ui64], [[\"b\", 2:bigint], 0:ui64]]"
+  },
+  {
+    "src": "match_expression.ann",
     "output": ""
   }
   /*

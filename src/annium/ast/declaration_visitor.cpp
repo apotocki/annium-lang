@@ -13,7 +13,6 @@
 #include "annium/entities/prepared_call.hpp"
 #include "annium/entities/struct/struct_entity.hpp"
 #include "annium/entities/struct/struct_fn_pattern.hpp"
-#include "annium/entities/enum/enum_entity.hpp"
 #include "annium/entities/functions/internal_function_entity.hpp"
 
 #include "annium/functional/basic_fn_pattern.hpp"
@@ -624,27 +623,14 @@ declaration_visitor::result_type declaration_visitor::operator()(enum_decl const
     environment& env = ctx.env();
     functional& fnl = env.fregistry_resolve(ctx.ns() / ed.name.value);
 
-    bool has_structural_case = false;
-    for (enum_case const& c : ed.cases) {
-        if (c.fields) { has_structural_case = true; break; }
-    }
-    if (!has_structural_case) {
-        // plain, all-bare enum: unchanged, integer-backed representation (enum_entity).
-        small_vector<identifier, 8> case_names;
-        case_names.reserve(ed.cases.size());
-        for (enum_case const& c : ed.cases) case_names.push_back(c.name);
-        auto eent = make_shared<enum_entity>(env, fnl, case_names);
-        env.eregistry_insert(eent);
-        annotated_entity_identifier aeid{ eent->id, ed.name.location };
-        fnl.set_default_entity(aeid);
-        return break_scope_kind::none;
-    }
-
-    // at least one structural case: `Node` becomes union(Node::Case1, Node::Case2, ...), where a
+    // Every enum -- structural or plain, all-bare -- becomes union(Case1, Case2, ...): a
     // structural case (`Leaf(fields...)`) is a nested struct_entity and a bare case (`Empty`) is a
     // constexpr identifier atom -- exactly what `.Empty` would evaluate to (base_expression_visitor's
-    // `operator()(identifier)` -> `env.make_identifier_entity(...)`), and environment::make_union_type_entity
-    // already treats a non-typename element as a const union field, so no new union machinery is needed.
+    // `operator()(identifier)` -> `env.make_identifier_entity(...)`). For an all-bare enum this is
+    // the same "enum_union" fast path (a bare integer tag, no [value,tag] array) the union
+    // machinery already had for mixed enums -- see IMPLEMENTATION_NOTES.md's "Retiring
+    // enum_entity" section for why the old, integer-backed enum_entity representation was
+    // dropped entirely rather than kept as a special case.
     small_vector<entity_identifier, 8> items;
     items.reserve(ed.cases.size());
     for (enum_case const& c : ed.cases) {
@@ -779,6 +765,11 @@ declaration_visitor::result_type declaration_visitor::operator()(let_statement c
             pelemsig = &env().make_basic_signatured_entity(std::move(element_sig));
         }
         if (er.is_const_result) {
+            // er can still carry queued expressions with real runtime side effects (e.g. a call
+            // to a function whose result folded to a constant but whose body isn't empty -- see
+            // BUGFIXES.md) -- flush those into the enclosing body before binding the name to the
+            // constant, same as append_result_inplace does for the non-const path below.
+            ctx.append_result_inplace(el, er, annotated_identifier{});
             ctx.push_scope_constant(ld.aname, pelemsig ? pelemsig->id : er.value());
         } else {
             if (pelemsig) er.value_or_type = pelemsig->id;
@@ -805,6 +796,9 @@ declaration_visitor::result_type declaration_visitor::operator()(let_statement c
 
     for (auto& [id, er] : results) {
         if (er.is_const_result) {
+            // same reasoning as the single-result case above: flush any queued side effects
+            // before treating this element as a bare constant.
+            ctx.append_result_inplace(el, er, annotated_identifier{});
             result_sig.emplace_back(id, er.value(), true);
         } else {
             //ctx.push_scope();

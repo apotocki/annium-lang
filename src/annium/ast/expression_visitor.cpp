@@ -9,7 +9,6 @@
 #include "sonia/utility/scope_exit.hpp"
 
 #include "fn_compiler_context.hpp"
-#include "annium/entities/enum/enum_entity.hpp"
 #include "annium/entities/literals/literal_entity.hpp"
 
 #include "annium/auxiliary.hpp"

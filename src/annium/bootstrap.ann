@@ -108,7 +108,7 @@ inline fn ::get(self: typename f32, property: consteval .e) -> f32 => 2.71828174
 inline fn ::get(self: typename f64, property: consteval .e) -> f64 => 2.718281828459045090795598298427648842334747314453125;
 
 // STRINGS
-inline fn implicit_cast(string) ~> bool => !empty($0);
+inline fn implicit_cast(~string) ~> bool => !empty($0);
 inline fn clone(string) -> string => reinterpret(std.clone($0));
 inline fn starts_with(self: ~ runtime string, $prefix: runtime string) -> bool => reinterpret(std.starts_with(self, $prefix));
 inline fn starts_with(self: ~ constexpr string, $prefix: constexpr string) -> bool => consteval starts_with(self: runtime_cast(self), runtime_cast($prefix));
@@ -116,6 +116,17 @@ inline fn substring(self: ~ runtime string, $start: runtime u32, $length: runtim
 inline fn substring(self: ~ constexpr string, $start: constexpr u32, $length: constexpr i32 = i32.max) -> string => consteval substring(self: runtime_cast(self), runtime_cast($start), runtime_cast($length));
 
 // UNIONS
+// When only one side is a union, unwrap it and compare its active value against the plain other
+// side. When BOTH sides are unions (e.g. two enum values), the two single-sided overloads below
+// would tie -- either one unwraps a union and compares against the still-union-typed other side,
+// which is just as valid a match as the other -- so a third, structurally more specific overload
+// (~union(...) on both parameters) is needed to disambiguate. It deliberately reuses the *same*
+// single-level `apply` the first overload below already does, rather than nesting a second `apply`
+// directly inside the first one's visitor: `$value == $r` recurses back into `equal`, where $value
+// is now a concrete (non-union) type and $r is still a union, so it lands on the *second* overload
+// below (unambiguously -- $value isn't itself ~union(...)) and unwraps $r in its own turn, one
+// `apply` per `equal` call rather than two `apply`s composed inline in one.
+inline fn equal($l: ~union(...), $r: ~union(...)) => apply(to: $l, visitor: fn[$r]($value) => $value == $r);
 inline fn equal($l: ~union(...), $r) => apply(to: $l, visitor: fn[$r]($value) => $value == $r);
 inline fn equal($l, $r: ~union(...)) => apply(to: $r, visitor: fn[$l]($value) => $value == $l);
 inline fn to_string(~union(...))->string => apply(to: $0, visitor: fn($x) => to_string($x));

@@ -70,6 +70,7 @@ public:
     result_type operator()(index_expression const&) const;
 
     result_type operator()(lambda const&) const;
+    result_type operator()(match_expression const&) const;
 
     template <typename FnIdT>
     result_type operator()(FnIdT&& fnid, span<const opt_named_expression_t>) const;

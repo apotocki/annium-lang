@@ -127,6 +127,7 @@ EXTERN                   "extern"
 INCLUDE					 "include"
 INLINE					 "inline"
 VIABLE					 "viable"
+MATCH					 "match"
 NEW						 "new"
 
 CONTINUE                 "continue"
@@ -316,6 +317,7 @@ HASHTAG					"#"
 	{REQUIRES} { return (annium_lang::parser::token::REQUIRES); }
 	{PROBE} { variant_emplace(location); return (annium_lang::parser::token::PROBE); }
 	{VIABLE} { return (annium_lang::parser::token::VIABLE); }
+	{MATCH} { variant_emplace(location); return (annium_lang::parser::token::MATCH); }
 	{USING} { return (annium_lang::parser::token::USING); }
 	{EXTENDS} { return (annium_lang::parser::token::EXTENDS); }
 	{EXTERN} { return (annium_lang::parser::token::EXTERN); }

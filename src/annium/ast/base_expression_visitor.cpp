@@ -11,9 +11,12 @@
 
 #include <boost/container/flat_set.hpp>
 
+#include <deque>
+
 #include "annium/entities/prepared_call.hpp"
 #include "annium/entities/literals/literal_entity.hpp"
 #include "annium/entities/functions/internal_function_entity.hpp"
+#include "annium/entities/struct/struct_entity.hpp"
 
 #include "annium/functional/internal_fn_pattern.hpp"
 
@@ -1503,6 +1506,150 @@ base_expression_visitor::result_type base_expression_visitor::operator()(lambda 
     }
     
     return apply_cast(lambda_ent);
+}
+
+base_expression_visitor::result_type base_expression_visitor::operator()(match_expression const& me) const
+{
+    // Resolve the scrutinee exactly once. Its resolved value is spliced into the apply(...) call
+    // below via make_indirect_value instead of passing *me.scrutinee through raw -- so it is
+    // evaluated here and nowhere else -- and its type drives the short-name lookup just below.
+    auto scrutinee_res = base_expression_visitor::visit(ctx, expressions, expected_result_t{}, *me.scrutinee);
+    if (!scrutinee_res) {
+        return std::unexpected(append_cause(
+            make_error<basic_general_error>(me.scrutinee->location, "cannot resolve match scrutinee"sv),
+            std::move(scrutinee_res.error())
+        ));
+    }
+    syntax_expression_result scrutinee_er = std::move(scrutinee_res->first);
+    entity_identifier scrutinee_type = scrutinee_er.is_const_result
+        ? get_entity(env(), scrutinee_er.value()).get_type()
+        : scrutinee_er.type();
+
+    // Short-name lookup: a struct case's own last qname segment (`Tree::Leaf` -> `Leaf`), or a bare
+    // case atom's own identifier value (`.Empty` -> `Empty`) -- only populated when the scrutinee's
+    // type actually is a `union(...)` (e.g. one built from a structural enum). Lets each arm below
+    // write the short, enum-local name instead of the fully-qualified one.
+    struct member_info { entity_identifier eid; bool is_const; qname_view full_name; };
+    small_vector<std::pair<identifier, member_info>, 8> short_names;
+    if (entity_signature const* union_sig = get_entity(env(), scrutinee_type).signature();
+        union_sig && union_sig->name == env().get(builtin_qnid::union_))
+    {
+        for (field_descriptor const& fd : union_sig->fields()) {
+            if (fd.is_const()) {
+                if (identifier_entity const* id_ent = dynamic_cast<identifier_entity const*>(&get_entity(env(), fd.entity_id()))) {
+                    short_names.emplace_back(id_ent->value(), member_info{ fd.entity_id(), true, {} });
+                }
+            } else if (struct_entity const* sent = dynamic_cast<struct_entity const*>(&get_entity(env(), fd.entity_id()))) {
+                qname_view qn = sent->name();
+                if (qn) short_names.emplace_back(qn.back(), member_info{ fd.entity_id(), false, qn });
+            }
+        }
+    }
+
+    // Synthesize one anonymous functional carrying one overload per arm -- exactly what a plain
+    // lambda does just above, looped over `me.arms` instead of compiling a single fn_decl -- then
+    // dispatch through the existing apply(to:, visitor:) union-consume builtin
+    // (entities/union/union_apply_pattern.cpp), which already implements runtime dispatch on the
+    // scrutinee's active case, per-arm result-type unification (building a union when arms disagree,
+    // same algorithm as a function's own multiple `return`s -- fn_compiler_context::finish_frame),
+    // and casting into an already-known expected result type. See IMPLEMENTATION_NOTES.md's "match
+    // expression" section.
+    identifier visitor_name_id = env().new_identifier();
+    qname visitor_qname = ctx.ns() / qname{ visitor_name_id, false };
+    functional& fnl = env().resolve_functional(visitor_qname);
+
+    // Rewritten arm patterns (short-name -> qualified, or short-name -> value) need stable storage
+    // for as long as the apply(...) call below runs -- pattern matching against them happens
+    // synchronously nested inside it (arm overload resolution, one probe per union member), and
+    // nothing here needs to outlive this function, so a plain local deque (stable addresses on
+    // push_back, unlike vector) is enough; no arena allocation needed.
+    std::deque<syntax_pattern> rewritten_patterns;
+    std::deque<syntax_expression> rewritten_exprs;
+
+    for (match_arm const& arm : me.arms) {
+        syntax_pattern const* pat = arm.pattern;
+        bool is_value_pattern = std::holds_alternative<syntax_expression const*>(pat->descriptor);
+
+        if (!is_value_pattern) {
+            if (auto const* sd = get_if<syntax_pattern::signature_descriptor>(&pat->descriptor)) {
+                if (auto const* aqv = get_if<annotated_qname_view>(&sd->name); aqv && aqv->value.size() == 1 && aqv->value.is_relative()) {
+                    identifier short_name = aqv->value.back();
+                    member_info const* found = nullptr;
+                    for (auto const& p : short_names) {
+                        if (p.first == short_name) { found = &p.second; break; }
+                    }
+                    if (found) {
+                        if (found->is_const) {
+                            // bare case atom (e.g. `Empty`): rewrite to the exact value pattern
+                            // `{<atom>}` would already produce, so it goes through the ordinary
+                            // syntax_expression value-comparison branch of pattern_matcher::match
+                            // (pattern_matcher.cpp:27-32) instead of signature_descriptor's
+                            // type-name comparison, which a plain atom could never satisfy.
+                            syntax_expression& atom_expr = rewritten_exprs.emplace_back(syntax_expression{ aqv->location, entity_identifier{ found->eid } });
+                            pat = &rewritten_patterns.emplace_back(syntax_pattern{ .descriptor = &atom_expr, .concepts = pat->concepts });
+                            is_value_pattern = true;
+                        } else {
+                            // structural case (e.g. `Leaf`): rewrite to its fully-qualified name,
+                            // keeping any subpatterns/concepts exactly as written.
+                            syntax_pattern::signature_descriptor new_sd = *sd;
+                            new_sd.name = annotated_qname_view{ found->full_name, aqv->location };
+                            pat = &rewritten_patterns.emplace_back(syntax_pattern{ .descriptor = new_sd, .concepts = pat->concepts });
+                        }
+                    }
+                }
+            }
+        }
+
+        // each arm becomes a one-parameter overload whose sole parameter's constraint is the arm's
+        // own (possibly just-rewritten) pattern -- the same shape `~Case(...)` gives an ordinary
+        // function parameter, so destructuring/binding and the `_` placeholder fallback need no new
+        // matching logic.
+        //
+        // The modifier matters for a *value* pattern specifically (`{expr}`, or a bare-case atom
+        // rewritten above): parameter_matcher.cpp's operator()(syntax_pattern const&) only passes
+        // the candidate's own VALUE (not its type) into pattern_matcher::match() when the
+        // parameter's modifier carries constexpr_not_a_typename_value -- the same modifier
+        // `~pattern-mod`'s `CONSTEVAL syntax-expression` alternative sets (annium.y's pattern-mod).
+        // Any other modifier (including the default constexpr_or_runtime_type) makes a constexpr
+        // candidate get compared by its *type* instead, which is right for a structural/nominal
+        // pattern (`Tree::Leaf`, matched by type) but wrong for a value pattern.
+        std::vector<parameter> params{ parameter{
+            // `$name: pattern` (arm.bind_name set) makes the matched value referenceable as `$name`
+            // in the arm body instead of the default `$0` -- still positional-only (no `$` -> no
+            // external name), so apply's own unnamed probe call (union_apply_pattern.cpp:104-119)
+            // keeps matching it either way.
+            .name = unnamed_parameter_name{ arm.bind_name },
+            .constraint = pat,
+            .modifier = is_value_pattern
+                ? parameter_constraint_modifier_t::constexpr_not_a_typename_value
+                : parameter_constraint_modifier_t::constexpr_or_runtime_type
+        } };
+        fn_decl arm_fn{ fn_pure{ .parameters = params, .result = nullptr }, arm.body };
+        auto fnptrn = make_shared<internal_fn_pattern>();
+        error_storage err = fnptrn->init(ctx, arm_fn);
+        if (err) {
+            return std::unexpected(append_cause(
+                make_error<basic_general_error>(context_expression_.location, "invalid match arm"sv),
+                std::move(err)
+            ));
+        }
+        fnl.push(std::move(fnptrn));
+    }
+
+    functional_identifier_entity const& visitor_ent = env().make_functional_identifier_entity(fnl.id());
+
+    call_builder apply_call{ context_expression_.location };
+    apply_call.emplace_back(env().get(builtin_id::to), make_indirect_value(env(), expressions, std::move(scrutinee_er), me.scrutinee->location));
+    apply_call.emplace_back(env().get(builtin_id::visitor), syntax_expression{ context_expression_.location, entity_identifier{ visitor_ent.id } });
+
+    auto match = ctx.find(builtin_qnid::apply, apply_call, expressions, expected_result);
+    if (!match) {
+        return std::unexpected(append_cause(
+            make_error<basic_general_error>(context_expression_.location, "no match arm covers the scrutinee"sv),
+            std::move(match.error())
+        ));
+    }
+    return apply_cast(match->apply(ctx));
 }
 
 base_expression_visitor::result_type base_expression_visitor::operator()(annium_fn_type const& v) const

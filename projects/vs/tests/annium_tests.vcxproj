@@ -187,6 +187,7 @@
     <None Include="..\..\..\tests\test-suite\positional_struct_fields.ann" />
     <None Include="..\..\..\tests\test-suite\references.ann" />
     <None Include="..\..\..\tests\test-suite\std.ann" />
+    <None Include="..\..\..\tests\test-suite\structural_enums.ann" />
     <None Include="..\..\..\tests\test-suite\to_fancy_string.ann" />
     <None Include="..\..\..\tests\test-suite\tuple_operations.ann" />
     <None Include="..\..\..\tests\test-suite\unions.ann" />

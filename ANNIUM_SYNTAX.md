@@ -62,16 +62,34 @@ A parameter can declare *both* a caller-facing external name and a separate impl
 - **Named, constexpr-valued**: `name => expr` — a compile-time-computed field, not a caller-supplied one.
 - **Positional (unnamed)**: just a `type-expr` (optionally with a default), no name — e.g. the second field in `Point => (x: i32, i32)`. Struct construction still accepts it, matched positionally (`Point(1, 2)`), because a struct is backed by an underlying tuple (`tuple_of`) and tuples have always supported unnamed elements — `struct_entity`/`struct_init_pattern` already branch on the field having a name or not. There is no `x.property`-style named accessor for a positional field (nothing to key it on); read it back positionally off the underlying tuple, or via a structural pattern (`~PointLike($x, $y)`).
 
-## Structural enums
+## Enums
 
-`enum Name { case-decl, ... };` (`annium.y`'s `case-decl`). Each case is one of:
+`enum Name { case-decl, ... };` (`annium.y`'s `case-decl`). Every `enum` — even an old-style, all-bare one — is `union(Name::Case1, Name::Case2, ...)`; there's no separate integer-backed enum representation any more (see `IMPLEMENTATION_NOTES.md`'s "Retiring `enum_entity`" section). Each case is one of:
 
-- **Bare**: just an identifier, e.g. `Empty`. If *every* case in the enum is bare, this is the plain, integer-backed enum unchanged from before (`enum_entity`).
-- **Structural**: `Name(fields)` — same field syntax as a struct (named, constexpr, or positional; see "Struct field declaration" above) — e.g. `Leaf(name: string, value: integer)`. Declares a real nested struct type, `EnumName::CaseName`, reachable and usable exactly like any other `struct`.
+- **Bare**: just an identifier, e.g. `Empty`. Contributes the constexpr identifier atom `.Empty` (the same value `.Empty` written on its own would evaluate to) as a `union` member. If *every* case in the enum is bare, this lands on the union machinery's own "all-const" fast path — a bare integer tag at runtime, no `[value,tag]` array — the same layout the old dedicated enum representation always used.
+- **Structural**: `Name(fields)` — same field syntax as a struct (named, constexpr, or positional; see "Struct field declaration" above) — e.g. `Leaf(name: string, value: integer)`. Declares a real nested struct type, `EnumName::CaseName`, reachable and usable exactly like any other `struct`, and contributes that struct type as a `union` member.
 
-The two kinds mix freely in one `enum`. As soon as at least one case is structural, `EnumName` itself becomes `union(EnumName::Case1, EnumName::Case2, ...)`, where a bare case contributes the constexpr identifier atom `.CaseName` (the same value `.CaseName` written on its own would evaluate to) as a `union` member, and a structural case contributes its nested struct type. A concrete case value (a `EnumName::Case` struct instance, or a bare case's `.CaseName` atom) implicitly casts into the `EnumName` union the same way any value casts into a `union(...)` it's a member of.
+The two kinds mix freely in one `enum`. A concrete case value (a `EnumName::Case` struct instance, or a bare case's `.CaseName` atom) implicitly casts into the `EnumName` union the same way any value casts into a `union(...)` it's a member of. `to_integer(enumVal)` works generically for any union this way, not just an enum-declared one, returning the active case's ordinal. `to_string(enumVal)` is plain `.ann`-level sugar (`bootstrap.ann`) that unwraps the union and delegates to the active value's own `to_string` — for a bare case that's just `to_string(identifier)` (the case's own name), but for a structural case it's whatever that case's struct type produces (the generic runtime-object printer, absent a dedicated `to_string` for it) — there's no case-name lookup for `to_string` the way there is for `to_integer`'s ordinal; see `IMPLEMENTATION_NOTES.md`'s "`to_string` of a union" section.
 
-There is currently no `match`/`switch` to narrow a `EnumName`-typed union value back down to its active case — consume it either by working with the concrete case type directly (before it's cast into the union) or by overloading a function per case type and dispatching before wrapping the value.
+A **bare** case can also be reached by dotted access on the enum type itself — `EnumName.CaseName` — which directly produces a `EnumName`-typed value (equivalent to `let x: EnumName = .CaseName;`, just in one step); this only works for a bare case, not a structural one (`EnumName.CaseName(args)` with arguments is not supported yet — construct the plain struct via `EnumName::CaseName(args)` and cast it into the union explicitly if needed, e.g. via a `let`/parameter/return-type annotation). Consume a `EnumName`-typed value with `match` (below).
+
+## `match`
+
+```
+match scrutinee {
+    Pattern1 => expr1,
+    Pattern2 { statements... },
+    _ => expr3
+}
+```
+
+Narrows a `union`-typed (or structural-enum-typed) `scrutinee` down to its active case. Each arm is `[$name COLON] pattern function-body`, i.e. an ordinary structural `pattern` (`Leaf`, `{.Empty}`, `_`, etc. — the same pattern language `~Case(...)`-shaped parameter constraints already use), optionally preceded by a `$name:` binding, followed by either `=> expr` or a `{ ... }` block, exactly like a function body. Arms are comma-separated, including block-bodied ones. Inside an arm, the matched value itself is reachable via `$0` by default (the arm compiles to a one-parameter, unnamed/positional function, same as any other unnamed parameter — `$0`/`$1`/... reference positional arguments, see "Function/parameter declaration" above), e.g. `Leaf => $0.name` — or, if the arm is written with a leading `$name:` (the same `internal-identifier COLON pattern-mod` shape an ordinary function parameter uses), via that `$name` instead: `$leaf: Leaf => $leaf.name`. Either way it's positional-only (no external, non-`$` name is possible here — `apply`'s own dispatch always calls each arm's synthesized overload positionally).
+
+A structural case's arm pattern can be written with its enum-local short name (`Leaf`) instead of the fully-qualified one (`Tree::Leaf`) — `match` resolves the scrutinee's union type once and, for any bare single-segment pattern name that matches one of the union's case names, rewrites it to the qualified name before matching (fully-qualified names still work too, unaffected). A bare case (a constexpr atom, no struct — `Empty`) can be written the same short way; under the hood it's rewritten to a *value* pattern (the same shape `{.Empty}` produces, which also still works directly), since a bare case has no type of its own to match nominally.
+
+Destructuring a struct's own named fields directly inside a pattern (`Tree::Leaf(name $n)`) currently does not work for *any* pattern, not just `match` arms — see `FUTURE_WORK.md`'s "Structural pattern destructuring of a struct's own named fields doesn't work" entry.
+
+`match` desugars to the existing `apply(to: scrutinee, visitor: ...)` union-dispatch builtin — see `IMPLEMENTATION_NOTES.md`'s "`match` expression" section — so it inherits `apply`'s behavior wholesale: runtime dispatch via a native switch on the union's tag, per-arm result-type unification (same type if all arms agree, `union(...)` of the distinct types otherwise — the same algorithm a function's own multiple `return`s use), casting into an already-known expected type when the `match` itself feeds a `return`/`let`, and exhaustiveness as an emergent compile error (a union member with no covering arm fails to resolve against the synthesized visitor, the same as calling a function with no matching overload).
 
 ## Member calls (`a.b(args)`) desugar to ordinary functional lookup
 

@@ -1,0 +1,75 @@
+// `match` -- narrows a union/structural-enum value back to its active case. Desugars to
+// apply(to:, visitor:) -- see ANNIUM_SYNTAX.md's "match" section and IMPLEMENTATION_NOTES.md's
+// "match expression" section. Arm patterns can use the enum-local short name (`Leaf`, `Empty`)
+// instead of the fully-qualified one (`Tree::Leaf`) -- base_expression_visitor.cpp's
+// operator()(match_expression const&) resolves the scrutinee's union type once and rewrites any
+// bare single-segment arm pattern that matches one of its case names, before building that arm's
+// parameter. A bare case atom (no type of its own) is rewritten to a value pattern under the hood
+// (the same shape `{.Empty}` produces), since it can't be matched by nominal/structural pattern
+// matching (which compares types, not values) -- both spellings work, `{.Empty}` is exercised
+// separately below as a sanity check that the explicit form still works too.
+//
+// An arm's own matched value is reachable either via `$0` (the default, same reserved
+// positional-argument reference an ordinary unnamed parameter already uses -- see
+// array_operations.ann's `iterator($0)`), or, if the arm is written `$name: Pattern => ...`, via
+// that `$name` instead -- still positional-only (no external name, so apply's own unnamed probe
+// call still matches it), just a nicer name than `$0` to read in the body. Destructuring a
+// struct's *named* fields directly in the pattern (`Leaf(name $n)`) is NOT exercised here -- that
+// hits a separate, pre-existing gap, see FUTURE_WORK.md's "Structural pattern destructuring of a
+// struct's own named fields doesn't work".
+
+enum Tree {
+    Leaf(name: string, value: integer),
+    Inner(name: string, left: Tree, right: Tree),
+    Empty
+};
+
+let leaf1: Tree::Leaf = init(name: "a", value: runtime_cast(1));
+let leaf2: Tree::Leaf = init(name: "b", value: runtime_cast(2));
+let node: Tree::Inner = init(name: "root", left: leaf1, right: leaf2);
+let empty: Tree = .Empty;
+
+// arrow-form arms, short enum-local case names, `$name: Pattern` binding instead of `$0`
+fn name_of($t: Tree) -> string =>
+    match $t {
+        $leaf: Leaf => $leaf.name,
+        $inner: Inner => $inner.name,
+        Empty => "empty"
+    };
+
+assert_equal(name_of(leaf1), "a");
+assert_equal(name_of(node), "root");
+assert_equal(name_of(empty), "empty");
+
+// block-form arms with an explicit `return` inside the arm (returns from the arm's own
+// synthesized visitor overload, not from `describe` itself), plus the `_` wildcard fallback --
+// and the explicit `{.Empty}` value-pattern spelling still works alongside the short `Empty` one.
+// Uses the default `$0` binding, showing both styles work.
+fn describe($t: Tree) -> string {
+    return match $t {
+        Leaf {
+            return $0.name .. ":" .. to_string($0.value);
+        },
+        Inner {
+            return $0.name .. ":inner";
+        },
+        {.Empty} {
+            return "empty";
+        }
+    };
+}
+
+assert_equal(describe(leaf1), "a:1");
+assert_equal(describe(node), "root:inner");
+assert_equal(describe(empty), "empty");
+
+// heterogeneous arm result types -- cast into an explicitly declared union result type
+// (exercises apply's cast-into-expected-type path, union_apply_pattern.cpp:218-246)
+fn value_or_name($t: Tree) -> integer|string =>
+    match $t {
+        $leaf: Leaf => $leaf.value,
+        _ => "n/a"
+    };
+
+let vn1: integer|string = value_or_name(leaf1);
+let vn2: integer|string = value_or_name(empty);

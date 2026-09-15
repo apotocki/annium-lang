@@ -1,0 +1,27 @@
+//  Annium programming language (c) 2025 by Alexander Pototskiy
+//  Annium is licensed under the terms of the MIT License.
+
+#pragma once
+
+#include "annium/functional/functional.hpp"
+
+namespace annium {
+
+// EnumName.CaseName -> a value of the union EnumName itself, constructed from its bare case
+// CaseName -- the union-based replacement for the old enum-only enum_get_pattern (`EnumType.Case`
+// dotted access). Only matches a *bare* (const/atom) case; a structural case has no meaningful
+// no-argument form here -- see IMPLEMENTATION_NOTES.md's "Retiring enum_entity" section and
+// FUTURE_WORK.md for the planned `EnumName.Case(args)` counterpart (member-call, not this pattern).
+class union_get_pattern : public functional::pattern
+{
+public:
+    union_get_pattern() = default;
+
+    std::expected<functional_match_descriptor_ptr, error_storage> try_match(fn_compiler_context&, prepared_call const&, expected_result_t const&) const override;
+
+    std::expected<syntax_expression_result, error_storage> apply(fn_compiler_context&, semantic::expression_list_t&, functional_match_descriptor&) const override;
+
+    std::ostream& print(environment const&, std::ostream& s) const override { return s << "get(self: typename union(...), property: constexpr __identifier)->@union"sv; }
+};
+
+}

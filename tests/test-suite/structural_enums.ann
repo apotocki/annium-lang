@@ -5,11 +5,20 @@
 // union(Tree::Leaf, Tree::Inner, .Empty) -- see declaration_visitor.cpp's enum_decl handling and
 // IMPLEMENTATION_NOTES.md's "Structural (mixed) enums" section.
 //
-// There is no `match`/`switch` yet to narrow a `Tree`-typed value back down to its active case
-// (deliberately out of scope for now, see FUTURE_WORK.md) -- this test exercises what's already
-// wired: declaring the nested structs, constructing/reading them directly, embedding the union
-// type recursively (Inner holds Tree-typed fields, by value), and implicitly casting a concrete
-// case (both a struct case and a bare atom) into the union.
+// Narrowing a `Tree`-typed value back down to its active case is `match` (see
+// tests/test-suite/match_expression.ann) -- this test instead covers what's needed to declare and
+// build the union in the first place: declaring the nested structs, constructing/reading them
+// directly, embedding the union type recursively (Inner holds Tree-typed fields, by value),
+// implicitly casting a concrete case (both a struct case and a bare atom) into the union, and
+// to_integer(unionVal) -- the generic union-based replacement for enum_entity's own (every field
+// here is const=false at the *type* level except .Empty, so this specifically exercises the
+// "mixed union" runtime path -- unfold + extract 'which' -- not the enum_union fast path
+// enums.ann's all-bare test_enum takes). to_string(unionVal) stays plain `.ann`-level sugar
+// (bootstrap.ann's `inline fn to_string(~union(...))` -- apply + recurse into the active case's
+// own to_string) rather than a dedicated native pattern: a bare case's to_string is just
+// to_string(identifier), but a structural case's is whatever Tree::Leaf/Tree::Inner's own
+// to_string happens to produce -- there's no case-name lookup, by design (see
+// IMPLEMENTATION_NOTES.md's "Retiring enum_entity" section).
 
 enum Tree {
     Leaf(name: string, value: integer),
@@ -39,3 +48,31 @@ let t2: Tree = node;
 
 // a bare case is just the constexpr atom `.Empty` -- assignable to the union the same way
 let t3: Tree = .Empty;
+
+// dotted access on the enum type itself for its bare case -- union_get_pattern, exercising the
+// *mixed*-union construction branch (dummy value + which + arrayify), unlike enums.ann's
+// `test_enum.C` which stays on the enum_union fast path (Tree also has structural cases, so it
+// isn't one).
+let t4: Tree = Tree.Empty;
+assert_equal(to_string(t4), "Empty");
+assert_equal(to_integer(t4), 2);
+
+// to_integer on a mixed union (Tree is not all-const, so this exercises the unfold path)
+assert_equal(to_integer(t1), 0);
+assert_equal(to_integer(t2), 1);
+assert_equal(to_integer(t3), 2);
+
+// to_string: a bare case still gives the case name (it *is* just to_string(identifier)). A
+// structural case has no dedicated to_string of its own, so it falls through to the generic
+// runtime-object printer (functional/general/to_string_pattern.cpp -> print_to_stream,
+// modules/sonia-prime/sonia/utility/invocation/invocation.hpp) -- a plain tuple dump, each element
+// printed with_types=true (a string in quotes, an `integer` as `N:bigint`), which also exposes
+// Tree's own runtime layout where t1/t2 embed a Tree-typed field: a mixed (non-enum_union) union is
+// `[value, which]`, so `node.left`/`node.right` (both a Leaf case, ordinal 0) print as
+// `[["a", 1:bigint], 0:ui64]` inside Inner's own tuple dump. Asserted verbatim (annium_suite.json's
+// expected stdout for this test includes these two `print()`s) rather than merely exercised, since
+// there's no dedicated to_string to keep this format stable against -- any change to it is a
+// change to the generic printer or to Tree's own union layout, worth noticing either way.
+assert_equal(to_string(t3), "Empty");
+print(to_string(t1));
+print(to_string(t2));

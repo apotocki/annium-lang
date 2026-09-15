@@ -121,11 +121,17 @@ std::expected<syntax_expression_result, error_storage> internal_fn_pattern::appl
 
         BOOST_ASSERT(fne.result);
     }
-
+    bool f = fne.is_built();
     result.value_or_type = fne.result.entity_id();
     result.is_const_result = fne.result.is_const();
 
-    if (!fne.is_built() || !fne.is_const_eval(env)) {
+    if (!fne.is_built()) {
+        // we don't know yet whether this call's result will turn out to be constexpr --
+        // commit to treating it as a real runtime call, so build() must later materialize
+        // an actual push even if the body turns out to reduce to a constant (see BUGFIXES.md).
+        fne.mark_runtime_committed();
+        env.push_back_expression(el, result.expressions, semantic::invoke_function(fne.id));
+    } else if (!fne.is_const_eval(env)) {
         env.push_back_expression(el, result.expressions, semantic::invoke_function(fne.id));
     }
 

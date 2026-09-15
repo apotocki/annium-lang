@@ -93,14 +93,16 @@ private:
         uint64_t is_inline : 1;
         uint64_t is_empty : 1;
         uint64_t force_fp : 1;
+        uint64_t runtime_committed : 1;
         //uint64_t is_void_ : 1;
     };
 
-    static constexpr uint64_t mask_is_provision = 1ull << 48;
-    static constexpr uint64_t mask_is_built     = 1ull << 49;
-    static constexpr uint64_t mask_is_inline    = 1ull << 50;
-    static constexpr uint64_t mask_is_empty     = 1ull << 51;
-    static constexpr uint64_t mask_force_fp     = 1ull << 52;
+    static constexpr uint64_t mask_is_provision      = 1ull << 48;
+    static constexpr uint64_t mask_is_built          = 1ull << 49;
+    static constexpr uint64_t mask_is_inline         = 1ull << 50;
+    static constexpr uint64_t mask_is_empty          = 1ull << 51;
+    static constexpr uint64_t mask_force_fp          = 1ull << 52;
+    static constexpr uint64_t mask_runtime_committed = 1ull << 53;
 
     inline uint64_t load_state(std::memory_order mo = std::memory_order_relaxed) const noexcept
     {
@@ -157,6 +159,21 @@ public:
         // if other code ever resets `is_built` to false, keep it relaxed.
         // the important part is the `true` publication.
         set_flag(mask_is_built, val, val ? std::memory_order_release : std::memory_order_relaxed);
+    }
+
+    // Set by a call site (internal_fn_pattern::apply) that resolved this function's call
+    // while it was not yet built, and therefore already committed to a real runtime call
+    // expecting a value to be pushed on the stack -- see BUGFIXES.md for the scenario this
+    // guards against. Once set, build() must materialize a real runtime push for a constexpr
+    // result instead of taking the empty-function shortcut. Never reset back to false.
+    inline void mark_runtime_committed() noexcept
+    {
+        set_flag(mask_runtime_committed, true, std::memory_order_relaxed);
+    }
+
+    [[nodiscard]] inline bool is_runtime_committed() const noexcept
+    {
+        return get_flag(mask_runtime_committed, std::memory_order_relaxed);
     }
 
     inline void set_arg_count(uint64_t count) noexcept
