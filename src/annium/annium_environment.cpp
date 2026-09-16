@@ -59,6 +59,7 @@
 #include "annium/entities/union/to_union_implicit_cast_pattern.hpp"
 #include "annium/entities/union/union_to_integer_pattern.hpp"
 #include "annium/entities/union/union_get_pattern.hpp"
+#include "annium/entities/union/union_typeof_pattern.hpp"
 
 #include "annium/entities/tuple/tuple_pattern.hpp"
 #include "annium/entities/tuple/tuple_make_pattern.hpp"
@@ -1565,6 +1566,7 @@ environment::environment()
 
     // typeof(object: const metaobject, property: const __identifier) -> typename
     //typeof_fnl.push(make_shared<metaobject_typeof_pattern>());
+    typeof_fnl.push(make_shared<union_typeof_pattern>());
 
     functional& to_string_fnl = fregistry_resolve(get(builtin_qnid::to_string));
     to_string_fnl.push(make_shared<to_string_pattern>());

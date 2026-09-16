@@ -108,7 +108,8 @@ set (LIBRARY_SOURCES
     ${ANNIUM_SRC}/annium/entities/union/union_bit_or_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/union/union_to_integer_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/union/union_get_pattern.cpp
-    
+    ${ANNIUM_SRC}/annium/entities/union/union_typeof_pattern.cpp
+
     ${ANNIUM_SRC}/annium/functional/match_penalty.cpp
     ${ANNIUM_SRC}/annium/functional/functional.cpp
     ${ANNIUM_SRC}/annium/functional/basic_fn_pattern.cpp

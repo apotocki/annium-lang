@@ -150,6 +150,9 @@
     <ClCompile Include="..\..\..\src\annium\entities\union\union_get_pattern.cpp">
       <Filter>annium\entities\union</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\entities\union\union_typeof_pattern.cpp">
+      <Filter>annium\entities\union</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\tuple\tuple_empty_pattern.cpp">
       <Filter>annium\entities\tuple</Filter>
     </ClCompile>
@@ -555,6 +558,9 @@
       <Filter>annium\entities\union</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\union\union_get_pattern.hpp">
+      <Filter>annium\entities\union</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\entities\union\union_typeof_pattern.hpp">
       <Filter>annium\entities\union</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\entities\tuple\tuple_empty_pattern.hpp">

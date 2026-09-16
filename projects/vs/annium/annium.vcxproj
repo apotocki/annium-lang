@@ -97,6 +97,7 @@
     <ClCompile Include="..\..\..\src\annium\entities\union\to_union_implicit_cast_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\union\union_to_integer_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\union\union_get_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\entities\union\union_typeof_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\variable_entity.cpp" />
     <ClCompile Include="..\..\..\src\annium\errors\assign_error.cpp" />
     <ClCompile Include="..\..\..\src\annium\errors\cast_error.cpp" />
@@ -248,6 +249,7 @@
     <ClInclude Include="..\..\..\src\annium\entities\union\to_union_implicit_cast_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\union\union_to_integer_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\union\union_get_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\union\union_typeof_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\variable_entity.hpp" />
     <ClInclude Include="..\..\..\src\annium\errors.hpp" />
     <ClInclude Include="..\..\..\src\annium\errors\assign_error.hpp" />

@@ -132,6 +132,16 @@ inline fn equal($l, $r: ~union(...)) => apply(to: $r, visitor: fn[$l]($value) =>
 inline fn to_string(~union(...))->string => apply(to: $0, visitor: fn($x) => to_string($x));
 inline viable fn get(self: ~union(...), property: integer) => apply(to: self, visitor: fn[property]($x) => get(self: $x, property: property));
 inline viable fn implicit_cast(~ union(...)) ~> $T => apply(to: $0, visitor: (fn($x)->$T => implicit_cast($x)));
+// EnumName.CaseName(args) member-call sugar for a *structural* case: construct the case's own
+// struct (typeof(self, method) resolves its type by name, see union_typeof_pattern.cpp/.hpp) and
+// fold the result into the enum's own union type -- the structural counterpart of
+// union_get_pattern's bare-case `EnumName.CaseName` (see IMPLEMENTATION_NOTES.md's
+// "Dotted access for a bare case" section). The trailing `as self` (rather than a `-> self`
+// return-type annotation) is deliberate: `self` is an ordinary bound parameter by the time the
+// body runs, so this only relies on plain identifier lookup, not on return-type resolution
+// happening after parameter binding.
+inline fn ::invoke(self: typename union(...), method: constexpr __identifier, $args ...) => init($args...) as typeof(self, method) as self;
+
 
 // STRUCTS
 // `property` is deliberately unconstrained-by-type (`constexpr`, not `constexpr __identifier`): the
@@ -251,7 +261,6 @@ inline fn foldr($f, $z, $elements ...) => $f(head($elements)..., foldr($f, $z, t
 inline fn ::set(self: ~ runtime object, property: constexpr __identifier, $value: runtime) => __set(self, to_string(property), $value);
 inline fn ::get(self: ~ runtime object, property: constexpr __identifier) -> any => __get(self, to_string(property));
 inline fn ::invoke(self: ~ runtime object, method: constexpr __identifier, runtime any ...) -> any => __invoke(self, to_string(method), $0 ..., size($0));
-
 
 struct regex_object => (cookie: any);
 inline fn init(runtime string) ~> regex_object {

@@ -83,9 +83,7 @@ fn make_tree($want_leaf: bool) {
         Empty
     };
     if $want_leaf {
-        let leaf = new Tree::Leaf(name: "hi");
-        let t: Tree = leaf;
-        return t;
+        return Tree.Leaf(name: "hi")
     }
     let e: Tree = .Empty;
     return e;

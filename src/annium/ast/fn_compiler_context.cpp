@@ -853,9 +853,6 @@ fn_compiler_context::lookup_entity_result_t fn_compiler_context::lookup_entity(q
 {
     if (name.is_relative() && name.size() == 1) {
         identifier varid = *name.begin();
-        if (varid.debug_name == "Tree"sv) {
-            int i = 0;
-        }
         auto optbv = get_bound(varid);
         if (optbv) return visit([](auto&& bv) -> lookup_entity_result_t { return std::move(bv); }, *optbv);
     }
