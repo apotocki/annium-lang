@@ -1,0 +1,65 @@
+// A single enum mixing all three case shapes at once: a bare (atomic) case, a structural case whose
+// fields are all constexpr-valued (enum_constexpr_cases.ann's feature), and a structural case with
+// ordinary runtime-typed fields (structural_enums.ann's Leaf/Inner shape) -- checking they coexist in
+// one union and all three are constructible, field-accessible, castable into the union, and matchable.
+//
+// `Idle` contributes the constexpr identifier atom `.Idle` as a union member (const at the union-
+// signature level); `Fixed`/`Custom` both contribute nested struct types (never const at the union-
+// signature level, regardless of whether every individual field of the struct itself happens to be
+// constexpr) -- see declaration_visitor.cpp's enum_decl handling: whether a case is structural is
+// purely `c.fields.has_value()`, independent of the fields' own const-ness. So this lands on the same
+// "mixed union" `[value, which]` runtime layout structural_enums.ann's Tree does (not the all-bare
+// "enum_union" fast path enums.ann's test_enum takes), same as enum_constexpr_cases.ann, just with a
+// bare case now also thrown into that same union.
+
+enum Signal {
+    Idle,
+    Fixed(text => "fixed", value => 7),
+    Custom(name: string, count: integer)
+};
+
+// construction + field access for each shape
+let idle: Signal = .Idle;
+
+let fx: Signal::Fixed = init();
+assert_equal(fx.text, "fixed");
+assert_equal(fx.value, 7);
+
+let cu: Signal::Custom = init(name: "custom", count: runtime_cast(3));
+assert_equal(cu.name, "custom");
+assert_equal(cu.count, 3);
+
+// implicit cast of all three shapes into the union, and to_integer's ordinal (declaration order)
+let s1: Signal = idle;
+let s2: Signal = fx;
+let s3: Signal = cu;
+
+assert_equal(to_integer(s1), 0);
+assert_equal(to_integer(s2), 1);
+assert_equal(to_integer(s3), 2);
+
+// match: short enum-local case names, `$name: Pattern` binding to reach a structural case's fields,
+// bare `Idle` matched the same way Tree::Empty already is
+fn describe($s: Signal) -> string =>
+    match $s {
+        Idle => "idle",
+        $c: Fixed => $c.text .. " (" .. to_string($c.value) .. ")",
+        $c: Custom => $c.name .. " x" .. to_string($c.count)
+    };
+
+assert_equal(describe(s1), "idle");
+assert_equal(describe(s2), "fixed (7)");
+assert_equal(describe(s3), "custom x3");
+
+// field-destructuring match arms work the same for the constexpr-field case and the runtime-field
+// case, alongside a bare-case arm in the same match
+fn signal_count($s: Signal) -> integer =>
+    match $s {
+        Idle => 0,
+        Fixed(text, value $v) => $v,
+        Custom(name, count $c) => $c
+    };
+
+assert_equal(signal_count(s1), 0);
+assert_equal(signal_count(s2), 7);
+assert_equal(signal_count(s3), 3);

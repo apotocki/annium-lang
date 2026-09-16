@@ -1,4 +1,4 @@
-[/*
+[ /*
   {
     "src": "draft.ann",
     "output": ""
@@ -33,16 +33,12 @@
     "output": ""
   },
   {
-    "src": "unions.ann",
+    "src": "enums/unions.ann",
     "output": ""
   },
   {
     "src": "function_calls.ann",
     "output": "test function called"
-  },
-  {
-    "src": "enums.ann",
-    "output": "CB"
   },
   {
     "src": "array_operations.ann",
@@ -109,11 +105,23 @@
     "output": ""
   },
   {
-    "src": "structural_enums.ann",
+    "src": "enums/enums.ann",
+    "output": "CB"
+  },
+  {
+    "src": "enums/structural_enums.ann",
     "output": "[\"a\", 1:bigint][\"root\", [[\"a\", 1:bigint], 0:ui64], [[\"b\", 2:bigint], 0:ui64]]"
   },
   {
-    "src": "match_expression.ann",
+    "src": "enums/match_expression.ann",
+    "output": ""
+  },
+  {
+    "src": "enums/enum_constexpr_cases.ann",
+    "output": ""
+  },
+  {
+    "src": "enums/mixed_enum.ann",
     "output": ""
   },
   {

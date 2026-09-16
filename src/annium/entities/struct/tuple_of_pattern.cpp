@@ -7,6 +7,7 @@
 
 #include "annium/ast/fn_compiler_context.hpp"
 #include "annium/entities/prepared_call.hpp"
+#include "annium/entities/literals/literal_entity.hpp"
 
 #include "annium/errors/type_mismatch_error.hpp"
 #include "annium/auxiliary.hpp"
@@ -77,8 +78,18 @@ std::expected<syntax_expression_result, error_storage> tuple_of_pattern::apply(f
         return std::unexpected(std::move(res.error()));
     }
     auto& arg_er = std::get<1>(md.matches.front());
-    BOOST_ASSERT(!arg_er.is_const_result);
-    arg_er.value_or_type = tmd.is_ref ? make_ref_of_type(ctx.env(), *res) : *res;
+    if (arg_er.is_const_result) {
+        // A struct value with every field constexpr (e.g. an all-constexpr structural enum case) is
+        // itself a constexpr "unit" (struct_init_pattern.cpp's own is_const_result/make_empty_entity
+        // path) -- a const result's value_or_type names the concrete VALUE entity, not a type, so
+        // relabeling it to the underlying tuple must mint that tuple type's own empty value, not just
+        // swap in the tuple type id. References are inherently runtime-only (terms.hpp), so a const
+        // self can never be `is_ref` here.
+        BOOST_ASSERT(!tmd.is_ref);
+        arg_er.value_or_type = ctx.env().make_empty_entity(*res).id;
+    } else {
+        arg_er.value_or_type = tmd.is_ref ? make_ref_of_type(ctx.env(), *res) : *res;
+    }
 
     return std::move(arg_er);
 }

@@ -6,7 +6,7 @@
 // IMPLEMENTATION_NOTES.md's "Structural (mixed) enums" section.
 //
 // Narrowing a `Tree`-typed value back down to its active case is `match` (see
-// tests/test-suite/match_expression.ann) -- this test instead covers what's needed to declare and
+// tests/test-suite/enums/match_expression.ann) -- this test instead covers what's needed to declare and
 // build the union in the first place: declaring the nested structs, constructing/reading them
 // directly, embedding the union type recursively (Inner holds Tree-typed fields, by value),
 // implicitly casting a concrete case (both a struct case and a bare atom) into the union, and

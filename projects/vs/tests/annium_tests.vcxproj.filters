@@ -193,6 +193,9 @@
     <Filter Include="sonia\utility\mvvm">
       <UniqueIdentifier>{e019e707-ffb7-4c39-8812-b71d4ff05a62}</UniqueIdentifier>
     </Filter>
+    <Filter Include="test-suite\enums">
+      <UniqueIdentifier>{45db676a-ac0e-4a96-8cbe-0621870f372a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(SolutionDir)modules\sonia-prime\applied\tests_external.hpp">
@@ -440,13 +443,7 @@
     <None Include="..\..\..\tests\test-suite\tuple_operations.ann">
       <Filter>test-suite</Filter>
     </None>
-    <None Include="..\..\..\tests\test-suite\unions.ann">
-      <Filter>test-suite</Filter>
-    </None>
     <None Include="..\..\..\tests\test-suite\basic_print.ann">
-      <Filter>test-suite</Filter>
-    </None>
-    <None Include="..\..\..\tests\test-suite\enums.ann">
       <Filter>test-suite</Filter>
     </None>
     <None Include="..\..\..\tests\test-suite\array_operations.ann">
@@ -509,11 +506,26 @@
     <None Include="..\..\..\tests\test-suite\positional_struct_fields.ann">
       <Filter>test-suite</Filter>
     </None>
-    <None Include="..\..\..\tests\test-suite\structural_enums.ann">
-      <Filter>test-suite</Filter>
-    </None>
     <None Include="..\..\..\tests\test-suite\nested_declarations.ann">
       <Filter>test-suite</Filter>
+    </None>
+    <None Include="..\..\..\tests\test-suite\enums\enums.ann">
+      <Filter>test-suite\enums</Filter>
+    </None>
+    <None Include="..\..\..\tests\test-suite\enums\structural_enums.ann">
+      <Filter>test-suite\enums</Filter>
+    </None>
+    <None Include="..\..\..\tests\test-suite\enums\match_expression.ann">
+      <Filter>test-suite\enums</Filter>
+    </None>
+    <None Include="..\..\..\tests\test-suite\enums\unions.ann">
+      <Filter>test-suite\enums</Filter>
+    </None>
+    <None Include="..\..\..\tests\test-suite\enums\enum_constexpr_cases.ann">
+      <Filter>test-suite\enums</Filter>
+    </None>
+    <None Include="..\..\..\tests\test-suite\enums\mixed_enum.ann">
+      <Filter>test-suite\enums</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

@@ -172,8 +172,11 @@
     <None Include="..\..\..\tests\test-suite\conditional_statements.ann" />
     <None Include="..\..\..\tests\test-suite\consteval.ann" />
     <None Include="..\..\..\tests\test-suite\draft.ann" />
-    <None Include="..\..\..\tests\test-suite\enums.ann" />
+    <None Include="..\..\..\tests\test-suite\enums\enums.ann" />
     <None Include="..\..\..\tests\test-suite\basic_tuple.ann" />
+    <None Include="..\..\..\tests\test-suite\enums\enum_constexpr_cases.ann" />
+    <None Include="..\..\..\tests\test-suite\enums\match_expression.ann" />
+    <None Include="..\..\..\tests\test-suite\enums\mixed_enum.ann" />
     <None Include="..\..\..\tests\test-suite\file3.ann" />
     <None Include="..\..\..\tests\test-suite\file4.ann" />
     <None Include="..\..\..\tests\test-suite\file5.ann" />
@@ -188,10 +191,10 @@
     <None Include="..\..\..\tests\test-suite\positional_struct_fields.ann" />
     <None Include="..\..\..\tests\test-suite\references.ann" />
     <None Include="..\..\..\tests\test-suite\std.ann" />
-    <None Include="..\..\..\tests\test-suite\structural_enums.ann" />
+    <None Include="..\..\..\tests\test-suite\enums\structural_enums.ann" />
     <None Include="..\..\..\tests\test-suite\to_fancy_string.ann" />
     <None Include="..\..\..\tests\test-suite\tuple_operations.ann" />
-    <None Include="..\..\..\tests\test-suite\unions.ann" />
+    <None Include="..\..\..\tests\test-suite\enums\unions.ann" />
     <None Include="..\..\..\tests\test-suite\whiles.ann" />
   </ItemGroup>
   <ItemGroup>
