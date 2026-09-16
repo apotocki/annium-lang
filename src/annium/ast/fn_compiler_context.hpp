@@ -131,10 +131,18 @@ class fn_compiler_context
 
     std::vector<scope_locals_stack_item> scoped_locals_stash_;
     std::vector<scope_state> scope_states_stash_;
+    std::vector<identifier> ns_stash_; // flat stack of stashed ns_ parts, framed by stash_state::ns_size
+                                        // exactly like scoped_locals_stash_/scope_states_stash_ above --
+                                        // pop_all_scopes() (triggered by a return/break/continue inside
+                                        // the stashed branch) always unwinds ns_ all the way down to the
+                                        // function's own root, not just back to this stash point, so a
+                                        // restore has to rebuild ns_ from a real saved copy of its parts
+                                        // (truncate() can only shrink, never grow it back).
     struct stash_state
     {
         uint32_t locals_size;
         uint32_t states_size;
+        uint32_t ns_size;
     };
     std::vector<stash_state> stash_states_;
 

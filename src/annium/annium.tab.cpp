@@ -3381,157 +3381,157 @@ namespace annium_lang {
 #line 3382 "annium.tab.cpp"
     break;
 
-  case 14: // statement: STRUCT struct-decl
-#line 409 "annium.y"
-        { yylhs.value.as < statement > () = statement{ std::move(yystack_[0].value.as < struct_decl > ()) }; }
+  case 14: // let-decl: let-decl-start-with-opt-type
+#line 411 "annium.y"
+      { yylhs.value.as < let_statement > () = yystack_[0].value.as < let_statement > (); }
 #line 3388 "annium.tab.cpp"
     break;
 
-  case 15: // let-decl: let-decl-start-with-opt-type
+  case 15: // let-decl: let-decl-start-with-opt-type "`=`" pack-expression
 #line 413 "annium.y"
-      { yylhs.value.as < let_statement > () = yystack_[0].value.as < let_statement > (); }
+        { yylhs.value.as < let_statement > () = std::move(yystack_[2].value.as < let_statement > ()); yylhs.value.as < let_statement > ().expressions = ctx.make_array<opt_named_expression_t>(yystack_[0].value.as < opt_named_expression_list_t > ()); yylhs.value.as < let_statement > ().assign_location = std::move(yystack_[1].value.as < resource_location > ()); }
 #line 3394 "annium.tab.cpp"
     break;
 
-  case 16: // let-decl: let-decl-start-with-opt-type "`=`" pack-expression
-#line 415 "annium.y"
-        { yylhs.value.as < let_statement > () = std::move(yystack_[2].value.as < let_statement > ()); yylhs.value.as < let_statement > ().expressions = ctx.make_array<opt_named_expression_t>(yystack_[0].value.as < opt_named_expression_list_t > ()); yylhs.value.as < let_statement > ().assign_location = std::move(yystack_[1].value.as < resource_location > ()); }
+  case 16: // let-decl-start: identifier
+#line 418 "annium.y"
+        { yylhs.value.as < let_statement > () = let_statement{ .aname = std::move(yystack_[0].value.as < annotated_identifier > ()), .weakness = false }; }
 #line 3400 "annium.tab.cpp"
     break;
 
-  case 17: // let-decl-start: identifier
+  case 17: // let-decl-start: "weak modifier" identifier
 #line 420 "annium.y"
-        { yylhs.value.as < let_statement > () = let_statement{ .aname = std::move(yystack_[0].value.as < annotated_identifier > ()), .weakness = false }; }
+        { yylhs.value.as < let_statement > () = let_statement{ .aname = std::move(yystack_[0].value.as < annotated_identifier > ()), .weakness = true }; }
 #line 3406 "annium.tab.cpp"
     break;
 
-  case 18: // let-decl-start: "weak modifier" identifier
-#line 422 "annium.y"
-        { yylhs.value.as < let_statement > () = let_statement{ .aname = std::move(yystack_[0].value.as < annotated_identifier > ()), .weakness = true }; }
+  case 18: // let-decl-start-with-opt-type: let-decl-start
+#line 424 "annium.y"
+      { yylhs.value.as < let_statement > () = yystack_[0].value.as < let_statement > (); }
 #line 3412 "annium.tab.cpp"
     break;
 
-  case 19: // let-decl-start-with-opt-type: let-decl-start
+  case 19: // let-decl-start-with-opt-type: let-decl-start "`:`" type-expr
 #line 426 "annium.y"
-      { yylhs.value.as < let_statement > () = yystack_[0].value.as < let_statement > (); }
+        { yylhs.value.as < let_statement > () = std::move(yystack_[2].value.as < let_statement > ()); yylhs.value.as < let_statement > ().type = std::move(yystack_[0].value.as < syntax_expression > ()); }
 #line 3418 "annium.tab.cpp"
     break;
 
-  case 20: // let-decl-start-with-opt-type: let-decl-start "`:`" type-expr
-#line 428 "annium.y"
-        { yylhs.value.as < let_statement > () = std::move(yystack_[2].value.as < let_statement > ()); yylhs.value.as < let_statement > ().type = std::move(yystack_[0].value.as < syntax_expression > ()); }
+  case 20: // infunction-statement-any: %empty
+#line 431 "annium.y"
+        { yylhs.value.as < statement_list_t > () = statement_list_t{}; }
 #line 3424 "annium.tab.cpp"
     break;
 
-  case 21: // infunction-statement-any: %empty
+  case 21: // infunction-statement-any: infunction-statement
 #line 433 "annium.y"
-        { yylhs.value.as < statement_list_t > () = statement_list_t{}; }
+        { yylhs.value.as < statement_list_t > () = statement_list_t{ std::move(yystack_[0].value.as < statement > ()) }; }
 #line 3430 "annium.tab.cpp"
     break;
 
-  case 22: // infunction-statement-any: infunction-statement
+  case 22: // infunction-statement-any: finished-infunction-statement-any infunction-statement
 #line 435 "annium.y"
-        { yylhs.value.as < statement_list_t > () = statement_list_t{ std::move(yystack_[0].value.as < statement > ()) }; }
+        { yylhs.value.as < statement_list_t > () = std::move(yystack_[1].value.as < statement_list_t > ()); yylhs.value.as < statement_list_t > ().emplace_back(std::move(yystack_[0].value.as < statement > ())); }
 #line 3436 "annium.tab.cpp"
     break;
 
-  case 23: // infunction-statement-any: finished-infunction-statement-any infunction-statement
-#line 437 "annium.y"
-        { yylhs.value.as < statement_list_t > () = std::move(yystack_[1].value.as < statement_list_t > ()); yylhs.value.as < statement_list_t > ().emplace_back(std::move(yystack_[0].value.as < statement > ())); }
+  case 23: // finished-infunction-statement-any: finished-statement
+#line 440 "annium.y"
+        { yylhs.value.as < statement_list_t > () = statement_list_t{ std::move(yystack_[0].value.as < statement > ()) }; }
 #line 3442 "annium.tab.cpp"
     break;
 
-  case 24: // finished-infunction-statement-any: finished-statement
-#line 442 "annium.y"
-        { yylhs.value.as < statement_list_t > () = statement_list_t{ std::move(yystack_[0].value.as < statement > ()) }; }
+  case 24: // finished-infunction-statement-any: finished-infunction-statement-any "`;`"
+#line 441 "annium.y"
+                                                           { yylhs.value.as < statement_list_t > () = std::move(yystack_[1].value.as < statement_list_t > ()); }
 #line 3448 "annium.tab.cpp"
     break;
 
-  case 25: // finished-infunction-statement-any: finished-infunction-statement-any "`;`"
+  case 25: // finished-infunction-statement-any: finished-infunction-statement-any finished-statement
 #line 443 "annium.y"
-                                                           { yylhs.value.as < statement_list_t > () = std::move(yystack_[1].value.as < statement_list_t > ()); }
+        { yylhs.value.as < statement_list_t > () = std::move(yystack_[1].value.as < statement_list_t > ()); yylhs.value.as < statement_list_t > ().emplace_back(std::move(yystack_[0].value.as < statement > ())); }
 #line 3454 "annium.tab.cpp"
     break;
 
-  case 26: // finished-infunction-statement-any: finished-infunction-statement-any finished-statement
+  case 26: // finished-infunction-statement-any: infunction-statement-any "`;`"
 #line 445 "annium.y"
-        { yylhs.value.as < statement_list_t > () = std::move(yystack_[1].value.as < statement_list_t > ()); yylhs.value.as < statement_list_t > ().emplace_back(std::move(yystack_[0].value.as < statement > ())); }
+        { yylhs.value.as < statement_list_t > () = std::move(yystack_[1].value.as < statement_list_t > ()); }
 #line 3460 "annium.tab.cpp"
     break;
 
-  case 27: // finished-infunction-statement-any: infunction-statement-any "`;`"
-#line 447 "annium.y"
-        { yylhs.value.as < statement_list_t > () = std::move(yystack_[1].value.as < statement_list_t > ()); }
+  case 27: // function-body: braced-statements
+#line 450 "annium.y"
+      { yylhs.value.as < statement_list_t > () = yystack_[0].value.as < statement_list_t > (); }
 #line 3466 "annium.tab.cpp"
     break;
 
-  case 28: // function-body: braced-statements
-#line 452 "annium.y"
-      { yylhs.value.as < statement_list_t > () = yystack_[0].value.as < statement_list_t > (); }
+  case 28: // function-body: "`=>`" syntax-expression
+#line 454 "annium.y"
+        { yylhs.value.as < statement_list_t > () = statement_list_t{ statement{ return_statement{ std::move(yystack_[0].value.as < syntax_expression > ()) } } }; }
 #line 3472 "annium.tab.cpp"
     break;
 
-  case 29: // function-body: "`=>`" syntax-expression
-#line 456 "annium.y"
-        { yylhs.value.as < statement_list_t > () = statement_list_t{ statement{ return_statement{ std::move(yystack_[0].value.as < syntax_expression > ()) } } }; }
+  case 29: // braced-statements: "`{`" infunction-statement-set "`}`"
+#line 465 "annium.y"
+        { yylhs.value.as < statement_list_t > () = std::move(yystack_[1].value.as < statement_list_t > ()); IGNORE_TERM(yystack_[2].value.as < resource_location > ()); }
 #line 3478 "annium.tab.cpp"
     break;
 
-  case 30: // braced-statements: "`{`" infunction-statement-set "`}`"
-#line 467 "annium.y"
-        { yylhs.value.as < statement_list_t > () = std::move(yystack_[1].value.as < statement_list_t > ()); IGNORE_TERM(yystack_[2].value.as < resource_location > ()); }
+  case 30: // finished-statement: INCLUDE STRING
+#line 470 "annium.y"
+        { yylhs.value.as < statement > () = statement{ include_decl{ ctx.make_string_view(std::move(yystack_[0].value.as < annium::annotated_string_view > ())) } }; }
 #line 3484 "annium.tab.cpp"
     break;
 
-  case 31: // finished-statement: INCLUDE STRING
+  case 31: // finished-statement: "`while`" syntax-expression braced-statements
 #line 472 "annium.y"
-        { yylhs.value.as < statement > () = statement{ include_decl{ ctx.make_string_view(std::move(yystack_[0].value.as < annium::annotated_string_view > ())) } }; }
+        { yylhs.value.as < statement > () = statement{ while_decl{ std::move(yystack_[1].value.as < syntax_expression > ()), ctx.make_array<statement>(yystack_[0].value.as < statement_list_t > ()) } }; }
 #line 3490 "annium.tab.cpp"
     break;
 
-  case 32: // finished-statement: "`while`" syntax-expression braced-statements
+  case 32: // finished-statement: "`while`" syntax-expression "`;`" expression-statement braced-statements
 #line 474 "annium.y"
-        { yylhs.value.as < statement > () = statement{ while_decl{ std::move(yystack_[1].value.as < syntax_expression > ()), ctx.make_array<statement>(yystack_[0].value.as < statement_list_t > ()) } }; }
+        { yylhs.value.as < statement > () = statement{ while_decl{ std::move(yystack_[3].value.as < syntax_expression > ()), ctx.make_array<statement>(yystack_[0].value.as < statement_list_t > ()), ctx.make<statement>(std::move(yystack_[1].value.as < statement > ())) } }; }
 #line 3496 "annium.tab.cpp"
     break;
 
-  case 33: // finished-statement: "`while`" syntax-expression "`;`" expression-statement braced-statements
+  case 33: // finished-statement: "`for`" reference-expression "`in`" syntax-expression braced-statements
 #line 476 "annium.y"
-        { yylhs.value.as < statement > () = statement{ while_decl{ std::move(yystack_[3].value.as < syntax_expression > ()), ctx.make_array<statement>(yystack_[0].value.as < statement_list_t > ()), ctx.make<statement>(std::move(yystack_[1].value.as < statement > ())) } }; }
+        { yylhs.value.as < statement > () = statement{ for_statement{ .iter = std::move(yystack_[3].value.as < reference_expression > ()), .coll = std::move(yystack_[1].value.as < syntax_expression > ()), .body = ctx.make_array<statement>(yystack_[0].value.as < statement_list_t > ()) } }; }
 #line 3502 "annium.tab.cpp"
     break;
 
-  case 34: // finished-statement: "`for`" reference-expression "`in`" syntax-expression braced-statements
+  case 34: // finished-statement: "`if`" syntax-expression braced-statements
 #line 478 "annium.y"
-        { yylhs.value.as < statement > () = statement{ for_statement{ .iter = std::move(yystack_[3].value.as < reference_expression > ()), .coll = std::move(yystack_[1].value.as < syntax_expression > ()), .body = ctx.make_array<statement>(yystack_[0].value.as < statement_list_t > ()) } }; }
+        { yylhs.value.as < statement > () = statement{ if_decl{ .condition = std::move(yystack_[1].value.as < syntax_expression > ()), .true_body = ctx.make_array<statement>(yystack_[0].value.as < statement_list_t > ()) } }; }
 #line 3508 "annium.tab.cpp"
     break;
 
-  case 35: // finished-statement: "`if`" syntax-expression braced-statements
+  case 35: // finished-statement: "`if`" syntax-expression braced-statements if-else-tail
 #line 480 "annium.y"
-        { yylhs.value.as < statement > () = statement{ if_decl{ .condition = std::move(yystack_[1].value.as < syntax_expression > ()), .true_body = ctx.make_array<statement>(yystack_[0].value.as < statement_list_t > ()) } }; }
+        { yylhs.value.as < statement > () = statement{ if_decl{ .condition = std::move(yystack_[2].value.as < syntax_expression > ()), .true_body = ctx.make_array<statement>(yystack_[1].value.as < statement_list_t > ()), .false_body = ctx.make_array<statement>(yystack_[0].value.as < statement_list_t > ()) } }; }
 #line 3514 "annium.tab.cpp"
     break;
 
-  case 36: // finished-statement: "`if`" syntax-expression braced-statements if-else-tail
+  case 36: // finished-statement: fn-prefix-decl fn-decl braced-statements
 #line 482 "annium.y"
-        { yylhs.value.as < statement > () = statement{ if_decl{ .condition = std::move(yystack_[2].value.as < syntax_expression > ()), .true_body = ctx.make_array<statement>(yystack_[1].value.as < statement_list_t > ()), .false_body = ctx.make_array<statement>(yystack_[0].value.as < statement_list_t > ()) } }; }
-#line 3520 "annium.tab.cpp"
-    break;
-
-  case 37: // finished-statement: fn-prefix-decl fn-decl braced-statements
-#line 484 "annium.y"
         {   
             yystack_[1].value.as < fn_pure > ().location = std::move(get<0>(yystack_[2].value.as < std::pair<resource_location, fn_kind> > ()));
             yystack_[1].value.as < fn_pure > ().kind = get<1>(yystack_[2].value.as < std::pair<resource_location, fn_kind> > ());
             yylhs.value.as < statement > () = statement{ fn_decl{ std::move(yystack_[1].value.as < fn_pure > ()), ctx.make_array<statement>(yystack_[0].value.as < statement_list_t > ()) } };
         }
+#line 3524 "annium.tab.cpp"
+    break;
+
+  case 37: // finished-statement: ENUM enum-decl
+#line 492 "annium.y"
+        { yylhs.value.as < statement > () = statement{ std::move(yystack_[0].value.as < enum_decl > ()) }; }
 #line 3530 "annium.tab.cpp"
     break;
 
-  case 38: // finished-statement: ENUM enum-decl
+  case 38: // finished-statement: STRUCT struct-decl
 #line 494 "annium.y"
-        { yylhs.value.as < statement > () = statement{ std::move(yystack_[0].value.as < enum_decl > ()) }; }
+        { yylhs.value.as < statement > () = statement{ std::move(yystack_[0].value.as < struct_decl > ()) }; }
 #line 3536 "annium.tab.cpp"
     break;
 
@@ -5469,18 +5469,18 @@ namespace annium_lang {
      317,   462,  1424,   726,   726,    41,   354,   726,  1701,  -367,
      361,   341,   357,   462,  1424,  -367,   383,   385,   389,   154,
      391,  1983,   113,   269,  1292,   357,   280,    -6,   139,   111,
-       5,   439,   439,   439,   439,   439,   439,   882,   820,   554,
-    1748,   263,   263,   302,   302,   540,   929,    45,  -367,    54,
-     427,   431,   -27,   357,   291,   719,  -367,  1424,  -367,    10,
+       5,   439,   439,   439,   439,   439,   439,   929,   820,   554,
+    1748,   263,   263,   302,   302,   540,  1232,    45,  -367,    54,
+     427,   431,   -27,   357,   291,   895,  -367,  1424,  -367,    10,
       94,   134,   396,   384,  -367,   633,   431,   431,  -367,   376,
     -367,  1983,   410,  1983,  1983,  1983,  -367,  -367,  -367,  -367,
     -367,  -367,  1983,    45,   341,   357,    15,   409,   398,  -367,
-    1424,  1983,   121,  1560,   568,  -367,   161,   422,  1424,   168,
+    1424,  1983,   121,  1560,   641,  -367,   161,   422,  1424,   168,
      257,   214,   427,   424,   414,  -367,  1983,   435,   436,   444,
      449,   441,  -367,   357,   457,  1424,  -367,    45,   427,  -367,
     1983,  -367,  1424,  -367,  -367,  1424,  -367,   249,   357,  1424,
      357,  -367,   130,   239,   427,  1424,  -367,   431,   281,  -367,
-     719,   719,  1004,  -367,   473,  -367,  1983,  -367,    43,   182,
+     895,   895,  1004,  -367,   473,  -367,  1983,  -367,    43,   182,
      239,  1424,   500,  -367,   429,   726,  -367,   376,    34,  -367,
     -367,  -367,  -367,  1424,    45,  -367,  -367,  -367,  1424,  1983,
     -367,  -367,  -367,  -367,     7,   340,   427,  -367,  -367,  1795,
@@ -5489,14 +5489,14 @@ namespace annium_lang {
      484,   485,  -367,     5,  1842,     5,  -367,  1983,  -367,   239,
     -367,  -367,  1401,  -367,  -367,   182,   489,   427,   368,   431,
      431,   376,  -367,  1983,  1424,   357,   462,  -367,  -367,  -367,
-    -367,  1983,  -367,   121,   719,   380,   531,   380,   412,   293,
+    -367,  1983,  -367,   121,   895,   380,   531,   380,   412,   293,
     -367,  -367,   502,  -367,   161,   214,  -367,  1983,  -367,  1424,
      490,  -367,   496,  -367,  1424,   357,  -367,   357,  1424,  -367,
      491,  -367,  -367,  -367,  -367,  1889,   427,   431,   431,   440,
      417,   440,  -367,   400,  -367,  -367,  -367,  1983,   160,   214,
-    -367,  -367,   380,  -367,   719,   513,  -367,   340,  -367,   427,
+    -367,  -367,   380,  -367,   895,   513,  -367,   340,  -367,   427,
     -367,  -367,  1983,  1424,  -367,  1983,    42,  -367,  1983,   357,
-     719,   440,  -367,  -367,  -367,  -367,  -367,  -367,  -367,  -367,
+     895,   440,  -367,  -367,  -367,  -367,  -367,  -367,  -367,  -367,
     -367,  -367,  -367,  -367,  -367,  -367,  -367,  1936,  -367,   501,
     -367,  -367,  -367,  -367
   };
@@ -5510,27 +5510,27 @@ namespace annium_lang {
        0,     0,     0,     0,   192,   193,   194,     0,     0,     0,
        0,     5,     7,    49,    13,    59,   191,    63,     0,   256,
      201,   243,   248,   244,   268,     0,   247,     0,   246,   245,
-      58,     0,   202,    59,   256,   263,     0,   245,    21,     0,
-       0,    86,   209,   211,   215,   214,     0,    45,    19,    15,
-      17,     0,     0,   234,     0,   187,   188,     0,     0,     0,
-       0,    48,    31,    68,    67,     0,    46,     0,    38,     0,
-      14,   212,     0,   208,     1,     2,    10,     3,     8,     6,
+      58,     0,   202,    59,   256,   263,     0,   245,    20,     0,
+       0,    86,   209,   211,   215,   214,     0,    45,    18,    14,
+      16,     0,     0,   234,     0,   187,   188,     0,     0,     0,
+       0,    48,    30,    68,    67,     0,    46,     0,    37,     0,
+      38,   212,     0,   208,     1,     2,    10,     3,     8,     6,
        9,     0,    66,    64,   261,    72,     0,   261,     0,   261,
        0,     0,   210,     0,     0,     0,     0,     0,     0,     0,
        0,     0,     0,     0,   267,     0,     0,     0,     0,     0,
        0,     0,     0,   105,     0,     0,   233,     0,    52,    51,
-      53,     0,    41,    42,    24,     0,    50,    22,   206,   204,
-       0,    18,     0,     0,     0,    12,    88,     0,    32,     0,
-      35,   250,     0,   105,   105,    76,     0,   105,     0,    60,
-       0,   262,     0,     0,     0,    37,     0,   237,     0,     0,
+      53,     0,    41,    42,    23,     0,    50,    21,   206,   204,
+       0,    17,     0,     0,     0,    12,    88,     0,    31,     0,
+      34,   250,     0,   105,   105,    76,     0,   105,     0,    60,
+       0,   262,     0,     0,     0,    36,     0,   237,     0,     0,
      240,    44,   271,   270,     0,     0,   269,     0,   275,   272,
      231,   220,   221,   222,   223,   224,   225,   229,   230,   226,
        0,   218,   219,   216,   217,   227,   228,   232,    57,     0,
      183,   111,     0,     0,     0,   169,   137,     0,   138,    59,
      183,   113,     0,   106,   107,   141,   111,   111,   185,   113,
-     203,   264,    59,   265,    54,    55,    27,    25,    26,    23,
-      30,   205,    87,    20,    16,     0,    59,     0,    89,    90,
-       0,    93,     0,     0,     0,    36,   183,     0,     0,   183,
+     203,   264,    59,   265,    54,    55,    26,    24,    25,    22,
+      29,   205,    87,    19,    15,     0,    59,     0,    89,    90,
+       0,    93,     0,     0,     0,    35,   183,     0,     0,   183,
      173,     0,   181,     0,   251,   252,    84,     0,     0,    80,
        0,    77,    78,    96,     0,     0,   257,    73,   183,    74,
       47,   236,   261,   242,   239,   261,   274,     0,     0,     0,
@@ -5538,14 +5538,14 @@ namespace annium_lang {
        0,     0,     0,   162,   170,   168,   167,   110,     0,   143,
      113,     0,   114,   122,     0,     0,   142,   113,   139,   119,
      131,   134,   186,     0,    11,    94,    95,   235,     0,    92,
-      33,    34,    39,    40,     0,   183,   183,   176,   178,     0,
-       0,   175,   183,     0,   254,    28,   249,     0,     0,    70,
+      32,    33,    39,    40,     0,   183,   183,   176,   178,     0,
+       0,   175,   183,     0,   254,    27,   249,     0,     0,    70,
       96,    75,     0,    59,     0,    97,    98,   100,     0,   213,
        0,     0,   273,   278,     0,   277,   133,   112,   130,   113,
      163,   164,     0,   165,   171,   143,     0,   144,   147,   111,
      111,   113,   132,   115,     0,     0,     0,   258,   108,   121,
      140,   266,    91,     0,     0,   183,     0,   183,   183,     0,
-     160,   150,   152,   177,   183,     0,   174,    29,   253,     0,
+     160,   150,   152,   177,   183,     0,   174,    28,   253,     0,
        0,    69,     0,    79,     0,     0,    82,     0,     0,   104,
        0,   238,   241,   276,   120,     0,   144,   111,   111,   111,
      143,   111,   148,   145,   118,   127,   128,   116,     0,     0,
@@ -5647,22 +5647,22 @@ namespace annium_lang {
      198,   134,     0,     0,   135,   196,     0,     0,   136,   137,
      138,   139,   196,   270,   413,     0,     0,     0,   135,     0,
      416,   270,   136,   137,   138,   139,     0,     0,   198,     0,
-      68,   199,     0,     0,     0,   198,     0,     0,   272,   272,
+       0,   199,     0,     0,     0,   198,     0,     0,   272,   272,
      272,     0,   196,     0,   196,     0,     0,   391,     0,     2,
-     192,   193,     0,   239,     0,    20,    21,     0,    22,   199,
+     192,   193,     0,   239,     0,     0,     0,     0,     0,   199,
      219,     0,     0,     0,     0,   198,   199,   198,     0,     0,
-       0,   270,    25,    26,    27,    28,   455,    30,   272,     0,
+       0,   270,     0,     0,     0,     0,   455,     0,   272,     0,
      326,     0,   460,     0,     0,   272,   196,   270,     0,     0,
        0,     0,    10,   194,     0,     0,   199,   195,   199,     0,
-       0,     0,     0,     0,     0,     0,     0,     0,     0,   198,
+       0,     0,     0,    68,     0,     0,     0,     0,     0,   198,
        0,   107,     0,   439,     0,   441,     1,     2,     3,     4,
-       5,     6,     7,     8,   272,     9,     0,   486,     0,     0,
-       0,     0,   272,     0,     0,     2,   218,     0,     0,     0,
-     199,     0,     2,   218,     0,     0,   219,   266,     0,     0,
-       0,     0,     0,   219,   220,     0,     0,     0,     0,     0,
-      10,    11,     0,     0,   471,    12,   309,   108,    13,     0,
-      14,    15,     0,   221,     0,     0,    16,     0,    10,   267,
-       0,   268,   272,    17,   222,    10,    18,    19,    20,    21,
+       5,     6,     7,     8,   272,     9,     0,   486,    20,    21,
+       0,    22,   272,     0,     0,     0,     0,     0,     0,     0,
+     199,     0,     2,   218,     0,    25,    26,    27,    28,     0,
+      30,    31,     0,   219,   220,     0,     0,     0,     0,     0,
+      10,    11,     0,     0,   471,    12,     0,   108,    13,     0,
+      14,    15,     0,   221,     0,     0,    16,     0,     0,     0,
+       0,     0,   272,    17,   222,    10,    18,    19,    20,    21,
      223,    22,     0,     0,     0,     0,     0,    23,   272,    24,
        0,     0,   224,     0,     0,    25,    26,    27,    28,    29,
       30,    31,     0,     0,     0,     0,     0,    32,    33,     0,
@@ -5674,19 +5674,19 @@ namespace annium_lang {
       11,     0,     0,     0,    12,     0,   247,    13,     0,    14,
       15,     0,     0,     0,   135,    16,     0,     0,   136,   137,
      138,   139,    17,   140,   141,     0,    19,    20,    21,     0,
-      22,   122,   148,   149,   150,   151,    23,     0,    24,     0,
-       0,     0,   124,     0,    25,    26,    27,    28,    29,    30,
-     125,   126,   127,   128,   129,   130,    32,    33,   133,   134,
+      22,     0,   148,   149,   150,   151,    23,     0,    24,     0,
+       0,     2,   218,     0,    25,    26,    27,    28,    29,    30,
+      31,     0,   219,   266,     0,     0,    32,    33,     0,     0,
       34,    35,    36,    37,     1,     2,     3,     4,     5,     6,
-       7,     8,     0,     9,     0,     0,   135,     0,   122,     0,
-     136,   137,   138,   139,     0,   140,   141,     0,     0,   124,
+       7,     8,   309,     9,     0,     0,     0,     0,   122,     0,
+       0,     0,     0,     0,    10,   267,     0,   268,     0,   124,
        0,     0,     0,     0,     0,     0,     0,   125,   126,   127,
      128,   129,   130,     0,     0,   133,   134,     0,    10,    11,
        0,     0,     0,    12,     0,     0,    13,     0,    14,    15,
        0,     0,     0,   135,    16,     0,     0,   136,   137,   138,
-     139,    17,   140,     0,     0,    19,    20,    21,     0,    22,
+     139,    17,   140,   141,     0,    19,    20,    21,     0,    22,
        0,   148,   149,   150,   151,    23,     0,    24,     0,     0,
-       2,   218,     0,    25,    26,    27,    28,    29,    30,     0,
+       2,   218,     0,    25,    26,    27,    28,    29,    30,    31,
        0,   219,   266,     0,     0,    32,    33,     0,     0,    34,
       35,    36,    37,     1,     2,     3,     4,     5,     6,     7,
        8,   309,     9,     0,     0,     0,     0,   122,     0,     0,
@@ -5709,12 +5709,12 @@ namespace annium_lang {
       11,     0,    68,    19,    12,     0,     0,    13,     0,    14,
       15,     0,     0,    23,     0,    16,     0,     0,     0,     0,
        0,     0,    26,    27,    28,     0,    19,     0,     0,     0,
-       0,     0,     0,    32,    33,     0,    23,    34,    35,    36,
-      37,     0,     0,     0,     0,    26,    27,    28,     0,     0,
-       0,     0,     0,     0,     0,     0,    32,    33,     0,     0,
+       0,   122,     0,    32,    33,     0,    23,    34,    35,    36,
+      37,     0,   124,     0,     0,    26,    27,    28,     0,     0,
+     125,   126,   127,   128,   129,   130,    32,    33,   133,   134,
       34,    35,    36,    37,     1,     2,     3,     4,     5,     6,
-       7,     8,     0,     9,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,     0,     1,     2,     3,
+       7,     8,     0,     9,     0,     0,   135,     0,     0,     0,
+     136,   137,   138,   139,     0,   140,     0,     1,     2,     3,
        4,     5,     6,     7,     8,     0,     9,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,    10,    11,
        0,     0,     0,    12,   251,     0,    13,     0,    14,    15,
@@ -5858,22 +5858,22 @@ namespace annium_lang {
      360,    37,    -1,    -1,    54,   388,    -1,    -1,    58,    59,
       60,    61,   395,   396,   346,    -1,    -1,    -1,    54,    -1,
      352,   404,    58,    59,    60,    61,    -1,    -1,   388,    -1,
-      52,   360,    -1,    -1,    -1,   395,    -1,    -1,   310,   311,
+      -1,   360,    -1,    -1,    -1,   395,    -1,    -1,   310,   311,
      312,    -1,   425,    -1,   427,    -1,    -1,   319,    -1,     6,
-       7,     8,    -1,   325,    -1,    77,    78,    -1,    80,   388,
+       7,     8,    -1,   325,    -1,    -1,    -1,    -1,    -1,   388,
       17,    -1,    -1,    -1,    -1,   425,   395,   427,    -1,    -1,
-      -1,   454,    94,    95,    96,    97,   408,    99,   350,    -1,
+      -1,   454,    -1,    -1,    -1,    -1,   408,    -1,   350,    -1,
       37,    -1,   414,    -1,    -1,   357,   469,   470,    -1,    -1,
       -1,    -1,    49,    50,    -1,    -1,   425,    54,   427,    -1,
-      -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,   469,
+      -1,    -1,    -1,    52,    -1,    -1,    -1,    -1,    -1,   469,
       -1,     0,    -1,   385,    -1,   387,     5,     6,     7,     8,
-       9,    10,    11,    12,   396,    14,    -1,   459,    -1,    -1,
-      -1,    -1,   404,    -1,    -1,     6,     7,    -1,    -1,    -1,
-     469,    -1,     6,     7,    -1,    -1,    17,    18,    -1,    -1,
-      -1,    -1,    -1,    17,    18,    -1,    -1,    -1,    -1,    -1,
-      49,    50,    -1,    -1,   436,    54,    37,    56,    57,    -1,
-      59,    60,    -1,    37,    -1,    -1,    65,    -1,    49,    50,
-      -1,    52,   454,    72,    48,    49,    75,    76,    77,    78,
+       9,    10,    11,    12,   396,    14,    -1,   459,    77,    78,
+      -1,    80,   404,    -1,    -1,    -1,    -1,    -1,    -1,    -1,
+     469,    -1,     6,     7,    -1,    94,    95,    96,    97,    -1,
+      99,   100,    -1,    17,    18,    -1,    -1,    -1,    -1,    -1,
+      49,    50,    -1,    -1,   436,    54,    -1,    56,    57,    -1,
+      59,    60,    -1,    37,    -1,    -1,    65,    -1,    -1,    -1,
+      -1,    -1,   454,    72,    48,    49,    75,    76,    77,    78,
       54,    80,    -1,    -1,    -1,    -1,    -1,    86,   470,    88,
       -1,    -1,    66,    -1,    -1,    94,    95,    96,    97,    98,
       99,   100,    -1,    -1,    -1,    -1,    -1,   106,   107,    -1,
@@ -5885,19 +5885,19 @@ namespace annium_lang {
       50,    -1,    -1,    -1,    54,    -1,    56,    57,    -1,    59,
       60,    -1,    -1,    -1,    54,    65,    -1,    -1,    58,    59,
       60,    61,    72,    63,    64,    -1,    76,    77,    78,    -1,
-      80,     9,    82,    83,    84,    85,    86,    -1,    88,    -1,
-      -1,    -1,    20,    -1,    94,    95,    96,    97,    98,    99,
-      28,    29,    30,    31,    32,    33,   106,   107,    36,    37,
+      80,    -1,    82,    83,    84,    85,    86,    -1,    88,    -1,
+      -1,     6,     7,    -1,    94,    95,    96,    97,    98,    99,
+     100,    -1,    17,    18,    -1,    -1,   106,   107,    -1,    -1,
      110,   111,   112,   113,     5,     6,     7,     8,     9,    10,
-      11,    12,    -1,    14,    -1,    -1,    54,    -1,     9,    -1,
-      58,    59,    60,    61,    -1,    63,    64,    -1,    -1,    20,
+      11,    12,    37,    14,    -1,    -1,    -1,    -1,     9,    -1,
+      -1,    -1,    -1,    -1,    49,    50,    -1,    52,    -1,    20,
       -1,    -1,    -1,    -1,    -1,    -1,    -1,    28,    29,    30,
       31,    32,    33,    -1,    -1,    36,    37,    -1,    49,    50,
       -1,    -1,    -1,    54,    -1,    -1,    57,    -1,    59,    60,
       -1,    -1,    -1,    54,    65,    -1,    -1,    58,    59,    60,
-      61,    72,    63,    -1,    -1,    76,    77,    78,    -1,    80,
+      61,    72,    63,    64,    -1,    76,    77,    78,    -1,    80,
       -1,    82,    83,    84,    85,    86,    -1,    88,    -1,    -1,
-       6,     7,    -1,    94,    95,    96,    97,    98,    99,    -1,
+       6,     7,    -1,    94,    95,    96,    97,    98,    99,   100,
       -1,    17,    18,    -1,    -1,   106,   107,    -1,    -1,   110,
      111,   112,   113,     5,     6,     7,     8,     9,    10,    11,
       12,    37,    14,    -1,    -1,    -1,    -1,     9,    -1,    -1,
@@ -5920,12 +5920,12 @@ namespace annium_lang {
       50,    -1,    52,    76,    54,    -1,    -1,    57,    -1,    59,
       60,    -1,    -1,    86,    -1,    65,    -1,    -1,    -1,    -1,
       -1,    -1,    95,    96,    97,    -1,    76,    -1,    -1,    -1,
-      -1,    -1,    -1,   106,   107,    -1,    86,   110,   111,   112,
-     113,    -1,    -1,    -1,    -1,    95,    96,    97,    -1,    -1,
-      -1,    -1,    -1,    -1,    -1,    -1,   106,   107,    -1,    -1,
+      -1,     9,    -1,   106,   107,    -1,    86,   110,   111,   112,
+     113,    -1,    20,    -1,    -1,    95,    96,    97,    -1,    -1,
+      28,    29,    30,    31,    32,    33,   106,   107,    36,    37,
      110,   111,   112,   113,     5,     6,     7,     8,     9,    10,
-      11,    12,    -1,    14,    -1,    -1,    -1,    -1,    -1,    -1,
-      -1,    -1,    -1,    -1,    -1,    -1,    -1,     5,     6,     7,
+      11,    12,    -1,    14,    -1,    -1,    54,    -1,    -1,    -1,
+      58,    59,    60,    61,    -1,    63,    -1,     5,     6,     7,
        8,     9,    10,    11,    12,    -1,    14,    -1,    -1,    -1,
       -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    49,    50,
       -1,    -1,    -1,    54,    55,    -1,    57,    -1,    59,    60,
@@ -6063,9 +6063,9 @@ namespace annium_lang {
   parser::yyr1_[] =
   {
        0,   114,   115,   115,   116,   116,   116,   117,   117,   117,
-     117,   118,   118,   118,   118,   119,   119,   120,   120,   121,
-     121,   122,   122,   122,   123,   123,   123,   123,   124,   124,
-     125,   126,   126,   126,   126,   126,   126,   126,   126,   127,
+     117,   118,   118,   118,   119,   119,   120,   120,   121,   121,
+     122,   122,   122,   123,   123,   123,   123,   124,   124,   125,
+     126,   126,   126,   126,   126,   126,   126,   126,   126,   127,
      127,   128,   128,   129,   129,   130,   130,   130,   130,   130,
      131,   131,   131,   131,   131,   131,   132,   133,   134,   134,
      134,   135,   135,   136,   136,   137,   137,   138,   138,   139,
@@ -6096,9 +6096,9 @@ namespace annium_lang {
   parser::yyr2_[] =
   {
        0,     2,     2,     2,     0,     1,     2,     1,     2,     2,
-       2,     5,     3,     1,     2,     1,     3,     1,     2,     1,
-       3,     0,     1,     2,     1,     2,     2,     2,     1,     2,
-       3,     2,     3,     5,     5,     3,     4,     3,     2,     2,
+       2,     5,     3,     1,     1,     3,     1,     2,     1,     3,
+       0,     1,     2,     1,     2,     2,     2,     1,     2,     3,
+       2,     3,     5,     5,     3,     4,     3,     2,     2,     2,
        2,     1,     1,     1,     3,     2,     2,     4,     2,     1,
        1,     1,     1,     1,     2,     2,     1,     1,     2,     1,
        3,     1,     1,     1,     2,     1,     2,     1,     1,     5,
@@ -6189,9 +6189,9 @@ namespace annium_lang {
   parser::yyrline_[] =
   {
        0,   359,   359,   360,   364,   366,   368,   385,   387,   388,
-     390,   395,   397,   406,   408,   413,   414,   419,   421,   426,
-     427,   432,   434,   436,   441,   443,   444,   446,   452,   455,
-     466,   471,   473,   475,   477,   479,   481,   483,   493,   498,
+     390,   395,   397,   406,   411,   412,   417,   419,   424,   425,
+     430,   432,   434,   439,   441,   442,   444,   450,   453,   464,
+     469,   471,   473,   475,   477,   479,   481,   491,   493,   498,
      500,   505,   506,   510,   512,   520,   522,   524,   531,   533,
      537,   538,   540,   542,   544,   546,   551,   559,   574,   576,
      578,   584,   585,   589,   590,   594,   596,   601,   603,   608,

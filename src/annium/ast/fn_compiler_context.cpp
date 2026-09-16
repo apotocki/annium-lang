@@ -421,11 +421,13 @@ void fn_compiler_context::push_scopes_to_stash()
 {
     stash_state so{
         .locals_size = static_cast<uint32_t>(scoped_locals_.size()),
-        .states_size = static_cast<uint32_t>(scope_states_.size())
+        .states_size = static_cast<uint32_t>(scope_states_.size()),
+        .ns_size = static_cast<uint32_t>(ns_.parts().size())
     };
     stash_states_.push_back(so);
     scoped_locals_stash_.insert(scoped_locals_stash_.end(), scoped_locals_.begin(), scoped_locals_.end());
     scope_states_stash_.insert(scope_states_stash_.end(), scope_states_.begin(), scope_states_.end());
+    ns_stash_.insert(ns_stash_.end(), ns_.parts().begin(), ns_.parts().end());
 }
 
 void fn_compiler_context::pop_scopes_from_stash()
@@ -443,6 +445,14 @@ void fn_compiler_context::pop_scopes_from_stash()
         scope_states_stash_.end() - so.states_size,
         scope_states_stash_.end());
     scope_states_stash_.resize(scope_states_stash_.size() - so.states_size);
+    // pop_all_scopes() (fired by a return/break/continue somewhere inside the stashed branch) always
+    // unwinds ns_ down to the function's own root, not just back to this stash point -- ns_.truncate()
+    // can only shrink, so if there was already outer nesting before this stash point (so.ns_size above
+    // the function's root), truncate() alone could never grow ns_ back to it. Rebuild ns_ from the real
+    // saved copy of its parts instead, exactly like scoped_locals_/scope_states_ above.
+    ns_.truncate(0);
+    ns_.append(span<const identifier>{ ns_stash_.end() - so.ns_size, ns_stash_.end() });
+    ns_stash_.resize(ns_stash_.size() - so.ns_size);
 }
 
 void fn_compiler_context::peek_scopes_from_stash()
@@ -457,6 +467,10 @@ void fn_compiler_context::peek_scopes_from_stash()
     scope_states_.insert(scope_states_.end(),
         scope_states_stash_.end() - so.states_size,
         scope_states_stash_.end());
+    // see the matching comment in pop_scopes_from_stash() above. Not popped here (peek), so ns_stash_
+    // is left untouched -- only the live ns_ is rebuilt from it.
+    ns_.truncate(0);
+    ns_.append(span<const identifier>{ ns_stash_.end() - so.ns_size, ns_stash_.end() });
 }
 
 void fn_compiler_context::pop_dismiss_scopes_from_stash()
@@ -466,6 +480,7 @@ void fn_compiler_context::pop_dismiss_scopes_from_stash()
     stash_states_.pop_back();
     scoped_locals_stash_.resize(scoped_locals_stash_.size() - so.locals_size);
     scope_states_stash_.resize(scope_states_stash_.size() - so.states_size);
+    ns_stash_.resize(ns_stash_.size() - so.ns_size);
 }
 
 void fn_compiler_context::push_scope()
@@ -838,6 +853,9 @@ fn_compiler_context::lookup_entity_result_t fn_compiler_context::lookup_entity(q
 {
     if (name.is_relative() && name.size() == 1) {
         identifier varid = *name.begin();
+        if (varid.debug_name == "Tree"sv) {
+            int i = 0;
+        }
         auto optbv = get_bound(varid);
         if (optbv) return visit([](auto&& bv) -> lookup_entity_result_t { return std::move(bv); }, *optbv);
     }

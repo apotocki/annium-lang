@@ -133,8 +133,22 @@ intptr_t internal_function_entity::resolve_variable_index(variable_identifier va
 
 error_storage internal_function_entity::build()
 {
+    // A prior failed attempt must never be retried: build(fn_compiler_context&) below runs
+    // forward_declaration_visitor over sts_ again, which re-registers every top-level name it
+    // finds (struct/enum shells, nested fn patterns, ...) -- entity_registry::insert throws
+    // "an equivalent entity has been already registered" (a real C++ exception, not a graceful
+    // error) for anything that was already registered during the first, now-abandoned attempt
+    // before it failed. Every external caller of build() already funnels through this one
+    // no-arg overload (internal_fn_pattern.cpp x2, annium.cpp, to_callable_implicit_cast_pattern.cpp)
+    // -- centralizing the is_built()/build_errors check here, rather than requiring each call site
+    // to remember it individually (only internal_fn_pattern.cpp's try_match did, via
+    // `fne.build_errors || (fne.build_errors = fne.build())`), makes the guard structural instead
+    // of a convention every future call site has to happen to follow.
+    if (is_built()) return {};
+    if (build_errors) return build_errors;
     context().push_binding(bindings);
-    return build(context());
+    build_errors = build(context());
+    return build_errors;
 }
 
 error_storage internal_function_entity::build(fn_compiler_context& fnctx)

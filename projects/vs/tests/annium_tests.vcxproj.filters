@@ -512,6 +512,9 @@
     <None Include="..\..\..\tests\test-suite\structural_enums.ann">
       <Filter>test-suite</Filter>
     </None>
+    <None Include="..\..\..\tests\test-suite\nested_declarations.ann">
+      <Filter>test-suite</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\..\..\modules\sonia-prime\projects\vs\sonia.natvis">

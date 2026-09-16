@@ -405,8 +405,6 @@ statement:
         }
     | generic-statement[st]
         { $$ = std::move($st); }
-    | STRUCT struct-decl[struct]
-        { $$ = statement{ std::move($struct) }; }
 	;
  
 let-decl:
@@ -492,6 +490,8 @@ finished-statement:
     //    { $$ = struct_decl{ .name = std::move($qname), .parameters = std::move($parameters), .body = ctx.make_array<statement>($body)) }; IGNORE_TERM($beginParams); }
     | ENUM enum-decl[enum]
         { $$ = statement{ std::move($enum) }; }
+    | STRUCT struct-decl[struct]
+        { $$ = statement{ std::move($struct) }; }
     ;
 
 if-else-tail:

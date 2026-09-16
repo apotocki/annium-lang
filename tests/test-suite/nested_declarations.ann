@@ -1,0 +1,101 @@
+// struct/enum declarations nested inside a function body -- exercises the same two-pass
+// forward_declaration_visitor/declaration_visitor split used at the top level (see
+// IMPLEMENTATION_NOTES.md's "Function declarations & call dispatch" section), just applied to a
+// function's own body statements: internal_function_entity::build(fn_compiler_context&)
+// (entities/functions/internal_function_entity.cpp) calls fdvis.apply(sts_) then dvis.apply(sts_)
+// on its own body, exactly mirroring annium_impl::annium_impl()'s top-level
+// fdvis.apply(*decls)/dvis.apply(*decls) call -- so a struct/enum declared inside a function gets
+// its shell registered (and, for a plain struct and an enum's structural cases, eagerly
+// field-validated) file-order-independently within that function's own body, the same guarantees
+// the top-level case already has. Nothing here was expected to fail -- this is regression coverage
+// for that reasoning, not a bug being fixed.
+
+// A plain struct declared inside a function body, used normally.
+fn make_point($px: i32, $py: i32) -> i32 {
+    struct point => (x: i32, y: i32);
+    let p: point = init(x: $px, y: $py);
+    return p.x + p.y;
+}
+assert_equal(make_point(runtime_cast(1), runtime_cast(2)), 3);
+
+// Forward reference: `Node`'s own field references `NodeRef`, declared textually AFTER it in the
+// same function body -- only safe because forward_declaration_visitor registers every struct's
+// shell in one full pass before declaration_visitor's eager field validation touches any of them.
+fn use_forward_ref() -> i32 {
+    struct Node => (value: i32, next: NodeRef);
+    struct NodeRef => (n: i32);
+    let x: Node = init(value: runtime_cast(1), next: init(n: runtime_cast(2)));
+    return x.value + x.next.n;
+}
+assert_equal(use_forward_ref(), 3);
+
+// An enum with a structural case, declared inside a function body and consumed via `match`
+// (including a field-destructuring arm) -- exercises enum_decl's own forward-pass move plus its
+// eager structural-case field validation, nested.
+fn describe_local_tree() -> string {
+    enum Tree {
+        Leaf(name: string),
+        Empty
+    };
+    let leaf: Tree::Leaf = init(name: "hi");
+    let t: Tree = leaf;
+    return match t {
+        Leaf(name $n) => $n,
+        Empty => "empty"
+    };
+}
+assert_equal(describe_local_tree(), "hi");
+
+// Two different functions each declaring a same-named local struct ("helper") -- each function's
+// own body compiles under a fresh, unique inner namespace (basic_fn_pattern::build()'s
+// `fn_ns = fnqn / env.new_identifier()`), so the two `helper` structs never collide in the entity
+// registry despite sharing a name.
+fn first_local_struct() -> i32 {
+    struct helper => (v: i32);
+    let h: helper = init(v: runtime_cast(10));
+    return h.v;
+}
+fn second_local_struct() -> i32 {
+    struct helper => (v: i32);
+    let h: helper = init(v: runtime_cast(20));
+    return h.v;
+}
+assert_equal(first_local_struct(), 10);
+assert_equal(second_local_struct(), 20);
+
+// A locally-declared enum can also be *returned* from its own declaring function and consumed by
+// an entirely separate function, purely via its structural shape -- the caller never needs to name
+// the enum type at all (it's scoped to make_tree's own inner namespace, unreachable by qname from
+// outside; describe_tree's own parameter is a fully generic `~_`), and `match`'s short (enum-local)
+// case name resolution works exactly the same as for a top-level enum, since it's driven entirely
+// by introspecting the scrutinee's own runtime type signature, not by any namespace-qualified
+// lookup. Also reuses the name "Tree" (already used, unrelated, inside describe_local_tree above)
+// to double-check the no-collision guarantee one more time, on an enum rather than a struct.
+//
+// `$want_leaf` is passed through `runtime_cast` at both call sites specifically so `make_tree`
+// builds exactly *once* (a genuinely runtime argument doesn't get baked into the call's own
+// distinguishing signature the way a constexpr one would) -- both calls below share the same single
+// local `Tree` declaration and its `if` becomes a real runtime branch, rather than two separate
+// constexpr-driven instantiations each declaring their own, incidentally-identical `Tree`.
+fn make_tree($want_leaf: bool) {
+    enum Tree {
+        Leaf(name: string),
+        Empty
+    };
+    if $want_leaf {
+        let leaf = new Tree::Leaf(name: "hi");
+        let t: Tree = leaf;
+        return t;
+    }
+    let e: Tree = .Empty;
+    return e;
+}
+
+fn describe_tree($t: ~_) -> string =>
+    match $t {
+        Leaf(name $n) => $n,
+        Empty => "empty"
+    };
+
+assert_equal(describe_tree(make_tree(runtime_cast(true))), "hi");
+assert_equal(describe_tree(make_tree(runtime_cast(false))), "empty");

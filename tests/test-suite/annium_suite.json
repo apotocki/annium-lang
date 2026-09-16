@@ -115,6 +115,10 @@
   {
     "src": "match_expression.ann",
     "output": ""
+  },
+  {
+    "src": "nested_declarations.ann",
+    "output": ""
   }
   /*
     
