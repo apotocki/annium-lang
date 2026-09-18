@@ -512,101 +512,6 @@ numetron::integer integer_gcd(numetron::integer a, numetron::integer b)
     return a;
 }
 
-// Formats a non-negative bigint magnitude `sig` that already *is* the target value * 10^digits
-// (rounded) into a "int.frac" (or bare integer at digits == 0) string, left-padding the integer
-// part with zeros so there's always at least one digit ahead of the decimal point (e.g. sig == 5
-// at digits == 2 must read "0.05", not split "5" into nothing). Shared by to_fixed_decimal_string's
-// base-10 scaling below and to_fixed_string_from_finite's base-2 one (see its comment) -- once a
-// value's been rounded down to an exact bigint at the target scale, the string layout is identical
-// either way, only how that bigint was obtained differs.
-std::string format_fixed_digits(numetron::integer_view sig, bool negative, int64_t digits)
-{
-    std::string digit_str = (std::ostringstream{} << sig).str();
-
-    std::string result;
-    // Sign follows the caller's `negative` flag alone (not whether the rounded magnitude happens
-    // to be zero) -- matches std::to_chars/printf's own "-0" behavior for e.g. a small negative
-    // value rounded away to nothing at digits == 0.
-    if (negative) result.push_back('-');
-
-    if (digits == 0) {
-        result += digit_str;
-        return result;
-    }
-
-    if (digit_str.size() <= static_cast<size_t>(digits)) {
-        digit_str.insert(0, static_cast<size_t>(digits) + 1 - digit_str.size(), '0');
-    }
-    size_t split = digit_str.size() - static_cast<size_t>(digits);
-    result += digit_str.substr(0, split);
-    result.push_back('.');
-    result += digit_str.substr(split);
-    return result;
-}
-
-// Rounds a finite double's *exact* value to `digits` fractional decimal digits, honoring `mode`,
-// entirely in base 2. An earlier version of to_fixed_string routed a float source through
-// exact_decimal_from_finite (below) and then this same to_fixed_decimal_string-style rounding, but
-// in base 10 -- that's exact, but exact_decimal_from_finite folds a negative binary exponent into a
-// decimal one via 2^binexp == 5^-binexp / 10^binexp, which keeps *binexp itself* as the decimal
-// exponent. For a typical double binexp is around -50, and for a subnormal one as low as -1074, so
-// rounding that decimal down to a handful of fractional digits needs a base-10 divisor of 10^n for
-// n up to ~1074 -- around 3570 bits, far past numetron::limb_arithmetic::udiv's single-64-bit-limb
-// fast path, so it threw "not implemented" for essentially any real-world to_fixed(f64_value,
-// small_digits, mode) call (e.g. formatBytes.ann's own szval), not just a contrived test input --
-// see BUGFIXES.md.
-//
-// `value`'s bits are exactly int_mantissa * 2^binexp (frexp/ldexp are exact for finite doubles), so
-// value * 10^digits == int_mantissa * 5^digits * 2^(binexp + digits): when binexp + digits >= 0
-// that's an exact multiply (the value has no fractional bits left to round away at this scale);
-// otherwise it's one division by 2^-(binexp + digits), whose required bit width tracks binexp
-// directly (at most 1074, for the smallest representable subnormal double) instead of binexp's
-// *decimal* equivalent (~3570 bits) -- comfortably within udiv's single-limb fast path for any
-// normal-magnitude double and any typical `digits`, and it covers most subnormals too unless
-// `digits` is unusually small relative to how tiny the value is.
-std::string to_fixed_string_from_finite(double value, int64_t digits, decimal_rounding_mode mode)
-{
-    if (mode != decimal_rounding_mode::half_even && mode != decimal_rounding_mode::half_up) {
-        THROW_NOT_IMPLEMENTED_ERROR("to_fixed: only rounding_mode.half_even and .half_up are implemented so far"sv);
-    }
-
-    bool negative = std::signbit(value);
-    if (value == 0.0) {
-        return format_fixed_digits((numetron::integer_view)numetron::integer{ 0 }, negative, digits);
-    }
-
-    int exp2;
-    double mantissa = std::frexp(value, &exp2);
-    constexpr int mantissa_bits = std::numeric_limits<double>::digits;
-    int64_t int_mantissa = static_cast<int64_t>(std::ldexp(std::fabs(mantissa), mantissa_bits));
-    int64_t binexp = static_cast<int64_t>(exp2) - mantissa_bits;
-
-    numetron::integer sig{ int_mantissa };
-    sig *= numetron::pow(numetron::integer{ 5 }, static_cast<uint64_t>(digits));
-
-    int64_t k = binexp + digits;
-    if (k >= 0) {
-        sig *= numetron::pow(numetron::integer{ 2 }, static_cast<uint64_t>(k));
-    } else {
-        numetron::integer den = numetron::pow(numetron::integer{ 2 }, static_cast<uint64_t>(-k));
-        numetron::integer q = sig / den;
-        numetron::integer r = sig % den;
-        numetron::integer twice_r = r * numetron::integer{ 2 };
-        numetron::integer_view twice_r_v = (numetron::integer_view)twice_r;
-        numetron::integer_view den_v = (numetron::integer_view)den;
-        if (mode == decimal_rounding_mode::half_up) {
-            if (twice_r_v >= den_v) q += 1;
-        } else if (twice_r_v > den_v) {
-            q += 1;
-        } else if (twice_r_v == den_v && (q % 2)) {
-            q += 1; // exact tie, half_even: round to the even neighbor, and q is currently odd
-        }
-        sig = std::move(q);
-    }
-
-    return format_fixed_digits((numetron::integer_view)sig, negative, digits);
-}
-
 } // anonymous namespace
 
 std::optional<numetron::decimal> try_divide_decimal_constexpr(numetron::decimal_view lhs, numetron::decimal_view rhs)
@@ -646,9 +551,9 @@ std::optional<numetron::decimal> try_divide_decimal_constexpr(numetron::decimal_
     return numetron::decimal{ (numetron::integer_view)result_sig, (numetron::integer_view)result_exp };
 }
 
-std::optional<numetron::decimal> divide_decimal_rounded(numetron::decimal_view lhs, numetron::decimal_view rhs, uint32_t scale, decimal_rounding_mode mode)
+std::optional<numetron::decimal> divide_decimal_rounded(numetron::decimal_view lhs, numetron::decimal_view rhs, uint32_t scale, numetron::decimal_round_mode mode)
 {
-    if (mode != decimal_rounding_mode::half_even) {
+    if (mode != numetron::decimal_round_mode::half_even) {
         THROW_NOT_IMPLEMENTED_ERROR("divide_decimal_rounded: only rounding_mode::half_even is implemented so far"sv);
     }
 
@@ -695,44 +600,32 @@ std::optional<numetron::decimal> divide_decimal_rounded(numetron::decimal_view l
     return numetron::decimal{ (numetron::integer_view)q, (numetron::integer_view)result_exp };
 }
 
-std::string to_fixed_decimal_string(numetron::decimal_view d, int64_t digits, decimal_rounding_mode mode)
+std::string to_fixed_decimal_string(numetron::decimal_view d, int64_t digits, numetron::decimal_round_mode mode)
 {
-    if (mode != decimal_rounding_mode::half_even && mode != decimal_rounding_mode::half_up) {
+    // Guarded here rather than left to numetron::to_fixed_string's own defensive check, so an
+    // unimplemented mode throws Annium's own sonia::not_implemented_error (THROW_NOT_IMPLEMENTED_
+    // ERROR) at this boundary -- the exception type every other "not implemented yet" spot in this
+    // codebase throws -- instead of numetron's plain std::runtime_error (matching *its* own
+    // "not implemented" convention, e.g. limb_arithmetic::udiv, but not Annium's).
+    if (mode != numetron::decimal_round_mode::half_even && mode != numetron::decimal_round_mode::half_up) {
         THROW_NOT_IMPLEMENTED_ERROR("to_fixed: only rounding_mode.half_even and .half_up are implemented so far"sv);
     }
 
-    numetron::integer sig{ d.significand().abs() };
-
-    // Scale sig to the target exponent -digits: e >= 0 is an exact widening (just appends trailing
-    // zeros, no rounding possible); e < 0 discards digits and needs a remainder tie-break per `mode`
-    // (compare 2*r against the denominator) -- half_up always rounds a tie away from zero (q's sign
-    // is applied later, so "away from zero" here just means "up", unconditionally on a tie); half_even
-    // additionally checks q's own parity, same as divide_decimal_rounded above.
-    int64_t e = (int64_t)d.exponent() + digits;
-    if (e >= 0) {
-        sig *= numetron::pow(numetron::integer{ 10 }, static_cast<uint64_t>(e));
-    } else {
-        numetron::integer den = numetron::pow(numetron::integer{ 10 }, static_cast<uint64_t>(-e));
-        numetron::integer q = sig / den;
-        numetron::integer r = sig % den;
-        numetron::integer twice_r = r * numetron::integer{ 2 };
-        numetron::integer_view twice_r_v = (numetron::integer_view)twice_r;
-        numetron::integer_view den_v = (numetron::integer_view)den;
-        if (mode == decimal_rounding_mode::half_up) {
-            if (twice_r_v >= den_v) q += 1;
-        } else if (twice_r_v > den_v) {
-            q += 1;
-        } else if (twice_r_v == den_v && (q % 2)) {
-            q += 1; // exact tie, half_even: round to the even neighbor, and q is currently odd
-        }
-        sig = std::move(q);
-    }
-
-    return format_fixed_digits((numetron::integer_view)sig, d.is_negative(), digits);
+    // The actual rounding/formatting now lives in numetron itself (numetron::to_fixed_string,
+    // decimal_view.hpp) -- it's pure bigint arithmetic with no dependency on anything Annium-
+    // specific, so it belongs there rather than duplicated here. This wrapper just survives as the
+    // Annium-exception-typed entry point every caller in this file already uses.
+    return numetron::to_fixed_string(d, digits, mode);
 }
 
-std::string to_fixed_string(smart_blob const& value, int64_t digits, decimal_rounding_mode mode)
+std::string to_fixed_string(smart_blob const& value, int64_t digits, numetron::decimal_round_mode mode)
 {
+    // Same reasoning as to_fixed_decimal_string's own guard above -- kept here too since this
+    // branch calls numetron::to_fixed_string directly, bypassing to_fixed_decimal_string.
+    if (mode != numetron::decimal_round_mode::half_even && mode != numetron::decimal_round_mode::half_up) {
+        THROW_NOT_IMPLEMENTED_ERROR("to_fixed: only rounding_mode.half_even and .half_up are implemented so far"sv);
+    }
+
     switch (numeric_builtin_eid_of(*value)) {
     case builtin_eid::f16:
     case builtin_eid::f32:
@@ -740,12 +633,12 @@ std::string to_fixed_string(smart_blob const& value, int64_t digits, decimal_rou
         // decimal_view's own conversion from a native float goes through Dragonbox (shortest
         // round-tripping decimal, not the exact binary value) -- reading it back out as a double
         // is exact regardless (Dragonbox's whole guarantee is that this round-trips losslessly).
-        // From there, rounding has to stay in base 2 (to_fixed_string_from_finite, above) rather
-        // than going through an exact base-10 decimal (exact_decimal_from_finite) -- see that
-        // function's comment for why the base-10 route blows past numetron's single-limb udiv fast
+        // From there, rounding has to stay in base 2 (numetron::to_fixed_string's float overload)
+        // rather than going through an exact base-10 decimal -- see that overload's own comment
+        // (decimal_view.hpp) for why the base-10 route blows past numetron's single-limb udiv fast
         // path for essentially any real float input.
         double val = static_cast<double>(value.as<numetron::decimal_view>());
-        return to_fixed_string_from_finite(val, digits, mode);
+        return numetron::to_fixed_string(val, digits, mode);
     }
     default:
         // decimal itself, and every integral source (fixed-width int, bigint integer) -- none of

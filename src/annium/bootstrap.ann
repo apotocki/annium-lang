@@ -319,8 +319,9 @@ inline fn greater_eq(@numeric, @numeric) -> bool => greater($0, $1) || equal($0,
 // numeric_promotion.cpp) -- the rest are declared for a stable signature but throw if selected, same
 // incremental approach divide(...)'s own rounding_mode support already used. Crosses into each extern
 // as a bare integer ordinal (to_integer(mode)) -- there's no shared symbolic enum type between
-// bootstrap.ann and the C++ side, see decimal_rounding_mode's comment in numeric_promotion.hpp (its
-// member order must match this enum's exactly).
+// bootstrap.ann and the C++ side, see numetron::decimal_round_mode's comment in decimal_view.hpp
+// (its member order must match this enum's exactly -- the C++ side reads the ordinal straight into
+// that enum, there's no intermediate Annium-side mirror of it to keep in sync as well).
 enum rounding_mode {
     half_even,
     half_up,

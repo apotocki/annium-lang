@@ -881,14 +881,15 @@ void annium_operator_bitor_bool(vm::context& ctx)
 // Backs bootstrap.ann's `divide(a, b, scale, mode)`, the explicit runtime-safe alternative to the
 // plain `/` operator (which stays undefined for decimal at runtime -- see numeric_promotion.hpp).
 // `mode` arrives as a bare integer ordinal (bootstrap.ann passes `to_integer(mode)`, not the
-// rounding_mode value itself -- there's no shared symbolic enum type across the runtime boundary,
-// see decimal_rounding_mode's comment).
+// rounding_mode value itself -- there's no shared symbolic enum type across the runtime boundary),
+// cast directly to numetron::decimal_round_mode (decimal_view.hpp) -- Annium doesn't keep its own
+// mirror of that enum, see divide_decimal_rounded's own comment (numeric_promotion.hpp).
 void annium_divide_decimal_rounded(vm::context& ctx)
 {
     numetron::decimal_view a = ctx.stack_back(3).as<numetron::decimal_view>();
     numetron::decimal_view b = ctx.stack_back(2).as<numetron::decimal_view>();
     uint32_t scale = ctx.stack_back(1).as<uint32_t>();
-    auto mode = static_cast<decimal_rounding_mode>(ctx.stack_back().as<int32_t>());
+    auto mode = static_cast<numetron::decimal_round_mode>(ctx.stack_back().as<int32_t>());
 
     auto result = divide_decimal_rounded(a, b, scale, mode);
     if (!result) {
@@ -1106,17 +1107,17 @@ void annium_numeric_round_digits(vm::context& ctx)
 {
     double val = static_cast<double>(ctx.stack_back(2).as<numetron::decimal_view>());
     double digits = static_cast<double>(ctx.stack_back(1).as<numetron::decimal_view>());
-    auto mode = static_cast<decimal_rounding_mode>(ctx.stack_back().as<int32_t>());
+    auto mode = static_cast<numetron::decimal_round_mode>(ctx.stack_back().as<int32_t>());
     ctx.stack_pop(2);
 
     double scale = std::pow(10.0, digits);
     double scaled = val * scale;
     double rounded;
     switch (mode) {
-    case decimal_rounding_mode::half_up:
+    case numetron::decimal_round_mode::half_up:
         rounded = std::round(scaled);
         break;
-    case decimal_rounding_mode::half_even:
+    case numetron::decimal_round_mode::half_even:
         rounded = std::nearbyint(scaled);
         break;
     default:
@@ -1140,7 +1141,7 @@ void annium_numeric_round_digits(vm::context& ctx)
 void annium_numeric_to_fixed(vm::context& ctx)
 {
     double digits_arg = static_cast<double>(ctx.stack_back(1).as<numetron::decimal_view>());
-    auto mode = static_cast<decimal_rounding_mode>(ctx.stack_back().as<int32_t>());
+    auto mode = static_cast<numetron::decimal_round_mode>(ctx.stack_back().as<int32_t>());
     int64_t digits = 0;
     if (digits_arg > 0.0) {
         digits = digits_arg > 1100.0 ? 1100 : static_cast<int64_t>(digits_arg);
