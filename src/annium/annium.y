@@ -329,7 +329,7 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 %type <syntax_expression> type-expr
 //%type <syntax_expression> parenthesized-expression
 %type <syntax_expression> syntax-expression-base grouped-expression any-reference-expression concept-expression syntax-expression
-%type <syntax_expression> new-expression call-expression lambda-expression compound-expression match-expression
+%type <syntax_expression> new-expression call-expression lambda-expression compound-expression match-expression member-access-expression
 %type <std::vector<match_arm>> match-arm-list-opt match-arm-list
 %type <match_arm> match-arm
 //%type <syntax_expression> apostrophe-expression 
@@ -1262,46 +1262,48 @@ new-expression:
     //    { $$ = syntax_expression{ std::move($NEW), new_expression{ ctx.make<syntax_expression>(std::move($typeExpr)), ctx.make_array<opt_named_expression_t>($arguments) } }; IGNORE_TERM($OPEN_PARENTHESIS); }
     ;
 
+// General `.member`/`.member(...)` access, rooted at any syntax-expression (a literal, a grouped
+// expression, a `new` expression, a previous call/member-access result, anything) -- not just
+// any-reference-expression/call-expression the way call-expression's own now-removed member rules
+// used to be. A single general rule instead of duplicating this per root-expression-kind.
+//
+// Referenced from *only* compound-expression below (mirroring exactly how call-expression itself
+// is wired in -- also only via compound-expression, never duplicated directly into
+// syntax-expression-base too) so that a bare `obj.method(args);` is reachable as a statement
+// (expression-statement only accepts compound-expression, not the fully general syntax-expression --
+// see its own rule further down). compound-expression is itself one of syntax-expression's
+// alternatives, so this is still just as usable as a plain syntax-expression everywhere else
+// (function arguments, let bindings, ...) as call-expression already is -- nothing is lost by not
+// also inlining it directly into syntax-expression-base. Adding *that* second path was tried and
+// reverted: it made member-access-expression reachable two different ways for the same input
+// (once through syntax-expression-base, once through compound-expression), a real reduce/reduce
+// ambiguity bison flagged immediately, not a false alarm.
+//
+// Deliberately *not* referenced from type-expr, even though call-expression still is there (for its
+// own unrelated "invoke as function" alternatives) -- type-expr already has direct qname/
+// RESERVED_IDENTIFIER/CONTEXT_IDENTIFIER alternatives that heavily overlap with what a
+// syntax-expression[object] can itself reduce to, and adding member-access-expression there
+// produced over 200 reduce/reduce conflicts (confirmed with bison, not just suspected) between
+// type-expr's own alternatives and syntax-expression's. Checked whether this loses real capability
+// first: every nested-type reference in tests/test-suite uses `::` (a qname, e.g. `Tree::Leaf`),
+// never `.` -- the existing `Tree.Leaf(name: "hi")` construction syntax (nested_declarations.ann) is
+// an *expression* (a member_call resolving via bootstrap.ann's `::invoke` mechanism), not a type-expr
+// use at all, so type-expr never actually exercised dotted member access to begin with.
+member-access-expression:
+      syntax-expression[object] POINT identifier[property] %prec LOWEST
+        { $$ = syntax_expression{ $object.location, member_expression{ ctx.make<syntax_expression>(std::move($object)), ctx.make<syntax_expression>($property.location, std::move($property.value)) } }; IGNORE_TERM($POINT); }
+    | syntax-expression[object] POINT identifier[member] OPEN_PARENTHESIS pack-expression-opt[arguments] CLOSE_PARENTHESIS
+        {
+            syntax_expression mb{ std::move($member.location), std::move($member.value) };
+            $$ = syntax_expression{ std::move($POINT), member_call{ ctx.make<syntax_expression>(std::move($object)), ctx.make<syntax_expression>(std::move(mb)), ctx.make_array<opt_named_expression_t>($arguments) } }; IGNORE_TERM($OPEN_PARENTHESIS);
+        }
+    ;
+
 call-expression:
       any-reference-expression[refExpr] OPEN_PARENTHESIS pack-expression-opt[arguments] CLOSE_PARENTHESIS
         { $$ = syntax_expression{ std::move($OPEN_PARENTHESIS), function_call{ ctx.make<syntax_expression>(std::move($refExpr)), ctx.make_array<opt_named_expression_t>($arguments) } }; }
-    | any-reference-expression[object] POINT identifier[property] %prec LOWEST
-        { $$ = syntax_expression{ $object.location, member_expression{ ctx.make<syntax_expression>($object), ctx.make<syntax_expression>($property.location, std::move($property.value)) } }; IGNORE_TERM($POINT); }
-    | any-reference-expression[object] POINT identifier[member] OPEN_PARENTHESIS pack-expression-opt[arguments] CLOSE_PARENTHESIS
-        {
-            syntax_expression mb{ std::move($member.location), std::move($member.value) };
-            $$ = syntax_expression{ std::move($POINT), member_call{ ctx.make<syntax_expression>(std::move($object)), ctx.make<syntax_expression>(std::move(mb)), ctx.make_array<opt_named_expression_t>($arguments) } }; IGNORE_TERM($OPEN_PARENTHESIS);
-        }
-    // A literal is a valid `.member`/`.member(...)` target too (e.g. "x".trim_end("0")) -- unlike
-    // any-reference-expression above, a raw STRING token isn't itself a syntax_expression yet, so
-    // it's wrapped the same way syntax-expression-base's own bare `STRING` rule wraps it. Only
-    // string literals are handled for now (the concrete case that came up); the identical gap for
-    // other literal-token kinds (INTEGER, DECIMAL, ...) is recorded in FUTURE_WORK.md rather than
-    // fixed opportunistically here, since each one needs its own verified grammar addition, not a
-    // blind copy-paste. Chaining a second `.member(...)` off the result (e.g. `"x".trim_end("0")
-    // .trim_start(" ")`) needs no extra rule -- the existing call-expression[object] POINT
-    // identifier... rules just below are already recursive on call-expression itself, so they
-    // pick this up for free once it reduces to one.
-    | STRING[object] POINT identifier[property] %prec LOWEST
-        {
-            syntax_expression obj_expr{ $object.location, ctx.make_string_view($object.value) };
-            $$ = syntax_expression{ obj_expr.location, member_expression{ ctx.make<syntax_expression>(std::move(obj_expr)), ctx.make<syntax_expression>($property.location, std::move($property.value)) } }; IGNORE_TERM($POINT);
-        }
-    | STRING[object] POINT identifier[member] OPEN_PARENTHESIS pack-expression-opt[arguments] CLOSE_PARENTHESIS
-        {
-            syntax_expression obj_expr{ $object.location, ctx.make_string_view($object.value) };
-            syntax_expression mb{ std::move($member.location), std::move($member.value) };
-            $$ = syntax_expression{ std::move($POINT), member_call{ ctx.make<syntax_expression>(std::move(obj_expr)), ctx.make<syntax_expression>(std::move(mb)), ctx.make_array<opt_named_expression_t>($arguments) } }; IGNORE_TERM($OPEN_PARENTHESIS);
-        }
     | call-expression[nameExpr] OPEN_PARENTHESIS pack-expression[arguments] CLOSE_PARENTHESIS
         { $$ = syntax_expression{ std::move($OPEN_PARENTHESIS), function_call{ ctx.make<syntax_expression>(std::move($nameExpr)), ctx.make_array<opt_named_expression_t>($arguments) } }; }
-    | call-expression[object] POINT identifier[property] %prec LOWEST
-        { $$ = syntax_expression{ $object.location, member_expression{ ctx.make<syntax_expression>($object), ctx.make<syntax_expression>($property.location, std::move($property.value)) } }; IGNORE_TERM($POINT); }
-    | call-expression[object] POINT identifier[member] OPEN_PARENTHESIS pack-expression-opt[arguments] CLOSE_PARENTHESIS
-        {
-            syntax_expression mb{ std::move($member.location), std::move($member.value) };
-            $$ = syntax_expression{ std::move($POINT), member_call{ ctx.make<syntax_expression>(std::move($object)), ctx.make<syntax_expression>(std::move(mb)), ctx.make_array<opt_named_expression_t>($arguments) } }; IGNORE_TERM($OPEN_PARENTHESIS);
-        }
     | grouped-expression[expr] OPEN_PARENTHESIS[start] pack-expression-opt[arguments] CLOSE_PARENTHESIS
         { $$ = syntax_expression{ std::move($start), function_call{ ctx.make<syntax_expression>(std::move($expr)), ctx.make_array<opt_named_expression_t>($arguments) } }; }
     ;
@@ -1434,6 +1436,7 @@ compound-expression:
         syntax-expression[expr] ELLIPSIS
         { $$ = syntax_expression{ std::move($ELLIPSIS), unary_expression{ unary_operator_type::ELLIPSIS, false, std::span{ ctx.make<opt_named_expression_t>(std::move($expr)), 1 } } }; }
       | call-expression
+      | member-access-expression
 
     /*
     | syntax-expression OPEN_BRACE argument-list-opt[arguments] CLOSE_BRACE
