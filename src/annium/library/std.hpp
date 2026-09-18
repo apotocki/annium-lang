@@ -28,6 +28,8 @@ public:
     // strings
     bool starts_with(string_view target, string_view prefix) const;
     string_view substring(string_view target, uint32_t start, int32_t length = -1) const;
+    string_view trim_start(string_view target, string_view chars) const;
+    string_view trim_end(string_view target, string_view chars) const;
 
     // regex
     blob_result regex_object(string_view pattern);

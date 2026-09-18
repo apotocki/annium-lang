@@ -23,44 +23,40 @@ fn formatBytes($v: runtime integer, $p: runtime i64 = 4) -> string {
 
     // $p is the MAXIMUM number of decimal places to show -- trailing zero decimals are dropped
     // entirely (never padded out to $p places), and if every decimal digit is zero, no decimal
-    // point is shown at all. Built by hand from integer digits rather than leaning on
-    // to_string(f64)'s default formatting: iostream's default float precision is 6 SIGNIFICANT
-    // digits (`%g`-style, see invocation.hpp's print_to_stream) -- it would silently re-round or
-    // truncate any value with more significant digits than that, independent of whatever precision
-    // we already rounded to (e.g. to_string(1234.5678) would come out as "1234.57", not "1234.5678").
+    // point is shown at all. to_fixed(...) always produces a fixed, zero-padded width (e.g.
+    // "1.0000", never re-rounded/truncated the way to_string(f64)'s default 6-significant-digit
+    // formatting would be, see IMPLEMENTATION_NOTES.md), so the trimming below only ever runs on
+    // the fractional part *after* splitting on the decimal point -- trim_end can't safely run on
+    // the whole "int.frac" string at once: a trailing zero belonging to the *integer* part (e.g.
+    // "120.00") would get stripped right along with the fractional zeros, corrupting the result.
     let digits: i64 = $p;
     if digits < 0 { digits = 0; }
-    let scale_f = pow(10, digits);
-    let scale_i: i64 = numeric_cast(scale_f);
-    let scaled: i64 = numeric_cast(round(szval * scale_f));
+    let formatted = to_fixed(szval, digits);
 
     // Rounding can still push the displayed value up to (or past) 1024 -- e.g. raw szval == 1023.6
-    // with 0 decimals rounds to 1024 -- so bump to the next unit here too, same as the exact
-    // boundary case above, instead of showing "1024 MiB" rather than "1.0 GiB". Compared as exact
-    // integers (scaled vs. 1024*scale_i), not floats.
-    if scaled >= 1024 * scale_i && unit < max_unit {
+    // with 0 decimals rounds to "1024" -- so bump to the next unit and reformat, same as the exact
+    // boundary case above, instead of showing "1024 MiB"/"1024.0000 MiB" rather than "1 GiB".
+    // Checked directly against to_fixed's own output (not a separate round(...) computation) so the
+    // bump decision and the actually-displayed value can never disagree about whether the boundary
+    // was crossed -- szval is always < 1024 plus a negligible rounding epsilon at this point (the
+    // unit loop above already guarantees that), so "starts with 1024" can't false-positive on some
+    // unrelated larger value.
+    let overflowed = (digits > 0 && formatted.starts_with("1024.")) || (digits == 0 && formatted == "1024");
+    if overflowed && unit < max_unit {
         unit = unit + 1;
         szval = szval / 1024;
-        scaled = numeric_cast(round(szval * scale_f));
+        formatted = to_fixed(szval, digits);
     }
 
-    let int_part: i64 = scaled / scale_i;
-    let frac_part: i64 = scaled % scale_i;
-
-    let result = to_string(int_part);
-    if frac_part != 0 {
-        // strip trailing zero decimal digits (e.g. .50 -> .5), tracking how many digits remain.
-        while digits > 0 && frac_part % 10 == 0 {
-            frac_part = frac_part / 10;
-            digits = digits - 1;
+    let result = formatted;
+    if digits > 0 {
+        let digits_i: i32 = numeric_cast(digits);
+        let dot: i32 = numeric_cast(size(formatted) - digits_i - 1);
+        let frac = formatted.substring(numeric_cast(dot + 1), digits_i).trim_end("0");
+        result = formatted.substring(0, dot);
+        if !empty(frac) {
+            result = result .. "." .. frac;
         }
-        // zero-pad the remaining fractional digits back out to `digits` width: adding 10^digits
-        // guarantees exactly one leading '1' digit ahead of `digits` zero-padded digits, then
-        // substring drops that leading '1'.
-        let pad: i64 = numeric_cast(pow(10, digits));
-        let padded = to_string(frac_part + pad);
-        let frac_len: i32 = numeric_cast(size(padded) - 1);
-        result = result .. "." .. padded.substring(1, frac_len);
     }
 
     return result .. " " .. suffixes[unit];

@@ -115,6 +115,25 @@ inline fn starts_with(self: ~ constexpr string, $prefix: constexpr string) -> bo
 inline fn substring(self: ~ runtime string, $start: runtime u32, $length: runtime i32 = i32.max) -> string => reinterpret(std.substring(self, $start, $length));
 inline fn substring(self: ~ constexpr string, $start: constexpr u32, $length: constexpr i32 = i32.max) -> string => consteval substring(self: runtime_cast(self), runtime_cast($start), runtime_cast($length));
 
+// trim_start/trim_end/trim: drop leading/trailing/both-side characters that are in `chars` (a *set*
+// of characters, not a substring pattern -- same convention as Python's str.lstrip/rstrip/strip),
+// stopping at the first character (from the relevant end) not in it. trim_end("1.5000", "0") ->
+// "1.5"; trim_end("1.0000", "0") -> "1." (the caller decides whether a resulting trailing "." is
+// itself worth stripping -- see formatBytes.ann for why that can't just be a second
+// trim_end("0.") call on the same, unsplit string).
+inline fn trim_start(self: ~ runtime string, $chars: runtime string) -> string => reinterpret(std.trim_start(self, $chars));
+inline fn trim_start(self: ~ constexpr string, $chars: constexpr string) -> string => consteval trim_start(self: runtime_cast(self), runtime_cast($chars));
+inline fn trim_end(self: ~ runtime string, $chars: runtime string) -> string => reinterpret(std.trim_end(self, $chars));
+inline fn trim_end(self: ~ constexpr string, $chars: constexpr string) -> string => consteval trim_end(self: runtime_cast(self), runtime_cast($chars));
+
+// No dedicated extern needed -- both sides at once is just one call into each of the above. Same
+// runtime/constexpr overload-pair shape as trim_start/trim_end/starts_with/substring above, not a
+// single bare-modifier declaration -- this codebase's string self-parameters are always written
+// that way (an unconstrained `self: ~string` was tried first and dropped, since nothing else here
+// establishes that it resolves the same way the explicit pair already does).
+inline fn trim(self: ~ runtime string, $chars: runtime string) -> string => trim_start(self: trim_end(self: self, $chars), $chars);
+inline fn trim(self: ~ constexpr string, $chars: constexpr string) -> string => consteval trim(self: runtime_cast(self), runtime_cast($chars));
+
 // UNIONS
 // When only one side is a union, unwrap it and compare its active value against the plain other
 // side. When BOTH sides are unions (e.g. two enum values), the two single-sided overloads below

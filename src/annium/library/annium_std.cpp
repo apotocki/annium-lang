@@ -23,6 +23,8 @@ void std_object::do_registration(registrar_type& mr)
 
     mr.register_method<&std_object::starts_with>("starts_with"sv);
     mr.register_method<&std_object::substring>("substring"sv);
+    mr.register_method<&std_object::trim_start>("trim_start"sv);
+    mr.register_method<&std_object::trim_end>("trim_end"sv);
 }
 
 blob_result std_object::to_integer(string_view str)
@@ -64,10 +66,33 @@ string_view std_object::substring(string_view target, uint32_t start, int32_t le
     return target.substr(start, static_cast<size_t>(length));
 }
 
-class regex_object : public invocation::object
+// Drops leading characters that are in `chars` (a set, not a substring pattern -- same convention
+// as e.g. Python's str.lstrip(chars)), stopping at the first (leftmost) character not in it. A
+// non-owning view into `target`, same as substring above -- no allocation, callers needing an owned
+// copy already get one at the .ann boundary (see prepared_call.cpp's non-consteval materialization
+// comment near substring's own call sites).
+string_view std_object::trim_start(string_view target, string_view chars) const
 {
+    size_t begin = 0;
+    while (begin < target.size() && chars.find(target[begin]) != string_view::npos) {
+        ++begin;
+    }
+    return target.substr(begin);
+}
 
-};
+// Drops trailing characters that are in `chars` (a set, not a substring pattern -- same convention
+// as e.g. Python's str.rstrip(chars)), stopping at the first (rightmost) character not in it. A
+// non-owning view into `target`, same as substring above -- no allocation, callers needing an owned
+// copy already get one at the .ann boundary (see prepared_call.cpp's non-consteval materialization
+// comment near substring's own call sites).
+string_view std_object::trim_end(string_view target, string_view chars) const
+{
+    size_t end = target.size();
+    while (end > 0 && chars.find(target[end - 1]) != string_view::npos) {
+        --end;
+    }
+    return target.substr(0, end);
+}
 
 blob_result std_object::regex_object(string_view pattern)
 {

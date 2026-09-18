@@ -1272,6 +1272,27 @@ call-expression:
             syntax_expression mb{ std::move($member.location), std::move($member.value) };
             $$ = syntax_expression{ std::move($POINT), member_call{ ctx.make<syntax_expression>(std::move($object)), ctx.make<syntax_expression>(std::move(mb)), ctx.make_array<opt_named_expression_t>($arguments) } }; IGNORE_TERM($OPEN_PARENTHESIS);
         }
+    // A literal is a valid `.member`/`.member(...)` target too (e.g. "x".trim_end("0")) -- unlike
+    // any-reference-expression above, a raw STRING token isn't itself a syntax_expression yet, so
+    // it's wrapped the same way syntax-expression-base's own bare `STRING` rule wraps it. Only
+    // string literals are handled for now (the concrete case that came up); the identical gap for
+    // other literal-token kinds (INTEGER, DECIMAL, ...) is recorded in FUTURE_WORK.md rather than
+    // fixed opportunistically here, since each one needs its own verified grammar addition, not a
+    // blind copy-paste. Chaining a second `.member(...)` off the result (e.g. `"x".trim_end("0")
+    // .trim_start(" ")`) needs no extra rule -- the existing call-expression[object] POINT
+    // identifier... rules just below are already recursive on call-expression itself, so they
+    // pick this up for free once it reduces to one.
+    | STRING[object] POINT identifier[property] %prec LOWEST
+        {
+            syntax_expression obj_expr{ $object.location, ctx.make_string_view($object.value) };
+            $$ = syntax_expression{ obj_expr.location, member_expression{ ctx.make<syntax_expression>(std::move(obj_expr)), ctx.make<syntax_expression>($property.location, std::move($property.value)) } }; IGNORE_TERM($POINT);
+        }
+    | STRING[object] POINT identifier[member] OPEN_PARENTHESIS pack-expression-opt[arguments] CLOSE_PARENTHESIS
+        {
+            syntax_expression obj_expr{ $object.location, ctx.make_string_view($object.value) };
+            syntax_expression mb{ std::move($member.location), std::move($member.value) };
+            $$ = syntax_expression{ std::move($POINT), member_call{ ctx.make<syntax_expression>(std::move(obj_expr)), ctx.make<syntax_expression>(std::move(mb)), ctx.make_array<opt_named_expression_t>($arguments) } }; IGNORE_TERM($OPEN_PARENTHESIS);
+        }
     | call-expression[nameExpr] OPEN_PARENTHESIS pack-expression[arguments] CLOSE_PARENTHESIS
         { $$ = syntax_expression{ std::move($OPEN_PARENTHESIS), function_call{ ctx.make<syntax_expression>(std::move($nameExpr)), ctx.make_array<opt_named_expression_t>($arguments) } }; }
     | call-expression[object] POINT identifier[property] %prec LOWEST

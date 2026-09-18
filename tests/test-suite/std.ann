@@ -17,3 +17,32 @@ assert_equal(test_string.substring(10, 100), "brown fox jumps over the lazy dog.
 assert_equal(test_string.substring(10, -1), "brown fox jumps over the lazy dog");
 assert_equal(test_string.substring(10, -34), "");
 assert_equal(test_string.substring(10, -35), "");
+
+// trim_start/trim_end/trim: drop leading/trailing/both-side characters in a *set* (not a substring
+// pattern -- Python's lstrip/rstrip/strip convention, not Rust's trim_*_matches one).
+assert_equal("1.5000".trim_end("0"), "1.5");
+assert_equal("1.0000".trim_end("0"), "1."); // trim_end alone doesn't know "." is also droppable here
+assert_equal("000123".trim_start("0"), "123");
+assert_equal("120.00".trim_end("0"), "120."); // doesn't eat the integer part's own trailing zero
+
+// multi-character set: strips any mix of the given characters, not just runs of a single one --
+// which is exactly why a whole "int.frac" formatted string can't safely be trim_end'd in one call
+// whenever the integer part might itself end in a set character: stripping "0." from the right of
+// "120.00" doesn't stop at the dot, it continues right into "120"'s own trailing zero, corrupting
+// it into "12". formatBytes.ann avoids this by trimming only the fractional part, split off first,
+// never the whole formatted string in one call.
+assert_equal("120.00".trim_end("0."), "12");
+assert_equal(trim(self: "  xx1.500xx  ", " x"), "1.500");
+
+// no matching characters at either end: returns the original string unchanged.
+assert_equal("hello".trim_end("0"), "hello");
+assert_equal("hello".trim_start("0"), "hello");
+assert_equal("hello".trim("0"), "hello");
+
+// entire string consists of characters in the set: trims down to empty, not an error.
+assert_equal("0000".trim_end("0"), "");
+assert_equal("   ".trim(" "), "");
+
+// constexpr fold: no runtime extern call emitted for a fully literal expression.
+let cs: string = "1.2300".trim_end("0");
+assert_equal(cs, "1.23");
