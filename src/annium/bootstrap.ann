@@ -312,6 +312,25 @@ inline fn less_eq(@numeric, @numeric) -> bool => less($0, $1) || equal($0, $1);
 inline fn greater(@numeric, @numeric) -> bool => less($1, $0);
 inline fn greater_eq(@numeric, @numeric) -> bool => greater($0, $1) || equal($0, $1);
 
+// Shared by round(value, digits, mode)/to_fixed(value, digits, mode) below and divide(a, b, scale,
+// mode) further down -- declared once, up here, since round/to_fixed need it before divide's own
+// declaration point. Only half_even and half_up are actually implemented anywhere yet (annium_numeric
+// _round_digits/_to_fixed in library/annium_library.cpp, and to_fixed_decimal_string in
+// numeric_promotion.cpp) -- the rest are declared for a stable signature but throw if selected, same
+// incremental approach divide(...)'s own rounding_mode support already used. Crosses into each extern
+// as a bare integer ordinal (to_integer(mode)) -- there's no shared symbolic enum type between
+// bootstrap.ann and the C++ side, see decimal_rounding_mode's comment in numeric_promotion.hpp (its
+// member order must match this enum's exactly).
+enum rounding_mode {
+    half_even,
+    half_up,
+    half_down,
+    up,
+    down,
+    ceiling,
+    floor
+}
+
 // f64-only for now (decimal support deferred, see FUTURE_WORK.md). Each accepts any numeric source
 // (integer, f16/f32/f64, decimal) via @numeric -- like less/greater above -- rather than one overload
 // per type, so callers don't need an explicit numeric_cast before every call.
@@ -321,14 +340,26 @@ inline fn floor(@numeric) -> f64 => consteval(is_const($0)) __floor(runtime_cast
 inline fn ceil(@numeric) -> f64 => consteval(is_const($0)) __ceil(runtime_cast($0));
 inline fn pow(@numeric, @numeric) -> f64 => consteval(is_const($0) & is_const($1)) __pow(runtime_cast($0), runtime_cast($1));
 inline fn round(@numeric) -> f64 => consteval(is_const($0)) __round(runtime_cast($0));
-inline fn round(@numeric, $digits: @numeric) -> f64 => consteval(is_const($0) & is_const($digits)) __round_digits(runtime_cast($0), runtime_cast($digits));
+
+// $mode has no default (unlike divide's own $mode -- see the shared enum's comment above): round and
+// to_fixed's tie-breaking conventions used to silently disagree (round: half away from zero, via
+// std::round; to_fixed: half to even, via bigint arithmetic) whenever both were called with no way to
+// even ask for a specific one. Rather than picking one default and calling it fixed, both now require
+// the caller to say which -- consistent with this language's general "no implicit narrowing/no
+// ambient behavior" stance elsewhere (explicit numeric_cast, explicit @concept constraints, and
+// divide(...) itself over a scoped-precision pragma, see IMPLEMENTATION_NOTES.md).
+inline fn round(@numeric, $digits: @numeric, $mode: rounding_mode) -> f64 => consteval(is_const($0) & is_const($digits) & is_const($mode)) __round_digits(runtime_cast($0), runtime_cast($digits), runtime_cast(to_integer($mode)));
 
 // Formats to exactly `digits` digits after the decimal point (zero-padded, never trimmed --
 // mirrors to_string/toFixed/"%.*f" in other languages, not this file's own `round`, which leaves
-// trailing zeros for the caller to deal with). Correctly rounded and locale-independent (see
-// annium_numeric_to_fixed in library/annium_library.cpp -- std::to_chars, not
-// std::ostringstream/printf). f64-only for now, same scoping as sqrt/log/floor/ceil/pow/round above.
-inline fn to_fixed(@numeric, $digits: @numeric) -> string => consteval(is_const($0) & is_const($digits)) __to_fixed(runtime_cast($0), runtime_cast($digits));
+// trailing zeros for the caller to deal with). f64-only for now, same scoping as sqrt/log/floor/ceil
+// /pow/round above -- but exact regardless of source type (to_fixed_string in numeric_promotion.cpp
+// rounds a float source directly from its binary frexp/ldexp representation, or the source's own
+// exact significand/exponent for decimal/integer, never std::to_chars/double round-tripping, so
+// `mode` is honored uniformly instead of being unenforceable for float sources the way a to_chars-
+// based implementation could never have supported it -- see BUGFIXES.md for why the float path
+// specifically has to stay binary rather than going through an exact decimal intermediate).
+inline fn to_fixed(@numeric, $digits: @numeric, $mode: rounding_mode) -> string => consteval(is_const($0) & is_const($digits) & is_const($mode)) __to_fixed(runtime_cast($0), runtime_cast($digits), runtime_cast(to_integer($mode)));
 
 // abs/min/max: unlike sqrt/log/floor/ceil/pow/round above, these need no extern at all -- they're
 // exact for every numeric type (no transcendental/precision-losing math involved), so they're
@@ -392,21 +423,13 @@ inline fn numeric_cast(@numeric) ~> decimal => consteval(is_const($0)) __to_deci
 // unlike constexpr `/` (which can just reject a non-terminating result at compile time), runtime
 // `/` would have nothing to fall back on. divide(...) is the explicit, always-succeeding
 // alternative: it rounds to at most `scale` digits after the decimal point instead of rejecting
-// anything. Only rounding_mode.half_even is implemented so far (divide_decimal_rounded in
-// numeric_promotion.cpp) -- the rest are declared for a stable signature but throw if selected.
-enum rounding_mode {
-    half_even,
-    half_up,
-    half_down,
-    up,
-    down,
-    ceiling,
-    floor
-}
-
-// mode crosses into __divide_decimal_rounded as a bare integer ordinal (to_integer(mode)) -- there's
-// no shared symbolic enum type between bootstrap.ann and the C++ side, see decimal_rounding_mode's
-// comment in numeric_promotion.hpp (its member order must match this enum's exactly).
+// anything. Unlike round/to_fixed above, $mode keeps its default here (.half_even) -- divide(...)
+// already existed with this default before round/to_fixed grew their own $mode parameters, and
+// nothing about divide(...) has the cross-function disagreement that motivated dropping the default
+// there (see rounding_mode's own declaration, up in the NUMERIC section, for the shared enum this
+// pulls from). Still only rounding_mode.half_even is implemented for divide specifically
+// (divide_decimal_rounded in numeric_promotion.cpp) -- the rest are declared for a stable signature
+// but throw if selected; round/to_fixed separately also implement half_up (see their own comments).
 inline fn divide($a: @numeric, $b: @numeric, $scale: @numeric, $mode: rounding_mode = .half_even) -> decimal
     => consteval(is_const($a) & is_const($b) & is_const($scale) & is_const($mode)) __divide_decimal_rounded(runtime_cast($a), runtime_cast($b), runtime_cast($scale), runtime_cast(to_integer($mode)));
 

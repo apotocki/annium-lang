@@ -1096,39 +1096,59 @@ void annium_numeric_round(vm::context& ctx)
 // Rounds to at most `digits` digits after the decimal point (negative digits round to the left of
 // the point), same "scale, round-to-nearest, unscale" shape as the standard textbook approach --
 // unlike bootstrap.ann's decimal `divide(...)`, this is f64 arithmetic so there's no exactness
-// concern to guard (a plain std::round of the scaled value is sufficient).
+// concern to guard beyond picking the right rounding primitive per `mode` (bare integer ordinal,
+// same crossing convention as annium_divide_decimal_rounded's own `mode`). Only half_up (std::round,
+// this function's original hardcoded behavior) and half_even (std::nearbyint -- relies on the
+// default floating-point environment rounding mode, FE_TONEAREST i.e. round-to-nearest-ties-to-even,
+// being in effect; nothing in this codebase touches <cfenv>) are implemented; every other mode
+// throws, same incremental approach annium_divide_decimal_rounded already uses for its own `mode`.
 void annium_numeric_round_digits(vm::context& ctx)
 {
-    double val = static_cast<double>(ctx.stack_back(1).as<numetron::decimal_view>());
-    double digits = static_cast<double>(ctx.stack_back().as<numetron::decimal_view>());
-    ctx.stack_pop();
+    double val = static_cast<double>(ctx.stack_back(2).as<numetron::decimal_view>());
+    double digits = static_cast<double>(ctx.stack_back(1).as<numetron::decimal_view>());
+    auto mode = static_cast<decimal_rounding_mode>(ctx.stack_back().as<int32_t>());
+    ctx.stack_pop(2);
+
     double scale = std::pow(10.0, digits);
-    ctx.stack_back().replace(smart_blob{ f64_blob_result(std::round(val * scale) / scale) });
+    double scaled = val * scale;
+    double rounded;
+    switch (mode) {
+    case decimal_rounding_mode::half_up:
+        rounded = std::round(scaled);
+        break;
+    case decimal_rounding_mode::half_even:
+        rounded = std::nearbyint(scaled);
+        break;
+    default:
+        THROW_NOT_IMPLEMENTED_ERROR("round: only rounding_mode.half_even and .half_up are implemented so far"sv);
+    }
+    ctx.stack_back().replace(smart_blob{ f64_blob_result(rounded / scale) });
 }
 
 // Formats to exactly `digits` digits after the decimal point (zero-padded, never trimmed -- mirrors
 // every other language's to_fixed/toFixed/"%.*f", see IMPLEMENTATION_NOTES.md). Thin wrapper: the
-// actual formatting (and the decimal-vs-everything-else split -- a genuine `decimal` source is
-// formatted exactly via bigint arithmetic, everything else via std::to_chars) lives in
-// to_fixed_string/to_fixed_decimal_string (numeric_promotion.hpp/.cpp), which are pure "value in,
-// string out" and don't touch the VM stack. `digits` is clamped to [0, 1100] here, before that call
-// -- not just against negative values (same convention round(value, digits) already uses), but also
-// against absurdly large ones: `digits` is a genuine runtime i64/decimal value that could be
-// anything, and to_fixed_string eventually casts it to a plain `int` for std::to_chars' precision
-// parameter, which is undefined behavior for a value that doesn't fit. 1100 is already far beyond
-// any digit a finite double could make non-zero (the smallest positive denormal is ~4.9e-324), so
-// nothing meaningful is lost, and it keeps to_fixed_string's own buffer allocation bounded too.
+// actual formatting lives in to_fixed_string/to_fixed_decimal_string (numeric_promotion.hpp/.cpp),
+// which are pure "value in, string out" and don't touch the VM stack. `mode` crosses in as a bare
+// integer ordinal, same convention as round(...) above and divide(...)'s own `mode`. `digits` is
+// clamped to [0, 1100] here, before that call -- not just against negative values (same convention
+// round(value, digits, mode) already uses), but also against absurdly large ones: `digits` is a
+// genuine runtime i64/decimal value that could be anything, and to_fixed_decimal_string scales a
+// bigint by 10^digits, so an unbounded `digits` would mean an unbounded allocation. 1100 is already
+// far beyond any digit a finite double could make non-zero (the smallest positive denormal is
+// ~4.9e-324), so nothing meaningful is lost for a float source; for a genuine `decimal`/`integer`
+// source with a significand that large to begin with, 1100 extra digits of padding is still moot.
 void annium_numeric_to_fixed(vm::context& ctx)
 {
-    double digits_arg = static_cast<double>(ctx.stack_back().as<numetron::decimal_view>());
+    double digits_arg = static_cast<double>(ctx.stack_back(1).as<numetron::decimal_view>());
+    auto mode = static_cast<decimal_rounding_mode>(ctx.stack_back().as<int32_t>());
     int64_t digits = 0;
     if (digits_arg > 0.0) {
         digits = digits_arg > 1100.0 ? 1100 : static_cast<int64_t>(digits_arg);
     }
 
-    std::string formatted = to_fixed_string(ctx.stack_back(1), digits);
+    std::string formatted = to_fixed_string(ctx.stack_back(2), digits, mode);
 
-    ctx.stack_pop();
+    ctx.stack_pop(2);
     smart_blob r{ string_blob_result(std::move(formatted)) };
     r.allocate();
     ctx.stack_back().replace(std::move(r));

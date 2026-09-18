@@ -128,28 +128,45 @@ enum class decimal_rounding_mode : int
 std::optional<numetron::decimal> divide_decimal_rounded(numetron::decimal_view lhs, numetron::decimal_view rhs, uint32_t scale, decimal_rounding_mode mode);
 
 // Formats `d` to exactly `digits` fractional digits (zero-padded, never trimmed), correctly rounded
-// via the same half_even bigint significand/exponent arithmetic divide_decimal_rounded uses (scale
-// the significand to the target exponent -digits, exactly if that's a widening, with a half_even
-// remainder tie-break if it's a narrowing) -- no double round-trip anywhere, so this stays exact
+// via the same bigint significand/exponent arithmetic divide_decimal_rounded uses (scale the
+// significand to the target exponent -digits, exactly if that's a widening, with a remainder
+// tie-break per `mode` if it's a narrowing) -- no double round-trip anywhere, so this stays exact
 // even for a significand too large to survive a double conversion intact. `digits` must be >= 0
-// (annium_numeric_to_fixed, the only caller, already clamps). Used by to_fixed_string below for a
-// genuine `decimal` source; every other numeric source still goes through std::to_chars (see
-// to_fixed_string's own comment for why that split is necessary, not just simpler).
-std::string to_fixed_decimal_string(numetron::decimal_view d, int64_t digits);
+// (annium_numeric_to_fixed, the only caller, already clamps). Only decimal_rounding_mode::half_even
+// and ::half_up are implemented (mirroring the two conventions round(value, digits, mode) itself
+// implements, in annium_library.cpp -- half_up matches round(...)'s own pre-existing std::round
+// behavior, half_even matches this function's own original hardcoded behavior before `mode` was
+// added) -- every other mode throws THROW_NOT_IMPLEMENTED_ERROR, same incremental approach
+// divide_decimal_rounded already used for its own `mode`.
+std::string to_fixed_decimal_string(numetron::decimal_view d, int64_t digits, decimal_rounding_mode mode);
 
-// Formats any numeric value to exactly `digits` fractional digits (zero-padded, correctly rounded --
-// backs bootstrap.ann's to_fixed(value, digits)). `value`'s *actual* runtime type decides the
-// strategy: a genuine `decimal` source is formatted exactly via to_fixed_decimal_string above; every
-// other numeric source (fixed-width int, bigint integer, f16/f32/f64) converts to `double` and goes
-// through std::to_chars(..., chars_format::fixed) -- correctly rounded and locale-independent, but
-// not exact for a bigint magnitude too large to survive that conversion (see FUTURE_WORK.md). The
-// two paths deliberately aren't unified into "always go through decimal_view": decimal_view's own
-// conversion *from a native float* goes through Dragonbox and gives the shortest round-tripping
-// decimal, not the float's exact binary value (see exact_decimal_from_finite's comment below) -- so
-// reusing to_fixed_decimal_string for an f16/f32/f64 source would round a *different, already-
-// shortened* number instead of the actual value, silently disagreeing with std::to_chars in cases
-// where the shortened and exact decimals round differently at the requested digit count.
-std::string to_fixed_string(smart_blob const& value, int64_t digits);
+// Formats any numeric value to exactly `digits` fractional digits (zero-padded, correctly rounded,
+// per `mode` -- backs bootstrap.ann's to_fixed(value, digits, mode)). Always exact, but splits into
+// two different rounding paths by source kind rather than funneling everything through one:
+//
+// - A `decimal` source, or any integral source (fixed-width int, bigint integer), is already exact
+//   when read as a numetron::decimal_view (no Dragonbox involved for those -- see
+//   sonia::invocation::from_blob<basic_decimal_view<LimbT>>, invocation.hpp) -- rounded directly via
+//   to_fixed_decimal_string above, base-10 the whole way.
+// - An f16/f32/f64 source is read as a double first (exact: decimal_view -> double round-trips
+//   losslessly by Dragonbox's own round-trip guarantee) and then rounded via
+//   to_fixed_string_from_finite (numeric_promotion.cpp), base-2 the whole way -- *not* by first
+//   obtaining an exact base-10 `numetron::decimal` (exact_decimal_from_finite below) and reusing
+//   to_fixed_decimal_string, the way an earlier version of this function did. That earlier version
+//   was exact, but exact_decimal_from_finite's binary-exponent-as-decimal-exponent trick means
+//   rounding it down to a handful of digits needs a base-10 divisor with a bit width proportional to
+//   the *binary* exponent's magnitude (up to ~1074) times log2(10) -- past
+//   numetron::limb_arithmetic::udiv's single-64-bit-limb fast path for essentially any real float
+//   input, not just a contrived one (see BUGFIXES.md). Rounding in base 2 instead keeps the required
+//   divisor's bit width equal to the binary exponent's own magnitude, no log2(10) blowup, which stays
+//   in-limb for any normal-magnitude double and any typical `digits`.
+//
+// (An even earlier version went through `double` + std::to_chars(..., chars_format::fixed) instead
+// of either exact path -- that couldn't have honored `mode` at all for a float source, since
+// std::to_chars has no rounding-mode parameter, it always uses whatever the current floating-point
+// environment's rounding mode happens to be -- which is *why* `mode` forced a rewrite in the first
+// place, rather than just being bolted on.)
+std::string to_fixed_string(smart_blob const& value, int64_t digits, decimal_rounding_mode mode);
 
 // The *exact* decimal value of a finite native float/double -- not `numetron::decimal{value}`,
 // which goes through Dragonbox (basic_decimal_view's floating-point constructor) and deliberately

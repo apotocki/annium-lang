@@ -1,4 +1,4 @@
-// sqrt/log/floor/ceil/pow/round(value[, digits])/to_fixed(value, digits): bootstrap.ann's
+// sqrt/log/floor/ceil/pow/round(value[, digits, mode])/to_fixed(value, digits, mode): bootstrap.ann's
 // `runtime @numeric -> f64`/`-> string` wrappers around
 // annium_numeric_sqrt/_log/_floor/_ceil/_pow/_round/_round_digits/_to_fixed (library/annium_library.cpp).
 // f64-only for now -- decimal support is deferred, see FUTURE_WORK.md's "Exact/decimal-native
@@ -73,69 +73,90 @@ assert_equal(round(2.5), 3);
 assert_equal(round(-2.5), -3);
 assert_equal(round(3), 3);
 
-// ROUND (two-argument: round to at most `digits` digits after the decimal point) -- the shape
-// formatBytes(...) uses directly.
-assert_equal(round(3.14159, 2), 3.14);
-assert_equal(round(1234.5678, 2), 1234.57);
-assert_equal(round(1234.5, 0), 1235);
+// ROUND (three-argument: round to at most `digits` digits after the decimal point, with an explicit
+// rounding_mode -- the shape formatBytes(...) uses directly). `mode` has no default (unlike
+// divide(...)'s own `mode`) -- round(value, digits) and to_fixed(value, digits) below used to
+// silently disagree about tie-breaking (round: half away from zero via std::round; to_fixed: half to
+// even) with no way to even ask for a specific one, so both now require the caller to say which
+// instead of picking a default and calling the disagreement fixed. Only .half_up and .half_even are
+// implemented so far; every other rounding_mode value throws (not exercised here, same as
+// divide(...)'s own unimplemented modes -- see IMPLEMENTATION_NOTES.md/FUTURE_WORK.md).
+assert_equal(round(3.14159, 2, .half_up), 3.14);
+assert_equal(round(1234.5678, 2, .half_up), 1234.57);
+assert_equal(round(1234.5, 0, .half_up), 1235); // exact tie -- .half_up rounds away from zero
+
+// same exact tie under .half_even: 1234 is the even neighbor, so it rounds down instead of up --
+// the concrete case that motivated dropping round/to_fixed's shared default in the first place.
+assert_equal(round(1234.5, 0, .half_even), 1234);
+assert_equal(round(2.5, 0, .half_up), 3);
+assert_equal(round(2.5, 0, .half_even), 2);
+assert_equal(round(-2.5, 0, .half_up), -3);
+assert_equal(round(-2.5, 0, .half_even), -2);
 
 // digits arrives as a `decimal` here (not f64/i64), exercising @numeric on the second parameter too
 // -- mirrors formatBytes(...)'s `base10 + $p + 1`, which lands on `decimal` per
 // strongest_numeric_type's f64/i64 join (see IMPLEMENTATION_NOTES.md).
 let rd: decimal = runtime_cast(2);
-assert_equal(round(3.14159, rd), 3.14);
+assert_equal(round(3.14159, rd, .half_up), 3.14);
 
-// TO_FIXED (value, digits): exactly `digits` digits after the decimal point, zero-padded, never
-// trimmed -- unlike round(value, digits), which leaves trailing zeros (and any trimming) up to the
-// caller. Dispatches on the value argument's *actual* runtime type (to_fixed_string,
-// numeric_promotion.hpp/.cpp): a genuine `decimal` source is formatted exactly via bigint
-// significand/exponent arithmetic (to_fixed_decimal_string), no double involved at all; everything
-// else goes through std::to_chars, not std::ostringstream/printf (see RESOLVED.md's "Exact/decimal-
-// native to_fixed" entry for why the two paths aren't unified into one). Note that most of the
-// bare-literal calls just below are *already* exercising the decimal path without saying so --
-// a bare literal with a decimal point (e.g. `1.5`) defaults to type `decimal`, same as arithmetic.ann
-// documents for `5 / 8.0`; only a bare integer literal (`to_fixed(1, 2)` below) or an explicitly
-// `f16`/`f32`/`f64`-typed value takes the std::to_chars branch. The `tfdv`/`tfdv2`/`tfbig` cases
-// further down make the decimal path explicit and forced-runtime, the same way `tfv` does for f64.
-assert_equal(to_fixed(1.5, 4), "1.5000");
-assert_equal(to_fixed(1, 2), "1.00"); // integer literal widens to f64 like every other @numeric here
-assert_equal(to_fixed(3.14159, 2), "3.14");
-assert_equal(to_fixed(1234.5678, 2), "1234.57");
-assert_equal(to_fixed(-2.5, 1), "-2.5"); // sign preserved
+// TO_FIXED (value, digits, mode): exactly `digits` digits after the decimal point, zero-padded,
+// never trimmed -- unlike round(value, digits, mode), which leaves trailing zeros (and any trimming)
+// up to the caller. Always exact regardless of source type (to_fixed_string/to_fixed_decimal_string,
+// numeric_promotion.hpp/.cpp, route every numeric source through the same bigint significand/
+// exponent arithmetic -- an f16/f32/f64 source via exact_decimal_from_finite first, everything else
+// directly -- never std::to_chars/a double round-trip; see RESOLVED.md's "Exact/decimal-native
+// to_fixed" entry). Same `mode` as round(...) above, same reasoning for why it has no default. Note
+// that most of the bare-literal calls just below are *already* exercising the decimal path without
+// saying so -- a bare literal with a decimal point (e.g. `1.5`) defaults to type `decimal`, same as
+// arithmetic.ann documents for `5 / 8.0`; only a bare integer literal (`to_fixed(1, 2, ...)` below)
+// or an explicitly `f16`/`f32`/`f64`-typed value takes the exact_decimal_from_finite branch. The
+// `tfdv`/`tfdv2`/`tfbig` cases further down make the decimal path explicit and forced-runtime, the
+// same way `tfv` does for f64.
+assert_equal(to_fixed(1.5, 4, .half_even), "1.5000");
+assert_equal(to_fixed(1, 2, .half_even), "1.00"); // integer literal widens like every other @numeric
+assert_equal(to_fixed(3.14159, 2, .half_even), "3.14");
+assert_equal(to_fixed(1234.5678, 2, .half_even), "1234.57");
+assert_equal(to_fixed(-2.5, 1, .half_even), "-2.5"); // sign preserved
 
 // digits == 0: no decimal point at all, not "4." or "4.0".
-assert_equal(to_fixed(3.7, 0), "4");
+assert_equal(to_fixed(3.7, 0, .half_even), "4");
 
-// negative digits clamp to 0, same convention round(value, digits) already uses.
-assert_equal(to_fixed(3.2, -1), "3");
+// negative digits clamp to 0, same convention round(value, digits, mode) already uses.
+assert_equal(to_fixed(3.2, -1, .half_even), "3");
+
+// an exact tie, both modes -- proves to_fixed's `mode` isn't just accepted and ignored.
+assert_equal(to_fixed(2.5, 0, .half_up), "3");
+assert_equal(to_fixed(2.5, 0, .half_even), "2");
 
 // digits arrives as a `decimal` here, exercising @numeric on the second parameter too (same as
-// round(value, digits)'s rd case above).
+// round(value, digits, mode)'s rd case above).
 let tfd: decimal = runtime_cast(2);
-assert_equal(to_fixed(1.5, tfd), "1.50");
+assert_equal(to_fixed(1.5, tfd, .half_even), "1.50");
 
 // forced-runtime value argument (not a bare literal): exercises the actual extern call, not just
 // the consteval-folded compile-time path every call above (both arguments literal) takes.
 let tfv: f64 = runtime_cast(2.5);
-assert_equal(to_fixed(tfv, 3), "2.500");
+assert_equal(to_fixed(tfv, 3, .half_even), "2.500");
 
-// explicit, forced-runtime `decimal` value argument -- the to_fixed_decimal_string path, not
-// std::to_chars. Widening case (exponent + digits >= 0): an exact bigint multiply, no rounding.
+// explicit, forced-runtime `decimal` value argument -- the to_fixed_decimal_string path directly
+// (no exact_decimal_from_finite step needed, a decimal source is already exact). Widening case
+// (exponent + digits >= 0): an exact bigint multiply, no rounding, so `mode` is moot here.
 let tfdv: decimal = runtime_cast(1.5);
-assert_equal(to_fixed(tfdv, 4), "1.5000");
+assert_equal(to_fixed(tfdv, 4, .half_even), "1.5000");
 
-// same, but narrowing (exponent + digits < 0): exercises the half_even bigint remainder tie-break,
-// not just the exact-multiply case above. Sign preserved on a negative decimal too.
+// same, but narrowing (exponent + digits < 0): exercises the bigint remainder tie-break, not just
+// the exact-multiply case above. Sign preserved on a negative decimal too.
 let tfdv2: decimal = runtime_cast(1234.5678);
-assert_equal(to_fixed(tfdv2, 2), "1234.57");
+assert_equal(to_fixed(tfdv2, 2, .half_even), "1234.57");
 let tfdv3: decimal = runtime_cast(-2.5);
-assert_equal(to_fixed(tfdv3, 1), "-2.5");
+assert_equal(to_fixed(tfdv3, 1, .half_even), "-2.5");
 
 // a significand with more digits than a double's 53-bit mantissa can hold exactly -- going through
-// double first (like the non-decimal branch does) would silently corrupt this; the exact bigint
-// path doesn't. 0.456789 rounded to 3 places is 0.457 (4th digit '7' rounds the 3rd digit up).
+// double directly (rather than exact_decimal_from_finite) would silently corrupt this; the exact
+// bigint path doesn't. 0.456789 rounded to 3 places is 0.457 (4th digit '7' rounds the 3rd digit up,
+// same result either mode -- not a tie).
 let tfbig: decimal = runtime_cast(12345678901234567890123.456789);
-assert_equal(to_fixed(tfbig, 3), "12345678901234567890123.457");
+assert_equal(to_fixed(tfbig, 3, .half_even), "12345678901234567890123.457");
 
 // ABS -- exact, type-preserving (no extern, no forced f64: see bootstrap.ann's comment above its
 // definition). assert_equal alone wouldn't catch a wrong *result type* (it just compares values),

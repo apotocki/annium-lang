@@ -31,7 +31,10 @@ fn formatBytes($v: runtime integer, $p: runtime i64 = 4) -> string {
     // "120.00") would get stripped right along with the fractional zeros, corrupting the result.
     let digits: i64 = $p;
     if digits < 0 { digits = 0; }
-    let formatted = to_fixed(szval, digits);
+    // .half_up (round half away from zero) -- the human-display convention users actually expect
+    // (e.g. "1.5 KiB" rounding up, not down to whichever neighbor happens to be even); to_fixed(...)
+    // has no default mode (see bootstrap.ann's comment on it), so this has to be explicit.
+    let formatted = to_fixed(szval, digits, .half_up);
 
     // Rounding can still push the displayed value up to (or past) 1024 -- e.g. raw szval == 1023.6
     // with 0 decimals rounds to "1024" -- so bump to the next unit and reformat, same as the exact
@@ -45,7 +48,7 @@ fn formatBytes($v: runtime integer, $p: runtime i64 = 4) -> string {
     if overflowed && unit < max_unit {
         unit = unit + 1;
         szval = szval / 1024;
-        formatted = to_fixed(szval, digits);
+        formatted = to_fixed(szval, digits, .half_up);
     }
 
     let result = formatted;
