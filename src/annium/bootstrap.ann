@@ -304,6 +304,13 @@ inline fn pow(@numeric, @numeric) -> f64 => consteval(is_const($0) & is_const($1
 inline fn round(@numeric) -> f64 => consteval(is_const($0)) __round(runtime_cast($0));
 inline fn round(@numeric, $digits: @numeric) -> f64 => consteval(is_const($0) & is_const($digits)) __round_digits(runtime_cast($0), runtime_cast($digits));
 
+// Formats to exactly `digits` digits after the decimal point (zero-padded, never trimmed --
+// mirrors to_string/toFixed/"%.*f" in other languages, not this file's own `round`, which leaves
+// trailing zeros for the caller to deal with). Correctly rounded and locale-independent (see
+// annium_numeric_to_fixed in library/annium_library.cpp -- std::to_chars, not
+// std::ostringstream/printf). f64-only for now, same scoping as sqrt/log/floor/ceil/pow/round above.
+inline fn to_fixed(@numeric, $digits: @numeric) -> string => consteval(is_const($0) & is_const($digits)) __to_fixed(runtime_cast($0), runtime_cast($digits));
+
 // abs/min/max: unlike sqrt/log/floor/ceil/pow/round above, these need no extern at all -- they're
 // exact for every numeric type (no transcendental/precision-losing math involved), so they're
 // written directly in terms of already-generic `<` (less/greater) and unary `-`, both of which

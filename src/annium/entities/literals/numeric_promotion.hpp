@@ -127,6 +127,30 @@ enum class decimal_rounding_mode : int
 // half_even -- the other modes are deliberately not implemented yet, see FUTURE_WORK.md.
 std::optional<numetron::decimal> divide_decimal_rounded(numetron::decimal_view lhs, numetron::decimal_view rhs, uint32_t scale, decimal_rounding_mode mode);
 
+// Formats `d` to exactly `digits` fractional digits (zero-padded, never trimmed), correctly rounded
+// via the same half_even bigint significand/exponent arithmetic divide_decimal_rounded uses (scale
+// the significand to the target exponent -digits, exactly if that's a widening, with a half_even
+// remainder tie-break if it's a narrowing) -- no double round-trip anywhere, so this stays exact
+// even for a significand too large to survive a double conversion intact. `digits` must be >= 0
+// (annium_numeric_to_fixed, the only caller, already clamps). Used by to_fixed_string below for a
+// genuine `decimal` source; every other numeric source still goes through std::to_chars (see
+// to_fixed_string's own comment for why that split is necessary, not just simpler).
+std::string to_fixed_decimal_string(numetron::decimal_view d, int64_t digits);
+
+// Formats any numeric value to exactly `digits` fractional digits (zero-padded, correctly rounded --
+// backs bootstrap.ann's to_fixed(value, digits)). `value`'s *actual* runtime type decides the
+// strategy: a genuine `decimal` source is formatted exactly via to_fixed_decimal_string above; every
+// other numeric source (fixed-width int, bigint integer, f16/f32/f64) converts to `double` and goes
+// through std::to_chars(..., chars_format::fixed) -- correctly rounded and locale-independent, but
+// not exact for a bigint magnitude too large to survive that conversion (see FUTURE_WORK.md). The
+// two paths deliberately aren't unified into "always go through decimal_view": decimal_view's own
+// conversion *from a native float* goes through Dragonbox and gives the shortest round-tripping
+// decimal, not the float's exact binary value (see exact_decimal_from_finite's comment below) -- so
+// reusing to_fixed_decimal_string for an f16/f32/f64 source would round a *different, already-
+// shortened* number instead of the actual value, silently disagreeing with std::to_chars in cases
+// where the shortened and exact decimals round differently at the requested digit count.
+std::string to_fixed_string(smart_blob const& value, int64_t digits);
+
 // The *exact* decimal value of a finite native float/double -- not `numetron::decimal{value}`,
 // which goes through Dragonbox (basic_decimal_view's floating-point constructor) and deliberately
 // produces the *shortest* decimal string that still round-trips back to `value`, not the exact

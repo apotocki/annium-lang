@@ -1106,6 +1106,34 @@ void annium_numeric_round_digits(vm::context& ctx)
     ctx.stack_back().replace(smart_blob{ f64_blob_result(std::round(val * scale) / scale) });
 }
 
+// Formats to exactly `digits` digits after the decimal point (zero-padded, never trimmed -- mirrors
+// every other language's to_fixed/toFixed/"%.*f", see IMPLEMENTATION_NOTES.md). Thin wrapper: the
+// actual formatting (and the decimal-vs-everything-else split -- a genuine `decimal` source is
+// formatted exactly via bigint arithmetic, everything else via std::to_chars) lives in
+// to_fixed_string/to_fixed_decimal_string (numeric_promotion.hpp/.cpp), which are pure "value in,
+// string out" and don't touch the VM stack. `digits` is clamped to [0, 1100] here, before that call
+// -- not just against negative values (same convention round(value, digits) already uses), but also
+// against absurdly large ones: `digits` is a genuine runtime i64/decimal value that could be
+// anything, and to_fixed_string eventually casts it to a plain `int` for std::to_chars' precision
+// parameter, which is undefined behavior for a value that doesn't fit. 1100 is already far beyond
+// any digit a finite double could make non-zero (the smallest positive denormal is ~4.9e-324), so
+// nothing meaningful is lost, and it keeps to_fixed_string's own buffer allocation bounded too.
+void annium_numeric_to_fixed(vm::context& ctx)
+{
+    double digits_arg = static_cast<double>(ctx.stack_back().as<numetron::decimal_view>());
+    int64_t digits = 0;
+    if (digits_arg > 0.0) {
+        digits = digits_arg > 1100.0 ? 1100 : static_cast<int64_t>(digits_arg);
+    }
+
+    std::string formatted = to_fixed_string(ctx.stack_back(1), digits);
+
+    ctx.stack_pop();
+    smart_blob r{ string_blob_result(std::move(formatted)) };
+    r.allocate();
+    ctx.stack_back().replace(std::move(r));
+}
+
 class annium_callable : public invocation::callable
 {
     smart_blob fn_blob_;

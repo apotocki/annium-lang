@@ -1761,6 +1761,7 @@ environment::environment()
     set_builtin_extern("__pow(runtime @numeric, runtime @numeric)->f64"sv, &annium_numeric_pow);
     set_builtin_extern("__round(runtime @numeric)->f64"sv, &annium_numeric_round);
     set_builtin_extern("__round_digits(runtime @numeric, runtime @numeric)->f64"sv, &annium_numeric_round_digits);
+    set_builtin_extern("__to_fixed(runtime @numeric, runtime @numeric)->string"sv, &annium_numeric_to_fixed);
 
     // backing externs for bootstrap.ann's f16/f32/f64 .inf/.nan typename-properties -- see the
     // comment above their annium_library.cpp implementations for why these need a real extern

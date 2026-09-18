@@ -86,6 +86,7 @@ void annium_numeric_ceil(vm::context&);
 void annium_numeric_pow(vm::context&);
 void annium_numeric_round(vm::context&);
 void annium_numeric_round_digits(vm::context&);
+void annium_numeric_to_fixed(vm::context&);
 
 void annium_f16_infinity(vm::context&);
 void annium_f32_infinity(vm::context&);

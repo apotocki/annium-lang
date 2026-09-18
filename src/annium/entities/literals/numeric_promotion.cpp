@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <array>
+#include <charconv>
 
 namespace annium {
 
@@ -598,6 +599,76 @@ std::optional<numetron::decimal> divide_decimal_rounded(numetron::decimal_view l
     }
 
     return numetron::decimal{ (numetron::integer_view)q, (numetron::integer_view)result_exp };
+}
+
+std::string to_fixed_decimal_string(numetron::decimal_view d, int64_t digits)
+{
+    numetron::integer sig{ d.significand().abs() };
+
+    // Scale sig to the target exponent -digits: e >= 0 is an exact widening (just appends trailing
+    // zeros, no rounding possible); e < 0 discards digits and needs the same half_even tie-break
+    // divide_decimal_rounded uses above (compare 2*r against the denominator).
+    int64_t e = (int64_t)d.exponent() + digits;
+    if (e >= 0) {
+        sig *= numetron::pow(numetron::integer{ 10 }, static_cast<uint64_t>(e));
+    } else {
+        numetron::integer den = numetron::pow(numetron::integer{ 10 }, static_cast<uint64_t>(-e));
+        numetron::integer q = sig / den;
+        numetron::integer r = sig % den;
+        numetron::integer twice_r = r * numetron::integer{ 2 };
+        numetron::integer_view twice_r_v = (numetron::integer_view)twice_r;
+        numetron::integer_view den_v = (numetron::integer_view)den;
+        if (twice_r_v > den_v) {
+            q += 1;
+        } else if (twice_r_v == den_v && (q % 2)) {
+            q += 1; // exact tie: round to the even neighbor, and q is currently odd
+        }
+        sig = std::move(q);
+    }
+
+    std::string digit_str = (std::ostringstream{} << (numetron::integer_view)sig).str();
+
+    std::string result;
+    // Sign follows d.is_negative() alone (not whether the rounded magnitude happens to be zero) --
+    // matches std::to_chars/printf's own "-0" behavior for e.g. a small negative value rounded away
+    // to nothing at digits == 0, so the two to_fixed_string branches stay visibly consistent.
+    if (d.is_negative()) result.push_back('-');
+
+    if (digits == 0) {
+        result += digit_str;
+        return result;
+    }
+
+    // Left-pad with zeros so there's always at least one integer digit ahead of the `digits`
+    // fractional ones (e.g. sig == 5 at digits == 2 must read "0.05", not split "5" into nothing).
+    if (digit_str.size() <= static_cast<size_t>(digits)) {
+        digit_str.insert(0, static_cast<size_t>(digits) + 1 - digit_str.size(), '0');
+    }
+    size_t split = digit_str.size() - static_cast<size_t>(digits);
+    result += digit_str.substr(0, split);
+    result.push_back('.');
+    result += digit_str.substr(split);
+    return result;
+}
+
+std::string to_fixed_string(smart_blob const& value, int64_t digits)
+{
+    if (numeric_builtin_eid_of(*value) == builtin_eid::decimal) {
+        return to_fixed_decimal_string(value.as<numetron::decimal_view>(), digits);
+    }
+
+    double val = static_cast<double>(value.as<numetron::decimal_view>());
+
+    // Buffer sized generously (a finite double's decimal exponent never exceeds ~309 digits) rather
+    // than pre-computing an exact bound; `digits` is already clamped to a sane range by the caller,
+    // so this can't be made to allocate something unbounded.
+    std::string buf(350 + static_cast<size_t>(digits), '\0');
+    auto [ptr, ec] = std::to_chars(buf.data(), buf.data() + buf.size(), val, std::chars_format::fixed, static_cast<int>(digits));
+    if (ec != std::errc{}) {
+        THROW_INTERNAL_ERROR("to_fixed_string: formatting buffer too small"sv);
+    }
+    buf.resize(static_cast<size_t>(ptr - buf.data()));
+    return buf;
 }
 
 } // namespace annium
