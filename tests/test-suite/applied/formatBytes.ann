@@ -1,0 +1,97 @@
+fn formatBytes($v: runtime integer, $p: runtime i64 = 4) -> string {
+    if $v < 1024 { return to_string($v) .. " bytes"; }
+
+    let suffixes = ["bytes", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"];
+    let max_unit = size(suffixes) - 1;
+
+    // Exact unit selection via truncating bigint division, not log($v)/log(1024): log() is rounded
+    // independently at each argument, so the quotient isn't guaranteed to land on an exact integer
+    // right at a power of 1024 -- $v == 1024^2 could floor to 1 instead of 2, picking the wrong unit
+    // ("1024.0 KiB" instead of "1.0 MiB"). Bigint division is exact, so this can't happen.
+    let unit = runtime_cast(0);
+    let remaining: integer = $v;
+    while remaining >= 1024 && unit < max_unit {
+        remaining = remaining / 1024;
+        unit = unit + 1;
+    }
+
+    // 1024^unit is always an exact power of two (1024 == 2^10), so dividing by it adds no rounding
+    // of its own beyond the initial bigint -> f64 conversion (unavoidable once $v exceeds f64's
+    // 53-bit exact-integer range).
+    let vf: f64 = numeric_cast($v);
+    let szval = vf / pow(1024, unit);
+
+    // $p is the MAXIMUM number of decimal places to show -- trailing zero decimals are dropped
+    // entirely (never padded out to $p places), and if every decimal digit is zero, no decimal
+    // point is shown at all. Built by hand from integer digits rather than leaning on
+    // to_string(f64)'s default formatting: iostream's default float precision is 6 SIGNIFICANT
+    // digits (`%g`-style, see invocation.hpp's print_to_stream) -- it would silently re-round or
+    // truncate any value with more significant digits than that, independent of whatever precision
+    // we already rounded to (e.g. to_string(1234.5678) would come out as "1234.57", not "1234.5678").
+    let digits: i64 = $p;
+    if digits < 0 { digits = 0; }
+    let scale_f = pow(10, digits);
+    let scale_i: i64 = numeric_cast(scale_f);
+    let scaled: i64 = numeric_cast(round(szval * scale_f));
+
+    // Rounding can still push the displayed value up to (or past) 1024 -- e.g. raw szval == 1023.6
+    // with 0 decimals rounds to 1024 -- so bump to the next unit here too, same as the exact
+    // boundary case above, instead of showing "1024 MiB" rather than "1.0 GiB". Compared as exact
+    // integers (scaled vs. 1024*scale_i), not floats.
+    if scaled >= 1024 * scale_i && unit < max_unit {
+        unit = unit + 1;
+        szval = szval / 1024;
+        scaled = numeric_cast(round(szval * scale_f));
+    }
+
+    let int_part: i64 = scaled / scale_i;
+    let frac_part: i64 = scaled - int_part * scale_i;
+
+    let result = to_string(int_part);
+    if frac_part != 0 {
+        // strip trailing zero decimal digits (e.g. .50 -> .5), tracking how many digits remain --
+        // no `%` operator needed/available, so the last digit is `frac_part - (frac_part/10)*10`.
+        while digits > 0 && (frac_part - (frac_part / 10) * 10) == 0 {
+            frac_part = frac_part / 10;
+            digits = digits - 1;
+        }
+        // zero-pad the remaining fractional digits back out to `digits` width: adding 10^digits
+        // guarantees exactly one leading '1' digit ahead of `digits` zero-padded digits, then
+        // substring drops that leading '1'.
+        let pad: i64 = numeric_cast(pow(10, digits));
+        let padded = to_string(frac_part + pad);
+        let frac_len: i32 = numeric_cast(size(padded) - 1);
+        result = result .. "." .. padded.substring(1, frac_len);
+    }
+
+    return result .. " " .. suffixes[unit];
+}
+
+// below 1024: no unit conversion at all, regardless of $p.
+assert_equal(formatBytes(500), "500 bytes");
+assert_equal(formatBytes(1023), "1023 bytes");
+
+// exact powers of 1024: the classic log($v)/log(1024) floating-point boundary case -- must land
+// exactly on the next unit (unit index chosen via exact bigint division), not "1024.0" of the
+// previous one.
+assert_equal(formatBytes(1024), "1 KiB");
+assert_equal(formatBytes(1024 * 1024), "1 MiB");
+
+// just past a boundary: still the higher unit, not the lower one with a value >= 1.
+assert_equal(formatBytes(1024 * 1024 + 10), "1 MiB");
+
+// default $p = 4: trailing zero decimals are dropped (1.0000 -> "1", not "1.0000"), and a value
+// that actually needs all 4 places keeps them.
+assert_equal(formatBytes(1025), "1.001 KiB");
+assert_equal(formatBytes(1500000), "1.4305 MiB");
+
+// explicit $p, including trimming a trailing zero mid-value (1.50 -> "1.5") and $p = 0 (always an
+// integer, rounded, never a decimal point).
+assert_equal(formatBytes(1536, 2), "1.5 KiB");
+assert_equal(formatBytes(1536, 0), "2 KiB");
+
+// 1 byte short of an exact GiB boundary: rounding at any of these $p values pushes the displayed
+// value up to the next unit ("1 GiB"), not "1024 MiB" / "1024.0000 MiB" -- exercises the
+// post-rounding bump-to-next-unit path specifically.
+assert_equal(formatBytes(1024 * 1024 * 1024 - 1), "1 GiB");
+assert_equal(formatBytes(1024 * 1024 * 1024 - 1, 0), "1 GiB");

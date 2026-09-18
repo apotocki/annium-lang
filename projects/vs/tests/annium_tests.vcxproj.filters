@@ -196,6 +196,9 @@
     <Filter Include="test-suite\enums">
       <UniqueIdentifier>{45db676a-ac0e-4a96-8cbe-0621870f372a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="test-suite\applied">
+      <UniqueIdentifier>{c09be35d-bd96-441d-abe6-34c4a86df34d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(SolutionDir)modules\sonia-prime\applied\tests_external.hpp">
@@ -526,6 +529,9 @@
     </None>
     <None Include="..\..\..\tests\test-suite\enums\mixed_enum.ann">
       <Filter>test-suite\enums</Filter>
+    </None>
+    <None Include="..\..\..\tests\test-suite\applied\formatBytes.ann">
+      <Filter>test-suite\applied</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

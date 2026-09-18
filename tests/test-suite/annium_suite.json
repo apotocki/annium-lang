@@ -1,4 +1,5 @@
-[ /*
+[
+  /*
   {
     "src": "draft.ann",
     "output": ""
@@ -127,7 +128,12 @@
   {
     "src": "nested_declarations.ann",
     "output": ""
+  },
+  {
+    "src": "applied/formatBytes.ann",
+    "output": ""
   }
+
   /*
     
     {

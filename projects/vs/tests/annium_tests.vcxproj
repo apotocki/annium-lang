@@ -161,6 +161,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\tests\test-suite\annium_suite.json" />
+    <None Include="..\..\..\tests\test-suite\applied\formatBytes.ann" />
     <None Include="..\..\..\tests\test-suite\arithmetic.ann" />
     <None Include="..\..\..\tests\test-suite\array_operations.ann" />
     <None Include="..\..\..\tests\test-suite\basic_print.ann" />
