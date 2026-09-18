@@ -329,6 +329,71 @@ assert_equal(cf20, 31.25);
 let cf21: decimal = 1.5 / 0.6; // denominator (reduced) 2
 assert_equal(cf21, 2.5);
 
+// __modulo / a%b: same join rule and same operand-order-matters reasoning as __divide (arity tells
+// it apart from nothing else -- there's no unary use of `%`). Two integral-kind operands give a
+// C++-style truncating remainder (result sign follows the dividend, e.g. -7 % 2 == -1, not 1); any
+// floating-kind operand escalates to the corresponding floating result via std::fmod, which
+// truncates the same direction. Like __divide, decimal is rejected outright as a compile error --
+// but unlike __divide, there's no constexpr exact-fraction escape hatch either, since decimal
+// modulo has no design yet at all (see FUTURE_WORK.md); not exercised here since this suite only
+// exercises successful compiles.
+
+let ra: i32 = runtime_cast(22);
+let rb: i32 = runtime_cast(7);
+assert_equal(ra % rb, 1);
+
+let rbia: integer = runtime_cast(100000000000000000001);
+let rbib: integer = runtime_cast(2);
+assert_equal(rbia % rbib, 1); // arbitrary-precision modulo
+
+// mixed fixed-width, same family: the dividend (300) doesn't fit i8, so the join must escalate to
+// i16 rather than picking either operand's own (too-narrow) type.
+let r16: i16 = runtime_cast(300);
+let r8: i8 = runtime_cast(7);
+assert_equal(r16 % r8, 6);
+
+// signed/unsigned collision at the same width: escalates to i64. Result sign follows the dividend
+// (positive) regardless of the divisor's sign.
+let ru32: u32 = runtime_cast(4000000000);
+let ri32: i32 = runtime_cast(-3);
+assert_equal(ru32 % ri32, 1);
+
+// same collision at 64-bit width: escalates all the way to arbitrary-precision integer.
+let ru64: u64 = runtime_cast(18446744073709551615); // u64 max
+let ri64: i64 = runtime_cast(-7);
+assert_equal(ru64 % ri64, 1);
+
+// integral % floating and floating % integral: escalates to a float wide enough for the integral
+// side, in both directions.
+let ri32b: i32 = runtime_cast(10);
+let rf32: f32 = runtime_cast(3.5);
+assert_equal(ri32b % rf32, 3.0);
+assert_equal(rf32 % ri32b, 3.5);
+
+// a runtime operand combined with a literal that fits its type as-is: no widening happens (the
+// assignment below would fail to compile if it had incorrectly widened to i16).
+let x8i: i8 = runtime_cast(9);
+let y8i: i8 = x8i % 4;
+assert_equal(y8i, 1);
+
+// a runtime operand combined with a literal that overflows its type: the literal widens the pair
+// to the smallest type it fits (i16), not all the way to `integer`. Checked in both argument
+// positions to confirm lhs/rhs order survives the widening (modulo is order-sensitive).
+let x8j: i8 = runtime_cast(100);
+assert_equal(x8j % 1000, 100);
+assert_equal(1000 % x8j, 0);
+
+// fully constexpr fold: no runtime __mod_numeric call is emitted at all. Constexpr integer modulo
+// truncates the same direction the runtime path does (result sign follows the dividend).
+let cf22: i8 = 7 % 2;
+assert_equal(cf22, 1);
+let cf23: i8 = -7 % 2;
+assert_equal(cf23, -1);
+
+// constexpr fold stays exact at arbitrary precision.
+let cf24: integer = 100000000000000000001 % 2;
+assert_equal(cf24, 1);
+
 // divide(a, b, scale, mode): the explicit, always-succeeding runtime decimal division the plain
 // `/` operator doesn't offer (see numeric_promotion.hpp's divide_decimal_rounded). Only
 // rounding_mode.half_even is implemented so far. mode defaults to .half_even when omitted.

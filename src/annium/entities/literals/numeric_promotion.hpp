@@ -70,6 +70,14 @@ smart_blob multiply_numeric(smart_blob const& lhs, smart_blob const& rhs, builti
 // an integral result_type only when both operands are integral-kind.
 smart_blob divide_numeric(smart_blob const& lhs, smart_blob const& rhs, builtin_eid result_type);
 
+// Same shape as add_numeric, but lhs % rhs. `result_type` is never builtin_eid::decimal --
+// numeric_literal_mod_pattern rejects decimal operands before this is ever called (unlike
+// divide_numeric, there's no constexpr escape hatch either -- decimal modulo has no design yet,
+// see FUTURE_WORK.md). Two integral-kind operands use native C++ `%` (remainder, sign follows the
+// dividend, matching divide_numeric's truncating-toward-zero `/`); floating-kind operands use
+// std::fmod, which follows the same toward-zero-truncation convention.
+smart_blob modulo_numeric(smart_blob const& lhs, smart_blob const& rhs, builtin_eid result_type);
+
 // Same shape as add_numeric, but lhs & rhs. `result_type` must be one of the 9 integral-kind
 // types (see is_integral_kind_eid) -- numeric_literal_bit_and_pattern rejects any other type
 // (decimal, f16/f32/f64) before this is ever called, same reasoning as divide_numeric excluding

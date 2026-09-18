@@ -64,6 +64,7 @@
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_minus_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_mul_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_div_pattern.cpp" />
+    <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_mod_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_bit_and_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_literal_bit_or_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\literals\numeric_promotion.cpp" />
@@ -214,6 +215,7 @@
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_minus_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_mul_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_div_pattern.hpp" />
+    <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_mod_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_bit_and_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_literal_bit_or_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\literals\numeric_promotion.hpp" />

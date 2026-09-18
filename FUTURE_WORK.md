@@ -58,6 +58,16 @@ Every constraint-matching branch would compute this classification through one s
 
 **Why deferred:** out of scope for the `divide(...)` task this grew out of — the user's design explicitly kept `/` untouched (see `IMPLEMENTATION_NOTES.md`).
 
+## Decide what the `%` operator should mean for `decimal`
+
+**Status:** entirely undefined — `numeric_literal_mod_pattern` unconditionally rejects any join that lands on `decimal`, in all three of its branches (both-constexpr included, unlike `/`'s constexpr exact-fraction escape hatch — see `IMPLEMENTATION_NOTES.md`'s "Generic numeric arithmetic" section).
+
+**Problem:** unlike division, `%`'s decimal question isn't "does this particular quotient terminate" — a truncated-quotient-based modulo (`a - trunc(a/b)*b`) is computable exactly for *any* nonzero decimal `b` via bigint significand/exponent arithmetic, no repeating-fraction concern at all (the fractional part of `a/b` never needs to be materialized, only its truncated integer part). So there's no obvious reason it *couldn't* be defined for decimal, constexpr or runtime, the way `/` couldn't. It's simply not designed: what convention should the result take (toward-zero truncation, matching `/`'s truncating integer case and this feature's own integer/float `%`; or something else), and does it need its own `try_modulo_decimal_constexpr`-shaped helper or can it reuse pieces of `try_divide_decimal_constexpr`.
+
+**Proposed direction:** not designed. Likely mirrors `try_divide_decimal_constexpr`'s significand/exponent manipulation but is actually simpler — no gcd/factor-stripping/termination check needed, since a truncated quotient's *integer* part is always exactly computable from two decimals' significands and exponents without ever asking whether the true quotient's fractional part terminates.
+
+**Why deferred:** out of scope for the initial `%` operator implementation, which the user explicitly scoped (mirroring `sqrt`/`log`/`floor`/`ceil`/`pow`/`round`'s own `f16`/`f32`/`f64`-only scoping) to non-decimal numeric types, deferring `decimal` for later consideration.
+
 ## Reconcile `logical_not_pattern`'s strict `boolean`-only gate with `annium_logical_not`'s broader (currently unreachable) behavior
 
 **Status:** not started, deliberately deferred.

@@ -175,6 +175,7 @@ PLUS                     "+"
 MINUS                    "-"
 ASTERISK                 "*"
 SLASH                    "/"
+PERCENT                  "%"
 TILDA                    "~"
 DBLCOLON                 "::"
 LOGIC_OR                 "||"
@@ -381,6 +382,7 @@ HASHTAG					"#"
 	{MINUS}					   { variant_emplace(location); return (annium_lang::parser::token::MINUS); }
 	{ASTERISK}				   { variant_emplace(location); return (annium_lang::parser::token::ASTERISK); }
 	{SLASH}					   { variant_emplace(location); return (annium_lang::parser::token::SLASH); }
+	{PERCENT}				   { variant_emplace(location); return (annium_lang::parser::token::PERCENT); }
 	{TILDA}                    { return (annium_lang::parser::token::TILDA); }
 	{LOGIC_OR}                 { variant_emplace(location); return (annium_lang::parser::token::LOGIC_OR); }
     {LOGIC_AND}                { variant_emplace(location); return (annium_lang::parser::token::LOGIC_AND); }

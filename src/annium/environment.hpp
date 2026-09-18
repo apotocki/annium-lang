@@ -120,6 +120,7 @@ class arena;
     ((minus, "__minus"))                   \
     ((multiply, "__multiply"))             \
     ((divide, "__divide"))                 \
+    ((modulo, "__modulo"))                 \
     ((bit_or, "__bit_or"))                 \
     ((bit_and, "__bit_and"))               \
     ((logical_not, "logical_not"))         \
@@ -217,6 +218,7 @@ enum class builtin_eid : entity_identifier::value_type
     subtract_numeric, // builtin ::__minus_numeric(runtime, runtime) -- generic numeric subtraction, see numeric_literal_minus_pattern
     multiply_numeric, // builtin ::__mul_numeric(runtime, runtime) -- generic numeric multiplication, see numeric_literal_mul_pattern
     divide_numeric, // builtin ::__div_numeric(runtime, runtime) -- generic numeric division, see numeric_literal_div_pattern
+    modulo_numeric, // builtin ::__mod_numeric(runtime, runtime) -- generic numeric modulo, see numeric_literal_mod_pattern
     bitand_numeric, // builtin ::__bit_and_numeric(runtime, runtime) -- generic integral bitwise AND, see numeric_literal_bit_and_pattern
     bitor_numeric, // builtin ::__bit_or_numeric(runtime, runtime) -- generic integral bitwise OR, see numeric_literal_bit_or_pattern
     bitand_bool, // builtin ::__bit_and_bool(runtime bool, runtime bool)->bool -- non-short-circuiting bitwise AND, see bool_bit_and_pattern

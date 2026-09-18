@@ -45,13 +45,12 @@ fn formatBytes($v: runtime integer, $p: runtime i64 = 4) -> string {
     }
 
     let int_part: i64 = scaled / scale_i;
-    let frac_part: i64 = scaled - int_part * scale_i;
+    let frac_part: i64 = scaled % scale_i;
 
     let result = to_string(int_part);
     if frac_part != 0 {
-        // strip trailing zero decimal digits (e.g. .50 -> .5), tracking how many digits remain --
-        // no `%` operator needed/available, so the last digit is `frac_part - (frac_part/10)*10`.
-        while digits > 0 && (frac_part - (frac_part / 10) * 10) == 0 {
+        // strip trailing zero decimal digits (e.g. .50 -> .5), tracking how many digits remain.
+        while digits > 0 && frac_part % 10 == 0 {
             frac_part = frac_part / 10;
             digits = digits - 1;
         }

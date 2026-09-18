@@ -53,6 +53,7 @@ void annium_operator_minus_integer(vm::context&);
 void annium_operator_minus_numeric(vm::context&);
 void annium_operator_mul_numeric(vm::context&);
 void annium_operator_div_numeric(vm::context&);
+void annium_operator_mod_numeric(vm::context&);
 void annium_operator_bitand_numeric(vm::context&);
 void annium_operator_bitor_numeric(vm::context&);
 void annium_operator_bitand_bool(vm::context&);

@@ -110,7 +110,7 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 %token <resource_location> MINUS      "`-`"
 %token <resource_location> ASTERISK   "`*`"
 %token <resource_location> SLASH   "`/`"
-%token PERCENT              "`%`"
+%token <resource_location> PERCENT   "`%`"
 %token <resource_location> AMPERSAND  "`&`"
 %token <resource_location> BITOR      "`|`"
 %token <resource_location> EXCLPT     "`!`" 
@@ -1170,6 +1170,8 @@ syntax-expression-base:
         { $$ = syntax_expression{ std::move($ASTERISK), binary_expression{ binary_operator_type::MUL, ctx.make_span_for_args<opt_named_expression_t>(std::move($larg), std::move($rarg)) } }; }
     | syntax-expression[larg] SLASH syntax-expression[rarg]
         { $$ = syntax_expression{ std::move($SLASH), binary_expression{ binary_operator_type::DIV, ctx.make_span_for_args<opt_named_expression_t>(std::move($larg), std::move($rarg)) } }; }
+    | syntax-expression[larg] PERCENT syntax-expression[rarg]
+        { $$ = syntax_expression{ std::move($PERCENT), binary_expression{ binary_operator_type::MOD, ctx.make_span_for_args<opt_named_expression_t>(std::move($larg), std::move($rarg)) } }; }
 
 //////////////////////////// 6 priority
     | syntax-expression[larg] PLUS syntax-expression[rarg]

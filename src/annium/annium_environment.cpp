@@ -44,6 +44,7 @@
 #include "annium/entities/literals/numeric_literal_minus_pattern.hpp"
 #include "annium/entities/literals/numeric_literal_mul_pattern.hpp"
 #include "annium/entities/literals/numeric_literal_div_pattern.hpp"
+#include "annium/entities/literals/numeric_literal_mod_pattern.hpp"
 #include "annium/entities/literals/numeric_literal_bit_and_pattern.hpp"
 #include "annium/entities/literals/numeric_literal_bit_or_pattern.hpp"
 
@@ -1564,6 +1565,9 @@ environment::environment()
     functional& divide_fnl = fregistry_resolve(get(builtin_qnid::divide));
     divide_fnl.push(make_shared<numeric_literal_div_pattern>());
 
+    functional& modulo_fnl = fregistry_resolve(get(builtin_qnid::modulo));
+    modulo_fnl.push(make_shared<numeric_literal_mod_pattern>());
+
     // typeof(object: const metaobject, property: const __identifier) -> typename
     //typeof_fnl.push(make_shared<metaobject_typeof_pattern>());
     typeof_fnl.push(make_shared<union_typeof_pattern>());
@@ -1790,6 +1794,7 @@ environment::environment()
     builtin_eids_[(size_t)builtin_eid::subtract_numeric] = set_builtin_extern("__minus_numeric(runtime @numeric, runtime @numeric)->any"sv, &annium_operator_minus_numeric);
     builtin_eids_[(size_t)builtin_eid::multiply_numeric] = set_builtin_extern("__mul_numeric(runtime @numeric, runtime @numeric)->any"sv, &annium_operator_mul_numeric);
     builtin_eids_[(size_t)builtin_eid::divide_numeric] = set_builtin_extern("__div_numeric(runtime @numeric, runtime @numeric)->any"sv, &annium_operator_div_numeric);
+    builtin_eids_[(size_t)builtin_eid::modulo_numeric] = set_builtin_extern("__mod_numeric(runtime @numeric, runtime @numeric)->any"sv, &annium_operator_mod_numeric);
     builtin_eids_[(size_t)builtin_eid::bitand_numeric] = set_builtin_extern("__bit_and_numeric(runtime @numeric, runtime @numeric)->any"sv, &annium_operator_bitand_numeric);
     builtin_eids_[(size_t)builtin_eid::bitor_numeric] = set_builtin_extern("__bit_or_numeric(runtime @numeric, runtime @numeric)->any"sv, &annium_operator_bitor_numeric);
     builtin_eids_[(size_t)builtin_eid::bitand_bool] = set_builtin_extern("__bit_and_bool(runtime bool, runtime bool)->bool"sv, &annium_operator_bitand_bool);
