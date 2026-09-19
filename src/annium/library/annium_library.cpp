@@ -80,6 +80,29 @@ inline std::optional<bool> less_involving_nonfinite(double floating_side, bool f
     return std::nullopt;
 }
 
+// Converts a numeric dispatch value to a `numetron::decimal` for an exact cross-family comparison,
+// choosing the conversion that's actually exact for `v`'s own kind: `numetron::decimal{v}` for an
+// integral-ish `v` (native int or bigint -- already exact, no rounding involved at all), but
+// `numetron::exact_decimal(v)` for a native floating `v` (f16/f32/f64) -- the plain
+// `numetron::decimal{v}` constructor for those goes through Dragonbox and deliberately gives the
+// *shortest* decimal that round-trips back to `v`, not `v`'s exact value, which is the wrong tool
+// here: comparing that shortened decimal against an unrelated `decimal` operand can disagree with
+// the mathematically correct answer whenever the other operand's value falls between `v`'s
+// shortest-round-trip decimal and its true exact value (see RESOLVED.md's "`decimal` vs. `f32`/
+// `f64` comparisons used the wrong (shortest-round-trip, not exact) decimal conversion; float16
+// given a matching exact/shortest split" entry). `v` is assumed finite; every call site below
+// already intercepts a non-finite floating operand via less_involving_nonfinite before reaching
+// this.
+template <typename T>
+inline numetron::decimal to_exact_decimal(T const& v)
+{
+    if constexpr (std::is_floating_point_v<T> || std::is_same_v<T, numetron::float16>) {
+        return numetron::exact_decimal(v);
+    } else {
+        return numetron::decimal{ v };
+    }
+}
+
 }
 
 void annium_any_equal(vm::context& ctx)
@@ -217,14 +240,14 @@ void annium_numeric_less(vm::context& ctx)
                     return lv < rv;
                 } else if constexpr (numetron::is_basic_decimal_view_v<LDT> || numetron::is_basic_decimal_view_v<RDT>) {
                     // decimal vs. integral or floating: neither basic_integer_view nor the
-                    // native floating types have an operator<=> against basic_decimal(_view),
-                    // so route both operands through the owning numetron::decimal, which is
-                    // exactly constructible from every numeric dispatch type (native int,
-                    // bigint, float, float16, decimal_view -- basic_decimal.hpp's constructor
-                    // set) and compares exactly against another numetron::decimal. decimal
-                    // itself is always finite, so only the non-decimal side can be a
-                    // non-finite floating value -- intercept that before it ever reaches
-                    // numetron::decimal's throwing floating constructor.
+                    // native floating types have an operator<=> against basic_decimal(_view), so
+                    // route both operands through the owning numetron::decimal via to_exact_decimal
+                    // (exact for every numeric dispatch type -- native int, bigint, float, float16
+                    // -- unlike the plain numetron::decimal{...} constructor, which is only exact
+                    // for the integral-ish kinds, see to_exact_decimal's own comment) and compare
+                    // exactly against another numetron::decimal. decimal itself is always finite,
+                    // so only the non-decimal side can be a non-finite floating value -- intercept
+                    // that before it ever reaches to_exact_decimal's own throwing floating path.
                     if constexpr (numetron::is_basic_decimal_view_v<LDT> &&
                                   (std::is_floating_point_v<RDT> || std::is_same_v<RDT, numetron::float16>)) {
                         if (auto nf = less_involving_nonfinite(static_cast<double>(rv), false)) return *nf;
@@ -232,7 +255,7 @@ void annium_numeric_less(vm::context& ctx)
                                          (std::is_floating_point_v<LDT> || std::is_same_v<LDT, numetron::float16>)) {
                         if (auto nf = less_involving_nonfinite(static_cast<double>(lv), true)) return *nf;
                     }
-                    return numetron::decimal{lv} < numetron::decimal{rv};
+                    return to_exact_decimal(lv) < to_exact_decimal(rv);
                 } else if constexpr ((is_integral_not_bool_v<LDT> || numetron::is_basic_integer_view_v<LDT>) &&
                                       (is_integral_not_bool_v<RDT> || numetron::is_basic_integer_view_v<RDT>)) {
                     if constexpr (is_integral_not_bool_v<LDT> && is_integral_not_bool_v<RDT>) {
@@ -255,13 +278,13 @@ void annium_numeric_less(vm::context& ctx)
                     // operator==, which has one -- see basic_integer.hpp). The integral-ish side
                     // is always finite, so -- same reasoning as the decimal branch above --
                     // intercept a non-finite floating operand before falling back to the same
-                    // numetron::decimal route used for the decimal branches above.
+                    // to_exact_decimal route used for the decimal branches above.
                     if constexpr (std::is_floating_point_v<RDT> || std::is_same_v<RDT, numetron::float16>) {
                         if (auto nf = less_involving_nonfinite(static_cast<double>(rv), false)) return *nf;
                     } else if constexpr (std::is_floating_point_v<LDT> || std::is_same_v<LDT, numetron::float16>) {
                         if (auto nf = less_involving_nonfinite(static_cast<double>(lv), true)) return *nf;
                     }
-                    return numetron::decimal{lv} < numetron::decimal{rv};
+                    return to_exact_decimal(lv) < to_exact_decimal(rv);
                 } else {
                     // Both native floating (f16/f32/f64 in any combination): casting to double is
                     // exact for all of them and preserves NaN/infinity ordering semantics.

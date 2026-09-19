@@ -500,104 +500,28 @@ smart_blob bit_or_numeric(smart_blob const& lhs, smart_blob const& rhs, builtin_
     }
 }
 
-namespace {
-
-numetron::integer integer_gcd(numetron::integer a, numetron::integer b)
-{
-    while (b) {
-        numetron::integer r = a % b;
-        a = std::move(b);
-        b = std::move(r);
-    }
-    return a;
-}
-
-} // anonymous namespace
-
 std::optional<numetron::decimal> try_divide_decimal_constexpr(numetron::decimal_view lhs, numetron::decimal_view rhs)
 {
-    numetron::integer den{ rhs.significand().abs() };
-    if (!den) return std::nullopt; // division by zero
-
-    numetron::integer num{ lhs.significand().abs() };
-    if (!num) return numetron::decimal{ 0 }; // 0 / (nonzero) == 0
-
-    numetron::integer g = integer_gcd(num, den);
-    num /= g;
-    den /= g;
-
-    // Strip all factors of 2 and 5 out of the (now coprime with num) denominator -- if anything
-    // other than 1 is left, the reduced fraction's denominator has some other prime factor, so
-    // its base-10 expansion repeats forever and there's no exact decimal result.
-    int e2 = 0;
-    while (!(den % 2)) { den /= 2; ++e2; }
-    int e5 = 0;
-    while (!(den % 5)) { den /= 5; ++e5; }
-    if (!(den == 1)) return std::nullopt;
-
-    // num/den == num / (2^e2 * 5^e5); multiplying num by the missing powers of 2 and 5 turns the
-    // denominator into an exact 10^k, so the quotient becomes an exact integer significand over
-    // 10^k -- no rounding anywhere in this computation.
-    int k = std::max(e2, e5);
-    numetron::integer multiplier = numetron::pow(numetron::integer{ 2 }, static_cast<unsigned int>(k - e2))
-                                  * numetron::pow(numetron::integer{ 5 }, static_cast<unsigned int>(k - e5));
-    numetron::integer result_sig = num * multiplier;
-    if (lhs.is_negative() != rhs.is_negative()) result_sig = -result_sig;
-
-    numetron::integer result_exp{ lhs.exponent() };
-    result_exp -= rhs.exponent();
-    result_exp -= k;
-
-    return numetron::decimal{ (numetron::integer_view)result_sig, (numetron::integer_view)result_exp };
+    // The actual algorithm now lives in numetron itself (numetron::try_divide_exact,
+    // basic_decimal.hpp) -- it's pure bigint significand/exponent arithmetic with no dependency on
+    // anything Annium-specific, so it belongs there rather than duplicated here (same reasoning as
+    // to_fixed_string's own move, see RESOLVED.md). This wrapper survives only because it's part of
+    // this header's existing public surface.
+    return numetron::try_divide_exact(lhs, rhs);
 }
 
 std::optional<numetron::decimal> divide_decimal_rounded(numetron::decimal_view lhs, numetron::decimal_view rhs, uint32_t scale, numetron::decimal_round_mode mode)
 {
+    // Guarded here rather than left to numetron::divide_rounded's own defensive check, so an
+    // unimplemented mode throws Annium's own sonia::not_implemented_error (THROW_NOT_IMPLEMENTED_
+    // ERROR) at this boundary, matching every other "not implemented yet" spot in this codebase --
+    // instead of numetron's plain std::runtime_error (its own "not implemented" convention, e.g.
+    // limb_arithmetic::udiv, but not Annium's). Same reasoning as to_fixed_decimal_string's guard.
     if (mode != numetron::decimal_round_mode::half_even) {
         THROW_NOT_IMPLEMENTED_ERROR("divide_decimal_rounded: only rounding_mode::half_even is implemented so far"sv);
     }
 
-    numetron::integer den{ rhs.significand().abs() };
-    if (!den) return std::nullopt; // division by zero
-
-    numetron::integer num{ lhs.significand().abs() };
-    if (!num) return numetron::decimal{ 0 };
-
-    // num/den * 10^scale, scaled by the operands' own exponent difference -- push the whole 10^e
-    // factor onto whichever side (numerator or denominator) keeps it a positive power, so the
-    // division below is always an exact-integer numerator over an exact-integer denominator.
-    int64_t e = (int64_t)lhs.exponent() - (int64_t)rhs.exponent() + (int64_t)scale;
-    if (e >= 0) {
-        num *= numetron::pow(numetron::integer{ 10 }, static_cast<uint64_t>(e));
-    } else {
-        den *= numetron::pow(numetron::integer{ 10 }, static_cast<uint64_t>(-e));
-    }
-
-    numetron::integer q = num / den; // truncated (toward zero) magnitude quotient
-    numetron::integer r = num % den;
-
-    // round-half-even tie-break on the discarded remainder, compared against half the denominator
-    // (via 2*r instead of den/2 -- den isn't necessarily even, so this avoids integer-dividing it).
-    numetron::integer twice_r = r * numetron::integer{ 2 };
-    numetron::integer_view twice_r_v = (numetron::integer_view)twice_r;
-    numetron::integer_view den_v = (numetron::integer_view)den;
-    if (twice_r_v > den_v) {
-        q += 1;
-    } else if (twice_r_v == den_v && (q % 2)) {
-        q += 1; // exact tie: round to the even neighbor, and q is currently odd
-    }
-
-    if (lhs.is_negative() != rhs.is_negative()) q = -q;
-
-    numetron::integer result_exp{ -static_cast<int64_t>(scale) };
-    if (q) {
-        // Strip trailing zeros -- same normalization every other decimal arithmetic result already
-        // gets (see e.g. multiply_numeric's decimal case), so a `scale` larger than the quotient
-        // actually needs doesn't leave fake extra precision sitting in the significand.
-        while (!(q % 10)) { q /= 10; result_exp += 1; }
-    }
-
-    return numetron::decimal{ (numetron::integer_view)q, (numetron::integer_view)result_exp };
+    return numetron::divide_rounded(lhs, rhs, scale, mode);
 }
 
 std::string to_fixed_decimal_string(numetron::decimal_view d, int64_t digits, numetron::decimal_round_mode mode)

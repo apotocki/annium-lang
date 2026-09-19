@@ -101,17 +101,19 @@ assert_equal(round(3.14159, rd, .half_up), 3.14);
 
 // TO_FIXED (value, digits, mode): exactly `digits` digits after the decimal point, zero-padded,
 // never trimmed -- unlike round(value, digits, mode), which leaves trailing zeros (and any trimming)
-// up to the caller. Always exact regardless of source type (to_fixed_string/to_fixed_decimal_string,
-// numeric_promotion.hpp/.cpp, route every numeric source through the same bigint significand/
-// exponent arithmetic -- an f16/f32/f64 source via exact_decimal_from_finite first, everything else
-// directly -- never std::to_chars/a double round-trip; see RESOLVED.md's "Exact/decimal-native
-// to_fixed" entry). Same `mode` as round(...) above, same reasoning for why it has no default. Note
-// that most of the bare-literal calls just below are *already* exercising the decimal path without
-// saying so -- a bare literal with a decimal point (e.g. `1.5`) defaults to type `decimal`, same as
-// arithmetic.ann documents for `5 / 8.0`; only a bare integer literal (`to_fixed(1, 2, ...)` below)
-// or an explicitly `f16`/`f32`/`f64`-typed value takes the exact_decimal_from_finite branch. The
-// `tfdv`/`tfdv2`/`tfbig` cases further down make the decimal path explicit and forced-runtime, the
-// same way `tfv` does for f64.
+// up to the caller. Always exact regardless of source type, via numetron::to_fixed_string
+// (decimal_view.hpp) -- a `decimal`/integral source goes through its basic_decimal_view overload
+// directly (exact bigint significand/exponent scaling, base-10); an f16/f32/f64 source goes through
+// its floating-point overload instead, which stays in base 2 throughout (frexp/ldexp bit
+// decomposition + shifts, no division wide enough to trip numetron::limb_arithmetic::udiv's
+// single-limb divisor limit -- see BUGFIXES.md/RESOLVED.md's `to_fixed_string`-into-numetron
+// entries). Never std::to_chars/a double round-trip either way. Same `mode` as round(...) above,
+// same reasoning for why it has no default. Note that most of the bare-literal calls just below are
+// *already* exercising the decimal path without saying so -- a bare literal with a decimal point
+// (e.g. `1.5`) defaults to type `decimal`, same as arithmetic.ann documents for `5 / 8.0`; only a
+// bare integer literal (`to_fixed(1, 2, ...)` below) or an explicitly `f16`/`f32`/`f64`-typed value
+// takes the floating-point overload. The `tfdv`/`tfdv2`/`tfbig` cases further down make the decimal
+// path explicit and forced-runtime, the same way `tfv` does for f64.
 assert_equal(to_fixed(1.5, 4, .half_even), "1.5000");
 assert_equal(to_fixed(1, 2, .half_even), "1.00"); // integer literal widens like every other @numeric
 assert_equal(to_fixed(3.14159, 2, .half_even), "3.14");
@@ -138,9 +140,10 @@ assert_equal(to_fixed(1.5, tfd, .half_even), "1.50");
 let tfv: f64 = runtime_cast(2.5);
 assert_equal(to_fixed(tfv, 3, .half_even), "2.500");
 
-// explicit, forced-runtime `decimal` value argument -- the to_fixed_decimal_string path directly
-// (no exact_decimal_from_finite step needed, a decimal source is already exact). Widening case
-// (exponent + digits >= 0): an exact bigint multiply, no rounding, so `mode` is moot here.
+// explicit, forced-runtime `decimal` value argument -- numetron::to_fixed_string's decimal_view
+// overload directly (a decimal source is already exact, no float bit-decomposition step needed).
+// Widening case (exponent + digits >= 0): an exact bigint multiply, no rounding, so `mode` is moot
+// here.
 let tfdv: decimal = runtime_cast(1.5);
 assert_equal(to_fixed(tfdv, 4, .half_even), "1.5000");
 
@@ -152,9 +155,9 @@ let tfdv3: decimal = runtime_cast(-2.5);
 assert_equal(to_fixed(tfdv3, 1, .half_even), "-2.5");
 
 // a significand with more digits than a double's 53-bit mantissa can hold exactly -- going through
-// double directly (rather than exact_decimal_from_finite) would silently corrupt this; the exact
-// bigint path doesn't. 0.456789 rounded to 3 places is 0.457 (4th digit '7' rounds the 3rd digit up,
-// same result either mode -- not a tie).
+// a native double directly would silently corrupt this; the exact bigint path doesn't. 0.456789
+// rounded to 3 places is 0.457 (4th digit '7' rounds the 3rd digit up, same result either mode --
+// not a tie).
 let tfbig: decimal = runtime_cast(12345678901234567890123.456789);
 assert_equal(to_fixed(tfbig, 3, .half_even), "12345678901234567890123.457");
 

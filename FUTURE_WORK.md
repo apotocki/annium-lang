@@ -141,16 +141,6 @@ Both look substantially complete (normalization, quotient digit estimation with 
 
 **Why deferred:** genuinely unresolved *why* it was disabled -- could be a real correctness bug in one or both attempts, an incomplete integration, or something unrelated to correctness entirely. Re-enabling it blind, without knowing which, is exactly the kind of risk this project's bug history (three separate previously-latent `numetron` arithmetic bugs surfaced by one feature addition, per the entry above) argues against.
 
-## Move `divide_decimal_rounded`/`try_divide_decimal_constexpr` from `numeric_promotion.cpp` into `numetron`
-
-**Status:** not started, deliberately deferred -- explicit next step after moving `to_fixed_decimal_string`/`to_fixed_string`'s own rounding algorithms into `numetron` (see `RESOLVED.md`'s "Moved `to_fixed_string`'s rounding algorithms into `numetron`" entry); the user asked to keep this as a separate step rather than bundling it in.
-
-**Problem:** `divide_decimal_rounded` and `try_divide_decimal_constexpr` (`entities/literals/numeric_promotion.cpp`/`.hpp`) are, like the `to_fixed_string` code that already moved, pure bigint significand/exponent arithmetic with no dependency on anything Annium-specific (no `smart_blob`, no VM/blob types, no `builtin_eid`) -- they operate purely on `numetron::decimal_view`/`numetron::integer`. `divide_decimal_rounded` is already parameterized directly on `numetron::decimal_round_mode` (`decimal_view.hpp`) -- Annium dropped its own separate mirror enum once `to_fixed_string`'s move made it clear nothing else needed one (see `RESOLVED.md`) -- so this move no longer needs an enum-conversion step at all, just the algorithm itself.
-
-**Proposed direction:** same shape as the `to_fixed_string` move -- add `divide_decimal_rounded`/`try_divide_decimal_constexpr`-equivalent free functions to `numetron` (`decimal_view.hpp`, alongside `to_fixed_string`, reusing `numetron::decimal_round_mode` and `detail::to_fixed_digits_string`'s neighboring helpers where the shape overlaps); Annium's own two functions shrink to thin wrappers doing just the `THROW_NOT_IMPLEMENTED_ERROR`-vs-`std::runtime_error` exception-type guard (for `divide_decimal_rounded`), exactly the pattern `to_fixed_decimal_string`/`to_fixed_string` now use.
-
-**Why deferred:** a real API surface change to `numetron`, same caveats as the `to_fixed_string` move had (needs its own deliberate pass, not folded into unrelated work) -- just sequenced after it rather than combined with it.
-
 ## `to_union_implicit_cast_pattern` never produces a compile-time-constant union value
 
 **Status:** not started, deliberately deferred.
