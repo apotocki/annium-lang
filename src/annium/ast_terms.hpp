@@ -110,7 +110,7 @@ struct annium_fn_type
 */
 
 #define ANNIUM_UNARY_OPERATOR_ENUM (NEGATE)(DEREF)(ELLIPSIS)(MINUS)
-#define ANNIUM_BINARY_OPERATOR_ENUM (ASSIGN)(LOGIC_AND)(LOGIC_OR)(BIT_OR)(BIT_AND)(CONCAT)(PLUS)(MINUS)(MUL)(DIV)(EQ)(NE)(CAST)
+#define ANNIUM_BINARY_OPERATOR_ENUM (ASSIGN)(LOGIC_AND)(LOGIC_OR)(BIT_OR)(BIT_AND)(CONCAT)(PLUS)(MINUS)(MUL)(DIV)(MOD)(EQ)(NE)(LESS)(LESS_EQ)(GREATER)(GREATER_EQ)(CAST)
 enum class unary_operator_type
 {
     BOOST_PP_SEQ_FOR_EACH(ANNIUM_PRINT_SIMPLE_ENUM, _, ANNIUM_UNARY_OPERATOR_ENUM)
@@ -280,6 +280,21 @@ struct not_empty_expression
     syntax_expression const* value;
 };
 
+// consteval <expr> -- forces compile-time evaluation of an otherwise-runtime expression.
+// See CONSTEVAL_CTFE_PLAN.md.
+//
+// Optional guarded form: consteval(condition) <expr>. `condition` is null for the plain,
+// unconditional `consteval <expr>` above; when present, it must itself resolve to a compile-time
+// bool, and it decides whether `value` is forced through CTFE at all -- true keeps the plain
+// behavior, false leaves `value` to its ordinary constexpr-or-runtime interpretation (see
+// IMPLEMENTATION_NOTES.md's `consteval` section for why this makes a single definition serve both
+// a `runtime` and a `constexpr` parameter, e.g. `sqrt`).
+struct consteval_expression
+{
+    syntax_expression const* value;
+    syntax_expression const* condition = nullptr;
+};
+
 struct new_expression
 {
     syntax_expression const* name;
@@ -330,6 +345,14 @@ struct parameter
     default_spec default_value = required_t{};
 
     parameter_constraint_modifier_t modifier = parameter_constraint_modifier_t::constexpr_or_runtime_type;
+
+    // Only meaningful together with parameter_constraint_modifier_t::reference_type: `~ reference(EXPR)`
+    // evaluates EXPR (typically referencing an earlier parameter in the same pattern -- already
+    // matched and bound by the time this one is reached, since parameter_matcher.cpp matches
+    // parameters strictly in declaration order -- but any expression that folds to a compile-time
+    // bool works) to decide whether a reference is actually requested for this parameter. Null for a
+    // bare `~ reference` (unconditional, as before).
+    syntax_expression const* reference_condition = nullptr;
 };
 
 using parameter_list_t = small_vector<parameter, 4>;
@@ -432,6 +455,24 @@ struct bracket_expression
     syntax_expression const* type;
 };
 
+// one `pattern function-body` arm of a `match` expression -- see annium.y's `match-arm` and
+// IMPLEMENTATION_NOTES.md's "match expression" section.
+struct match_arm
+{
+    // `$name: pattern => ...` binds the arm's own matched value under `$name` (positional-only,
+    // like any other `$name` parameter) instead of the default `$0`; empty (the usual "no name"
+    // convention) when the arm is written without it.
+    annotated_identifier bind_name;
+    syntax_pattern const* pattern;
+    span<const statement> body;
+};
+
+struct match_expression
+{
+    syntax_expression const* scrutinee;
+    span<const match_arm> arms;
+};
+
 struct syntax_expression
 {
     resource_location location;
@@ -462,6 +503,8 @@ struct syntax_expression
         new_expression, // like new Type(args)
         unary_expression, // like -value
         binary_expression, // like left + right
+        consteval_expression, // like consteval <expr>
+        match_expression, // like match scrutinee { pattern => expr, ... }
         /*not_empty_expression, // like value?
 
         // special statements
@@ -694,10 +737,18 @@ struct struct_decl
     }
 };
 
+struct enum_case
+{
+    identifier name;
+    // nullopt = bare case (a constexpr atom, e.g. `Empty`); present = structural case (a nested
+    // struct, possibly with zero fields, e.g. `Leaf(name: string, integer)` or `Empty()`).
+    optional<span<const field>> fields;
+};
+
 struct enum_decl
 {
     annotated_qname_view name;
-    span<const identifier> cases;
+    span<const enum_case> cases;
 };
 
 struct extern_var

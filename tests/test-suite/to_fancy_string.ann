@@ -1,0 +1,51 @@
+// to_fancy_string(self: integer, base: u32 = 10, group_sz: u8 = 3, group_sep: string = " ",
+// showbase: bool = false) -> string (bootstrap.ann): human-readable rendering of a bigint with
+// digit grouping, backed by numetron::fancy_print (integer_view.hpp) via the runtime
+// __to_fancy_string extern. `self` is named, so it's callable both as
+// to_fancy_string(self: x, ...) and, via member-call sugar (ANNIUM_SYNTAX.md), as x.to_fancy_string(...).
+
+// defaults: base 10, groups of 3, space separator, no base prefix -- both call forms agree
+let v = 1234567;
+assert_equal(to_fancy_string(self: v), "1 234 567");
+assert_equal(v.to_fancy_string(), "1 234 567");
+
+// negative values: the sign is emitted once, before grouping/prefix -- not attached to a digit group
+let nv = -1234567;
+assert_equal(nv.to_fancy_string(), "-1 234 567");
+
+// fewer digits than group_sz: no separator inserted at all
+let small = 42;
+assert_equal(small.to_fancy_string(), "42");
+
+// custom group size and separator (named args, order-independent)
+assert_equal(v.to_fancy_string(group_sep: "_", group_sz: 2), "1_23_45_67");
+
+// group_sz: 0 disables grouping entirely, regardless of group_sep
+assert_equal(v.to_fancy_string(group_sz: 0), "1234567");
+
+// arbitrary-precision bigint (multiple numetron limbs), still groups correctly across limb boundaries
+let huge = 123456789012345678901;
+assert_equal(huge.to_fancy_string(), "123 456 789 012 345 678 901");
+
+// base 16 / base 8, with and without the showbase prefix (lowercase hex digits, matching
+// numetron::default_alphabet)
+let hv = 255;
+assert_equal(hv.to_fancy_string(base: 16), "ff");
+assert_equal(hv.to_fancy_string(base: 16, showbase: true), "0xff");
+let ov = 8;
+assert_equal(ov.to_fancy_string(base: 8, showbase: true), "010");
+
+// negative value with a base prefix: sign first, then the prefix, then the digits
+let nhv = -255;
+assert_equal(nhv.to_fancy_string(base: 16, showbase: true), "-0xff");
+
+// runtime path (__to_fancy_string extern): same results as the constexpr fold above, forced
+// through runtime_cast so the call can't be folded entirely at compile time -- see arithmetic.ann's
+// header comment for why a plain `let` alone wouldn't exercise this path.
+let rv: integer = runtime_cast(1234567);
+assert_equal(rv.to_fancy_string(), "1 234 567");
+assert_equal(rv.to_fancy_string(base: 16, showbase: true, group_sz: 0), "0x12d687");
+// grouping applies to the digits regardless of base -- group_sz still defaults to 3 here, so the
+// 6 hex digits of 1234567 (12d687) split into two groups of 3.
+assert_equal(rv.to_fancy_string(base: 16, showbase: true), "0x12d 687");
+assert_equal(to_fancy_string(self: rv, group_sz: runtime_cast(2), group_sep: runtime_cast("_")), "1_23_45_67");

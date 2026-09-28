@@ -421,11 +421,13 @@ void fn_compiler_context::push_scopes_to_stash()
 {
     stash_state so{
         .locals_size = static_cast<uint32_t>(scoped_locals_.size()),
-        .states_size = static_cast<uint32_t>(scope_states_.size())
+        .states_size = static_cast<uint32_t>(scope_states_.size()),
+        .ns_size = static_cast<uint32_t>(ns_.parts().size())
     };
     stash_states_.push_back(so);
     scoped_locals_stash_.insert(scoped_locals_stash_.end(), scoped_locals_.begin(), scoped_locals_.end());
     scope_states_stash_.insert(scope_states_stash_.end(), scope_states_.begin(), scope_states_.end());
+    ns_stash_.insert(ns_stash_.end(), ns_.parts().begin(), ns_.parts().end());
 }
 
 void fn_compiler_context::pop_scopes_from_stash()
@@ -443,6 +445,14 @@ void fn_compiler_context::pop_scopes_from_stash()
         scope_states_stash_.end() - so.states_size,
         scope_states_stash_.end());
     scope_states_stash_.resize(scope_states_stash_.size() - so.states_size);
+    // pop_all_scopes() (fired by a return/break/continue somewhere inside the stashed branch) always
+    // unwinds ns_ down to the function's own root, not just back to this stash point -- ns_.truncate()
+    // can only shrink, so if there was already outer nesting before this stash point (so.ns_size above
+    // the function's root), truncate() alone could never grow ns_ back to it. Rebuild ns_ from the real
+    // saved copy of its parts instead, exactly like scoped_locals_/scope_states_ above.
+    ns_.truncate(0);
+    ns_.append(span<const identifier>{ ns_stash_.end() - so.ns_size, ns_stash_.end() });
+    ns_stash_.resize(ns_stash_.size() - so.ns_size);
 }
 
 void fn_compiler_context::peek_scopes_from_stash()
@@ -457,6 +467,10 @@ void fn_compiler_context::peek_scopes_from_stash()
     scope_states_.insert(scope_states_.end(),
         scope_states_stash_.end() - so.states_size,
         scope_states_stash_.end());
+    // see the matching comment in pop_scopes_from_stash() above. Not popped here (peek), so ns_stash_
+    // is left untouched -- only the live ns_ is rebuilt from it.
+    ns_.truncate(0);
+    ns_.append(span<const identifier>{ ns_stash_.end() - so.ns_size, ns_stash_.end() });
 }
 
 void fn_compiler_context::pop_dismiss_scopes_from_stash()
@@ -466,6 +480,7 @@ void fn_compiler_context::pop_dismiss_scopes_from_stash()
     stash_states_.pop_back();
     scoped_locals_stash_.resize(scoped_locals_stash_.size() - so.locals_size);
     scope_states_stash_.resize(scope_states_stash_.size() - so.states_size);
+    ns_stash_.resize(ns_stash_.size() - so.ns_size);
 }
 
 void fn_compiler_context::push_scope()
@@ -1034,20 +1049,32 @@ std::expected<std::tuple<entity_identifier, bool, bool>, error_storage> fn_compi
 
     if (const_value_result) {
         bool is_empty_function = fent.arg_count() == 0 && !has_procedures(env(), expressions());
-        //if (!is_empty_function) {
-        //    // e.g. to handle: return print( <something> );
-        //    for (auto& [rts, el, er, loc] : return_statements_) {
 
-        //        push_scopes_to_stash();
-        //        semantic::expression_span dsp;
-        //        pop_all_scopes(expression_store_, dsp, !er.is_const_result);
-        //        rts->scope_deconstruction = expressions();
-        //        pop_scopes_from_stash();
-        //        pop_chain();
-        //    }
-        //}
+        if (!fent.is_runtime_committed()) {
+            return std::tuple{ const_value_result, true, is_empty_function };
+        }
 
-        return std::tuple{ const_value_result, true, is_empty_function };
+        // some call site already resolved a call to this function before it was built,
+        // and committed to a real runtime call expecting a value on the stack (see
+        // BUGFIXES.md) -- even though the result is constexpr, we must still materialize
+        // an actual runtime push for every return statement, the same way a genuinely
+        // non-const result would be cast to result_type below.
+        expected_result_t expected_result{ .type = result_type, .modifier = value_modifier_t::runtime_value };
+        for (return_statement_descriptor& rsd : return_statements_) {
+            call_builder cast_call{ rsd.location };
+            expected_result.location = rsd.location;
+            cast_call.emplace_back(syntax_expression{ rsd.location, entity_identifier{ const_value_result } });
+            auto res = find_and_apply(builtin_qnid::implicit_cast, cast_call, expression_store_, expected_result);
+            if (!res) {
+                return std::unexpected(append_cause(
+                    make_error<basic_general_error>(rsd.location, "failed to cast constexpr result to runtime value"sv, result_type),
+                    std::move(res.error())
+                ));
+            }
+            rsd.stmt->scope_deconstruction = expression_store_.concat(rsd.stmt->scope_deconstruction, res->expressions);
+        }
+
+        return std::tuple{ const_value_result, true, false };
     }
 
     expected_result_t expected_result{ .type = result_type, .modifier = value_modifier_t::runtime_value };
@@ -1331,8 +1358,21 @@ void fn_compiler_context::append_stored_expressions(semantic::expression_list_t&
 
 error_storage fn_compiler_context::append_return(syntax_expression const& expr)
 {
-    expected_result_t exp{ .type = result_type, .location = expr.location, .modifier = value_modifier_t::constexpr_or_runtime_value };
-    
+    // result_wants_reference (read from this function's own bound `builtin_id::result_wants_reference`
+    // parameter, if it declared one, just before the body is compiled -- see
+    // internal_function_entity::build()) makes THIS specific build's return expression request a
+    // genuine reference, so a nested reference-aware pattern (e.g. tuple_get_pattern, reached through
+    // get(self: tuple_of(self), property: property)) keeps the reference instead of dereferencing it
+    // -- see basic_fn_pattern.cpp's try_match and IMPLEMENTATION_NOTES.md's `ref(T)` section for why
+    // this can't just be `runtime_value` always: a call that resolved that parameter to a different
+    // value (a caller that didn't want a reference) gets its own, separately-compiled instance
+    // instead of sharing this one.
+    expected_result_t exp{
+        .type = result_type,
+        .location = expr.location,
+        .modifier = result_wants_reference ? value_modifier_t::runtime_reference : value_modifier_t::constexpr_or_runtime_value
+    };
+
     semantic::managed_expression_list el{ environment_ };
     auto res = base_expression_visitor::visit(*this, el, exp, expr);
     if (!res) return std::move(res.error());

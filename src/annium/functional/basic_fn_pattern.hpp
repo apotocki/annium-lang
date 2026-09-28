@@ -31,6 +31,7 @@ public:
         uint8_t is_required_value_ : 1; // otherwise default_value or optional
 
         parameter_constraint_modifier_t modifier_;
+        syntax_expression const* reference_condition_;
 
     public:
         inline parameter_descriptor(
@@ -38,10 +39,12 @@ public:
             annotated_identifier iname,
             std::variant<syntax_expression const*, syntax_pattern const*> const& constraint,
             std::variant<required_t, optional_t, syntax_expression const*> const& default_value,
-            parameter_constraint_modifier_t m) noexcept
+            parameter_constraint_modifier_t m,
+            syntax_expression const* reference_condition = nullptr) noexcept
             : ename_or_alias_{ ename.value }, iname_{ iname.value }
             , has_ename_{ 0 }, has_expression_constraint_{ 0 }, is_required_value_{ 1 }
             , modifier_{ m }
+            , reference_condition_{ reference_condition }
         {
             if (ename) {
                 ename_or_alias_loc_ = std::move(ename.location);
@@ -115,11 +118,12 @@ public:
 
         inline bool has_expression_constraint() const noexcept { return has_expression_constraint_; }
         inline bool has_pattern_constraint() const noexcept { return !has_expression_constraint_; }
-        inline syntax_expression const* expression_constraint() const noexcept { BOOST_ASSERT(has_expression_constraint_); return expression_constraint_; }
-        inline syntax_pattern const* pattern_constraint() const noexcept { BOOST_ASSERT(!has_expression_constraint_); return pattern_constraint_; }
+        inline syntax_expression const& expression_constraint() const noexcept { BOOST_ASSERT(has_expression_constraint_); return *expression_constraint_; }
+        inline syntax_pattern const& pattern_constraint() const noexcept { BOOST_ASSERT(!has_expression_constraint_); return *pattern_constraint_; }
         inline syntax_expression const* default_value() const noexcept { return default_value_; }
         inline bool is_required_value() const noexcept { return is_required_value_; }
         inline parameter_constraint_modifier_t modifier() const noexcept { return modifier_; }
+        inline syntax_expression const* reference_condition() const noexcept { return reference_condition_; }
     };
     
     struct parameter_descriptor_obs

@@ -129,15 +129,6 @@ smart_blob integer_view_to_numeric(numetron::integer_view source_val, builtin_ei
     }
 }
 
-namespace {
-
-constexpr builtin_eid k_all_numeric_eids[] = {
-    builtin_eid::i8, builtin_eid::u8, builtin_eid::i16, builtin_eid::u16,
-    builtin_eid::i32, builtin_eid::u32, builtin_eid::i64, builtin_eid::u64,
-    builtin_eid::f16, builtin_eid::f32, builtin_eid::f64,
-    builtin_eid::integer, builtin_eid::decimal
-};
-
 bool is_integral_kind_eid(builtin_eid t) noexcept
 {
     switch (t) {
@@ -155,6 +146,15 @@ bool is_integral_kind_eid(builtin_eid t) noexcept
         return false;
     }
 }
+
+namespace {
+
+constexpr builtin_eid k_all_numeric_eids[] = {
+    builtin_eid::i8, builtin_eid::u8, builtin_eid::i16, builtin_eid::u16,
+    builtin_eid::i32, builtin_eid::u32, builtin_eid::i64, builtin_eid::u64,
+    builtin_eid::f16, builtin_eid::f32, builtin_eid::f64,
+    builtin_eid::integer, builtin_eid::decimal
+};
 
 bool is_floating_kind_eid(builtin_eid t) noexcept
 {
@@ -200,18 +200,15 @@ builtin_eid strongest_numeric_type(builtin_eid a, builtin_eid b)
 
 builtin_eid numeric_builtin_eid_of(blob_result const& b)
 {
-    blob_result const* p = &b;
-    while (p->type == blob_type::blob_reference) {
-        p = data_of<blob_result>(*p);
-    }
+    blob_result const& p = unref(b);
 
-    switch (p->type) {
+    switch (p.type) {
     case blob_type::bigint: return builtin_eid::integer;
     case blob_type::decimal: return builtin_eid::decimal;
     default: break;
     }
 
-    blob_type decayed = (blob_type)(((uint8_t)p->type) & 0x7f);
+    blob_type decayed = (blob_type)(((uint8_t)p.type) & 0x7f);
     switch (decayed) {
     case blob_type::boolean: return builtin_eid::boolean;
     case blob_type::i8: return builtin_eid::i8;
@@ -400,104 +397,179 @@ smart_blob divide_numeric(smart_blob const& lhs, smart_blob const& rhs, builtin_
     }
 }
 
-namespace {
-
-numetron::integer integer_gcd(numetron::integer a, numetron::integer b)
+smart_blob modulo_numeric(smart_blob const& lhs, smart_blob const& rhs, builtin_eid result_type)
 {
-    while (b) {
-        numetron::integer r = a % b;
-        a = std::move(b);
-        b = std::move(r);
+    switch (result_type) {
+    case builtin_eid::i8:
+        return i8_blob_result(static_cast<int8_t>(lhs.as<int8_t>() % rhs.as<int8_t>()));
+    case builtin_eid::u8:
+        return ui8_blob_result(static_cast<uint8_t>(lhs.as<uint8_t>() % rhs.as<uint8_t>()));
+    case builtin_eid::i16:
+        return i16_blob_result(static_cast<int16_t>(lhs.as<int16_t>() % rhs.as<int16_t>()));
+    case builtin_eid::u16:
+        return ui16_blob_result(static_cast<uint16_t>(lhs.as<uint16_t>() % rhs.as<uint16_t>()));
+    case builtin_eid::i32:
+        return i32_blob_result(static_cast<int32_t>(lhs.as<int32_t>() % rhs.as<int32_t>()));
+    case builtin_eid::u32:
+        return ui32_blob_result(static_cast<uint32_t>(lhs.as<uint32_t>() % rhs.as<uint32_t>()));
+    case builtin_eid::i64:
+        return i64_blob_result(static_cast<int64_t>(lhs.as<int64_t>() % rhs.as<int64_t>()));
+    case builtin_eid::u64:
+        return ui64_blob_result(static_cast<uint64_t>(lhs.as<uint64_t>() % rhs.as<uint64_t>()));
+    case builtin_eid::f16: {
+        // float16 only defines unary operator-() (see negate_constexpr_numeric), no binary %:
+        // round-trip through float for the modulo itself.
+        float rem = std::fmod(static_cast<float>(lhs.as<numetron::float16>()), static_cast<float>(rhs.as<numetron::float16>()));
+        return f16_blob_result(numetron::float16_cast(rem));
     }
-    return a;
+    case builtin_eid::f32:
+        return f32_blob_result(std::fmod(lhs.as<float>(), rhs.as<float>()));
+    case builtin_eid::f64:
+        return f64_blob_result(std::fmod(lhs.as<double_t>(), rhs.as<double_t>()));
+    case builtin_eid::integer: {
+        auto rem = lhs.as<numetron::integer>() % rhs.as<numetron::integer_view>();
+        return smart_blob{ bigint_blob_result(rem) }.allocate();
+    }
+    default:
+        // builtin_eid::decimal deliberately excluded: modulo isn't defined for decimal at all
+        // yet (see FUTURE_WORK.md) -- numeric_literal_mod_pattern rejects decimal operands
+        // (constexpr or runtime) before this function is ever reached, so reaching here for
+        // decimal (or anything else) is a bug.
+        THROW_INTERNAL_ERROR("modulo_numeric: unsupported result type"sv);
+    }
 }
 
-} // anonymous namespace
+smart_blob bit_and_numeric(smart_blob const& lhs, smart_blob const& rhs, builtin_eid result_type)
+{
+    switch (result_type) {
+    case builtin_eid::i8:
+        return i8_blob_result(static_cast<int8_t>(lhs.as<int8_t>() & rhs.as<int8_t>()));
+    case builtin_eid::u8:
+        return ui8_blob_result(static_cast<uint8_t>(lhs.as<uint8_t>() & rhs.as<uint8_t>()));
+    case builtin_eid::i16:
+        return i16_blob_result(static_cast<int16_t>(lhs.as<int16_t>() & rhs.as<int16_t>()));
+    case builtin_eid::u16:
+        return ui16_blob_result(static_cast<uint16_t>(lhs.as<uint16_t>() & rhs.as<uint16_t>()));
+    case builtin_eid::i32:
+        return i32_blob_result(static_cast<int32_t>(lhs.as<int32_t>() & rhs.as<int32_t>()));
+    case builtin_eid::u32:
+        return ui32_blob_result(static_cast<uint32_t>(lhs.as<uint32_t>() & rhs.as<uint32_t>()));
+    case builtin_eid::i64:
+        return i64_blob_result(static_cast<int64_t>(lhs.as<int64_t>() & rhs.as<int64_t>()));
+    case builtin_eid::u64:
+        return ui64_blob_result(static_cast<uint64_t>(lhs.as<uint64_t>() & rhs.as<uint64_t>()));
+    case builtin_eid::integer: {
+        auto conj = lhs.as<numetron::integer>() & rhs.as<numetron::integer_view>();
+        return smart_blob{ bigint_blob_result(conj) }.allocate();
+    }
+    default:
+        // builtin_eid::decimal/f16/f32/f64 deliberately excluded: bitwise AND isn't defined for
+        // them -- numeric_literal_bit_and_pattern rejects non-integral operands before this
+        // function is ever reached, so reaching here is a bug.
+        THROW_INTERNAL_ERROR("bit_and_numeric: unsupported result type"sv);
+    }
+}
+
+smart_blob bit_or_numeric(smart_blob const& lhs, smart_blob const& rhs, builtin_eid result_type)
+{
+    switch (result_type) {
+    case builtin_eid::i8:
+        return i8_blob_result(static_cast<int8_t>(lhs.as<int8_t>() | rhs.as<int8_t>()));
+    case builtin_eid::u8:
+        return ui8_blob_result(static_cast<uint8_t>(lhs.as<uint8_t>() | rhs.as<uint8_t>()));
+    case builtin_eid::i16:
+        return i16_blob_result(static_cast<int16_t>(lhs.as<int16_t>() | rhs.as<int16_t>()));
+    case builtin_eid::u16:
+        return ui16_blob_result(static_cast<uint16_t>(lhs.as<uint16_t>() | rhs.as<uint16_t>()));
+    case builtin_eid::i32:
+        return i32_blob_result(static_cast<int32_t>(lhs.as<int32_t>() | rhs.as<int32_t>()));
+    case builtin_eid::u32:
+        return ui32_blob_result(static_cast<uint32_t>(lhs.as<uint32_t>() | rhs.as<uint32_t>()));
+    case builtin_eid::i64:
+        return i64_blob_result(static_cast<int64_t>(lhs.as<int64_t>() | rhs.as<int64_t>()));
+    case builtin_eid::u64:
+        return ui64_blob_result(static_cast<uint64_t>(lhs.as<uint64_t>() | rhs.as<uint64_t>()));
+    case builtin_eid::integer: {
+        auto disj = lhs.as<numetron::integer>() | rhs.as<numetron::integer_view>();
+        return smart_blob{ bigint_blob_result(disj) }.allocate();
+    }
+    default:
+        // See bit_and_numeric's comment: numeric_literal_bit_or_pattern rejects non-integral
+        // operands before this function is ever reached.
+        THROW_INTERNAL_ERROR("bit_or_numeric: unsupported result type"sv);
+    }
+}
 
 std::optional<numetron::decimal> try_divide_decimal_constexpr(numetron::decimal_view lhs, numetron::decimal_view rhs)
 {
-    numetron::integer den{ rhs.significand().abs() };
-    if (!den) return std::nullopt; // division by zero
-
-    numetron::integer num{ lhs.significand().abs() };
-    if (!num) return numetron::decimal{ 0 }; // 0 / (nonzero) == 0
-
-    numetron::integer g = integer_gcd(num, den);
-    num /= g;
-    den /= g;
-
-    // Strip all factors of 2 and 5 out of the (now coprime with num) denominator -- if anything
-    // other than 1 is left, the reduced fraction's denominator has some other prime factor, so
-    // its base-10 expansion repeats forever and there's no exact decimal result.
-    int e2 = 0;
-    while (!(den % 2)) { den /= 2; ++e2; }
-    int e5 = 0;
-    while (!(den % 5)) { den /= 5; ++e5; }
-    if (!(den == 1)) return std::nullopt;
-
-    // num/den == num / (2^e2 * 5^e5); multiplying num by the missing powers of 2 and 5 turns the
-    // denominator into an exact 10^k, so the quotient becomes an exact integer significand over
-    // 10^k -- no rounding anywhere in this computation.
-    int k = std::max(e2, e5);
-    numetron::integer multiplier = numetron::pow(numetron::integer{ 2 }, static_cast<unsigned int>(k - e2))
-                                  * numetron::pow(numetron::integer{ 5 }, static_cast<unsigned int>(k - e5));
-    numetron::integer result_sig = num * multiplier;
-    if (lhs.is_negative() != rhs.is_negative()) result_sig = -result_sig;
-
-    numetron::integer result_exp{ lhs.exponent() };
-    result_exp -= rhs.exponent();
-    result_exp -= k;
-
-    return numetron::decimal{ (numetron::integer_view)result_sig, (numetron::integer_view)result_exp };
+    // The actual algorithm now lives in numetron itself (numetron::try_divide_exact,
+    // basic_decimal.hpp) -- it's pure bigint significand/exponent arithmetic with no dependency on
+    // anything Annium-specific, so it belongs there rather than duplicated here (same reasoning as
+    // to_fixed_string's own move, see RESOLVED.md). This wrapper survives only because it's part of
+    // this header's existing public surface.
+    return numetron::try_divide_exact(lhs, rhs);
 }
 
-std::optional<numetron::decimal> divide_decimal_rounded(numetron::decimal_view lhs, numetron::decimal_view rhs, uint32_t scale, decimal_rounding_mode mode)
+std::optional<numetron::decimal> divide_decimal_rounded(numetron::decimal_view lhs, numetron::decimal_view rhs, uint32_t scale, numetron::decimal_round_mode mode)
 {
-    if (mode != decimal_rounding_mode::half_even) {
+    // Guarded here rather than left to numetron::divide_rounded's own defensive check, so an
+    // unimplemented mode throws Annium's own sonia::not_implemented_error (THROW_NOT_IMPLEMENTED_
+    // ERROR) at this boundary, matching every other "not implemented yet" spot in this codebase --
+    // instead of numetron's plain std::runtime_error (its own "not implemented" convention, e.g.
+    // limb_arithmetic::udiv, but not Annium's). Same reasoning as to_fixed_decimal_string's guard.
+    if (mode != numetron::decimal_round_mode::half_even) {
         THROW_NOT_IMPLEMENTED_ERROR("divide_decimal_rounded: only rounding_mode::half_even is implemented so far"sv);
     }
 
-    numetron::integer den{ rhs.significand().abs() };
-    if (!den) return std::nullopt; // division by zero
+    return numetron::divide_rounded(lhs, rhs, scale, mode);
+}
 
-    numetron::integer num{ lhs.significand().abs() };
-    if (!num) return numetron::decimal{ 0 };
-
-    // num/den * 10^scale, scaled by the operands' own exponent difference -- push the whole 10^e
-    // factor onto whichever side (numerator or denominator) keeps it a positive power, so the
-    // division below is always an exact-integer numerator over an exact-integer denominator.
-    int64_t e = (int64_t)lhs.exponent() - (int64_t)rhs.exponent() + (int64_t)scale;
-    if (e >= 0) {
-        num *= numetron::pow(numetron::integer{ 10 }, static_cast<uint64_t>(e));
-    } else {
-        den *= numetron::pow(numetron::integer{ 10 }, static_cast<uint64_t>(-e));
+std::string to_fixed_decimal_string(numetron::decimal_view d, int64_t digits, numetron::decimal_round_mode mode)
+{
+    // Guarded here rather than left to numetron::to_fixed_string's own defensive check, so an
+    // unimplemented mode throws Annium's own sonia::not_implemented_error (THROW_NOT_IMPLEMENTED_
+    // ERROR) at this boundary -- the exception type every other "not implemented yet" spot in this
+    // codebase throws -- instead of numetron's plain std::runtime_error (matching *its* own
+    // "not implemented" convention, e.g. limb_arithmetic::udiv, but not Annium's).
+    if (mode != numetron::decimal_round_mode::half_even && mode != numetron::decimal_round_mode::half_up) {
+        THROW_NOT_IMPLEMENTED_ERROR("to_fixed: only rounding_mode.half_even and .half_up are implemented so far"sv);
     }
 
-    numetron::integer q = num / den; // truncated (toward zero) magnitude quotient
-    numetron::integer r = num % den;
+    // The actual rounding/formatting now lives in numetron itself (numetron::to_fixed_string,
+    // decimal_view.hpp) -- it's pure bigint arithmetic with no dependency on anything Annium-
+    // specific, so it belongs there rather than duplicated here. This wrapper just survives as the
+    // Annium-exception-typed entry point every caller in this file already uses.
+    return numetron::to_fixed_string(d, digits, mode);
+}
 
-    // round-half-even tie-break on the discarded remainder, compared against half the denominator
-    // (via 2*r instead of den/2 -- den isn't necessarily even, so this avoids integer-dividing it).
-    numetron::integer twice_r = r * numetron::integer{ 2 };
-    numetron::integer_view twice_r_v = (numetron::integer_view)twice_r;
-    numetron::integer_view den_v = (numetron::integer_view)den;
-    if (twice_r_v > den_v) {
-        q += 1;
-    } else if (twice_r_v == den_v && (q % 2)) {
-        q += 1; // exact tie: round to the even neighbor, and q is currently odd
+std::string to_fixed_string(smart_blob const& value, int64_t digits, numetron::decimal_round_mode mode)
+{
+    // Same reasoning as to_fixed_decimal_string's own guard above -- kept here too since this
+    // branch calls numetron::to_fixed_string directly, bypassing to_fixed_decimal_string.
+    if (mode != numetron::decimal_round_mode::half_even && mode != numetron::decimal_round_mode::half_up) {
+        THROW_NOT_IMPLEMENTED_ERROR("to_fixed: only rounding_mode.half_even and .half_up are implemented so far"sv);
     }
 
-    if (lhs.is_negative() != rhs.is_negative()) q = -q;
-
-    numetron::integer result_exp{ -static_cast<int64_t>(scale) };
-    if (q) {
-        // Strip trailing zeros -- same normalization every other decimal arithmetic result already
-        // gets (see e.g. multiply_numeric's decimal case), so a `scale` larger than the quotient
-        // actually needs doesn't leave fake extra precision sitting in the significand.
-        while (!(q % 10)) { q /= 10; result_exp += 1; }
+    switch (numeric_builtin_eid_of(*value)) {
+    case builtin_eid::f16:
+    case builtin_eid::f32:
+    case builtin_eid::f64: {
+        // decimal_view's own conversion from a native float goes through Dragonbox (shortest
+        // round-tripping decimal, not the exact binary value) -- reading it back out as a double
+        // is exact regardless (Dragonbox's whole guarantee is that this round-trips losslessly).
+        // From there, rounding has to stay in base 2 (numetron::to_fixed_string's float overload)
+        // rather than going through an exact base-10 decimal -- see that overload's own comment
+        // (decimal_view.hpp) for why the base-10 route blows past numetron's single-limb udiv fast
+        // path for essentially any real float input.
+        double val = static_cast<double>(value.as<numetron::decimal_view>());
+        return numetron::to_fixed_string(val, digits, mode);
     }
-
-    return numetron::decimal{ (numetron::integer_view)q, (numetron::integer_view)result_exp };
+    default:
+        // decimal itself, and every integral source (fixed-width int, bigint integer) -- none of
+        // these go through Dragonbox when read as a decimal_view (see
+        // sonia::invocation::from_blob<basic_decimal_view<LimbT>>), so this is already exact.
+        return to_fixed_decimal_string(value.as<numetron::decimal_view>(), digits, mode);
+    }
 }
 
 } // namespace annium

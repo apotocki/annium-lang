@@ -7,9 +7,15 @@
 #include "environment.hpp"
 #include "semantic.hpp"
 
+#include "annium/entities/literals/literal_entity.hpp"
+#include "annium/entities/signatured_entity.hpp"
+#include "annium/entities/prepared_call.hpp"
+#include "annium/ast/fn_compiler_context.hpp"
+#include "sonia/utility/invocation/invocation.hpp"
+
 namespace annium {
 
-entity const& get_entity(environment const& env, entity_identifier const& eid)
+entity const& get_entity(environment const& env, entity_identifier eid)
 {
     return env.eregistry_get(eid);
 }
@@ -31,6 +37,23 @@ entity_identifier get_result_type(environment const& env, syntax_expression_resu
         return ent.get_type();
     }
     return er.type();
+}
+
+entity_identifier try_decompose_ref_of(environment const& env, entity_identifier eid)
+{
+    if (!eid) return entity_identifier{};
+    entity const& ent = get_entity(env, eid);
+    entity_signature const* sig = ent.signature();
+    if (!sig || sig->name != env.get(builtin_qnid::ref)) return entity_identifier{};
+    field_descriptor const* of = sig->find_field(env.get(builtin_id::of));
+    return of ? of->entity_id() : entity_identifier{};
+}
+
+entity_identifier make_ref_of_type(environment& env, entity_identifier of_type)
+{
+    entity_signature rsig{ env.get(builtin_qnid::ref), env.get(builtin_eid::typename_) };
+    rsig.emplace_back(env.get(builtin_id::of), of_type, true);
+    return env.make_basic_signatured_entity(std::move(rsig)).id;
 }
 
 resource_location get_start_location(syntax_pattern const& ptrn)
@@ -111,6 +134,55 @@ bool all_paths_return(semantic::expression_span span)
         span.pop_front();
     }
     return false;
+}
+
+small_vector<entity_identifier, 8> const_array_element_ids(environment& env, entity_identifier array_value_eid, entity_identifier element_type_eid)
+{
+    entity const& arr_ent = get_entity(env, array_value_eid);
+    entity_signature const* arr_data = arr_ent.signature();
+
+    small_vector<entity_identifier, 8> element_ids;
+    if (arr_data && arr_data->name == env.get(builtin_qnid::data)) {
+        element_ids.reserve(arr_data->fields().size());
+        for (field_descriptor const& fd : arr_data->fields()) {
+            element_ids.push_back(fd.entity_id());
+        }
+        return element_ids;
+    }
+
+    // Raw-blob (generic_literal_entity) representation -- see the declaration's comment.
+    auto const& arr_lit = static_cast<generic_literal_entity const&>(arr_ent);
+    blob_result const& arr_blob = *arr_lit.value();
+    BOOST_ASSERT(is_array(arr_blob));
+    blob_type_selector(arr_blob, [&](auto ident, blob_result const& b) {
+        using type = typename decltype(ident)::type;
+        if constexpr (std::is_same_v<type, blob_result>) {
+            // Non-packable elements (string, bigint, decimal, nested array/tuple, ...) are stored
+            // as an array of full blob_result envelopes, each independently typed.
+            size_t n = array_size_of<blob_result>(b);
+            blob_result const* data = data_of<blob_result>(b);
+            element_ids.reserve(n);
+            for (size_t i = 0; i < n; ++i) {
+                element_ids.push_back(env.make_generic_entity(smart_blob{ data[i] }, element_type_eid).id);
+            }
+        } else if constexpr (std::is_integral_v<type> || std::is_floating_point_v<type> || std::is_same_v<type, numetron::float16>) {
+            // Homogeneous numeric elements are packed tightly as a native array. `bool` is read
+            // back as `uint8_t` (mirroring annium_unfold, annium_library.cpp) since the blob
+            // storage isn't guaranteed to hold a strictly-valid `bool` bit pattern for a raw
+            // `bool*` reinterpret -- the element's *entity* is still tagged with the real
+            // `element_type_eid` regardless of the blob's own underlying tag.
+            using fstype = std::conditional_t<std::is_same_v<type, bool>, uint8_t, type>;
+            size_t n = array_size_of<fstype>(b);
+            fstype const* data = data_of<fstype>(b);
+            element_ids.reserve(n);
+            for (size_t i = 0; i < n; ++i) {
+                element_ids.push_back(env.make_generic_entity(smart_blob{ particular_blob_result(data[i]) }, element_type_eid).id);
+            }
+        } else {
+            THROW_INTERNAL_ERROR("const_array_element_ids: unexpected constexpr array element blob type"sv);
+        }
+    });
+    return element_ids;
 }
 
 }

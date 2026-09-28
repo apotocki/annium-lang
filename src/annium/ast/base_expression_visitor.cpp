@@ -6,21 +6,28 @@
 #include "annium/ast/base_expression_visitor.ipp"
 //#include "annium/ast/base_expression_visitor.ipp"
 #include "annium/ast/declaration_visitor.hpp"
+#include "annium/ast/consteval_evaluator.hpp"
 //#include "annium/ast/fn_compiler_context.hpp"
 
 #include <boost/container/flat_set.hpp>
 
-#include "assign_expression_visitor.hpp"
+#include <array>
+#include <deque>
 
 #include "annium/entities/prepared_call.hpp"
 #include "annium/entities/literals/literal_entity.hpp"
 #include "annium/entities/functions/internal_function_entity.hpp"
+#include "annium/entities/struct/struct_entity.hpp"
+#include "annium/ast/arena.hpp"
 
 #include "annium/functional/internal_fn_pattern.hpp"
 
 #include "annium/errors/cast_error.hpp"
+#include "annium/errors/assign_error.hpp"
 
-//#include "annium/auxiliary.hpp"
+#include "annium/auxiliary.hpp"
+
+#include "sonia/utility/scope_exit.hpp"
 
 namespace annium {
 
@@ -159,8 +166,57 @@ base_expression_visitor::result_type base_expression_visitor::operator()(indirec
     return apply_cast(retrieve_indirect(env(), expressions, v));
 }
 
+optional<base_expression_visitor::result_type> base_expression_visitor::try_take_reference(entity_identifier vartype, variable_identifier varid, bool is_weak) const
+{
+    if (is_weak || !can_be_runtime(expected_result.modifier)) return nullopt;
+
+    entity_identifier ref_type;
+    if (expected_result.type) {
+        entity_identifier of_type = try_decompose_ref_of(env(), expected_result.type);
+        if (!of_type) return nullopt;
+        // No coercion -- see IMPLEMENTATION_NOTES.md's `ref(T)` section. This is also what makes
+        // forwarding an already-`ref(of: T)`-typed parameter into another `ref(of: T)`-declared
+        // parameter (`foo($x)`, both `T`-typed) work correctly: `vartype` is already `ref(of: T)`,
+        // so `of_type` (`T`, decomposed from the callee's expected `ref(of: T)`) never equals it,
+        // this path declines, and the fall-through `apply_cast` sees the (already-reference) types
+        // match exactly and passes `$x` through as a plain value-copy of the reference -- correct
+        // aliasing, not a coercion. Covered by references.ann's `increment_via_forwarded_param`.
+        if (of_type != vartype) return nullopt;
+        ref_type = expected_result.type;
+    } else if (wants_reference(expected_result.modifier)) {
+        // No specific type prescribed -- the caller just wants *a* reference and will read the type
+        // back off the result (via try_decompose_ref_of) to learn what it got. Derive ref(of:...)
+        // from this variable's own real type instead of requiring it to already be known top-down --
+        // this is what lets a chained get()-pattern (tuple/array element access) resolve `self` as a
+        // reference in one pass instead of two. See IMPLEMENTATION_NOTES.md's `ref(T)` section.
+        //
+        // But if the variable's OWN declared type is already a reference (e.g. a `$x: ref(of: T)`
+        // parameter), don't wrap it in a second one -- fall through to the ordinary path below, which
+        // returns $x's own value (itself already ref(of: T)) unchanged, correctly forwarding the
+        // existing reference instead of taking the address of the variable that holds it. This is
+        // the guard against `ref(of: ref(of: T))` -- see FUTURE_WORK.md's `ref(T)` item 4 ("nested
+        // references"), still untested/unspecified beyond this guard. The OTHER forwarding case --
+        // `foo($x)` into an ordinary `ref(of: T)`-declared parameter, not an explicit `ref(...)`
+        // call -- goes through path (a) above instead (`of_type != vartype`), and is deliberate and
+        // tested (see that branch's comment and references.ann's `increment_via_forwarded_param`).
+        if (try_decompose_ref_of(env(), vartype)) return nullopt;
+        ref_type = make_ref_of_type(env(), vartype);
+    } else {
+        return nullopt;
+    }
+
+    semantic::expression_span exprs_span;
+    env().push_back_expression(expressions, exprs_span, semantic::push_local_variable_index{ .varid = varid });
+    env().push_back_expression(expressions, exprs_span, semantic::invoke_function{ env().get(builtin_eid::ref_of) });
+    return std::pair{
+        syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = ref_type, .is_const_result = false },
+        false
+    };
+}
+
 base_expression_visitor::result_type base_expression_visitor::operator()(local_variable_expression const& lv) const
 {
+    if (auto refres = try_take_reference(lv.type, lv.varid, false); refres) return std::move(*refres);
     semantic::expression_span exprs_span;
     env().push_back_expression(expressions, exprs_span, semantic::push_local_variable{ .varid = lv.varid });
     return apply_cast(syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = lv.type, .is_const_result = false });
@@ -655,11 +711,24 @@ base_expression_visitor::result_type base_expression_visitor::operator()(fn_comp
             return std::unexpected(make_error<undeclared_identifier_error>(context_expression_.location, qn));
         },
         [this](local_variable const& lvar) -> result_type {
+            if (auto refres = try_take_reference(lvar.type, lvar.varid, lvar.is_weak); refres) return std::move(*refres);
             semantic::expression_span exprs_span;
             env().push_back_expression(expressions, exprs_span, semantic::push_local_variable::create(lvar));
             return apply_cast(syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = lvar.type, .is_const_result = false });
         },
         [this](functional_variable const& fvar) -> result_type {
+            // Unlike a `local_variable`, an `extern var` has no VM-managed storage slot at all --
+            // it's fetched/stored purely by name via an ecall (`extern_variable_get`/`_set`,
+            // `vm/compiler_visitor.hpp`), never a `blob_result` a `blob_reference` could point at.
+            // So there is no `try_take_reference` call here (contrast the `local_variable` branch
+            // above): referencing an extern variable is impossible by construction, not merely
+            // unimplemented -- reject it explicitly with a clear cause instead of falling through
+            // to `apply_cast`'s generic, uninformative cast-mismatch error. Mirrors
+            // `prepared_call.cpp`'s `deref()` rejection for the assignment-target path. See
+            // IMPLEMENTATION_NOTES.md's `ref(T)` section and RESOLVED.md's `ref(T)` item 3.
+            if (wants_reference(expected_result.modifier) || (expected_result.type && try_decompose_ref_of(env(), expected_result.type))) {
+                return std::unexpected(make_error<basic_general_error>(fvar.name.location, "cannot take a reference to an extern variable"sv, fvar.name.value));
+            }
             semantic::expression_span exprs_span;
             env().push_back_expression(expressions, exprs_span, semantic::push_variable{ fvar });
             return apply_cast(syntax_expression_result{ .expressions = std::move(exprs_span), .value_or_type = fvar.type, .is_const_result = false });
@@ -727,12 +796,12 @@ base_expression_visitor::result_type base_expression_visitor::operator()(member_
     if (match) {
         return apply_cast(match->apply(ctx));
     }
-    try {
-    GLOBAL_LOG_ERROR() << env().print(*match.error());
-    }
-    catch (...) {
-        GLOBAL_LOG_ERROR() << boost::current_exception_diagnostic_information();
-    }
+    //try {
+    //  GLOBAL_LOG_ERROR() << env().print(*match.error());
+    //}
+    //catch (...) {
+    //    GLOBAL_LOG_ERROR() << boost::current_exception_diagnostic_information();
+    //}
     auto fn_member_id = base_expression_visitor::visit(ctx,
         expressions,
         expected_result_t{.type = env().get(builtin_eid::qname), .modifier = value_modifier_t::constexpr_value },
@@ -1024,6 +1093,14 @@ base_expression_visitor::result_type base_expression_visitor::operator()(binary_
         return this->operator()(builtin_qnid::eq, be.args);
     case binary_operator_type::NE:
         return this->operator()(builtin_qnid::ne, be.args);
+    case binary_operator_type::LESS:
+        return this->operator()(builtin_qnid::less, be.args);
+    case binary_operator_type::LESS_EQ:
+        return this->operator()(builtin_qnid::less_eq, be.args);
+    case binary_operator_type::GREATER:
+        return this->operator()(builtin_qnid::greater, be.args);
+    case binary_operator_type::GREATER_EQ:
+        return this->operator()(builtin_qnid::greater_eq, be.args);
     case binary_operator_type::PLUS:
         return this->operator()(builtin_qnid::plus, be.args);
     case binary_operator_type::MINUS:
@@ -1032,6 +1109,8 @@ base_expression_visitor::result_type base_expression_visitor::operator()(binary_
         return this->operator()(builtin_qnid::multiply, be.args);
     case binary_operator_type::DIV:
         return this->operator()(builtin_qnid::divide, be.args);
+    case binary_operator_type::MOD:
+        return this->operator()(builtin_qnid::modulo, be.args);
     case binary_operator_type::BIT_OR:
         return this->operator()(builtin_qnid::bit_or, be.args);
     case binary_operator_type::BIT_AND:
@@ -1230,19 +1309,107 @@ base_expression_visitor::result_type base_expression_visitor::do_logic_or(binary
 
 base_expression_visitor::result_type base_expression_visitor::do_assign(binary_expression const& op) const
 {
-    //THROW_NOT_IMPLEMENTED_ERROR("base_expression_visitor binary_operator_type::ASSIGN");
-    //GLOBAL_LOG_INFO() << "left expression: " << ctx.env().print(op.left);
-    //size_t start_result_pos = result.size();
     BOOST_ASSERT(op.args.size() == 2);
-    assign_expression_visitor lvis{ ctx, expressions, context_expression_.location, op.args[0].value(), op.args[1].value() };
+    syntax_expression const& lhs = op.args[0].value();
+    syntax_expression const& rhs = op.args[1].value();
 
-    auto res = std::visit(lvis, op.args[0].value().value);
-    if (!res) return std::unexpected(std::move(res.error()));
+    // Fast path: a plain variable name writes directly into its own slot (set_local_variable /
+    // set_variable) UNLESS the variable's own declared type is itself `ref(of: T)` -- see the guard
+    // just below. Deliberately NOT routed through ref(...)/set(self: ~ref(of $T), value) for the
+    // ordinary case -- that would cost a real blob_reference construction and an extra indirection
+    // on every ordinary `x = value;`, the single hottest write path in the interpreter, just for the
+    // sake of using one uniform mechanism everywhere.
+    if (auto const* v = get_if<qname_reference_expression>(&lhs.value)) {
+        auto e = ctx.lookup_entity(v->name);
 
-    return apply_cast(std::move(res));
+        // But if `y`'s OWN declared type is already `ref(of: T)`, bare `y = value;` must NOT take
+        // that fast path: for such a `y`, plain assignment means "write through to the current
+        // target" (matching `arr[i] = v`/`t.field = v`, and matching what a caller who received a
+        // `ref(of: T)` parameter actually wants), not "rebind y to point somewhere else" --
+        // rebinding is a separate, explicit, deliberately rare operation (`rebind(self, value)`,
+        // functional/general/rebind_pattern.cpp). Falling through to the shared ref(lhs)+set(...) path below gets
+        // write-through for free: `ref(y)` on an already-reference-typed `y` hands back `y`'s own
+        // value unchanged (try_take_reference's "already a reference" guard), so `set(self: <that
+        // ref>, value: rhs)` writes through exactly as intended. See IMPLEMENTATION_NOTES.md's
+        // `ref(T)` section.
+        entity_identifier lhs_own_type;
+        if (auto const* lv = get_if<local_variable>(&e)) lhs_own_type = lv->type;
+        else if (auto const* fv = get_if<functional_variable>(&e)) lhs_own_type = fv->type;
 
-    //ctx.context_type = ctx.env().get(builtin_eid::void_);
-    //return std::pair{ semantic::managed_expression_list{ ctx.env() }, false };
+        if (!lhs_own_type || !try_decompose_ref_of(env(), lhs_own_type)) {
+            auto res = std::visit([this, v, &lhs, &rhs](auto& eid_or_var) -> std::expected<syntax_expression_result, error_storage> {
+                entity_identifier assign_type;
+                if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, local_variable>) {
+                    assign_type = eid_or_var.type;
+                } else if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, functional_variable>) {
+                    assign_type = eid_or_var.type;
+                } else {
+                    static_assert(std::is_same_v<std::decay_t<decltype(eid_or_var)>, entity_identifier>);
+                    if (!eid_or_var) return std::unexpected(make_error<undeclared_identifier_error>(lhs.location, v->name));
+                    return std::unexpected(make_error<assign_error>(context_expression_.location, lhs));
+                }
+
+                auto rres = base_expression_visitor::visit(
+                    ctx,
+                    expressions,
+                    expected_result_t{
+                        .type = assign_type,
+                        .location = context_expression_.location,
+                        .modifier = value_modifier_t::runtime_value },
+                    rhs);
+                if (!rres) return std::unexpected(std::move(rres.error()));
+                auto& ser = rres->first;
+                BOOST_ASSERT(!ser.is_const_result);
+
+                if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, local_variable>) {
+                    if (eid_or_var.is_weak) {
+                        THROW_NOT_IMPLEMENTED_ERROR("base_expression_visitor binary_operator_type::ASSIGN weak");
+                    }
+                    env().push_back_expression(expressions, ser.expressions, semantic::set_local_variable::create(eid_or_var));
+                } else if constexpr (std::is_same_v<std::decay_t<decltype(eid_or_var)>, functional_variable>) {
+                    env().push_back_expression(expressions, ser.expressions, semantic::set_variable{ eid_or_var });
+                } else {
+                    THROW_INTERNAL_ERROR("unhandled base_expression_visitor::do_assign qname_reference_expression case");
+                }
+                return std::move(ser);
+            }, e);
+
+            return apply_cast(std::move(res));
+        }
+        // else: lhs is a plain `ref(of: T)`-typed variable -- fall through to the shared
+        // ref(lhs)+set(...) path below instead of the fast path above.
+    }
+
+    // Everything else (member access `.field`/`.0`, index access `[i]`, and a plain `ref(of: T)`-
+    // typed variable, see the guard above) prefers going through `ref(lhs)` + `set(self: ~ref(of
+    // $T), value: $T)` (bootstrap.ann) -- the same, already-proven machinery tuple/array element
+    // reads and mutation already use (see IMPLEMENTATION_NOTES.md's `ref(T)` section) -- rather than
+    // any per-lhs-shape special casing. This covers `t.0 = v`, `arr[i] = v`, and `y = v` (for a `y:
+    // ref(of: T)`) uniformly with no bespoke handler for any of them.
+    call_builder ref_call{ context_expression_.location };
+    ref_call.emplace_back(lhs);
+    if (auto ref_match = ctx.find(builtin_qnid::ref, ref_call, expressions); ref_match) {
+        auto ref_res = ref_match->apply(ctx);
+        if (!ref_res) return std::unexpected(std::move(ref_res.error()));
+
+        // `value` must be a NAMED argument here -- bootstrap.ann's `set(self: ~ref(of $T), value:
+        // runtime $T)` declares it by name, and an `.ann`-declared parameter's general matching
+        // machinery does not bind a positional argument to a differently-supplied named one.
+        call_builder set_call{ context_expression_.location };
+        set_call.emplace_back(env().get(builtin_id::self), make_indirect_value(env(), expressions, std::move(*ref_res), context_expression_.location));
+        set_call.emplace_back(env().make_identifier("value"sv), rhs);
+
+        auto match = ctx.find(builtin_qnid::set, set_call, expressions);
+        if (!match) {
+            return std::unexpected(append_cause(
+                make_error<assign_error>(context_expression_.location, lhs),
+                std::move(match.error())
+            ));
+        }
+        return apply_cast(match->apply(ctx));
+    }
+
+    return std::unexpected(make_error<assign_error>(context_expression_.location, lhs));
 }
 
 base_expression_visitor::result_type base_expression_visitor::do_cast(binary_expression const& be) const
@@ -1347,6 +1514,220 @@ base_expression_visitor::result_type base_expression_visitor::operator()(lambda 
     return apply_cast(lambda_ent);
 }
 
+base_expression_visitor::result_type base_expression_visitor::operator()(match_expression const& me) const
+{
+    // Resolve the scrutinee exactly once. Its resolved value is spliced into the apply(...) call
+    // below via make_indirect_value instead of passing *me.scrutinee through raw -- so it is
+    // evaluated here and nowhere else -- and its type drives the short-name lookup just below.
+    auto scrutinee_res = base_expression_visitor::visit(ctx, expressions, expected_result_t{}, *me.scrutinee);
+    if (!scrutinee_res) {
+        return std::unexpected(append_cause(
+            make_error<basic_general_error>(me.scrutinee->location, "cannot resolve match scrutinee"sv),
+            std::move(scrutinee_res.error())
+        ));
+    }
+    syntax_expression_result scrutinee_er = std::move(scrutinee_res->first);
+    entity_identifier scrutinee_type = scrutinee_er.is_const_result
+        ? get_entity(env(), scrutinee_er.value()).get_type()
+        : scrutinee_er.type();
+
+    // Short-name lookup: a struct case's own last qname segment (`Tree::Leaf` -> `Leaf`), or a bare
+    // case atom's own identifier value (`.Empty` -> `Empty`) -- only populated when the scrutinee's
+    // type actually is a `union(...)` (e.g. one built from a structural enum). Lets each arm below
+    // write the short, enum-local name instead of the fully-qualified one.
+    struct member_info { entity_identifier eid; bool is_const; qname_view full_name; };
+    small_vector<std::pair<identifier, member_info>, 8> short_names;
+    if (entity_signature const* union_sig = get_entity(env(), scrutinee_type).signature();
+        union_sig && union_sig->name == env().get(builtin_qnid::union_))
+    {
+        for (field_descriptor const& fd : union_sig->fields()) {
+            if (fd.is_const()) {
+                if (identifier_entity const* id_ent = dynamic_cast<identifier_entity const*>(&get_entity(env(), fd.entity_id()))) {
+                    short_names.emplace_back(id_ent->value(), member_info{ fd.entity_id(), true, {} });
+                }
+            } else if (struct_entity const* sent = dynamic_cast<struct_entity const*>(&get_entity(env(), fd.entity_id()))) {
+                qname_view qn = sent->name();
+                if (qn) short_names.emplace_back(qn.back(), member_info{ fd.entity_id(), false, qn });
+            }
+        }
+    }
+
+    // Synthesize one anonymous functional carrying one overload per arm -- exactly what a plain
+    // lambda does just above, looped over `me.arms` instead of compiling a single fn_decl -- then
+    // dispatch through the existing apply(to:, visitor:) union-consume builtin
+    // (entities/union/union_apply_pattern.cpp), which already implements runtime dispatch on the
+    // scrutinee's active case, per-arm result-type unification (building a union when arms disagree,
+    // same algorithm as a function's own multiple `return`s -- fn_compiler_context::finish_frame),
+    // and casting into an already-known expected result type. See IMPLEMENTATION_NOTES.md's "match
+    // expression" section.
+    identifier visitor_name_id = env().new_identifier();
+    qname visitor_qname = ctx.ns() / qname{ visitor_name_id, false };
+    functional& fnl = env().resolve_functional(visitor_qname);
+
+    // Rewritten arm patterns (short-name -> qualified, or short-name -> value) need stable storage
+    // for as long as the apply(...) call below runs -- pattern matching against them happens
+    // synchronously nested inside it (arm overload resolution, one probe per union member), and
+    // nothing here needs to outlive this function, so a plain local deque (stable addresses on
+    // push_back, unlike vector) is enough; no arena allocation needed.
+    std::deque<syntax_pattern> rewritten_patterns;
+    std::deque<syntax_expression> rewritten_exprs;
+
+    // A field-destructuring arm (`Leaf(name $n, value $v) => ...`) needs genuinely long-lived
+    // storage instead: the rewritten *body* (synthesized `let`s prepended to the arm's own
+    // statements) becomes the eventual internal_function_entity's body_, built lazily -- possibly
+    // well after this function returns -- so it must outlive this call, unlike the pattern
+    // rewriting above. Lazily acquired only if some arm actually needs it, and returned to
+    // environment's arena pool (not freed -- see environment::acquire_arena/release_arena) once
+    // this whole match_expression is done being desugared.
+    std::unique_ptr<arena> synth_arena;
+    SCOPE_EXIT([this, &synth_arena]() { if (synth_arena) env().release_arena(std::move(synth_arena)); });
+    identifier zero_id = env().slregistry().resolve("$0"sv);
+    syntax_expression const* zero_expr = nullptr;
+
+    for (match_arm const& arm : me.arms) {
+        syntax_pattern const* pat = arm.pattern;
+        bool is_value_pattern = std::holds_alternative<syntax_expression const*>(pat->descriptor);
+
+        if (!is_value_pattern) {
+            if (auto const* sd = get_if<syntax_pattern::signature_descriptor>(&pat->descriptor)) {
+                if (auto const* aqv = get_if<annotated_qname_view>(&sd->name); aqv && aqv->value.size() == 1 && aqv->value.is_relative()) {
+                    identifier short_name = aqv->value.back();
+                    member_info const* found = nullptr;
+                    for (auto const& p : short_names) {
+                        if (p.first == short_name) { found = &p.second; break; }
+                    }
+                    if (found) {
+                        if (found->is_const) {
+                            // bare case atom (e.g. `Empty`): rewrite to the exact value pattern
+                            // `{<atom>}` would already produce, so it goes through the ordinary
+                            // syntax_expression value-comparison branch of pattern_matcher::match
+                            // (pattern_matcher.cpp:27-32) instead of signature_descriptor's
+                            // type-name comparison, which a plain atom could never satisfy.
+                            syntax_expression& atom_expr = rewritten_exprs.emplace_back(syntax_expression{ aqv->location, entity_identifier{ found->eid } });
+                            pat = &rewritten_patterns.emplace_back(syntax_pattern{ .descriptor = &atom_expr, .concepts = pat->concepts });
+                            is_value_pattern = true;
+                        } else {
+                            // structural case (e.g. `Leaf`): rewrite to its fully-qualified name,
+                            // keeping any subpatterns/concepts exactly as written.
+                            syntax_pattern::signature_descriptor new_sd = *sd;
+                            new_sd.name = annotated_qname_view{ found->full_name, aqv->location };
+                            pat = &rewritten_patterns.emplace_back(syntax_pattern{ .descriptor = new_sd, .concepts = pat->concepts });
+                        }
+                    }
+                }
+            }
+        }
+
+        // Field-destructuring sugar: `Leaf(name $n, value $v) => body` does NOT match against a
+        // struct's own runtime field layout -- a struct's own signature (what pattern_matcher.cpp's
+        // do_match actually checks) describes its constructor/type-selector shape, not its instance
+        // fields (empty for a plain `struct Name => (fields)`; the constructor's own parameters for
+        // a parameterized one, e.g. `iterator(typename array(...))` -- see IMPLEMENTATION_NOTES.md's
+        // "match expression" section). So instead of trying to teach do_match about instance
+        // fields, `match` rewrites the arm itself: the matched pattern is stripped down to a bare
+        // type check (`~Leaf`), and one `let $n = $0.name;` per bound field is prepended to the
+        // arm's own body, reusing the already-correct, generic `get(self:, property:)`/`tuple_of`
+        // field-access machinery -- exactly as if the caller had written `$0.name` by hand. This
+        // also gives `$n` the field's actual runtime *value*, not just its type (unlike a bound
+        // pattern variable anywhere else in the language, e.g. `of $ET`/`of $T` -- those only ever
+        // bind a matched field's declared type, since pattern_matcher has no notion of "the value").
+        span<const statement> arm_body = arm.body;
+        if (auto const* sd = get_if<syntax_pattern::signature_descriptor>(&pat->descriptor); sd && !sd->fields.empty()) {
+            if (!synth_arena) synth_arena = env().acquire_arena();
+            arena& ar = *synth_arena;
+            if (!zero_expr) zero_expr = ar.make<syntax_expression>(get_start_location(*arm.pattern), name_reference_expression{ zero_id });
+
+            std::vector<statement> new_body;
+            new_body.reserve(sd->fields.size() + arm.body.size());
+            for (syntax_pattern::field const& field : sd->fields) {
+                if (field.ellipsis) {
+                    return std::unexpected(make_error<basic_general_error>(get_start_location(*arm.pattern),
+                        "match arm field destructuring does not support '...'"sv));
+                }
+                annotated_identifier const* fname = get_if<annotated_identifier>(&field.name);
+                if (!fname) {
+                    return std::unexpected(make_error<basic_general_error>(get_start_location(*arm.pattern),
+                        "match arm field destructuring requires a named field"sv));
+                }
+                bool trivial = std::holds_alternative<placeholder>(field.value->descriptor) && field.value->concepts.empty();
+                if (!trivial) {
+                    return std::unexpected(make_error<basic_general_error>(fname->location,
+                        "match arm field destructuring does not support an additional constraint on a field"sv, fname->value));
+                }
+                if (!field.bound_variable) continue; // named but unbound: documentation only, no-op
+
+                syntax_expression const* prop_expr = ar.make<syntax_expression>(fname->location, fname->value);
+                std::array<opt_named_expression_t, 1> local_exprs{
+                    opt_named_expression_t{ syntax_expression{ fname->location, member_expression{ zero_expr, prop_expr } } }
+                };
+                span<const opt_named_expression_t> let_args = ar.make_array<opt_named_expression_t>(span<const opt_named_expression_t>{ local_exprs });
+                new_body.emplace_back(let_statement{
+                    .aname = field.bound_variable,
+                    .expressions = let_args,
+                    .assign_location = fname->location,
+                    .weakness = false
+                });
+            }
+            new_body.insert(new_body.end(), arm.body.begin(), arm.body.end());
+            arm_body = ar.make_array<statement>(span<const statement>{ new_body });
+
+            syntax_pattern::signature_descriptor stripped_sd = *sd;
+            stripped_sd.fields = {};
+            pat = &rewritten_patterns.emplace_back(syntax_pattern{ .descriptor = stripped_sd, .concepts = pat->concepts });
+        }
+
+        // each arm becomes a one-parameter overload whose sole parameter's constraint is the arm's
+        // own (possibly just-rewritten) pattern -- the same shape `~Case(...)` gives an ordinary
+        // function parameter, so destructuring/binding and the `_` placeholder fallback need no new
+        // matching logic.
+        //
+        // The modifier matters for a *value* pattern specifically (`{expr}`, or a bare-case atom
+        // rewritten above): parameter_matcher.cpp's operator()(syntax_pattern const&) only passes
+        // the candidate's own VALUE (not its type) into pattern_matcher::match() when the
+        // parameter's modifier carries constexpr_not_a_typename_value -- the same modifier
+        // `~pattern-mod`'s `CONSTEVAL syntax-expression` alternative sets (annium.y's pattern-mod).
+        // Any other modifier (including the default constexpr_or_runtime_type) makes a constexpr
+        // candidate get compared by its *type* instead, which is right for a structural/nominal
+        // pattern (`Tree::Leaf`, matched by type) but wrong for a value pattern.
+        std::vector<parameter> params{ parameter{
+            // `$name: pattern` (arm.bind_name set) makes the matched value referenceable as `$name`
+            // in the arm body instead of the default `$0` -- still positional-only (no `$` -> no
+            // external name), so apply's own unnamed probe call (union_apply_pattern.cpp:104-119)
+            // keeps matching it either way.
+            .name = unnamed_parameter_name{ arm.bind_name },
+            .constraint = pat,
+            .modifier = is_value_pattern
+                ? parameter_constraint_modifier_t::constexpr_not_a_typename_value
+                : parameter_constraint_modifier_t::constexpr_or_runtime_type
+        } };
+        fn_decl arm_fn{ fn_pure{ .parameters = params, .result = nullptr }, arm_body };
+        auto fnptrn = make_shared<internal_fn_pattern>();
+        error_storage err = fnptrn->init(ctx, arm_fn);
+        if (err) {
+            return std::unexpected(append_cause(
+                make_error<basic_general_error>(context_expression_.location, "invalid match arm"sv),
+                std::move(err)
+            ));
+        }
+        fnl.push(std::move(fnptrn));
+    }
+
+    functional_identifier_entity const& visitor_ent = env().make_functional_identifier_entity(fnl.id());
+
+    call_builder apply_call{ context_expression_.location };
+    apply_call.emplace_back(env().get(builtin_id::to), make_indirect_value(env(), expressions, std::move(scrutinee_er), me.scrutinee->location));
+    apply_call.emplace_back(env().get(builtin_id::visitor), syntax_expression{ context_expression_.location, entity_identifier{ visitor_ent.id } });
+
+    auto match = ctx.find(builtin_qnid::apply, apply_call, expressions, expected_result);
+    if (!match) {
+        return std::unexpected(append_cause(
+            make_error<basic_general_error>(context_expression_.location, "no match arm covers the scrutinee"sv),
+            std::move(match.error())
+        ));
+    }
+    return apply_cast(match->apply(ctx));
+}
+
 base_expression_visitor::result_type base_expression_visitor::operator()(annium_fn_type const& v) const
 {
     entity_signature fn_sig{ env().get(builtin_qnid::function), env().get(builtin_eid::typename_) };
@@ -1378,6 +1759,56 @@ base_expression_visitor::result_type base_expression_visitor::operator()(not_emp
 {
     (void)v;
     THROW_NOT_IMPLEMENTED_ERROR("base_expression_visitor not_empty_expression_t");
+}
+
+base_expression_visitor::result_type base_expression_visitor::operator()(consteval_expression const& ce) const
+{
+    // Guard for the `consteval(condition) expr` form (null `condition` is the plain, always-forced
+    // `consteval expr`). `condition` gets the same constexpr-or-runtime treatment as the operand
+    // below -- resolved normally first, and only pushed through evaluate_consteval if it didn't
+    // already fold to a compile-time value on its own -- since the condition must itself be a
+    // compile-time bool regardless of how it happens to be written.
+    bool forced = true;
+    if (ce.condition) {
+        auto cond_res = base_expression_visitor::visit(ctx, expressions,
+            expected_result_t{ .type = env().get(builtin_eid::boolean), .location = ce.condition->location },
+            *ce.condition);
+        if (!cond_res) return std::unexpected(std::move(cond_res.error()));
+        syntax_expression_result cond_er = cond_res->first;
+        if (!cond_er.is_const_result) {
+            auto cond_eval_res = evaluate_consteval(ctx, ce.condition->location, std::move(cond_er));
+            if (!cond_eval_res) return std::unexpected(std::move(cond_eval_res.error()));
+            cond_er = std::move(*cond_eval_res);
+        }
+        forced = static_cast<generic_literal_entity const&>(get_entity(env(), cond_er.value())).value().as<bool>();
+    }
+
+    // Ordinary runtime semantics for the operand -- the same overloads a normal compilation
+    // would pick (CONSTEVAL_CTFE_PLAN.md section 3.1). The *modifier* is deliberately left
+    // unconstrained (constexpr_or_runtime_value, the expected_result_t default): that's what lets
+    // a `runtime` parameter materialise a constexpr literal argument the normal way -- argument
+    // binding is driven by the callee's own parameter modifiers, not by this. The ambient *type*
+    // (from whatever expected_result this whole consteval_expression node was itself constructed
+    // with, e.g. the enclosing function's declared return type) IS forwarded, though: it plays no
+    // part in choosing between differently-named-the-same overload candidates (match_penalty.hpp
+    // has no type-vs-expected-type field at all -- only per-argument casts/placeholders/variadics
+    // feed overload ranking) and only two things can happen with it -- a pattern-typed/generic-
+    // result candidate (like `reinterpret`, which has no fixed return type of its own and requires
+    // a type up front) becomes matchable that otherwise couldn't be, or apply_cast below ends up
+    // with nothing left to do because the operand already produced the right type. Either way,
+    // a genuine tie still surfaces honestly as ambiguity_error, never a silent wrong pick.
+    auto res = base_expression_visitor::visit(ctx, expressions,
+        expected_result_t{ .type = expected_result.type, .location = ce.value->location }, *ce.value);
+    if (!res) return std::unexpected(std::move(res.error()));
+    syntax_expression_result& er = res->first;
+    if (!forced || er.is_const_result) {
+        // the condition asked to skip CTFE, or the operand already folded to a compile-time value
+        // on its own; nothing to evaluate
+        return apply_cast(std::move(er));
+    }
+    auto eval_res = evaluate_consteval(ctx, context_expression_.location, std::move(er));
+    if (!eval_res) return std::unexpected(std::move(eval_res.error()));
+    return apply_cast(std::move(*eval_res));
 }
 
 } // namespace annium

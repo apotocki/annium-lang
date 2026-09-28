@@ -38,9 +38,9 @@ set (LIBRARY_SOURCES
     ${ANNIUM_SRC}/annium/annium_semantic.cpp
     ${ANNIUM_SRC}/annium/annium_environment.cpp
     ${ANNIUM_SRC}/annium/annium_auxiliary.cpp
-    ${ANNIUM_SRC}/annium/ast/assign_expression_visitor.cpp
     ${ANNIUM_SRC}/annium/ast/ast_resource.cpp
     ${ANNIUM_SRC}/annium/ast/base_expression_visitor.cpp
+    ${ANNIUM_SRC}/annium/ast/consteval_evaluator.cpp
     ${ANNIUM_SRC}/annium/ast/declaration_visitor.cpp
     ${ANNIUM_SRC}/annium/ast/fn_compiler_context.cpp
     ${ANNIUM_SRC}/annium/entities/functional_binding.cpp
@@ -50,7 +50,7 @@ set (LIBRARY_SOURCES
     
     ${ANNIUM_SRC}/annium/entities/array/array_from_iterator_make_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/array/array_implicit_cast_pattern.cpp
-    
+
     ${ANNIUM_SRC}/annium/entities/fixed_array/fixed_array_elements_implicit_cast_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/fixed_array/fixed_array_make_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/fixed_array/fixed_array_head_pattern.cpp
@@ -58,15 +58,7 @@ set (LIBRARY_SOURCES
     ${ANNIUM_SRC}/annium/entities/fixed_array/fixed_array_get_pattern.cpp
     
     ${ANNIUM_SRC}/annium/entities/ellipsis/ellipsis_pattern.cpp
-    
-    ${ANNIUM_SRC}/annium/entities/enum/enum_entity.cpp
-    ${ANNIUM_SRC}/annium/entities/enum/enum_equal_pattern.cpp
-    ${ANNIUM_SRC}/annium/entities/enum/enum_get_pattern.cpp
-    ${ANNIUM_SRC}/annium/entities/enum/enum_implicit_cast_pattern.cpp
-    ${ANNIUM_SRC}/annium/entities/enum/enum_implicit_runtime_cast_pattern.cpp
-    ${ANNIUM_SRC}/annium/entities/enum/enum_to_integer_pattern.cpp
-    ${ANNIUM_SRC}/annium/entities/enum/enum_to_string_pattern.cpp
-    
+
     ${ANNIUM_SRC}/annium/entities/functions/expression_resolver.cpp
     ${ANNIUM_SRC}/annium/entities/functions/internal_function_entity.cpp
     
@@ -81,6 +73,9 @@ set (LIBRARY_SOURCES
     ${ANNIUM_SRC}/annium/entities/literals/numeric_literal_minus_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/literals/numeric_literal_mul_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/literals/numeric_literal_div_pattern.cpp
+    ${ANNIUM_SRC}/annium/entities/literals/numeric_literal_mod_pattern.cpp
+    ${ANNIUM_SRC}/annium/entities/literals/numeric_literal_bit_and_pattern.cpp
+    ${ANNIUM_SRC}/annium/entities/literals/numeric_literal_bit_or_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/literals/numeric_promotion.cpp
     ${ANNIUM_SRC}/annium/entities/literals/numeric_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/literals/numeric_cast_constexpr_pattern.cpp
@@ -91,10 +86,8 @@ set (LIBRARY_SOURCES
     ${ANNIUM_SRC}/annium/entities/struct/is_struct_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/struct/struct_entity.cpp
     ${ANNIUM_SRC}/annium/entities/struct/struct_fn_pattern.cpp
-    ${ANNIUM_SRC}/annium/entities/struct/struct_get_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/struct/struct_init_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/struct/struct_new_pattern.cpp
-    ${ANNIUM_SRC}/annium/entities/struct/struct_set_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/struct/tuple_of_pattern.cpp
     
     ${ANNIUM_SRC}/annium/entities/tuple/tuple_empty_pattern.cpp
@@ -107,7 +100,6 @@ set (LIBRARY_SOURCES
     ${ANNIUM_SRC}/annium/entities/tuple/tuple_pattern_base.cpp
     ${ANNIUM_SRC}/annium/entities/tuple/tuple_project_get_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/tuple/tuple_project_size_pattern.cpp
-    ${ANNIUM_SRC}/annium/entities/tuple/tuple_set_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/tuple/tuple_size_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/tuple/tuple_tail_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/tuple/tuple_typename_get_pattern.cpp
@@ -115,7 +107,10 @@ set (LIBRARY_SOURCES
     ${ANNIUM_SRC}/annium/entities/union/to_union_implicit_cast_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/union/union_apply_pattern.cpp
     ${ANNIUM_SRC}/annium/entities/union/union_bit_or_pattern.cpp
-    
+    ${ANNIUM_SRC}/annium/entities/union/union_to_integer_pattern.cpp
+    ${ANNIUM_SRC}/annium/entities/union/union_get_pattern.cpp
+    ${ANNIUM_SRC}/annium/entities/union/union_typeof_pattern.cpp
+
     ${ANNIUM_SRC}/annium/functional/match_penalty.cpp
     ${ANNIUM_SRC}/annium/functional/functional.cpp
     ${ANNIUM_SRC}/annium/functional/basic_fn_pattern.cpp
@@ -128,8 +123,13 @@ set (LIBRARY_SOURCES
     ${ANNIUM_SRC}/annium/functional/pattern_matcher.cpp
         
     ${ANNIUM_SRC}/annium/functional/general/assert_pattern.cpp
+    ${ANNIUM_SRC}/annium/functional/general/bool_bit_and_pattern.cpp
+    ${ANNIUM_SRC}/annium/functional/general/bool_bit_or_pattern.cpp
     ${ANNIUM_SRC}/annium/functional/general/create_identifier_pattern.cpp
     ${ANNIUM_SRC}/annium/functional/general/deref_pattern.cpp
+    ${ANNIUM_SRC}/annium/functional/general/ref_pattern.cpp
+    ${ANNIUM_SRC}/annium/functional/general/rebind_pattern.cpp
+    ${ANNIUM_SRC}/annium/functional/general/deref_call_pattern.cpp
     ${ANNIUM_SRC}/annium/functional/general/equal_pattern.cpp
     ${ANNIUM_SRC}/annium/functional/general/error_pattern.cpp
     ${ANNIUM_SRC}/annium/functional/general/is_const_pattern.cpp

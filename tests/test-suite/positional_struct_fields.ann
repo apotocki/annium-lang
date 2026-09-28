@@ -1,0 +1,10 @@
+// Positional (unnamed) struct fields -- see ANNIUM_SYNTAX.md's "Struct field declaration" and
+// IMPLEMENTATION_NOTES.md's "Positional (unnamed) struct fields" section.
+
+// mixed: one named field, one positional field
+struct Point => (x: i32, i32);
+
+let px: i32 = runtime_cast(1);
+let py: i32 = runtime_cast(2);
+let p: Point = init(x: px, py);
+assert_equal(p.x, 1);

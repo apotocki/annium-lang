@@ -9,15 +9,18 @@ namespace annium {
 
 void error_printer_visitor::operator()(circular_dependency_error const& err)
 {
+    s_ << "circular dependency error:"sv;
+    inc_indent();
     bool first = true;
-    s_ << "circular dependency error: "sv;
     for (auto const& e : err.circle_items) {
+        s_ << '\n';
         if (!first) {
-            s_ << "\n -------------- \n";
+            s_ << indent() << "-------------- \n"sv;
         }
-        else { first = false; }
-        e->visit(*this);
+        first = false;
+        print(*e); // print_general() below will emit the leading indent() itself
     }
+    dec_indent();
 }
 
 }

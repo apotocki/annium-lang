@@ -367,6 +367,21 @@ struct push_local_variable
     }
 };
 
+// Like push_local_variable, but pushes the variable's own ABSOLUTE stack index as an integer
+// instead of a copy of its value -- lowers to fppushi/fnpushi (vm2.hpp), which existed at the
+// opcode level but had no semantic-expression producer before ref_implicit_cast_pattern needed
+// one (see IMPLEMENTATION_NOTES.md's `ref(T)` section). Used to build the argument for the
+// __ref_of builtin, which turns that index into a genuine blob_reference to the variable's slot.
+struct push_local_variable_index
+{
+    variable_identifier varid;
+
+    inline static push_local_variable_index create(local_variable const& v) noexcept
+    {
+        return push_local_variable_index{ .varid = v.varid };
+    }
+};
+
 struct push_special_value
 {
     enum class kind_type : uint8_t
@@ -481,7 +496,7 @@ struct loop_breaker {};
 
 using expression = std::variant<
     empty_t, // no op
-    push_value, push_local_variable, push_by_offset, push_special_value, push_variable, dup_stack_top, truncate_values,
+    push_value, push_local_variable, push_local_variable_index, push_by_offset, push_special_value, push_variable, dup_stack_top, truncate_values,
     set_local_variable, set_variable, set_by_offset,
     //stack_frame_begin, stack_frame_end,
     invoke_context_function,

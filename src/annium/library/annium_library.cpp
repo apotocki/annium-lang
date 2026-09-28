@@ -10,6 +10,9 @@
 
 #include "annium/entities/literals/numeric_promotion.hpp"
 
+#include <cmath>
+#include <limits>
+#include <optional>
 #include <sstream>
 #include <utility>
 
@@ -60,6 +63,45 @@ template <typename T>
 constexpr bool is_numeric_dispatch_type_v =
     (is_integral_not_bool_v<T> && !std::is_same_v<T, char>) || std::is_floating_point_v<T> || std::is_same_v<T, numetron::float16> ||
     numetron::is_basic_integer_view_v<T> || numetron::is_basic_decimal_view_v<T>;
+
+// `<` between a value that's always finite in this language (integral, bigint, or decimal -- none of
+// those have a NaN/infinity state) and a native floating value that might not be (f16/f32/f64, now
+// that bootstrap.ann's .nan/.inf properties can actually produce one). Returns the ordering result if
+// the floating side is non-finite; nullopt if it's finite, meaning the caller should fall through to
+// its own finite-case comparison (numetron::decimal construction) -- numetron::decimal's
+// floating-point constructor throws for a non-finite input rather than reporting "doesn't fit" (see
+// BUGFIXES.md), so non-finite values must be intercepted before ever reaching that constructor. NaN
+// compares false against everything, including itself; +-infinity compares as wider than any finite
+// value, in the direction its sign says.
+inline std::optional<bool> less_involving_nonfinite(double floating_side, bool floating_is_lhs) noexcept
+{
+    if (std::isnan(floating_side)) return false;
+    if (std::isinf(floating_side)) return floating_is_lhs ? (floating_side < 0) : (floating_side > 0);
+    return std::nullopt;
+}
+
+// Converts a numeric dispatch value to a `numetron::decimal` for an exact cross-family comparison,
+// choosing the conversion that's actually exact for `v`'s own kind: `numetron::decimal{v}` for an
+// integral-ish `v` (native int or bigint -- already exact, no rounding involved at all), but
+// `numetron::exact_decimal(v)` for a native floating `v` (f16/f32/f64) -- the plain
+// `numetron::decimal{v}` constructor for those goes through Dragonbox and deliberately gives the
+// *shortest* decimal that round-trips back to `v`, not `v`'s exact value, which is the wrong tool
+// here: comparing that shortened decimal against an unrelated `decimal` operand can disagree with
+// the mathematically correct answer whenever the other operand's value falls between `v`'s
+// shortest-round-trip decimal and its true exact value (see RESOLVED.md's "`decimal` vs. `f32`/
+// `f64` comparisons used the wrong (shortest-round-trip, not exact) decimal conversion; float16
+// given a matching exact/shortest split" entry). `v` is assumed finite; every call site below
+// already intercepts a non-finite floating operand via less_involving_nonfinite before reaching
+// this.
+template <typename T>
+inline numetron::decimal to_exact_decimal(T const& v)
+{
+    if constexpr (std::is_floating_point_v<T> || std::is_same_v<T, numetron::float16>) {
+        return numetron::exact_decimal(v);
+    } else {
+        return numetron::decimal{ v };
+    }
+}
 
 }
 
@@ -175,6 +217,124 @@ void annium_decimal_equal(vm::context& ctx)
     ctx.stack_back().replace(smart_blob{ bool_blob_result(l == r) });
 }
 
+void annium_numeric_less(vm::context& ctx)
+{
+    smart_blob const& l = ctx.stack_back(1);
+    smart_blob const& r = ctx.stack_back();
+    // Unlike annium_any_equal, there's no blob_result::operator< to fall back on for
+    // same-family pairs (sonia-prime's invocation.hpp only defines operator== for
+    // blob_result), so every pairing -- same-family and cross-family alike -- is handled
+    // by hand here via blob_type_dispatch. bootstrap.ann's `less(runtime @numeric, runtime
+    // @numeric)` signature guarantees both operands are numeric by the time __less runs;
+    // the is_numeric_dispatch_type_v gate below exists only because blob_type_dispatch
+    // still instantiates this lambda for every blob_type at compile time (see the comment
+    // above is_numeric_dispatch_type_v's definition).
+    bool result = blob_type_dispatch(*l, [&r]<typename LDT>(LDT lv) -> bool {
+        if constexpr (!is_numeric_dispatch_type_v<LDT>) {
+            return false; // unreachable at runtime
+        } else {
+            return blob_type_dispatch(*r, [&lv]<typename RDT>(RDT rv) -> bool {
+                if constexpr (!is_numeric_dispatch_type_v<RDT>) {
+                    return false; // unreachable at runtime
+                } else if constexpr (numetron::is_basic_decimal_view_v<LDT> && numetron::is_basic_decimal_view_v<RDT>) {
+                    return lv < rv;
+                } else if constexpr (numetron::is_basic_decimal_view_v<LDT> || numetron::is_basic_decimal_view_v<RDT>) {
+                    // decimal vs. integral or floating: neither basic_integer_view nor the
+                    // native floating types have an operator<=> against basic_decimal(_view), so
+                    // route both operands through the owning numetron::decimal via to_exact_decimal
+                    // (exact for every numeric dispatch type -- native int, bigint, float, float16
+                    // -- unlike the plain numetron::decimal{...} constructor, which is only exact
+                    // for the integral-ish kinds, see to_exact_decimal's own comment) and compare
+                    // exactly against another numetron::decimal. decimal itself is always finite,
+                    // so only the non-decimal side can be a non-finite floating value -- intercept
+                    // that before it ever reaches to_exact_decimal's own throwing floating path.
+                    if constexpr (numetron::is_basic_decimal_view_v<LDT> &&
+                                  (std::is_floating_point_v<RDT> || std::is_same_v<RDT, numetron::float16>)) {
+                        if (auto nf = less_involving_nonfinite(static_cast<double>(rv), false)) return *nf;
+                    } else if constexpr (numetron::is_basic_decimal_view_v<RDT> &&
+                                         (std::is_floating_point_v<LDT> || std::is_same_v<LDT, numetron::float16>)) {
+                        if (auto nf = less_involving_nonfinite(static_cast<double>(lv), true)) return *nf;
+                    }
+                    return to_exact_decimal(lv) < to_exact_decimal(rv);
+                } else if constexpr ((is_integral_not_bool_v<LDT> || numetron::is_basic_integer_view_v<LDT>) &&
+                                      (is_integral_not_bool_v<RDT> || numetron::is_basic_integer_view_v<RDT>)) {
+                    if constexpr (is_integral_not_bool_v<LDT> && is_integral_not_bool_v<RDT>) {
+                        // Native-vs-native needs std::cmp_less rather than a plain <: the usual
+                        // arithmetic conversions would silently convert the signed side to
+                        // unsigned before comparing, same reasoning as annium_any_equal's
+                        // std::cmp_equal.
+                        return std::cmp_less(lv, rv);
+                    } else {
+                        // At least one side is a bigint (basic_integer_view); its operator<=>
+                        // against basic_integer_view or std::integral, together with C++20's
+                        // reversed-candidate synthesis, covers native-vs-bigint in either order
+                        // as well as bigint-vs-bigint.
+                        return lv < rv;
+                    }
+                } else if constexpr (is_integral_not_bool_v<LDT> || numetron::is_basic_integer_view_v<LDT> ||
+                                      is_integral_not_bool_v<RDT> || numetron::is_basic_integer_view_v<RDT>) {
+                    // Integral-ish (native or bigint) vs. native floating (f16/f32/f64): no
+                    // operator<=> exists between basic_integer_view and a floating type (unlike
+                    // operator==, which has one -- see basic_integer.hpp). The integral-ish side
+                    // is always finite, so -- same reasoning as the decimal branch above --
+                    // intercept a non-finite floating operand before falling back to the same
+                    // to_exact_decimal route used for the decimal branches above.
+                    if constexpr (std::is_floating_point_v<RDT> || std::is_same_v<RDT, numetron::float16>) {
+                        if (auto nf = less_involving_nonfinite(static_cast<double>(rv), false)) return *nf;
+                    } else if constexpr (std::is_floating_point_v<LDT> || std::is_same_v<LDT, numetron::float16>) {
+                        if (auto nf = less_involving_nonfinite(static_cast<double>(lv), true)) return *nf;
+                    }
+                    return to_exact_decimal(lv) < to_exact_decimal(rv);
+                } else {
+                    // Both native floating (f16/f32/f64 in any combination): casting to double is
+                    // exact for all of them and preserves NaN/infinity ordering semantics.
+                    return static_cast<double>(lv) < static_cast<double>(rv);
+                }
+            });
+        }
+    });
+    ctx.stack_pop();
+    ctx.stack_back().replace(smart_blob{ bool_blob_result(result) });
+}
+
+// f16/f32/f64 .inf/.nan (bootstrap.ann): these values have no numeric-literal spelling and can't be
+// built via constexpr arithmetic either (compile-time float division by zero is rejected, same as
+// decimal division by zero -- see arithmetic.ann's `divide` section), so unlike .min/.max (plain
+// literals) each needs an actual extern, called via `consteval` from bootstrap.ann to still fold at
+// compile time. Zero-argument externs, same shape as annium_get_frame_stack_height above: no operands
+// to pop, just push the result. -infinity isn't given its own extern/property -- unary `-` already
+// works on f16/f32/f64 (numeric_literal_unary_minus_pattern.cpp's negate_constexpr_numeric), so
+// `-f32.inf` covers it without duplicating a property that's just this one's negation.
+void annium_f16_infinity(vm::context& ctx)
+{
+    ctx.stack_push(smart_blob{ f16_blob_result(numetron::float16::infinity()) });
+}
+
+void annium_f32_infinity(vm::context& ctx)
+{
+    ctx.stack_push(smart_blob{ f32_blob_result(std::numeric_limits<float>::infinity()) });
+}
+
+void annium_f64_infinity(vm::context& ctx)
+{
+    ctx.stack_push(smart_blob{ f64_blob_result(std::numeric_limits<double>::infinity()) });
+}
+
+void annium_f16_nan(vm::context& ctx)
+{
+    ctx.stack_push(smart_blob{ f16_blob_result(numetron::float16::quiet_NaN()) });
+}
+
+void annium_f32_nan(vm::context& ctx)
+{
+    ctx.stack_push(smart_blob{ f32_blob_result(std::numeric_limits<float>::quiet_NaN()) });
+}
+
+void annium_f64_nan(vm::context& ctx)
+{
+    ctx.stack_push(smart_blob{ f64_blob_result(std::numeric_limits<double>::quiet_NaN()) });
+}
+
 void annium_tostring(vm::context & ctx)
 {
     std::ostringstream res;
@@ -183,6 +343,25 @@ void annium_tostring(vm::context & ctx)
     smart_blob r{ string_blob_result(res.str()) };
     r.allocate();
     ctx.stack_push(std::move(r));
+}
+
+// Backs bootstrap.ann's `to_fancy_string(self, base, group_sz, group_sep, showbase)`, a thin
+// wrapper over numetron::fancy_print (integer_view.hpp) for human-readable, grouped-digit display.
+void annium_to_fancy_string(vm::context& ctx)
+{
+    numetron::integer_view v = ctx.stack_back(4).as<numetron::integer_view>();
+    uint32_t base = ctx.stack_back(3).as<uint32_t>();
+    uint8_t group_sz = ctx.stack_back(2).as<uint8_t>();
+    string_view group_sep = ctx.stack_back(1).as<string_view>();
+    bool showbase = ctx.stack_back().as<bool>();
+
+    std::ostringstream res;
+    numetron::fancy_print(res, v, base, group_sz, group_sep, showbase);
+
+    ctx.stack_pop(4);
+    smart_blob r{ string_blob_result(res.str()) };
+    r.allocate();
+    ctx.stack_back().replace(std::move(r));
 }
 
 void annium_print_string(vm::context& ctx)
@@ -294,7 +473,7 @@ void annium_unfold(vm::context& ctx)
 
 void annium_array_size(vm::context& ctx)
 {
-    auto arr = ctx.stack_back(1).as<blob_result>();
+    auto arr = ctx.stack_back().as<blob_result>();
     if (!is_array(arr)) {
         throw exception("expected array, got %1%"_fmt % arr);
     }
@@ -382,6 +561,135 @@ void annium_array_set_at(vm::context& ctx)
     ctx.stack_pop(2);
 }
 
+// NOTE: this is deliberately NOT vm::context::referify() -- that method (and weak_create/
+// weak_lock alongside it) was sketched out for a different, never-finished weak/strong-object-
+// reference feature and mutates the target slot itself into a blob_reference pointing AT ITSELF,
+// which is unusable for a general "reference to a variable": dereferencing it (unref()) would
+// loop forever, since the slot's own bytes never stop reading back as a reference to themselves.
+// What we need instead is a NEW, separate blob_reference whose payload_ptr points at the ORIGINAL
+// slot, which itself is left completely untouched -- so reads/writes through the reference reach
+// a genuine, non-reference value. The absolute stack index is computed at compile time (see
+// base_expression_visitor::try_take_reference / semantic::push_local_variable_index) and pushed
+// by the caller; the target slot's address is safe to take and hold onto because the stack is a
+// std::deque (see BUGFIXES.md's `deque` entry).
+//
+// reference_blob_result's `false` here is load-bearing, not cosmetic -- see BUGFIXES.md's
+// `reference_blob_result silently snapshotted instead of aliasing` entry: its default
+// (`allocate=true`, added for the pre-existing weak/strong-reference sketch) copies the target's
+// bytes into a fresh heap buffer and repoints payload_ptr at THAT COPY, producing a frozen
+// snapshot rather than a live alias.
+void annium_ref_of(vm::context& ctx)
+{
+    size_t index = ctx.stack_back().as<size_t>();
+    ctx.stack_pop();
+    auto& target = ctx.stack_at(index);
+    ctx.stack_push(smart_blob{ reference_blob_result(*target, false) });
+}
+
+// Dereference: replace the ref(T) on top of stack with a genuine, independently-pinned copy of
+// the value it points to -- EXACTLY one level, matching get(self: ~ref(of $T)) -> $T's own
+// single-unwrap contract (bootstrap.ann). NOT unref()/unref_ptr(), which chase through however
+// many chained blob_reference levels exist -- correct for the pre-nested-ref(T) code this was
+// written against (every chain was at most one level deep in practice, so "one level" and "fully
+// resolved" coincided), but wrong now that `self` can genuinely be ref(of: ref(of: T)): fully
+// chasing would silently collapse straight to the innermost T and reinterpret its raw bytes as
+// the (nonexistent) reference value $T = ref(of: U) is supposed to be, producing a corrupt
+// blob_reference to garbage -- see FUTURE_WORK.md's `ref(T)` item 4 and BUGFIXES.md. Mirrors
+// annium_ref_rebind's own one-level dereference just below (same reasoning, same fix shape).
+void annium_ref_get(vm::context& ctx)
+{
+    // NOT `ctx.stack_back().replace(smart_blob{ deref_one_level(*ctx.stack_back()) });` -- the
+    // result is returned by value (a prvalue), which would select smart_blob(blob_result&&) (no
+    // pin, see its ctor) instead of smart_blob(blob_result const&) (pins) -- silently leaving
+    // `need_unpin` unset on a blob that needs it, i.e. a refcount underflow on the target. Bind to
+    // a named lvalue first.
+    blob_result v = deref_one_level(*ctx.stack_back());
+    ctx.stack_back().replace(smart_blob{ v });
+}
+
+// Write-through: smart_blob::operator= already special-cases a destination that currently holds
+// a blob_reference (writes through to the pointed-to slot instead of clobbering the reference
+// itself) -- this is the same mechanism ordinary local-variable assignment relies on, reused here
+// as-is. Only the trailing `value` argument is popped, leaving `self` (now updated) on the stack
+// as the result, matching annium_array_set_at's convention just above.
+void annium_ref_set(vm::context& ctx)
+{
+    smart_blob value = std::move(ctx.stack_back());
+    ctx.stack_pop();
+    ctx.stack_back() = std::move(value);
+}
+
+// Rebind: given self as an OUTER reference to a ref(of: T)-typed variable's own SLOT (see
+// rebind_pattern.cpp -- self is resolved through try_take_reference's caller-prescribed-exact-type
+// path with an explicit ref(of: ref(of: T)) expected type, NOT the plain `~ref(of $T)` self
+// get()/set() use, which would only hand back a COPY of the variable's current value, not a handle
+// onto the variable's own storage), overwrite that slot's own bytes wholesale with a genuinely NEW
+// ref(of: T) value -- the rare counterpart to annium_ref_set's write-through.
+//
+// `operator=`/annium_ref_set can't be reused here: their whole point is writing a plain VALUE
+// through to whatever a reference currently points at (smart_blob::operator='s is_ref(type)
+// branch always unref()s its rhs first) -- exactly the opposite of what rebind needs (install a
+// NEW reference itself, not follow the old one and overwrite what IT points at).
+void annium_ref_rebind(vm::context& ctx)
+{
+    smart_blob new_ref = std::move(ctx.stack_back());
+    ctx.stack_pop();
+
+    // self (now stack_back()) is the OUTER reference; dereference EXACTLY one level (not
+    // unref_ptr's full chase, which would walk straight through the variable's CURRENT reference
+    // value into whatever IT points at) to reach the variable's own, real, persistent storage.
+    blob_result const& outer = *ctx.stack_back();
+    blob_result* target_slot = mutable_data_of<blob_result>(outer);
+
+    // Overwrite the slot's own bytes -- mirrors smart_blob::operator='s own
+    // mutable_data_of<blob_result>(*this) + explicit pin/unpin idiom (its is_ref(type) branch),
+    // except installing the new reference itself rather than writing a dereferenced value through it.
+    blob_result_unpin(target_slot);
+    *target_slot = *new_ref;
+    blob_result_pin(target_slot);
+
+    // Leave the freshly-installed ref(of: T) value itself as this call's own result, matching
+    // rebind_pattern::apply's declared return shape.
+    ctx.stack_back().replace(std::move(new_ref));
+}
+
+// Turns a ref(of: TupleType) (aliasing the tuple's own persistent storage -- see annium_ref_of)
+// plus a runtime field index into a ref(of: E) to that specific element, for a tuple with more
+// than one runtime field (see tuple_get_pattern.cpp). Deliberately does NOT do
+// `ctx.stack_back(1).as<blob_result>()`: that would COPY the tuple's blob_result, and for an
+// inplace (<=14-byte) tuple the element data lives INSIDE that struct -- data_of<> on a copy would
+// point into a temporary that dies with this call, not into the variable's real storage. Chasing
+// pointers via unref_ptr() instead reaches the actual, persistent tuple blob.
+void annium_ref_at(vm::context& ctx)
+{
+    size_t idx = ctx.stack_back().as<size_t>();
+    blob_result const* arr = unref_ptr(*ctx.stack_back(1));
+    if (!is_array(*arr)) {
+        throw exception("expected array, got %1%"_fmt % *arr);
+    }
+    smart_blob result = blob_type_selector(*arr, [idx](auto ident, blob_result const& b) -> blob_result {
+        using type = typename decltype(ident)::type;
+        if constexpr (std::is_same_v<type, std::nullptr_t> || std::is_void_v<type> || std::is_same_v<type, sonia::invocation::object>) {
+            THROW_INTERNAL_ERROR("unexpected array element type");
+        } else {
+            using fstype = std::conditional_t<std::is_same_v<type, bool>, uint8_t, type>;
+            size_t sz = array_size_of<fstype>(b);
+            if (idx >= sz) {
+                throw exception("index out of range");
+            }
+            fstype* e = const_cast<fstype*>(data_of<fstype>(b)) + idx;
+            if constexpr (std::is_same_v<fstype, blob_result>) {
+                return reference_blob_result(*e, false); // boxed tuple: element already is a blob_result
+            } else {
+                blob_type decayed = (blob_type)(((uint8_t)b.type) & 0x7f);
+                return raw_reference_blob_result(e, decayed, sizeof(fstype)); // packed tuple
+            }
+        }
+    });
+    ctx.stack_pop();
+    ctx.stack_back().replace(std::move(result));
+}
+
 void annium_array_tail(vm::context& ctx)
 {
     auto arr = ctx.stack_back().as<blob_result>();
@@ -431,10 +739,7 @@ void annium_array_tail(vm::context& ctx)
 
 void annium_logical_not(vm::context& ctx)
 {
-    auto val = *ctx.stack_back();
-    while (val.type == blob_type::blob_reference) {
-        val = *data_of<blob_result>(val);
-    }
+    auto val = unref(*ctx.stack_back());
     val = blob_type_selector(val, [](auto ident, blob_result const& b) {
         using type = typename decltype(ident)::type;
         if (!is_array(b)) {
@@ -456,10 +761,7 @@ void annium_logical_not(vm::context& ctx)
 
 void annium_unary_minus(vm::context& ctx)
 {
-    auto val = *ctx.stack_back();
-    while (val.type == blob_type::blob_reference) {
-        val = *data_of<blob_result>(val);
-    }
+    auto val = unref(*ctx.stack_back());
     val = blob_type_selector(val, [](auto ident, blob_result const& b) -> blob_result {
         using type = typename decltype(ident)::type;
         if (!is_array(b)) {
@@ -546,17 +848,71 @@ void annium_operator_div_numeric(vm::context& ctx)
     ctx.stack_back().replace(std::move(res));
 }
 
+void annium_operator_mod_numeric(vm::context& ctx)
+{
+    smart_blob const& l = ctx.stack_back(1);
+    smart_blob const& r = ctx.stack_back();
+    builtin_eid result_type = strongest_numeric_type(numeric_builtin_eid_of(*l), numeric_builtin_eid_of(*r));
+    smart_blob res = modulo_numeric(l, r, result_type);
+
+    ctx.stack_pop();
+    ctx.stack_back().replace(std::move(res));
+}
+
+void annium_operator_bitand_numeric(vm::context& ctx)
+{
+    smart_blob const& l = ctx.stack_back(1);
+    smart_blob const& r = ctx.stack_back();
+    builtin_eid result_type = strongest_numeric_type(numeric_builtin_eid_of(*l), numeric_builtin_eid_of(*r));
+    smart_blob res = bit_and_numeric(l, r, result_type);
+
+    ctx.stack_pop();
+    ctx.stack_back().replace(std::move(res));
+}
+
+void annium_operator_bitor_numeric(vm::context& ctx)
+{
+    smart_blob const& l = ctx.stack_back(1);
+    smart_blob const& r = ctx.stack_back();
+    builtin_eid result_type = strongest_numeric_type(numeric_builtin_eid_of(*l), numeric_builtin_eid_of(*r));
+    smart_blob res = bit_or_numeric(l, r, result_type);
+
+    ctx.stack_pop();
+    ctx.stack_back().replace(std::move(res));
+}
+
+void annium_operator_bitand_bool(vm::context& ctx)
+{
+    bool l = ctx.stack_back(1).as<bool>();
+    bool r = ctx.stack_back().as<bool>();
+    smart_blob res = bool_blob_result(l & r);
+
+    ctx.stack_pop();
+    ctx.stack_back().replace(std::move(res));
+}
+
+void annium_operator_bitor_bool(vm::context& ctx)
+{
+    bool l = ctx.stack_back(1).as<bool>();
+    bool r = ctx.stack_back().as<bool>();
+    smart_blob res = bool_blob_result(l | r);
+
+    ctx.stack_pop();
+    ctx.stack_back().replace(std::move(res));
+}
+
 // Backs bootstrap.ann's `divide(a, b, scale, mode)`, the explicit runtime-safe alternative to the
 // plain `/` operator (which stays undefined for decimal at runtime -- see numeric_promotion.hpp).
 // `mode` arrives as a bare integer ordinal (bootstrap.ann passes `to_integer(mode)`, not the
-// rounding_mode value itself -- there's no shared symbolic enum type across the runtime boundary,
-// see decimal_rounding_mode's comment).
+// rounding_mode value itself -- there's no shared symbolic enum type across the runtime boundary),
+// cast directly to numetron::decimal_round_mode (decimal_view.hpp) -- Annium doesn't keep its own
+// mirror of that enum, see divide_decimal_rounded's own comment (numeric_promotion.hpp).
 void annium_divide_decimal_rounded(vm::context& ctx)
 {
     numetron::decimal_view a = ctx.stack_back(3).as<numetron::decimal_view>();
     numetron::decimal_view b = ctx.stack_back(2).as<numetron::decimal_view>();
     uint32_t scale = ctx.stack_back(1).as<uint32_t>();
-    auto mode = static_cast<decimal_rounding_mode>(ctx.stack_back().as<int32_t>());
+    auto mode = static_cast<numetron::decimal_round_mode>(ctx.stack_back().as<int32_t>());
 
     auto result = divide_decimal_rounded(a, b, scale, mode);
     if (!result) {
@@ -714,6 +1070,114 @@ void annium_numeric_to_decimal(vm::context& ctx)
     arg.replace(std::move(result));
 }
 
+// sqrt/log/floor/ceil/pow/round: f64-only for now (see FUTURE_WORK.md for decimal). Every operand is
+// read through numetron::decimal_view the same way annium_numeric_to_f64 is, so any numeric source
+// (fixed-width int, bigint, f16/f32/f64, decimal) is accepted -- these back bootstrap.ann's
+// `sqrt`/`log`/`floor`/`ceil`/`pow`/`round`, declared `runtime @numeric`, always returning f64.
+void annium_numeric_sqrt(vm::context& ctx)
+{
+    smart_blob& arg = ctx.stack_back();
+    double val = static_cast<double>(arg.as<numetron::decimal_view>());
+    arg.replace(smart_blob{ f64_blob_result(std::sqrt(val)) });
+}
+
+void annium_numeric_log(vm::context& ctx)
+{
+    smart_blob& arg = ctx.stack_back();
+    double val = static_cast<double>(arg.as<numetron::decimal_view>());
+    arg.replace(smart_blob{ f64_blob_result(std::log(val)) });
+}
+
+void annium_numeric_floor(vm::context& ctx)
+{
+    smart_blob& arg = ctx.stack_back();
+    double val = static_cast<double>(arg.as<numetron::decimal_view>());
+    arg.replace(smart_blob{ f64_blob_result(std::floor(val)) });
+}
+
+void annium_numeric_ceil(vm::context& ctx)
+{
+    smart_blob& arg = ctx.stack_back();
+    double val = static_cast<double>(arg.as<numetron::decimal_view>());
+    arg.replace(smart_blob{ f64_blob_result(std::ceil(val)) });
+}
+
+void annium_numeric_pow(vm::context& ctx)
+{
+    double base = static_cast<double>(ctx.stack_back(1).as<numetron::decimal_view>());
+    double exponent = static_cast<double>(ctx.stack_back().as<numetron::decimal_view>());
+    ctx.stack_pop();
+    ctx.stack_back().replace(smart_blob{ f64_blob_result(std::pow(base, exponent)) });
+}
+
+void annium_numeric_round(vm::context& ctx)
+{
+    smart_blob& arg = ctx.stack_back();
+    double val = static_cast<double>(arg.as<numetron::decimal_view>());
+    arg.replace(smart_blob{ f64_blob_result(std::round(val)) });
+}
+
+// Rounds to at most `digits` digits after the decimal point (negative digits round to the left of
+// the point), same "scale, round-to-nearest, unscale" shape as the standard textbook approach --
+// unlike bootstrap.ann's decimal `divide(...)`, this is f64 arithmetic so there's no exactness
+// concern to guard beyond picking the right rounding primitive per `mode` (bare integer ordinal,
+// same crossing convention as annium_divide_decimal_rounded's own `mode`). Only half_up (std::round,
+// this function's original hardcoded behavior) and half_even (std::nearbyint -- relies on the
+// default floating-point environment rounding mode, FE_TONEAREST i.e. round-to-nearest-ties-to-even,
+// being in effect; nothing in this codebase touches <cfenv>) are implemented; every other mode
+// throws, same incremental approach annium_divide_decimal_rounded already uses for its own `mode`.
+void annium_numeric_round_digits(vm::context& ctx)
+{
+    double val = static_cast<double>(ctx.stack_back(2).as<numetron::decimal_view>());
+    double digits = static_cast<double>(ctx.stack_back(1).as<numetron::decimal_view>());
+    auto mode = static_cast<numetron::decimal_round_mode>(ctx.stack_back().as<int32_t>());
+    ctx.stack_pop(2);
+
+    double scale = std::pow(10.0, digits);
+    double scaled = val * scale;
+    double rounded;
+    switch (mode) {
+    case numetron::decimal_round_mode::half_up:
+        rounded = std::round(scaled);
+        break;
+    case numetron::decimal_round_mode::half_even:
+        rounded = std::nearbyint(scaled);
+        break;
+    default:
+        THROW_NOT_IMPLEMENTED_ERROR("round: only rounding_mode.half_even and .half_up are implemented so far"sv);
+    }
+    ctx.stack_back().replace(smart_blob{ f64_blob_result(rounded / scale) });
+}
+
+// Formats to exactly `digits` digits after the decimal point (zero-padded, never trimmed -- mirrors
+// every other language's to_fixed/toFixed/"%.*f", see IMPLEMENTATION_NOTES.md). Thin wrapper: the
+// actual formatting lives in to_fixed_string/to_fixed_decimal_string (numeric_promotion.hpp/.cpp),
+// which are pure "value in, string out" and don't touch the VM stack. `mode` crosses in as a bare
+// integer ordinal, same convention as round(...) above and divide(...)'s own `mode`. `digits` is
+// clamped to [0, 1100] here, before that call -- not just against negative values (same convention
+// round(value, digits, mode) already uses), but also against absurdly large ones: `digits` is a
+// genuine runtime i64/decimal value that could be anything, and to_fixed_decimal_string scales a
+// bigint by 10^digits, so an unbounded `digits` would mean an unbounded allocation. 1100 is already
+// far beyond any digit a finite double could make non-zero (the smallest positive denormal is
+// ~4.9e-324), so nothing meaningful is lost for a float source; for a genuine `decimal`/`integer`
+// source with a significand that large to begin with, 1100 extra digits of padding is still moot.
+void annium_numeric_to_fixed(vm::context& ctx)
+{
+    double digits_arg = static_cast<double>(ctx.stack_back(1).as<numetron::decimal_view>());
+    auto mode = static_cast<numetron::decimal_round_mode>(ctx.stack_back().as<int32_t>());
+    int64_t digits = 0;
+    if (digits_arg > 0.0) {
+        digits = digits_arg > 1100.0 ? 1100 : static_cast<int64_t>(digits_arg);
+    }
+
+    std::string formatted = to_fixed_string(ctx.stack_back(2), digits, mode);
+
+    ctx.stack_pop(2);
+    smart_blob r{ string_blob_result(std::move(formatted)) };
+    r.allocate();
+    ctx.stack_back().replace(std::move(r));
+}
+
 class annium_callable : public invocation::callable
 {
     smart_blob fn_blob_;
@@ -855,6 +1319,10 @@ void annium_get_object_property(vm::context& ctx)
     if (res.is_error()) {
         throw exception(res.as<std::string>());
     }
+    // res may be a view into memory the host object only guarantees for the duration of the
+    // get_property() call (e.g. something it built from its own transient state) -- see the
+    // annium_invoke_object comment below for the concrete, confirmed instance of this pattern.
+    res.allocate();
     ctx.stack_pop();
     ctx.stack_back().replace(std::move(res));
 }
@@ -867,7 +1335,7 @@ void annium_invoke(vm::context& ctx)
     for (size_t i = argcount; i > 0; --i) {
         args.emplace_back(*ctx.stack_back(i));
     }
-    
+
     string_view name = ctx.stack_back(argcount + 1).as<string_view>();
     smart_blob resobj = ctx.env().invoke(name, span{ args });
     if (resobj.is_error()) {
@@ -875,6 +1343,12 @@ void annium_invoke(vm::context& ctx)
         // GLOBAL_LOG_ERROR() << "Error invoking '%1%': %2%"_fmt % name % tstr;
         throw exception(resobj.as<std::string>());
     }
+    // resobj may be a non-owning view into `args` (e.g. a string_view-returning host method
+    // handing back a slice of one of its own string_view arguments) -- args is a local variable
+    // and is about to go out of scope when this function returns, so resobj must own its bytes
+    // before that happens. See the annium_invoke_object comment below for the confirmed case
+    // this guards against (BUGFIXES.md).
+    resobj.allocate();
     ctx.stack_pop(argcount + 1);
     ctx.stack_back().replace(std::move(resobj));
 }
@@ -903,6 +1377,17 @@ void annium_invoke_object(vm::context& ctx)
     if (res.is_error()) {
         throw exception(res.as<std::string>());
     }
+    // res can be a non-owning view into `args` (e.g. std_object::substring returns a string_view
+    // into its own `target` argument, and string_blob_result(string_view) wraps it as a reference
+    // rather than copying) -- args is a local variable, about to be destroyed when this function
+    // returns, taking that memory with it. Confirmed the hard way: consteval's own scratch
+    // execution (ast/consteval_evaluator.cpp) reads a pushed ecall result well after this
+    // function has returned, and under valgrind that read landed on already-invalidated stack
+    // memory (garbage instead of "ell" from `substring("hello", 1, 3)`). Ordinary (non-consteval)
+    // execution has the exact same dangling reference the instant this function returns -- it
+    // just usually reads it again quickly enough, before anything else reuses this stack region,
+    // that the bug stays latent. See BUGFIXES.md.
+    res.allocate();
     ctx.stack_pop(argcount + 2);
     ctx.stack_back().replace(std::move(res));
 }
@@ -925,6 +1410,8 @@ void annium_invoke_callable(vm::context& ctx)
     if (res.is_error()) {
         throw exception(res.as<std::string>());
     }
+    // same dangling-view hazard as annium_invoke_object just above -- see BUGFIXES.md.
+    res.allocate();
     ctx.stack_pop(argcount + 1);
     ctx.stack_back().replace(std::move(res));
 }

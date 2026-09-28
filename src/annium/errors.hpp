@@ -308,6 +308,10 @@ class error_printer_visitor : public error_visitor
 public:
     inline error_printer_visitor(environment const& e, std::ostream& s) noexcept : e_{e}, s_{s} {}
 
+    // Entry point: prints the error tree leaf-first, longest chain first (see IMPLEMENTATION_NOTES.md).
+    void print(error const& err);
+
+    // Renders a single node's own location/object/description, without following cause().
     void operator()(alt_error const&) override;
     //void operator()(parameter_not_found_error const&) override;
     void operator()(general_error const&) override;
@@ -322,13 +326,14 @@ public:
         if (indent_ * indent_size_ > indent_str_.size()) {
             indent_str_.resize(indent_ * indent_size_, ' ');
         }
-        return indent_ ? 
+        return indent_ ?
             string_view{ indent_str_.data(), static_cast<size_t>(indent_ * indent_size_) } :
             string_view{};
     }
 
 private:
     std::ostream& print_general(error::location_t const& loc, string_view err, string_view object, resource_location const* optseeloc = nullptr);
+    void print_chain(std::vector<error const*> const& chain_root_to_leaf);
 };
 
 }

@@ -1,0 +1,525 @@
+// ref(T): a mutable reference type -- see IMPLEMENTATION_NOTES.md's `ref(T)` section.
+// Passing a plain local variable where a ref(T) parameter is expected implicitly takes a
+// reference to that variable's own storage slot (ref_implicit_cast_pattern); set()/get() then
+// read and write through it, mutating the CALLER's variable rather than a copy.
+
+fn increment($x: ref(of: i32)) {
+    set(self: $x, value: get(self: $x) + 1);
+}
+
+let counter: i32 = runtime_cast(41);
+increment(counter);
+assert_equal(counter, 42);
+
+// the reference isn't a one-shot snapshot -- a second, independent call still reaches the same
+// underlying variable.
+increment(counter);
+assert_equal(counter, 43);
+
+// exercise a non-scalar type too, not just a fixed-width integer.
+fn set_to_bye($s: ref(of: string)) {
+    set(self: $s, value: "bye");
+}
+
+let message: string = runtime_cast("hello");
+set_to_bye(message);
+assert_equal(message, "bye");
+
+// ref(of: E) applied to a tuple element (t.0 / t[index]) for a tuple with more than one runtime
+// field -- see FUTURE_WORK.md's `ref(T)` item 2. `self` (t) must be a plain local variable/
+// parameter, exactly like the whole-variable case above; the element itself may live in either of
+// the two representations annium_arrayify can produce, both exercised below.
+
+// packed + inplace: two i32 fields (8 bytes) fit inside the blob_result's own inline buffer, so
+// there's no separate heap allocation backing the tuple at all.
+let pa: i32 = runtime_cast(1);
+let pb: i32 = runtime_cast(2);
+let pt = (pa, pb);
+increment(pt.0);
+assert_equal(pt.0, 2);
+increment(pt[1]);
+assert_equal(pt.1, 3);
+assert_equal(pa, 1); // pt holds its own copy of pa's value from construction -- pa is untouched
+
+// packed + heap: four i64 fields (32 bytes) force a real heap-backed buffer.
+fn increment64($x: ref(of: i64)) {
+    set(self: $x, value: get(self: $x) + 1);
+}
+
+let ha: i64 = runtime_cast(10);
+let hb: i64 = runtime_cast(20);
+let hc: i64 = runtime_cast(30);
+let hd: i64 = runtime_cast(40);
+let ht = (ha, hb, hc, hd);
+increment64(ht.2);
+assert_equal(ht.2, 31);
+assert_equal(ht.0, 10);
+assert_equal(ht.3, 40);
+
+// boxed: mixed field types make annium_arrayify build a boxed (blob_result[]) array instead of a
+// packed native one -- exercises ref_at's other branch (the element already is a blob_result).
+let mn: i32 = runtime_cast(5);
+let ms: string = runtime_cast("hi");
+let mt = (mn, ms);
+increment(mt.0);
+assert_equal(mt.0, 6);
+set_to_bye(mt.1);
+assert_equal(mt.1, "bye");
+
+// ref(of: E) applied to an array element (arr[index]) -- same mechanism as tuple elements above,
+// entirely unchanged: fixed arrays use the same annium_arrayify/blob_reference machinery as
+// tuples. Unlike a tuple field's index (always a compile-time constant), an array's index can
+// itself be a runtime expression -- the common `arr[i]` shape -- exercised alongside the
+// const-index case below.
+
+// packed, const index (self runtime, property constant).
+let av0: i32 = runtime_cast(10);
+let av1: i32 = runtime_cast(20);
+let av2: i32 = runtime_cast(30);
+let arr = [av0, av1, av2];
+increment(arr[0]);
+assert_equal(arr[0], 11);
+assert_equal(av0, 10); // arr holds its own copy of av0's value from construction
+
+// packed, runtime index (self and property both runtime) -- the common `arr[i]` case.
+let idx = runtime_cast(2);
+increment(arr[idx]);
+assert_equal(arr[2], 31);
+assert_equal(arr[1], 20); // untouched
+
+// boxed: a string array isn't one of annium_arrayify's packed native types, so it's stored as a
+// boxed blob_result[] -- exercises ref_at's other branch (the element already is a blob_result).
+let sarr = [runtime_cast("a"), runtime_cast("b")];
+set_to_bye(sarr[1]);
+assert_equal(sarr[1], "bye");
+assert_equal(sarr[0], "a");
+
+// --- explicit ref(x), forwarding, and chained references --------------------------------------
+// Everything above exercises `ref(of: T)` only via implicit parameter coercion (increment()/
+// set_to_bye() themselves declare a `ref(of: T)` parameter, so the caller-prescribed exact type is
+// always known up front). The cases below go through `value_modifier_t::runtime_reference`
+// instead -- no exact type prescribed, derived from whatever the argument actually resolves to --
+// see IMPLEMENTATION_NOTES.md's `ref(T)` section, "From two resolutions to one".
+
+// A bare `ref(x)` call on a plain variable, used directly rather than via parameter coercion.
+let counter2: i32 = runtime_cast(41);
+let rc = ref(counter2);
+set(self: rc, value: get(self: rc) + 1);
+assert_equal(counter2, 42);
+
+// Forwarding an already-`ref(of: T)`-typed parameter through another `ref(...)` call must hand
+// back the SAME reference unchanged, not wrap it in a second layer (`ref(of: ref(of: T))`) -- see
+// try_take_reference's "already a reference" guard in base_expression_visitor.cpp.
+fn increment_via_forwarded_ref($x: ref(of: i32)) {
+    let rr = ref($x);
+    set(self: rr, value: get(self: rr) + 1);
+}
+
+let counter3: i32 = runtime_cast(100);
+increment_via_forwarded_ref(counter3);
+assert_equal(counter3, 101);
+
+// Same idea, but forwarding into an ordinary `ref(of: T)`-declared PARAMETER instead of an
+// explicit `ref(...)` call -- try_take_reference's OTHER path (the caller-prescribed-exact-type
+// one, expected_result.type already `ref(of: i32)`) must also hand back the SAME reference
+// unchanged rather than trying to take a reference to the reference itself. This works today
+// because `of_type != vartype` (i32 != ref(of: i32)) declines path (a) and falls through to
+// apply_cast, which sees the types already match and passes $x through as a plain copy of the
+// reference value -- see base_expression_visitor.cpp's try_take_reference and
+// IMPLEMENTATION_NOTES.md's `ref(T)` section.
+fn increment_ref_of(y: ref(of: i32)) {
+    set(self: y, value: get(self: y) + 1);
+}
+
+fn increment_via_forwarded_param($x: ref(of: i32)) {
+    increment_ref_of(y: $x);
+}
+
+let counter4: i32 = runtime_cast(200);
+increment_via_forwarded_param(counter4);
+assert_equal(counter4, 201);
+
+// --- bare `y = value;` on a `ref(of: T)`-typed variable writes THROUGH, not rebinds -------------
+// base_expression_visitor::do_assign's plain-variable fast path is skipped whenever the variable's
+// own declared type is itself `ref(of: T)`; it falls through to the same ref(lhs)+set(...) path
+// `arr[i] = v`/`t.field = v` already use below, so `y = value;` here writes through to whatever `y`
+// currently points at -- exactly like `set(self: y, value: value);`, just with ordinary `=` syntax.
+// See IMPLEMENTATION_NOTES.md's `ref(T)` section.
+fn increment_via_bare_assign(y: ref(of: i32)) {
+    y = get(self: y) + 1;
+}
+
+let counter5: i32 = runtime_cast(300);
+increment_via_bare_assign(y: counter5);
+assert_equal(counter5, 301);
+
+// Bare `=` write-through composes with forwarding too, same as the explicit-set version above.
+fn increment_via_bare_assign_forwarded($x: ref(of: i32)) {
+    increment_via_bare_assign(y: $x);
+}
+
+let counter6: i32 = runtime_cast(400);
+increment_via_bare_assign_forwarded(counter6);
+assert_equal(counter6, 401);
+
+// --- rebind(self, value) -- the separate, explicit, rare operation that `=` deliberately does NOT
+// perform for a ref(of: T)-typed variable anymore -- repoints `self` at a DIFFERENT target instead
+// of writing through to its current one. A native pattern (functional/general/rebind_pattern.cpp),
+// positional-only like ref(x) itself (not `.ann`-declared like get/set -- see
+// IMPLEMENTATION_NOTES.md's `ref(T)` section for why).
+let ra: i32 = runtime_cast(1);
+let rb: i32 = runtime_cast(2);
+let rr = ref(ra);
+assert_equal(get(self: rr), 1);
+
+rebind(rr, ref(rb));
+assert_equal(get(self: rr), 2);
+assert_equal(ra, 1); // rr no longer points at ra -- writing through rr must not touch it anymore
+
+set(self: rr, value: 20);
+assert_equal(rb, 20); // rr's write-through now reaches rb, its new target
+assert_equal(ra, 1);  // still untouched
+
+// A 2-level chain -- a tuple nested inside a tuple. `nt.0.0` requires the INNER get() (property 0
+// of nt) to hand its own result to the OUTER get() (property 0 of that) as a reference, which in
+// turn requires `self` (nt) itself to be resolved as a reference -- each level decided purely from
+// its own expected result, in a single resolution, with no re-resolution of the levels beneath it.
+let na: i32 = runtime_cast(10);
+let nb: i32 = runtime_cast(20);
+let nc: i32 = runtime_cast(30);
+let nt = ((na, nb), nc);
+
+increment(nt.0.0);
+assert_equal(nt.0.0, 11);
+assert_equal(nt.0.1, 20); // untouched
+assert_equal(nt.1, 30);   // untouched
+assert_equal(na, 10);     // nt holds its own copy from construction
+
+// Same chain, driven by an explicit `ref(...)` at the top instead of implicit parameter coercion --
+// exercises ref_pattern's own single-pass request cascading two levels down entirely through the
+// `runtime_reference` modifier (no caller-prescribed exact type at any level of the chain).
+let ref_to_nb = ref(nt.0.1);
+set(self: ref_to_nb, value: get(self: ref_to_nb) + 100);
+assert_equal(nt.0.1, 120);
+assert_equal(nt.0.0, 11); // untouched by this second mutation
+assert_equal(nt.1, 30);   // untouched
+
+// --- direct assignment syntax (`t.0 = value`, `arr[i] = value`) --------------------------------
+// base_expression_visitor::do_assign's non-plain-variable branch (`member_expression`/
+// `index_expression` alike) desugars `lhs = rhs` into `ref(lhs)` + `set(self: <ref>, value: rhs)`
+// -- exercised directly here, rather than through a `ref(of: T)`-typed parameter the way
+// increment()/set_to_bye() above do.
+
+// packed + inplace tuple, dot-index assignment.
+let da: i32 = runtime_cast(1);
+let db: i32 = runtime_cast(2);
+let dt = (da, db);
+dt.0 = 10;
+assert_equal(dt.0, 10);
+assert_equal(dt.1, 2);
+assert_equal(da, 1); // dt holds its own copy from construction
+
+// same tuple, bracket-index assignment (`index_expression`, not `member_expression` -- a
+// different AST node than `.0`, going through the same code path).
+dt[1] = 20;
+assert_equal(dt.1, 20);
+assert_equal(dt.0, 10); // untouched
+
+// boxed tuple (mixed field types).
+let dmn: i32 = runtime_cast(5);
+let dms: string = runtime_cast("hi");
+let dmt = (dmn, dms);
+dmt.0 = 50;
+assert_equal(dmt.0, 50);
+dmt.1 = "bye";
+assert_equal(dmt.1, "bye");
+
+// Named tuple fields (`(x: 1, y: 2)`), not just positional ones (`.0`/`[i]`) -- a `member_expression`
+// with an identifier property goes through the exact same ref(lhs)+set(...) path as an integer one;
+// tuple_get_pattern's field lookup doesn't care whether a field was found by name or by index.
+let nx: i32 = runtime_cast(1);
+let ny: i32 = runtime_cast(2);
+let dnt = (x: nx, y: ny);
+dnt.x = 10;
+assert_equal(dnt.x, 10);
+assert_equal(dnt.y, 2); // untouched
+assert_equal(nx, 1);    // dnt holds its own copy from construction
+
+dnt.y = 20;
+assert_equal(dnt.y, 20);
+assert_equal(dnt.x, 10); // untouched
+
+// A tuple mixing named and positional (unnamed) fields in one value (see tuple_operations.ann for
+// the general mechanic) -- assigning to one kind of field leaves the others untouched, and `.2`
+// still means "the third field overall", counting named and unnamed fields together.
+let mp0: i32 = runtime_cast(100);
+let mp1: string = runtime_cast("hi");
+let mp2: i32 = runtime_cast(7);
+let dmix = (mp0, name: mp1, mp2);
+dmix.0 = 111;
+assert_equal(dmix.0, 111);
+assert_equal(dmix.name, "hi"); // untouched
+assert_equal(dmix.2, 7);       // untouched
+
+dmix.name = "bye";
+assert_equal(dmix.name, "bye");
+assert_equal(dmix.0, 111); // untouched
+assert_equal(dmix.2, 7);   // untouched
+
+dmix.2 = 77;
+assert_equal(dmix.2, 77);
+assert_equal(dmix.0, 111);     // untouched
+assert_equal(dmix.name, "bye"); // untouched
+
+// array element assignment, const index.
+let darr = [runtime_cast(10), runtime_cast(20), runtime_cast(30)];
+darr[0] = 100;
+assert_equal(darr[0], 100);
+assert_equal(darr[1], 20); // untouched
+
+// array element assignment, runtime index -- the common `arr[i] = value` shape.
+let didx = runtime_cast(2);
+darr[didx] = 300;
+assert_equal(darr[2], 300);
+assert_equal(darr[1], 20); // untouched
+
+// boxed array (string elements).
+let dsarr = [runtime_cast("a"), runtime_cast("b")];
+dsarr[1] = "bye";
+assert_equal(dsarr[1], "bye");
+assert_equal(dsarr[0], "a"); // untouched
+
+// packed + heap tuple (4 x i64, 32 bytes, forces a real heap-backed buffer -- see increment64()
+// above), direct assignment instead of going through a ref(of: i64)-typed parameter.
+let dha: i64 = runtime_cast(100);
+let dhb: i64 = runtime_cast(200);
+let dhc: i64 = runtime_cast(300);
+let dhd: i64 = runtime_cast(400);
+let dht = (dha, dhb, dhc, dhd);
+dht.2 = 999;
+assert_equal(dht.2, 999);
+assert_equal(dht.0, 100); // untouched
+assert_equal(dht.3, 400); // untouched
+
+// Nested assignment through multiple `.field` levels (a tuple nested inside a tuple, same shape
+// as the nt/ref(nt.0.1) chain earlier in this file) -- exercised via bare `=` this time, which
+// means do_assign's ref(lhs) call has to resolve the WHOLE nested chain (ref(nt2.0.0)) itself,
+// exactly the way an explicit ref(...) call on the same expression already does.
+let n2a: i32 = runtime_cast(1);
+let n2b: i32 = runtime_cast(2);
+let n2c: i32 = runtime_cast(3);
+let nt2 = ((n2a, n2b), n2c);
+
+nt2.0.0 = 11;
+assert_equal(nt2.0.0, 11);
+assert_equal(nt2.0.1, 2); // untouched
+assert_equal(nt2.1, 3);   // untouched
+assert_equal(n2a, 1);     // nt2 holds its own copy from construction
+
+nt2.0.1 = 22;
+assert_equal(nt2.0.1, 22);
+assert_equal(nt2.0.0, 11); // untouched by this second mutation
+assert_equal(nt2.1, 3);    // untouched
+
+// --- struct field references (`ref(s).field`, `ref(s.field)`, `s.field = value`) ----------------
+// Struct field access is `.ann`-level composition (bootstrap.ann's `get` overloads keyed on
+// `self: ~ reference(...) ref(of @is_struct)`), not a native C++ pattern -- see
+// IMPLEMENTATION_NOTES.md's `ref(T)` section. There's no struct-specific `set` at all: `s.field =
+// value` goes through do_assign's `ref(lhs)` + the generic `set(self: ~ref(of $T), value)` instead
+// (a struct-specific one was added at first, then found unreachable and deleted). `tuple_of()` (now
+// reference-aware) reinterprets a struct reference as a tuple reference at zero cost, and the already
+// fully reference-aware `tuple_get_pattern`/`ref_at` machinery (proven above for actual tuples) does
+// the rest.
+
+struct point => (x: i32, y: i32);
+
+let px: i32 = runtime_cast(1);
+let py: i32 = runtime_cast(2);
+let p: point = init(x: px, y: py);
+
+// Two-step: ref(p) takes a whole-struct reference (ref_pattern/try_take_reference -- unrelated to
+// the struct-specific work, the same mechanism increment(counter) above uses), then `.field` on
+// that already-referenced value goes through the struct get overload (a read) or do_assign's
+// ref(lhs) + generic set(...) (a write).
+let pr = ref(p);
+assert_equal(pr.x, 1);
+assert_equal(pr.y, 2);
+pr.x = 10;
+assert_equal(p.x, 10); // pr aliases p's own storage
+assert_equal(p.y, 2);  // untouched
+assert_equal(px, 1);   // p holds its own copy from construction
+
+// One-shot: ref(p.field) directly, with no prior explicit ref() on the whole struct -- the case
+// `~ reference(...)` (terms.hpp's parameter_constraint_modifier_t::reference_type, `annium.y`'s
+// `TILDA REFERENCE pattern-sfx`) was specifically added for, since ordinary `.ann` structural
+// pattern parameters have no way to ask their own `self` argument to become a reference the way a
+// native C++ pattern's try_match can. The struct get overload's own `~ reference(__result_wants_reference)`
+// makes this conditional on whether the caller actually wants a reference back -- see
+// IMPLEMENTATION_NOTES.md's `ref(T)` section -- so this exact call is also what exercises that path.
+let yref = ref(p.y);
+set(self: yref, value: get(self: yref) + 1);
+assert_equal(p.y, 3);
+assert_equal(p.x, 10); // untouched
+
+// Direct assignment syntax (`s.field = value`) -- base_expression_visitor::do_assign's ref(lhs)
+// path now succeeds for a struct field (it used to fail to resolve, falling back to a direct
+// set(self:, property:, value:) dispatch into the now-deleted native struct_set_pattern).
+p.x = 20;
+assert_equal(p.x, 20);
+assert_equal(p.y, 3); // untouched
+
+// Multi-runtime-field struct write through `=` -- the old native struct_set_pattern had a confirmed
+// write-loss bug for exactly this case (STRUCT_FIELDS_PLAN.md's Part A.4: a struct with MORE than
+// one runtime field), which is why `point` here has two; this syntax now goes through ref(lhs) +
+// set(self: ~ref(of $T), value) instead (see IMPLEMENTATION_NOTES.md), and struct_set_pattern itself
+// has since been deleted outright -- nothing reachable from ordinary syntax could still hit it.
+let p2x: i32 = runtime_cast(5);
+let p2y: i32 = runtime_cast(6);
+let p2: point = init(x: p2x, y: p2y);
+p2.x = 50;
+p2.y = 60;
+assert_equal(p2.x, 50);
+assert_equal(p2.y, 60);
+assert_equal(p2x, 5); // p2 holds its own copy from construction
+
+// A struct passed by reference to a function parameter (mirrors increment($x: ref(of: i32)) above,
+// now working for a struct type too): self inside the function is already ref(of: point), so field
+// access on it goes through the same overloads without any further explicit ref().
+fn increment_point_x($pp: ref(of: point)) {
+    $pp.x = $pp.x + 1;
+}
+increment_point_x(p2);
+assert_equal(p2.x, 51);
+assert_equal(p2.y, 60); // untouched
+
+// --- struct field access by position (`s.0`, `s.1`, ...) ----------------------------------------
+// Both struct `get` overloads (bootstrap.ann) declare `property: constexpr` (no type restriction),
+// not `property: constexpr __identifier` -- the delegated tuple_get_pattern already discriminates an
+// integer (positional) from an identifier (named) property itself, exactly like it does for a real
+// tuple, so restricting `property`'s own declared type here would only have blocked positional access
+// before tuple_get_pattern ever got a chance to handle it. `point`'s underlying tuple keeps its
+// fields in declaration order, so `.0`/`.1` name the same storage as `.x`/`.y`.
+let p3x: i32 = runtime_cast(7);
+let p3y: i32 = runtime_cast(8);
+let p3: point = init(x: p3x, y: p3y);
+
+assert_equal(p3.0, 7);
+assert_equal(p3.1, 8);
+assert_equal(p3.0, p3.x);
+assert_equal(p3.1, p3.y);
+
+// One-shot reference by position, mirroring the by-name case above -- same `~ reference(...)`
+// overload, just reached with an integer `property` instead of an identifier.
+let p3ref = ref(p3.1);
+set(self: p3ref, value: get(self: p3ref) + 1);
+assert_equal(p3.y, 9);
+assert_equal(p3.0, 7); // untouched
+
+// Direct assignment syntax by position -- same do_assign `ref(lhs)` + generic `set(...)` path as the
+// by-name case, just with an integer property.
+p3.0 = 70;
+assert_equal(p3.0, 70);
+assert_equal(p3.1, 9); // untouched
+
+// A struct with more than one runtime field, mutated by position -- the same write-loss bug
+// (STRUCT_FIELDS_PLAN.md's Part A.4) this file's by-name equivalent above guards against, just
+// reached through a positional property instead of a named one.
+let p4x: i32 = runtime_cast(11);
+let p4y: i32 = runtime_cast(12);
+let p4: point = init(x: p4x, y: p4y);
+p4.0 = 110;
+p4.1 = 120;
+assert_equal(p4.0, 110);
+assert_equal(p4.1, 120);
+
+// --- ref(T) operands in ordinary operators/functions, via base_expression_visitor's generic
+// deref-and-retry fallback -----------------------------------------------------------------------
+// operator()(FnIdT&&, args) (base_expression_visitor.ipp) is the single choke point every operator
+// and ordinary named call goes through. When the direct call finds no match at all, it retries once
+// with every ref(of: T)-typed argument transparently unwrapped via get(self: ...)
+// (try_deref_ref_arguments) -- so `+` (numeric_literal_plus_pattern, which only ever checks
+// is_numeric_eid directly and has no idea ref(T) exists) works on a ref(of: i32) operand with no
+// changes to the operator itself, and the same holds for every other operator/function, present or
+// future. See IMPLEMENTATION_NOTES.md's `ref(T)` section.
+
+// ref on the left only -- the motivating case (`y + 1`).
+let opa: i32 = runtime_cast(10);
+let ra_ref = ref(opa);
+assert_equal(ra_ref + 1, 11);
+assert_equal(opa, 10); // reading through + doesn't mutate the target
+
+// ref on the right only -- proves the fallback isn't LHS-specific (it dereferences whichever
+// argument(s) are actually ref-typed, not just the first).
+assert_equal(1 + ra_ref, 11);
+
+// BOTH operands are references -- the case a `self`-only/`invoke`-based fallback design (considered
+// and rejected in favor of this one) could not have handled, since it only ever derefs one
+// designated argument.
+let opb: i32 = runtime_cast(20);
+let rb_ref = ref(opb);
+assert_equal(ra_ref + rb_ref, 30);
+
+// Composes with a genuinely runtime (not just constexpr-literal) other operand too.
+let plain: i32 = runtime_cast(5);
+assert_equal(ra_ref + plain, 15);
+
+// The fallback only fires on total failure of the direct call -- get/set/ref/rebind's own
+// self-as-a-reference calls above are completely unaffected (their direct call already succeeds),
+// confirmed by every assertion above this section still passing.
+assert_equal(p4x, 11); // p4 holds its own copy from construction
+
+// --- nested references (ref(of: ref(of: T))) -----------------------------------------------------
+// A reference-to-a-reference is a legitimate, deliberately un-auto-collapsed construction -- see
+// FUTURE_WORK.md's `ref(T)` item 4. get()/set()'s generic `self: ~ref(of $T)` pattern (bootstrap.ann)
+// captures whatever's inside the outer ref AS-IS, with no special-casing for $T itself being another
+// ref(of: U): each call unwraps exactly ONE level, symmetric with deref_call_pattern's operator
+// fallback (functional/general/deref_call_pattern.cpp) and rebind_pattern's own single outer level.
+// Reaching the innermost value takes an explicit second call, chained by hand -- the same principle
+// as nt.0.0 chaining two tuple-element get()s above, just one level of `ref` instead of `tuple`.
+
+fn read_through_nested($rr: ref(of: ref(of: i32))) -> i32 {
+    // get(self: $rr) unwraps ONE level -- yields the ref(of: i32) value $rr's target slot holds
+    // (an alias of whatever `qr` below currently points at), not the innermost i32.
+    let inner = get(self: $rr);
+    return get(self: inner);
+}
+
+fn write_through_nested($rr: ref(of: ref(of: i32)), delta: i32) {
+    let inner = get(self: $rr);
+    set(self: inner, value: get(self: inner) + delta);
+}
+
+let qa: i32 = runtime_cast(5);
+let qr = ref(qa); // qr: ref(of: i32)
+
+// Implicit coercion wraps qr's OWN slot -> ref(of: ref(of: i32)); confirmed by try_take_reference's
+// path (a) (base_expression_visitor.cpp): of_type (ref(of: i32), decomposed from the callee's
+// declared ref(of: ref(of: i32))) equals qr's own vartype (ref(of: i32)) exactly, so it takes a
+// reference to qr's storage rather than forwarding qr's existing reference unchanged.
+assert_equal(read_through_nested(qr), 5);
+write_through_nested(qr, delta: 10);
+assert_equal(qa, 15); // reached through two explicit levels
+assert_equal(get(self: qr), 15);
+
+// set() on a nested self writes through exactly ONE level: it overwrites the OUTER ref's target
+// slot with a brand-new ref(of: i32) value -- i.e. it silently repoints qr itself at a DIFFERENT
+// i32, rather than reaching through to whatever qr used to point at. This is item 4's resolved
+// answer: no special-casing was needed, set()'s existing generic signature already behaves this way.
+fn repoint_via_set($rr: ref(of: ref(of: i32)), newtarget: ref(of: i32)) {
+    set(self: $rr, value: newtarget);
+}
+
+let qb: i32 = runtime_cast(20);
+let qc: i32 = runtime_cast(30);
+let qr2 = ref(qb);
+
+repoint_via_set(qr2, newtarget: ref(qc));
+assert_equal(get(self: qr2), 30); // qr2 now points at qc, not qb
+assert_equal(qb, 20);             // qb itself untouched -- only qr2's OWN slot was overwritten
+assert_equal(qc, 30);
+
+// qr2's write-through now genuinely reaches qc, confirming the repoint took effect on qr2 itself
+// (not just a local copy inside repoint_via_set).
+set(self: qr2, value: 35);
+assert_equal(qc, 35);
+assert_equal(qb, 20); // still untouched

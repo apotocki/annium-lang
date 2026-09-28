@@ -32,6 +32,7 @@ A parameter is written as (informally, several grammar productions in `annium.y:
 - **Unnamed positional**: just a constraint, no name — `runtime`, `runtime integer`, `constexpr string`, or a bare type name like `integer` (defaults to `constexpr_or_runtime_type`). Example: `"__to_integer(runtime)->integer"`.
 - **Named, caller-visible**: `name: constraint` — e.g. `"decimal(text: string)->decimal|()"`.
 - **Named, internal-only** (not part of the call-site signature, just a label used in the result-type expression or for readability): `$name: constraint`, where `$name` lexes as `CONTEXT_IDENTIFIER` (`$` followed by **letters**, `annium.l:104`). Example: `"__array_set_at($arr: runtime, $index: runtime integer, $value)"`.
+- **Named, caller-visible name + separate internal name**: `name $internalName: constraint` — see "External name + internal name" below.
 - **Placeholder**: `_` matches any single positional argument without binding a name.
 - **Variadic**: trailing `...` — `"__print(runtime ..., runtime integer)"`.
 - **Optional**: `name?: constraint` with a default-value spec.
@@ -40,21 +41,90 @@ A parameter is written as (informally, several grammar productions in `annium.y:
 
 `$0`, `$1`, ... lex as `RESERVED_IDENTIFIER` (`$` followed by a plain number, `annium.l:105`) — a **completely different token** from `$name` (`CONTEXT_IDENTIFIER`). `RESERVED_IDENTIFIER` is only valid in **expression position**, inside a function body or a result-type expression, meaning "the value of the Nth positional argument" — e.g. `assert_equal`'s body uses `$0 == $1`; `"__array_tail(~runtime tuple(_, $t...))->tuple($t...)"`'s result type references a *pattern-bound* `$t`, not this reserved form. You cannot declare a parameter named `$0` — the grammar's `internal-identifier` production only accepts `CONTEXT_IDENTIFIER`. Use a letters-based `$name` instead.
 
+### Call-site argument matching: named vs. positional
+
+Whether a parameter's declared name starts with `$` decides how its argument must be written at the call site — this is independent of the `runtime`/`constexpr` modifier and of whether the parameter has a default:
+
+- **Declared with an external (non-`$`) name** (`name: constraint` or `name $internalName: constraint`) — the argument **must** be passed by that name: `f(name: value)`. Named arguments may appear in **any order**.
+- **Declared as `$name` only** (no external name) — the parameter is **positional only**; nothing is written at the call site for it. Positional arguments are matched strictly in **declaration order**, regardless of where any named arguments are interleaved among them at the call site.
+
+This is why `bootstrap.ann`'s `starts_with(self: ~ runtime string, $prefix: runtime string) -> bool` must be called as `starts_with(self: "hello", "he")`, not `starts_with("hello", "he")`: `self` has an external name (no `$`), so it's mandatory and named; `$prefix` has none, so it's positional and unnamed at the call site. The same applies to `substring(self: ~ runtime string, $start: runtime u32, $length: runtime i32 = i32.max)`: `substring(self: "hello", 1, 3)`.
+
+### External name + internal name: `name $internalName: constraint`
+
+A parameter can declare *both* a caller-facing external name and a separate implementation-facing internal name, e.g. `f(count $n: integer)`: the call site writes `count:`, the body refers to the value as `$n` (like Swift's external/internal parameter name pairs). This is `named_parameter_name` (`ast_terms.hpp`) with both `external_name` and `internal_name` set. Plain `name: constraint` is the same struct with `internal_name` left empty (the body then refers to the parameter by its external name directly); plain `$name: constraint` is the other variant, `unnamed_parameter_name` (no external name — positional, per above).
+
+## Struct field declaration
+
+`struct Name => (fields)` / `struct Name(params) => (fields)` (`annium.y`'s `field:` production). Each field is one of:
+
+- **Named, runtime-typed**: `name: type-expr [= default]` — e.g. `x: i32`, `radius: f64 = 1.0`.
+- **Named, constexpr-valued**: `name => expr` — a compile-time-computed field, not a caller-supplied one.
+- **Positional (unnamed)**: just a `type-expr` (optionally with a default), no name — e.g. the second field in `Point => (x: i32, i32)`. Struct construction still accepts it, matched positionally (`Point(1, 2)`), because a struct is backed by an underlying tuple (`tuple_of`) and tuples have always supported unnamed elements — `struct_entity`/`struct_init_pattern` already branch on the field having a name or not. There is no `x.property`-style named accessor for a positional field (nothing to key it on); read it back positionally off the underlying tuple, or via a structural pattern (`~PointLike($x, $y)`).
+
+## Enums
+
+`enum Name { case-decl, ... };` (`annium.y`'s `case-decl`). Every `enum` — even an old-style, all-bare one — is `union(Name::Case1, Name::Case2, ...)`; there's no separate integer-backed enum representation any more (see `IMPLEMENTATION_NOTES.md`'s "Retiring `enum_entity`" section). Each case is one of:
+
+- **Bare**: just an identifier, e.g. `Empty`. Contributes the constexpr identifier atom `.Empty` (the same value `.Empty` written on its own would evaluate to) as a `union` member. If *every* case in the enum is bare, this lands on the union machinery's own "all-const" fast path — a bare integer tag at runtime, no `[value,tag]` array — the same layout the old dedicated enum representation always used.
+- **Structural**: `Name(fields)` — same field syntax as a struct (named, constexpr, or positional; see "Struct field declaration" above) — e.g. `Leaf(name: string, value: integer)`. Declares a real nested struct type, `EnumName::CaseName`, reachable and usable exactly like any other `struct`, and contributes that struct type as a `union` member. A structural case's fields can be *all* constexpr-valued (`OK(text => "OK", value => 200)`) — still a structural case at the grammar/union level (a nested struct member, not the bare-case atom fast path below), but since every field is baked in rather than caller-supplied, `init()` takes no arguments and produces a genuine constexpr value of that case's own struct type (`tests/test-suite/enums/enum_constexpr_cases.ann`; see `IMPLEMENTATION_NOTES.md`'s "All-constexpr structural enum cases" section for the mechanism).
+
+The three kinds (bare, all-constexpr structural, runtime-field structural) mix freely in one `enum` — `tests/test-suite/enums/mixed_enum.ann` exercises all three together, including `match`. A concrete case value (a `EnumName::Case` struct instance, or a bare case's `.CaseName` atom) implicitly casts into the `EnumName` union the same way any value casts into a `union(...)` it's a member of. `to_integer(enumVal)` works generically for any union this way, not just an enum-declared one, returning the active case's ordinal. `to_string(enumVal)` is plain `.ann`-level sugar (`bootstrap.ann`) that unwraps the union and delegates to the active value's own `to_string` — for a bare case that's just `to_string(identifier)` (the case's own name), but for a structural case it's whatever that case's struct type produces (the generic runtime-object printer, absent a dedicated `to_string` for it) — there's no case-name lookup for `to_string` the way there is for `to_integer`'s ordinal; see `IMPLEMENTATION_NOTES.md`'s "`to_string` of a union" section.
+
+A **bare** case can also be reached by dotted access on the enum type itself — `EnumName.CaseName` — which directly produces a `EnumName`-typed value (equivalent to `let x: EnumName = .CaseName;`, just in one step). A **structural** case has the same shorthand with arguments — `EnumName.CaseName(args)` — which constructs `EnumName::CaseName(args)` (the plain struct) and immediately casts the result into `EnumName`, in one step (equivalent to `let x: EnumName = EnumName::CaseName(args);`). This is `a.b(args)` member-call sugar (see "Member calls" above), not `member_expression`/`get` like the bare-case, no-args form — it's backed by a generic `::invoke(self: typename union(...), ...)` overload (`bootstrap.ann`) plus `typeof`'s reflection-only union overload (`entities/union/union_typeof_pattern.cpp`), see `RESOLVED.md`'s `EnumName.CaseName(args)` entry. Consume a `EnumName`-typed value with `match` (below).
+
+## `match`
+
+```
+match scrutinee {
+    Pattern1 => expr1,
+    Pattern2 { statements... },
+    _ => expr3
+}
+```
+
+Narrows a `union`-typed (or structural-enum-typed) `scrutinee` down to its active case. Each arm is `[$name COLON] pattern function-body`, i.e. an ordinary structural `pattern` (`Leaf`, `{.Empty}`, `_`, etc. — the same pattern language `~Case(...)`-shaped parameter constraints already use), optionally preceded by a `$name:` binding, followed by either `=> expr` or a `{ ... }` block, exactly like a function body. Arms are comma-separated, including block-bodied ones. Inside an arm, the matched value itself is reachable via `$0` by default (the arm compiles to a one-parameter, unnamed/positional function, same as any other unnamed parameter — `$0`/`$1`/... reference positional arguments, see "Function/parameter declaration" above), e.g. `Leaf => $0.name` — or, if the arm is written with a leading `$name:` (the same `internal-identifier COLON pattern-mod` shape an ordinary function parameter uses), via that `$name` instead: `$leaf: Leaf => $leaf.name`. Either way it's positional-only (no external, non-`$` name is possible here — `apply`'s own dispatch always calls each arm's synthesized overload positionally).
+
+A structural case's arm pattern can be written with its enum-local short name (`Leaf`) instead of the fully-qualified one (`Tree::Leaf`) — `match` resolves the scrutinee's union type once and, for any bare single-segment pattern name that matches one of the union's case names, rewrites it to the qualified name before matching (fully-qualified names still work too, unaffected). A bare case (a constexpr atom, no struct — `Empty`) can be written the same short way; under the hood it's rewritten to a *value* pattern (the same shape `{.Empty}` produces, which also still works directly), since a bare case has no type of its own to match nominally.
+
+A structural case's arm can also destructure its named fields directly: `Leaf(name $n, value $v) => $n` binds `$n`/`$v` to the case's own `name`/`value` fields — their actual runtime values, not just their types. This is `match`-specific sugar, not general structural pattern matching against a struct's fields: the arm is rewritten under the hood into a bare type check plus `let $n = $0.name;`/`let $v = $0.value;` prepended to the body (see `IMPLEMENTATION_NOTES.md`'s "Field-destructuring match arms" section). Only named fields with a plain `$name` bind (or no bind at all, a no-op) are supported; positional fields, `...`, and any additional constraint on a field are rejected. Outside `match`, `~Tree::Leaf(name $n)` as an ordinary parameter/pattern constraint does **not** work — a struct's own signature describes its constructor/type-selector shape (empty for a plain struct), not its instance fields, so there's nothing there to destructure against.
+
+`match` desugars to the existing `apply(to: scrutinee, visitor: ...)` union-dispatch builtin — see `IMPLEMENTATION_NOTES.md`'s "`match` expression" section — so it inherits `apply`'s behavior wholesale: runtime dispatch via a native switch on the union's tag, per-arm result-type unification (same type if all arms agree, `union(...)` of the distinct types otherwise — the same algorithm a function's own multiple `return`s use), casting into an already-known expected type when the `match` itself feeds a `return`/`let`, and exhaustiveness as an emergent compile error (a union member with no covering arm fails to resolve against the synthesized visitor, the same as calling a function with no matching overload).
+
+## Member calls (`a.b(args)`) desugar to ordinary functional lookup
+
+`a.b(args)` is sugar, resolved in two steps, tried in order:
+
+1. `b(self: <type of a>, args)` — a plain call to a functional named `b` whose `self` parameter matches `a`'s type.
+2. If no such pattern matches: `invoke(self: <type of a>, method: __identifier, args)` — the generic dynamic-dispatch fallback (used for e.g. host/extern objects with no compile-time-known member set).
+
+So member-call syntax needs no special declaration on the callee's side: any function with a `self`-named first parameter (e.g. `starts_with(self: ~ runtime string, ...)`) is callable both as `starts_with(self: x, ...)` and as `x.starts_with(...)` — they're the same call, just written differently.
+
 ## `@concept` constraints
 
 `@name` attached to a parameter pattern requires a registered compile-time predicate `fn name(t: typename) -> bool`; the parameter matches only if calling that predicate with the candidate's type returns `true`. Multiple `@a @b` on one pattern is AND (all must pass). See `IMPLEMENTATION_NOTES.md` for how this is actually evaluated (`pattern_matcher::do_match_concepts`) and known predicates (`is_struct`, `tuple_of`, `numeric`).
 
 A concept can be attached to a fully unnamed positional parameter, combined with an explicit `runtime`/`constexpr` modifier: `runtime @numeric` (`"__to_i8(runtime @numeric)->i8"`) — like any other unnamed positional parameter, it isn't referenced by name at the call site; use `$0`/`$1`/... in the body or result-type expression if you need to refer back to it. This form is a dedicated `parameter-decl` grammar alternative (`constraint-expression-specified-mod[mod] concept-expression-list[cpts]`, `annium.y`, next to the plain `constraint-expression-specified` abbreviated case) — don't confuse it with the *named* forms (`name: runtime @concept` / `$name: runtime @concept`, `annium.y:820,834`), which exist separately for when you actually need to bind and reference the parameter (e.g. from the result-type expression, à la `array_tail`'s `$t`).
 
-A bare concept with no modifier and no name (`@is_struct` alone, as in `bootstrap.ann`'s `self: @is_struct`) is also legal — it's a placeholder pattern with the concept attached, defaulting to `constexpr_or_runtime_type`.
+A concept can also be attached to a parameter with *no* modifier and *no* name at all — just `@numeric`, or `@a @b`, standing alone as the whole parameter — e.g. `bootstrap.ann`'s `less(@numeric, @numeric)` / `less_eq`/`greater`/`greater_eq`. This is its own `parameter-decl` grammar alternative (`concept-expression-list[cpts] parameter-default-value-opt[default]`, `annium.y`, right next to the `UNDERSCORE concept-expression-list-opt[cpts] ...` case it mirrors) — like the other unnamed forms, it's positional (`$0`/`$1`/...). The modifier defaults to `constexpr_or_runtime_type`, same as the named placeholder case below, which is *why* a single such declaration (not a `runtime`/`constexpr` overload pair) is enough to both stay constexpr-foldable when called with constexpr arguments and still work at runtime otherwise — see `less_eq` for exactly that: unlike `less` itself (which has separate `runtime @numeric` / `constexpr @numeric` overloads so its two bodies can differ — a real runtime `__less` call vs. a `consteval __less` fold), `less_eq`/`greater`/`greater_eq` only need one bare-`@numeric` declaration each because their single body works unmodified in both contexts.
+
+A named placeholder can default to the same modifier too — `self: @is_struct` (as in `bootstrap.ann`) — but that's a *different* `parameter-decl` alternative (`internal-identifier[intid] concept-expression-list-opt[cpts] ...`), the one that has a name (`self`) and an optional trailing concept list, not the fully bare one above.
+
+A `@concept` can also sit on a *field inside a pattern application*, not just directly on the parameter itself — e.g. `self: ~ ref(of @is_struct)` (bare concept as a field's value, `pattern-field-sfx: concept-expression-list-opt`) or `ref(of $T @is_struct)` (a bound variable plus a trailing concept on the same field). This nests arbitrarily deep and is checked against that field's own real, unwrapped type (`pattern_matcher::do_match` recurses per field) — see `IMPLEMENTATION_NOTES.md`'s `@concept` section and `tests/test-suite/nested_concepts.ann`.
 
 ## `typename`-mode parameters
 
-A parameter can require its argument to itself be a type (a `typename`-typed value, e.g. `SomeStruct` passed directly rather than an instance of it), via the `TILDA TYPENAME` / `TYPENAME` pattern-mod grammar (`annium.y:969-972`). `is_struct`'s and `numeric`'s own single parameter both work this way. In C++ pattern implementations, this shows up as: the argument's `get_result_type(...)` equals `env.get(builtin_eid::typename_)`, and the type being tested is the argument's *value* (`arg_er.value()`), not its type.
+A parameter can require its argument to itself be a type (a `typename`-typed value, e.g. `SomeStruct` passed directly rather than an instance of it), via the bare `TYPENAME` pattern-mod grammar alternative (`annium.y`, `pattern-mod`). `is_struct`'s and `numeric`'s own single parameter both work this way. In C++ pattern implementations, this shows up as: the argument's `get_result_type(...)` equals `env.get(builtin_eid::typename_)`, and the type being tested is the argument's *value* (`arg_er.value()`), not its type. There used to be a `TILDA TYPENAME` alternative too (`self: ~ typename T`) producing the exact same AST as bare `TYPENAME` — pure duplication, not even a behavioral difference like `consteval` below — so it was removed; `self: typename T` (as in `bootstrap.ann`'s `::get` overloads) is now the only spelling. The `~` still matters for the other `pattern-mod` alternatives (`~`, `~ constexpr`, `~ runtime`) — there it disambiguates a structural pattern match from a plain nominal-type `constraint-expression`, so it can't be dropped from those.
 
 ## Casts
 
 `value as Type` — binary expression, `binary_operator_type::CAST` (`annium.y:1141-1142`). Example (`tests/test-suite/casts.ann`): `v0 as i32`, chainable: `v0 as i32 as i64`.
+
+## Postfix `...` (ellipsis expansion)
+
+`expr...` is a unary *postfix* operator (`compound-expression: syntax-expression[expr] ELLIPSIS`, `annium.y:1340-1343`; dispatches to the builtin `operator...(type: typename)`, implemented by `ellipsis_pattern` in `src/annium/entities/ellipsis/`). Its purpose is the same as C++'s pack expansion `pack...`: turn an identifier/tuple-of-identifiers pack into the values (or call arguments) it names. The mechanism differs, though — this isn't a template-style textual rewrite of a surrounding pattern; it's an ordinary operator that evaluates one constexpr operand (which must resolve to a `__qname`/identifier metaobject, or a signatured entity whose fields do) and pushes the corresponding value(s). Being a real operator over one operand rather than a textual pattern is exactly why it binds like one: **`ELLIPSIS` has the highest operator precedence in the grammar** (`annium.y:226`, above unary `-`/`!`/deref and every binary operator, just below the true postfix/primary tier — calls, member access, indexing), so `...` always grabs only the expression immediately to its left, not the widest enclosing expression the way C++'s pack expansion would.
+
+In practice this matches how it's actually written in `bootstrap.ann`'s `min`/`max`/`foldl`/`foldr`: `head($rest)...`, `tail($rest)...`, `$elements...` — the operand is always already atomic (an identifier or a call result), so tight binding is invisible. It only matters for a *computed* operand: `a + b...` means `a + (b...)`, not `(a + b)...`; to expand the result of a compound expression, parenthesize it explicitly — `(a + b)...` — since `grouped-expression` closes on `CLOSE_PARENTHESIS` before `...` is even seen, so it always applies to the parenthesized group as a whole regardless of `ELLIPSIS`'s precedence.
 
 ## `extern fn`
 
@@ -71,3 +141,15 @@ Declares a natively-implemented function with no body. All parameters must be `r
 ## Double-underscore builtins are ordinary callables
 
 Names like `__to_integer`, `__print`, `__get_frame_stack_height`, `__to_i8` are not special syntax — they're just registered functionals with a conventional `__`-prefixed name (signalling "compiler/library-internal"), callable exactly like any other function from `.ann` source: `__to_i8(x)`, `assert_equal(__get_frame_stack_height(), 1)`.
+
+## `consteval` / `consteval(condition)`
+
+`consteval expr` forces `expr` through compile-time evaluation (CTFE) even when it would otherwise be a runtime call — see `CONSTEVAL_CTFE_PLAN.md` / `IMPLEMENTATION_NOTES.md`'s `consteval` section. `expr` is a `syntax-expression` (`annium.y:1104`), so it binds like a unary prefix operator (same precedence as unary `-`).
+
+`consteval(condition) expr` — guarded form, analogous to C++'s `explicit(bool)`/`noexcept(bool)` (`annium.y`, next to the plain rule). `condition` must itself resolve to a compile-time `bool`; `true` behaves exactly like plain `consteval expr` above, `false` skips forcing and `expr` gets its ordinary constexpr-or-runtime interpretation. Lets one definition serve both a `runtime` and a `constexpr` parameter: `inline fn sqrt(@numeric) -> f64 => consteval(is_const($0)) __sqrt(runtime_cast($0));`, instead of `bootstrap.ann`'s current separate `runtime @numeric` / `constexpr @numeric` overload pair for `sqrt`/`log`/`floor`/`ceil`/`pow`/`round`.
+
+### `name: consteval value` — parameter pattern matching one specific compile-time value
+
+A named parameter can require the caller's argument to equal one specific compile-time value (not just any value of some type), via `name: consteval expr` in a `parameter-decl` (`pattern-mod`'s `CONSTEVAL syntax-expression` alternative, `annium.y`, next to the `TILDA`-prefixed pattern-mod alternatives). This is how `bootstrap.ann`'s `::get` overloads dispatch on the property being looked up — `::get(self: typename f32, property: consteval .pi) -> f32 => ...` only matches a call whose `property` argument is exactly the identifier `.pi`, so `f32.pi`/`f32.min`/`f32.max`/etc each resolve to their own overload. The matcher (`parameter_matcher.cpp`) additionally rejects a `typename` argument here with a dedicated error, distinguishing it from a plain type/pattern constraint.
+
+Unlike the other `pattern-mod` modifiers (`~ constexpr`, `~ runtime`, `~ typename`, bare `~`), `consteval` here takes **no** leading `~` — `COLON CONSTEVAL ...` doesn't collide with any other `parameter-decl`/`constraint-expression` alternative, so the tilde would be pure noise (the same reasoning that already gives bare `typename` its own tilde-less alternative, `annium.y:1003-1004`, alongside `~ typename`). There used to be a second, shorter-looking way to write this — `name => value` — but it duplicated this exact mechanism through a different code path (a plain `constexpr_value` equality check instead of the full pattern matcher, so it silently skipped the typename rejection above) and saw exactly one real use in the whole codebase; it was removed in favor of `consteval` being the single spelling.

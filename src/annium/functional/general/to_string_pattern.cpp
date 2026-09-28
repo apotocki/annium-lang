@@ -97,7 +97,7 @@ public:
             return;
 
         default:
-            THROW_INTERNAL_ERROR("to_string_visitor: Unsupported generic literal type for to_string");
+            THROW_INTERNAL_ERROR("to_string_visitor: Unsupported generic literal type (%1% : %2%) for to_string"_fmt % ent.value() % e_.print(ent.get_type()));
         }
     }
     

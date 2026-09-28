@@ -133,14 +133,42 @@ intptr_t internal_function_entity::resolve_variable_index(variable_identifier va
 
 error_storage internal_function_entity::build()
 {
+    // A prior failed attempt must never be retried: build(fn_compiler_context&) below runs
+    // forward_declaration_visitor over sts_ again, which re-registers every top-level name it
+    // finds (struct/enum shells, nested fn patterns, ...) -- entity_registry::insert throws
+    // "an equivalent entity has been already registered" (a real C++ exception, not a graceful
+    // error) for anything that was already registered during the first, now-abandoned attempt
+    // before it failed. Every external caller of build() already funnels through this one
+    // no-arg overload (internal_fn_pattern.cpp x2, annium.cpp, to_callable_implicit_cast_pattern.cpp)
+    // -- centralizing the is_built()/build_errors check here, rather than requiring each call site
+    // to remember it individually (only internal_fn_pattern.cpp's try_match did, via
+    // `fne.build_errors || (fne.build_errors = fne.build())`), makes the guard structural instead
+    // of a convention every future call site has to happen to follow.
+    if (is_built()) return {};
+    if (build_errors) return build_errors;
     context().push_binding(bindings);
-    return build(context());
+    build_errors = build(context());
+    return build_errors;
 }
 
 error_storage internal_function_entity::build(fn_compiler_context& fnctx)
 {
     BOOST_ASSERT(!is_built());
 
+    // A `.ann` function opts into knowing "did the caller want a reference back" by declaring a
+    // parameter named builtin_id::result_wants_reference (conventionally defaulted to the
+    // compiler-injected __call_wants_reference constant -- see basic_fn_pattern.cpp's try_match and
+    // bootstrap.ann's struct-get overload's `~ reference(EXPR)` modifier, parameter_matcher.cpp).
+    // Read directly from this function's own bound parameters -- not from `result`, which for a
+    // `=> expr` declaration isn't known until the body is actually compiled below -- so a function
+    // that doesn't declare such a parameter simply has nothing bound under this name and the flag
+    // stays false.
+    fnctx.result_wants_reference = false;
+    if (functional_binding::value_type const* bound = bindings.lookup(fnctx.env().get(builtin_id::result_wants_reference))) {
+        if (entity_identifier const* peid = get_if<entity_identifier>(bound)) {
+            fnctx.result_wants_reference = (*peid == fnctx.env().get(builtin_eid::true_));
+        }
+    }
     if (result.entity_id()) {
         fnctx.result_type = get_entity_type(fnctx.env(), result);
     }

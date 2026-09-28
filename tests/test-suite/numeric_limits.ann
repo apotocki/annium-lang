@@ -1,0 +1,197 @@
+// TypeName.min / TypeName.max: a typename-property lookup (bootstrap.ann's
+// `::get(self: typename T, property: consteval .min/.max) -> T`), already used elsewhere in this
+// codebase (e.g. `substring`'s `$length: runtime i32 = i32.max` default) but, before this file, never
+// directly exercised by the test suite for any type -- fixed-width integer or floating.
+
+// BOOL / FIXED-WIDTH INTEGER: .min/.max are the type's actual representable range, matching
+// bootstrap.ann's literal definitions one for one -- these are less about arithmetic correctness (the
+// values are just copied from the same literals bootstrap.ann uses) and more about confirming the
+// `::get(self: typename T, ...)` property-lookup dispatch itself resolves to the right overload for
+// every one of these types and doesn't, say, cross-wire i16.max with u16.max.
+assert_equal(bool.min, false);
+assert_equal(bool.max, true);
+
+assert_equal(i8.min, -128);
+assert_equal(i8.max, 127);
+assert_equal(u8.min, 0);
+assert_equal(u8.max, 255);
+assert(i8.min < i8.max);
+assert(u8.min < u8.max);
+
+assert_equal(i16.min, -32768);
+assert_equal(i16.max, 32767);
+assert_equal(u16.min, 0);
+assert_equal(u16.max, 65535);
+assert(i16.min < i16.max);
+assert(u16.min < u16.max);
+
+assert_equal(i32.min, -2147483648);
+assert_equal(i32.max, 2147483647);
+assert_equal(u32.min, 0);
+assert_equal(u32.max, 4294967295);
+assert(i32.min < i32.max);
+assert(u32.min < u32.max);
+
+assert_equal(i64.min, -9223372036854775808);
+assert_equal(i64.max, 9223372036854775807);
+assert_equal(u64.min, 0);
+assert_equal(u64.max, 18446744073709551615);
+assert(i64.min < i64.max);
+assert(u64.min < u64.max);
+
+// widening chain, signed and unsigned separately -- confirms the eight fixed-width properties don't
+// collide with each other despite sharing the same .min/.max spelling (mirrors the same check done
+// for f16/f32/f64 below).
+assert(i8.max < i16.max);
+assert(i16.max < i32.max);
+assert(i32.max < i64.max);
+assert(u8.max < u16.max);
+assert(u16.max < u32.max);
+assert(u32.max < u64.max);
+
+// runtime_cast'd operands: like the f32 case further down, confirm .min/.max produce values that
+// still work as ordinary runtime values via `<` (annium_numeric_less), not just inside other
+// constexpr expressions. i64/u64 specifically, since that's the signed/unsigned collision width
+// comparisons.ann's own std::cmp_less section already covers -- i64.min is a large negative value
+// that must still compare correctly against a large *unsigned* u64.max rather than being reinterpreted
+// as an unsigned bit pattern.
+let rimin: i64 = runtime_cast(i64.min);
+let rumax: u64 = runtime_cast(u64.max);
+assert(rimin < rumax);
+assert(!(rumax < rimin));
+
+// FLOATING: .min/.max mean the most-negative/most-positive *finite* value (symmetric: min == -max),
+// matching what the fixed-width integer types' .min/.max above already mean -- not C++'s
+// std::numeric_limits<T>::min(), which for floating types is instead "the smallest positive
+// normalized value" (a very different, near-zero number). Each expected value below is the exact
+// decimal expansion of the IEEE-754 bit pattern, not a rounded approximation -- see the comment above
+// the .min/.max definitions themselves in bootstrap.ann for why that precision matters (an inexact
+// literal there would fail its own implicit-narrowing safety check at compile time).
+
+// f16: max is a small, easily hand-checked value -- (2^11-1)*2^(15-10) = 2047*32 = 65504.
+assert_equal(f16.max, 65504);
+assert_equal(f16.min, -65504);
+assert(f16.min < f16.max);
+
+// f32 max = (2^24-1)*2^104, the standard FLT_MAX value.
+assert_equal(f32.max, 340282346638528859811704183484516925440);
+assert_equal(f32.min, -340282346638528859811704183484516925440);
+assert(f32.min < f32.max);
+
+// f64 max = (2^53-1)*2^971, the standard DBL_MAX value.
+assert_equal(f64.max, 179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368);
+assert_equal(f64.min, -179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368);
+assert(f64.min < f64.max);
+
+// each wider floating type's max dwarfs the narrower ones', confirming the three don't collide or
+// get mixed up with each other despite sharing the same .max spelling.
+assert(f16.max < f32.max);
+assert(f32.max < f64.max);
+
+// runtime_cast'd operands: .min/.max themselves fold at compile time (they're constexpr), but the
+// values they produce still need to work as ordinary runtime f16/f32/f64 values -- not just inside
+// other constexpr expressions -- so exercise them through the `<`/`>` runtime dispatch
+// (annium_numeric_less, see comparisons.ann) rather than only constexpr-folded assert_equal.
+let rmax32: f32 = runtime_cast(f32.max);
+let rmin32: f32 = runtime_cast(f32.min);
+assert(rmin32 < rmax32);
+assert(!(rmax32 < rmin32));
+
+// .inf/.nan: unlike .min/.max, these have no literal spelling and are backed by a dedicated extern
+// per width (__f16_infinity/__f32_infinity/__f64_infinity, __f16_nan/__f32_nan/__f64_nan), invoked
+// via `consteval` -- see the comment above their bootstrap.ann declarations. No separate -infinity
+// property: unary `-` already works on f16/f32/f64, so `-f32.inf` is exercised directly below instead
+// of a hypothetical `f32.neg_inf`.
+
+// +inf compares greater than every finite value, including .max itself; -inf (via unary `-`, not a
+// property of its own) compares less than every finite value, including .min.
+assert(f16.inf > f16.max);
+assert(-f16.inf < f16.min);
+assert(f32.inf > f32.max);
+assert(-f32.inf < f32.min);
+assert(f64.inf > f64.max);
+assert(-f64.inf < f64.min);
+
+// infinity is a well-ordered, self-equal value (unlike NaN below) -- equal to itself, and not less
+// than itself.
+assert_equal(f32.inf, f32.inf);
+assert(!(f32.inf < f32.inf));
+assert(!(f32.inf < -f32.inf));
+
+// NaN's defining property: unordered and unequal to *everything*, including itself -- every `==`
+// comparison is false and every `<`/`>` comparison is false, not just the ones against other values.
+assert(!(f32.nan == f32.nan));
+assert(!(f32.nan < f32.nan));
+assert(!(f32.nan < 0));
+assert(!(0 < f32.nan));
+assert(!(f32.nan < f32.inf));
+assert(!(f32.inf < f32.nan));
+assert(!(f32.nan == f32.max));
+
+// !=: matches IEEE semantics even for NaN, because -- unlike the four ordering operators -- IEEE
+// defines `!=` as the exact logical negation of `==` (the one relational pair where that holds), and
+// `not_equal(a,b) => !($0 == $1)` (bootstrap.ann) does exactly that.
+assert(f32.nan != f32.nan);
+assert(f32.nan != f32.max);
+assert(f32.nan != 0);
+assert(f32.inf != f32.max);
+
+// >: `greater(a,b) => less($1, $0)` (bootstrap.ann) is a straight argument swap, no negation -- so it
+// inherits `less`'s already-correct NaN handling (false whenever either operand is NaN, in either
+// position) without needing any special-casing of its own.
+assert(!(f32.nan > f32.nan));
+assert(!(f32.nan > 0));
+assert(!(0 > f32.nan));
+assert(!(f32.nan > f32.inf));
+assert(!(f32.inf > f32.nan));
+
+// <=, >=: `less_eq(a,b) => less($0,$1) || equal($0,$1)` and `greater_eq(a,b) => greater($0,$1) ||
+// equal($0,$1)` (bootstrap.ann) -- deliberately an OR of two already-NaN-correct calls rather than a
+// negated `less`, since negating "unordered false" would wrongly produce "true" (see the comment
+// above their bootstrap.ann definitions for the full reasoning, and why `not_equal`/`greater` don't
+// have this problem in the first place).
+assert(!(f32.nan <= f32.nan));
+assert(!(f32.nan >= f32.nan));
+assert(!(f32.nan <= f32.max));
+assert(!(f32.max >= f32.nan));
+
+// <=, >= for infinity -- a well-ordered value, not "unordered" like NaN, so ordinary `<=`/`>=`
+// semantics apply throughout.
+assert(f32.inf <= f32.inf);
+assert(!(f32.max >= f32.inf));
+assert(f32.inf >= f32.max);
+
+// runtime_cast'd operands: .inf/.nan themselves fold at compile time, but confirm the values still
+// behave correctly once they're ordinary runtime f32 values, not just inside constexpr expressions.
+let rinf32: f32 = runtime_cast(f32.inf);
+let rnan32: f32 = runtime_cast(f32.nan);
+assert(rmax32 < rinf32);
+assert(!(rnan32 == rnan32));
+assert(!(rnan32 < rnan32));
+
+// .pi/.e: unlike .inf/.nan, no extern involved -- see the comment above their bootstrap.ann
+// declarations for why the correctly-rounded value at each width still has an exact, finite decimal
+// expansion despite pi/e themselves being irrational. Each expected value here is that exact
+// expansion (computed independently of bootstrap.ann's own literals, via each width's own
+// round-to-nearest-even from System.Math.PI/E), so an equal `assert_equal` also incidentally confirms
+// the two independently-derived literals agree bit for bit.
+assert_equal(f16.pi, 3.140625);
+assert_equal(f32.pi, 3.1415927410125732421875);
+assert_equal(f64.pi, 3.141592653589793115997963468544185161590576171875);
+assert_equal(f16.e, 2.71875);
+assert_equal(f32.e, 2.71828174591064453125);
+assert_equal(f64.e, 2.718281828459045090795598298427648842334747314453125);
+
+// e < pi at every width -- true of the exact mathematical constants, and (since neither value is
+// anywhere near a rounding boundary that could flip the comparison) true of each width's
+// independently-rounded approximation too.
+assert(f16.e < f16.pi);
+assert(f32.e < f32.pi);
+assert(f64.e < f64.pi);
+
+// runtime_cast'd operands, same reasoning as .max/.inf above: .pi/.e fold at compile time, but the
+// value still needs to behave correctly as an ordinary runtime f32 value.
+let rpi32: f32 = runtime_cast(f32.pi);
+let re32: f32 = runtime_cast(f32.e);
+assert(re32 < rpi32);
+assert(!(rpi32 < re32));

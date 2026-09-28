@@ -1,0 +1,243 @@
+// sqrt/log/floor/ceil/pow/round(value[, digits, mode])/to_fixed(value, digits, mode): bootstrap.ann's
+// `runtime @numeric -> f64`/`-> string` wrappers around
+// annium_numeric_sqrt/_log/_floor/_ceil/_pow/_round/_round_digits/_to_fixed (library/annium_library.cpp).
+// f64-only for now -- decimal support is deferred, see FUTURE_WORK.md's "Exact/decimal-native
+// sqrt/log/floor/ceil/pow/round/to_fixed" entry. @numeric (not per-width f16/f32/f64 overloads) was a
+// deliberate choice so a plain integer literal or `integer`-typed value can be passed directly,
+// without an explicit numeric_cast at every call site -- motivated by `formatBytes(...)`-shaped code,
+// which mixes `integer`, `i64`, and `f64` operands across log/pow/round/floor calls. Each is a
+// single `.ann` definition wrapped in `consteval(is_const(...))` (see IMPLEMENTATION_NOTES.md's
+// "Guarded form: consteval(condition) expr" section) -- a bare-literal call folds entirely at
+// compile time through the same extern, rather than needing a separate constexpr overload the way
+// e.g. `less` has one.
+//
+// abs/min/max, below, are a different shape entirely -- pure `.ann`, no extern, no forced-f64
+// result -- see their own section further down.
+
+// LOG (natural log, ln) -- log(v)/log(base) is the change-of-base formula formatBytes(...) relies
+// on. ln(1) == 0 exactly (guaranteed by C's log()); x/log(x) == 1 exactly for any finite nonzero x,
+// since IEEE-754 division of a value by itself is always exactly 1.
+assert_equal(log(1), 0);
+let lx = log(1024);
+assert_equal(lx / lx, 1);
+
+// integer (bigint), f16, f32, f64 sources all accepted directly -- no numeric_cast needed.
+let li: integer = runtime_cast(1);
+assert_equal(log(li), 0);
+let lf16: f16 = runtime_cast(1);
+assert_equal(log(lf16), 0);
+let lf32: f32 = runtime_cast(1);
+assert_equal(log(lf32), 0);
+let lf64: f64 = runtime_cast(1);
+assert_equal(log(lf64), 0);
+
+// SQRT -- perfect squares only, for the same correctly-rounded-ness reason pow's section below
+// avoids fractional exponents (sqrt() itself is required to be correctly rounded by IEEE-754/C, but
+// keeping to exact integer results here needs no reliance on that guarantee either way).
+assert_equal(sqrt(4), 2);
+assert_equal(sqrt(9), 3);
+assert_equal(sqrt(0), 0);
+let sq: f32 = runtime_cast(16);
+assert_equal(sqrt(sq), 4);
+
+// FLOOR / CEIL
+assert_equal(floor(3), 3);
+assert_equal(floor(3.7), 3);
+assert_equal(floor(-3.7), -4);
+assert_equal(floor(-3), -3);
+
+assert_equal(ceil(3), 3);
+assert_equal(ceil(3.2), 4);
+assert_equal(ceil(-3.2), -3);
+
+let fl32: f32 = numeric_cast(3.7);
+assert_equal(floor(fl32), 3);
+let ce32: f32 = numeric_cast(3.2);
+assert_equal(ceil(ce32), 4);
+
+// POW -- exact integer/power-of-two cases only (pow() isn't guaranteed correctly-rounded for
+// arbitrary fractional exponents, so this deliberately avoids asserting bit-exact results for those).
+assert_equal(pow(2, 10), 1024);
+assert_equal(pow(10, 0), 1);
+assert_equal(pow(1024, 0), 1);
+assert_equal(pow(2, -1), 0.5);
+
+let pb: i32 = runtime_cast(2);
+let pe: i32 = runtime_cast(10);
+assert_equal(pow(pb, pe), 1024);
+
+// ROUND (single-argument: round to nearest integer, half away from zero)
+assert_equal(round(2.4), 2);
+assert_equal(round(2.6), 3);
+assert_equal(round(2.5), 3);
+assert_equal(round(-2.5), -3);
+assert_equal(round(3), 3);
+
+// ROUND (three-argument: round to at most `digits` digits after the decimal point, with an explicit
+// rounding_mode -- the shape formatBytes(...) uses directly). `mode` has no default (unlike
+// divide(...)'s own `mode`) -- round(value, digits) and to_fixed(value, digits) below used to
+// silently disagree about tie-breaking (round: half away from zero via std::round; to_fixed: half to
+// even) with no way to even ask for a specific one, so both now require the caller to say which
+// instead of picking a default and calling the disagreement fixed. Only .half_up and .half_even are
+// implemented so far; every other rounding_mode value throws (not exercised here, same as
+// divide(...)'s own unimplemented modes -- see IMPLEMENTATION_NOTES.md/FUTURE_WORK.md).
+assert_equal(round(3.14159, 2, .half_up), 3.14);
+assert_equal(round(1234.5678, 2, .half_up), 1234.57);
+assert_equal(round(1234.5, 0, .half_up), 1235); // exact tie -- .half_up rounds away from zero
+
+// same exact tie under .half_even: 1234 is the even neighbor, so it rounds down instead of up --
+// the concrete case that motivated dropping round/to_fixed's shared default in the first place.
+assert_equal(round(1234.5, 0, .half_even), 1234);
+assert_equal(round(2.5, 0, .half_up), 3);
+assert_equal(round(2.5, 0, .half_even), 2);
+assert_equal(round(-2.5, 0, .half_up), -3);
+assert_equal(round(-2.5, 0, .half_even), -2);
+
+// digits arrives as a `decimal` here (not f64/i64), exercising @numeric on the second parameter too
+// -- mirrors formatBytes(...)'s `base10 + $p + 1`, which lands on `decimal` per
+// strongest_numeric_type's f64/i64 join (see IMPLEMENTATION_NOTES.md).
+let rd: decimal = runtime_cast(2);
+assert_equal(round(3.14159, rd, .half_up), 3.14);
+
+// TO_FIXED (value, digits, mode): exactly `digits` digits after the decimal point, zero-padded,
+// never trimmed -- unlike round(value, digits, mode), which leaves trailing zeros (and any trimming)
+// up to the caller. Always exact regardless of source type, via numetron::to_fixed_string
+// (decimal_view.hpp) -- a `decimal`/integral source goes through its basic_decimal_view overload
+// directly (exact bigint significand/exponent scaling, base-10); an f16/f32/f64 source goes through
+// its floating-point overload instead, which stays in base 2 throughout (frexp/ldexp bit
+// decomposition + shifts, no division wide enough to trip numetron::limb_arithmetic::udiv's
+// single-limb divisor limit -- see BUGFIXES.md/RESOLVED.md's `to_fixed_string`-into-numetron
+// entries). Never std::to_chars/a double round-trip either way. Same `mode` as round(...) above,
+// same reasoning for why it has no default. Note that most of the bare-literal calls just below are
+// *already* exercising the decimal path without saying so -- a bare literal with a decimal point
+// (e.g. `1.5`) defaults to type `decimal`, same as arithmetic.ann documents for `5 / 8.0`; only a
+// bare integer literal (`to_fixed(1, 2, ...)` below) or an explicitly `f16`/`f32`/`f64`-typed value
+// takes the floating-point overload. The `tfdv`/`tfdv2`/`tfbig` cases further down make the decimal
+// path explicit and forced-runtime, the same way `tfv` does for f64.
+assert_equal(to_fixed(1.5, 4, .half_even), "1.5000");
+assert_equal(to_fixed(1, 2, .half_even), "1.00"); // integer literal widens like every other @numeric
+assert_equal(to_fixed(3.14159, 2, .half_even), "3.14");
+assert_equal(to_fixed(1234.5678, 2, .half_even), "1234.57");
+assert_equal(to_fixed(-2.5, 1, .half_even), "-2.5"); // sign preserved
+
+// digits == 0: no decimal point at all, not "4." or "4.0".
+assert_equal(to_fixed(3.7, 0, .half_even), "4");
+
+// negative digits clamp to 0, same convention round(value, digits, mode) already uses.
+assert_equal(to_fixed(3.2, -1, .half_even), "3");
+
+// an exact tie, both modes -- proves to_fixed's `mode` isn't just accepted and ignored.
+assert_equal(to_fixed(2.5, 0, .half_up), "3");
+assert_equal(to_fixed(2.5, 0, .half_even), "2");
+
+// digits arrives as a `decimal` here, exercising @numeric on the second parameter too (same as
+// round(value, digits, mode)'s rd case above).
+let tfd: decimal = runtime_cast(2);
+assert_equal(to_fixed(1.5, tfd, .half_even), "1.50");
+
+// forced-runtime value argument (not a bare literal): exercises the actual extern call, not just
+// the consteval-folded compile-time path every call above (both arguments literal) takes.
+let tfv: f64 = runtime_cast(2.5);
+assert_equal(to_fixed(tfv, 3, .half_even), "2.500");
+
+// explicit, forced-runtime `decimal` value argument -- numetron::to_fixed_string's decimal_view
+// overload directly (a decimal source is already exact, no float bit-decomposition step needed).
+// Widening case (exponent + digits >= 0): an exact bigint multiply, no rounding, so `mode` is moot
+// here.
+let tfdv: decimal = runtime_cast(1.5);
+assert_equal(to_fixed(tfdv, 4, .half_even), "1.5000");
+
+// same, but narrowing (exponent + digits < 0): exercises the bigint remainder tie-break, not just
+// the exact-multiply case above. Sign preserved on a negative decimal too.
+let tfdv2: decimal = runtime_cast(1234.5678);
+assert_equal(to_fixed(tfdv2, 2, .half_even), "1234.57");
+let tfdv3: decimal = runtime_cast(-2.5);
+assert_equal(to_fixed(tfdv3, 1, .half_even), "-2.5");
+
+// a significand with more digits than a double's 53-bit mantissa can hold exactly -- going through
+// a native double directly would silently corrupt this; the exact bigint path doesn't. 0.456789
+// rounded to 3 places is 0.457 (4th digit '7' rounds the 3rd digit up, same result either mode --
+// not a tie).
+let tfbig: decimal = runtime_cast(12345678901234567890123.456789);
+assert_equal(to_fixed(tfbig, 3, .half_even), "12345678901234567890123.457");
+
+// ABS -- exact, type-preserving (no extern, no forced f64: see bootstrap.ann's comment above its
+// definition). assert_equal alone wouldn't catch a wrong *result type* (it just compares values),
+// so each check below also assigns into an explicitly-typed `let` -- that would fail to compile if
+// abs($x) came back some other type than $x's own.
+assert_equal(abs(-5), 5);
+assert_equal(abs(5), 5);
+assert_equal(abs(-5.5), 5.5);
+assert_equal(abs(0), 0);
+
+let ai32: i32 = runtime_cast(-5);
+let rai32: i32 = abs(ai32);
+assert_equal(rai32, 5);
+
+let af64: f64 = runtime_cast(-2.5);
+let raf64: f64 = abs(af64);
+assert_equal(raf64, 2.5);
+
+// unsigned: `$x < 0` is unconditionally false, so abs is the identity -- never hits unary `-`.
+let au32: u32 = runtime_cast(5);
+let rau32: u32 = abs(au32);
+assert_equal(rau32, 5);
+
+let adec: decimal = runtime_cast(-1.25);
+let radec: decimal = abs(adec);
+assert_equal(radec, 1.25);
+
+// MIN / MAX
+assert_equal(min(3, 5), 3);
+assert_equal(max(3, 5), 5);
+assert_equal(min(-1, 1), -1);
+assert_equal(max(-1, 1), 1);
+assert_equal(min(5, 5), 5);
+assert_equal(max(5, 5), 5);
+
+let mia: i32 = runtime_cast(7);
+let mib: i32 = runtime_cast(2);
+let rmin: i32 = min(mia, mib);
+let rmax: i32 = max(mia, mib);
+assert_equal(rmin, 2);
+assert_equal(rmax, 7);
+
+let mfa: f64 = runtime_cast(1.5);
+let mfb: f64 = runtime_cast(2.5);
+assert_equal(min(mfa, mfb), 1.5);
+assert_equal(max(mfa, mfb), 2.5);
+
+// MIN / MAX -- variadic ($rest: @numeric ...), recursing via head($rest)...  / tail($rest)...
+// (bootstrap.ann). Single argument exercises the empty($rest) base case directly.
+assert_equal(min(3), 3);
+assert_equal(max(3), 3);
+
+// three-plus constexpr arguments, extremum in each position (first/middle/last)
+assert_equal(min(1, 5, 3), 1);
+assert_equal(min(5, 1, 3), 1);
+assert_equal(min(5, 3, 1), 1);
+assert_equal(max(1, 5, 3), 5);
+assert_equal(max(5, 3, 1), 5);
+assert_equal(max(3, 1, 5), 5);
+
+// negatives and repeated extremum values among 5+ arguments
+assert_equal(min(-5, 10, -20, 3, 0), -20);
+assert_equal(max(-5, 10, -20, 3, 0), 10);
+assert_equal(min(5, 5, 5), 5);
+assert_equal(max(2, 7, 7, 2), 7);
+
+// runtime-typed variadic arguments: $rest has more than one runtime element, exercising the
+// ellipsis_pattern arrayify path (ellipsis_pattern.cpp's argcount > 1 case) rather than the
+// single-identifier push used by the 2-argument calls above.
+let va: i32 = runtime_cast(4);
+let vb: i32 = runtime_cast(9);
+let vc: i32 = runtime_cast(1);
+let vd: i32 = runtime_cast(6);
+assert_equal(min(va, vb, vc, vd), 1);
+assert_equal(max(va, vb, vc, vd), 9);
+
+let vfa: f64 = runtime_cast(3.5);
+let vfb: f64 = runtime_cast(1.25);
+let vfc: f64 = runtime_cast(2.75);
+assert_equal(min(vfa, vfb, vfc), 1.25);
+assert_equal(max(vfa, vfb, vfc), 3.5);

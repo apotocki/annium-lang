@@ -75,10 +75,12 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 %token DBLMINUS             "`--`"
 %token LEFTSHIFT            "`<<`"
 %token RIGHTSHIFT           "`>>`"
-%token LE                   "`<=`"
-%token GE                   "`>=`"
 %token <resource_location> EQ                   "`==`"
 %token <resource_location> NE                   "`!=`"
+%token <resource_location> LESS                 "`<`"
+%token <resource_location> LESS_EQ              "`<=`"
+%token <resource_location> GREATER              "`>`"
+%token <resource_location> GREATER_EQ           "`>=`"
 %token <resource_location> LOGIC_AND            "`&&`"
 %token <resource_location> LOGIC_OR             "`||`"
 %token <resource_location> CONCAT               "`..`"
@@ -102,17 +104,13 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 %token CLOSE_BRACE			"`}`"
 %token <resource_location> OPEN_SQUARE_BRACKET    "`[`"
 %token CLOSE_SQUARE_BRACKET "`]`"
-%token <resource_location> OPEN_SQUARE_DBL_BRACKET "`[[`"
-%token CLOSE_SQUARE_DBL_BRACKET "`]]`"
-%token OPEN_BROKET          "`<`"
-%token CLOSE_BROKET         "`>`"
 %token END_STATEMENT		"`;`"
 %token <resource_location> POINT      "`.`"
 %token <resource_location> PLUS       "`+`"
 %token <resource_location> MINUS      "`-`"
 %token <resource_location> ASTERISK   "`*`"
 %token <resource_location> SLASH   "`/`"
-%token PERCENT              "`%`"
+%token <resource_location> PERCENT   "`%`"
 %token <resource_location> AMPERSAND  "`&`"
 %token <resource_location> BITOR      "`|`"
 %token <resource_location> EXCLPT     "`!`" 
@@ -138,6 +136,7 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 %token <resource_location> BREAK      "`break`"
 %token <resource_location> RETURN     "`return`"
 %token <resource_location> YIELD      "`yield`"
+%token <resource_location> MATCH      "`match`"
 
 %token AUTO
 %token USING
@@ -191,7 +190,6 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 %left LOWEST
 
 %right ARROWEXPR
-%left ELLIPSIS
 %left COLON
 
 // 15 priority
@@ -211,7 +209,7 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 %left AMPERSAND
 
 // 9 priority
-%left EQ NE
+%left EQ NE LESS LESS_EQ GREATER GREATER_EQ
 
 // 6 priority
 %left CONCAT
@@ -225,6 +223,8 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 
 // 3 priority
 %right DEREF EXCLPT PREFIXMINUS
+
+%left ELLIPSIS
 
 // 2 priority
 %left OPEN_BRACE OPEN_PARENTHESIS OPEN_SQUARE_BRACKET POINT INTEGER_INDEX
@@ -273,8 +273,8 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 // ENUMERATIONS
 %token ENUM
 %type <enum_decl> enum-decl
-%type <std::vector<identifier>> case-list-opt case-list
-%type <identifier> case-decl
+%type <std::vector<enum_case>> case-list-opt case-list
+%type <enum_case> case-decl
 
 // TYPES
 %token STRUCT
@@ -297,6 +297,7 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 %type <parameter_list_t> parameter-list parameter-list-opt // for unification, empty assignment
 %type <parameter> parameter-decl
 %type <parameter::default_spec> parameter-default-value-opt
+%type <std::pair<resource_location, parameter::default_spec>> ellipsis-opt-assign-value-opt
 
 %token REQUIRES
 
@@ -304,7 +305,18 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 %token <resource_location> TYPENAME "typename modifier"
 %token <resource_location> CONSTEXPR "constexpr modifier"
 %token <resource_location> CONSTEVAL "consteval modifier"
+// Lexed instead of CONSTEVAL only when "consteval" is immediately followed by "(" with no
+// whitespace in between (annium.l trailing-context rule) -- see the consteval(condition) rule
+// below and IMPLEMENTATION_NOTES.md's `consteval` section for why this token split exists: it's
+// what makes the guarded-form grammar rule unambiguous with the plain rule's already-legal
+// `consteval (x)` (a fully parenthesized operand), with zero shift/reduce conflict, instead of
+// relying on Bison's default conflict resolution for the two to coexist.
+%token <resource_location> CONSTEVAL_GUARD "guarded consteval modifier"
 %token <resource_location> RUNTIME "runctime modifier"
+// `~ reference <pattern>` -- requests the argument via `value_modifier_t::runtime_reference`
+// (terms.hpp) instead of the unconstrained resolution every other structural pattern parameter
+// gets. See `parameter_constraint_modifier_t::reference_type` and `parameter_matcher.cpp::match`.
+%token <resource_location> REFERENCE "reference modifier"
 
 // EXPRESSIONS
 %token <annotated_nil> NIL_WORD "nil"
@@ -317,7 +329,9 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 %type <syntax_expression> type-expr
 //%type <syntax_expression> parenthesized-expression
 %type <syntax_expression> syntax-expression-base grouped-expression any-reference-expression concept-expression syntax-expression
-%type <syntax_expression> new-expression call-expression lambda-expression compound-expression
+%type <syntax_expression> new-expression call-expression lambda-expression compound-expression match-expression member-access-expression
+%type <std::vector<match_arm>> match-arm-list-opt match-arm-list
+%type <match_arm> match-arm
 //%type <syntax_expression> apostrophe-expression 
 %type <opt_named_expression_list_t> pack-expression pack-expression-opt
 
@@ -329,7 +343,8 @@ void annium_lang::parser::error(const location_type& loc, const std::string& msg
 //%type <parameter_constraint_modifier_t> constraint-expression-mod
 %type <std::pair<resource_location, parameter_constraint_modifier_t>> constraint-expression-mod constraint-expression-specified-mod
 %type <std::pair<std::variant<syntax_expression const*, syntax_pattern const*>, parameter_constraint_modifier_t>> constraint-expression constraint-expression-specified
-%type <std::pair<syntax_pattern, parameter_constraint_modifier_t>> pattern-mod pattern-sfx
+%type <std::tuple<syntax_pattern, parameter_constraint_modifier_t, syntax_expression const*>> pattern-mod
+%type <std::pair<syntax_pattern, parameter_constraint_modifier_t>> pattern-sfx
 %type <syntax_pattern> pattern
 %type <syntax_pattern::field> pattern-field pattern-field-sfx
 %type <syntax_pattern_field_list_t> subpatterns pattern-list
@@ -390,8 +405,6 @@ statement:
         }
     | generic-statement[st]
         { $$ = std::move($st); }
-    | STRUCT struct-decl[struct]
-        { $$ = statement{ std::move($struct) }; }
 	;
  
 let-decl:
@@ -477,6 +490,8 @@ finished-statement:
     //    { $$ = struct_decl{ .name = std::move($qname), .parameters = std::move($parameters), .body = ctx.make_array<statement>($body)) }; IGNORE_TERM($beginParams); }
     | ENUM enum-decl[enum]
         { $$ = statement{ std::move($enum) }; }
+    | STRUCT struct-decl[struct]
+        { $$ = statement{ std::move($struct) }; }
     ;
 
 if-else-tail:
@@ -633,7 +648,7 @@ fn-decl:
 ///////////////////////////////////////////////// ENUMERATIONS
 enum-decl:
     qname OPEN_BRACE case-list-opt[cases] CLOSE_BRACE
-        { $$ = enum_decl{ ctx.make_qname_view(std::move($qname)), ctx.make_array<identifier>($cases) }; IGNORE_TERM($OPEN_BRACE); }
+        { $$ = enum_decl{ ctx.make_qname_view(std::move($qname)), ctx.make_array<enum_case>($cases) }; IGNORE_TERM($OPEN_BRACE); }
     ;
 
 case-list-opt:
@@ -643,14 +658,16 @@ case-list-opt:
 
 case-list:
       case-decl[case]
-        { $$ = std::vector<identifier>{ std::move($case) }; }
+        { $$ = std::vector<enum_case>{ std::move($case) }; }
     | case-list[list] COMMA case-decl[case]
         { $$ = std::move($list); $$.emplace_back(std::move($case)); }
     ;
 
 case-decl:
     identifier
-        { $$ = $1.value; }
+        { $$ = enum_case{ .name = $identifier.value }; }
+    | identifier OPEN_PARENTHESIS field-list-opt[fields] CLOSE_PARENTHESIS
+        { $$ = enum_case{ .name = $identifier.value, .fields = ctx.make_array<field>($fields) }; IGNORE_TERM($OPEN_PARENTHESIS); }
     ;
 ///////////////////////////////////////////////// TYPES
 
@@ -759,6 +776,11 @@ field:
         { $$ = field{ .name = std::move($identifier), .modifier = parameter_constraint_modifier_t::runtime_type, .type_or_value = std::move($type), .value = std::move($default) }; }
     | identifier ARROWEXPR syntax-expression[value]
         { $$ = field{ .name = std::move($identifier), .modifier = parameter_constraint_modifier_t::constexpr_value, .type_or_value = std::move($value) }; }
+    // positional (unnamed) field, e.g. the `integer` in `Leaf(name: string, integer)`:
+    // field.name stays default-constructed (empty annotated_identifier), the established
+    // "no name" convention already handled by struct_entity::build / struct_init_pattern.
+    | type-expr[type] field-default-value-opt[default]
+        { $$ = field{ .name = annotated_identifier{}, .modifier = parameter_constraint_modifier_t::runtime_type, .type_or_value = std::move($type), .value = std::move($default) }; }
     ;
 
 ////////////////////// PARAMETERS (function parameters declaration)
@@ -785,6 +807,13 @@ parameter-default-value-opt:
     | ASSIGN syntax-expression[value] { $$ = ctx.make<syntax_expression>(std::move($value)); IGNORE_TERM($ASSIGN); }
     ;
 
+ellipsis-opt-assign-value-opt:
+      %empty { $$ = std::pair{ resource_location{}, required_t{} }; }
+    | ELLIPSIS { $$ = std::pair{ $ELLIPSIS, required_t{} }; }
+    | ASSIGN syntax-expression[value] { $$ = std::pair{ resource_location{}, ctx.make<syntax_expression>(std::move($value)) }; IGNORE_TERM($ASSIGN); }
+    | ELLIPSIS ASSIGN syntax-expression[value] { $$ = std::pair{ $ELLIPSIS, ctx.make<syntax_expression>(std::move($value)) }; IGNORE_TERM($ASSIGN); }
+    ;
+
 parameter-decl:
 // named parameter main case: foo(paramName [$internalParamName] : [constexpr | runtime] type-expression [...] [= expression])
       identifier[id] internal-identifier-opt[intid] COLON constraint-expression[ce] parameter-default-value-opt[default]
@@ -793,65 +822,74 @@ parameter-decl:
 // unnamed parameter main case: foo([$internalParamName] : [constexpr | runtime] type-expression [...] [= expression])
     | internal-identifier[intid] COLON constraint-expression[ce] parameter-default-value-opt[default]
         { $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint = std::move(get<0>($ce)), .default_value = std::move($default), .modifier = get<1>($ce) }; }
-    | COLON constraint-expression[ce] parameter-default-value-opt[default]
-        { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = std::move(get<0>($ce)), .default_value = std::move($default), .modifier = get<1>($ce) }; }
+//    | COLON constraint-expression[ce] parameter-default-value-opt[default]
+//        { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = std::move(get<0>($ce)), .default_value = std::move($default), .modifier = get<1>($ce) }; }
     
-// abbreviated main case: foo([constexpr | runtime] type-expression [...] [= expression])
+// abbreviated main case: foo((constexpr | runtime) type-expression [...] [= expression])
     | constraint-expression-specified[ce] parameter-default-value-opt[default]
         { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = std::move(get<0>($ce)), .default_value = std::move($default), .modifier = get<1>($ce) }; }
-    // abbreviated unnamed case with concept(s), no type-expression: foo([constexpr | runtime] @concept... [= expression])
-    | constraint-expression-specified-mod[mod] concept-expression-list[cpts] parameter-default-value-opt[default]
-        { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move(get<0>($mod)) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default), .modifier = get<1>($mod) }; }
-    // parse special case, when type-expression is just a qname and we have no 'constexpr' or 'runtime' modifier
-    | qname parameter-default-value-opt[default]
-        {
-            auto constraint = ctx.make<syntax_expression>(std::move($qname.location), qname_reference_expression{ ctx.make_qname_view(std::move($qname)) });
-            $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = constraint, .default_value = std::move($default), .modifier = parameter_constraint_modifier_t::constexpr_or_runtime_type };
+    | OPEN_SQUARE_BRACKET type-expr[type] CLOSE_SQUARE_BRACKET ellipsis-opt-assign-value-opt[default]
+        { 
+            auto * constraint = ctx.make<syntax_expression>(syntax_expression{ std::move($OPEN_SQUARE_BRACKET), bracket_expression{ ctx.make<syntax_expression>(std::move($type)) } });
+            auto modifier = $default.first ? parameter_constraint_modifier_t::constexpr_or_runtime_type | parameter_constraint_modifier_t::variadic : parameter_constraint_modifier_t::constexpr_or_runtime_type;
+            $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = constraint, .default_value = std::move($default.second), .modifier = modifier };
         }
-    | qname ELLIPSIS parameter-default-value-opt[default]
+// abbreviated unnamed case with concept(s), no type-expression: foo([constexpr | runtime] concepts [= expression])
+    | constraint-expression-specified-mod[mod] concept-expression-list[cpts] ellipsis-opt-assign-value-opt[default]
         {
-            auto constraint = ctx.make<syntax_expression>(std::move($qname.location), qname_reference_expression{ ctx.make_qname_view(std::move($qname)) });
-            $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = constraint, .default_value = std::move($default), .modifier = parameter_constraint_modifier_t::constexpr_or_runtime_type | parameter_constraint_modifier_t::variadic };
-            IGNORE_TERM($ELLIPSIS);
+            auto modifier = $default.first ? get<1>($mod) | parameter_constraint_modifier_t::variadic : get<1>($mod);
+            $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move(get<0>($mod)) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default.second), .modifier = modifier };
         }
-
-
+// parse special case, when type-expression is just a qname and we have no 'constexpr' or 'runtime' modifier
+    | qname ellipsis-opt-assign-value-opt[default]
+        {
+            auto * constraint = ctx.make<syntax_expression>(std::move($qname.location), qname_reference_expression{ ctx.make_qname_view(std::move($qname)) });
+            auto modifier = $default.first ? parameter_constraint_modifier_t::constexpr_or_runtime_type | parameter_constraint_modifier_t::variadic : parameter_constraint_modifier_t::constexpr_or_runtime_type;
+            $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = constraint, .default_value = std::move($default.second),.modifier = modifier };
+        }
     | identifier[id] internal-identifier-opt[intid] COLON pattern-mod[pm] parameter-default-value-opt[default]
-        { $$ = parameter{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>(std::move(get<0>($pm))), .default_value = std::move($default), .modifier = get<1>($pm) }; }
+        { $$ = parameter{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>(std::move(get<0>($pm))), .default_value = std::move($default), .modifier = get<1>($pm), .reference_condition = std::move(get<2>($pm)) }; }
     | identifier[id] internal-identifier-opt[intid] COLON concept-expression-list[cpts] parameter-default-value-opt[default]
         { $$ = parameter{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint =  ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($id.location) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default), .modifier =  parameter_constraint_modifier_t::constexpr_or_runtime_type };  }
     | identifier[id] internal-identifier-opt[intid] COLON constraint-expression-specified-mod[mod] concept-expression-list[cpts] parameter-default-value-opt[default]
         { $$ = parameter{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint =  ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($id.location) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default), .modifier = get<1>($mod) };  }
-    | identifier[id] internal-identifier-opt[intid] QMARK COLON pattern-mod[pm] 
-        { $$ = parameter{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>(std::move(get<0>($pm))), .default_value = optional_t{}, .modifier = get<1>($pm) }; IGNORE_TERM($QMARK); }
-    
-    | identifier[id] internal-identifier-opt[intid] ARROWEXPR syntax-expression[value]
-        { $$ = parameter{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint = ctx.make<syntax_expression>(std::move($value)), .modifier = parameter_constraint_modifier_t::constexpr_value }; }
-    | internal-identifier[intid] ARROWEXPR syntax-expression[value]
-        { $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint = ctx.make<syntax_expression>(std::move($value)), .modifier = parameter_constraint_modifier_t::constexpr_value }; }
+    | identifier[id] internal-identifier-opt[intid] QMARK COLON pattern-mod[pm]
+        { $$ = parameter{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>(std::move(get<0>($pm))), .default_value = optional_t{}, .modifier = get<1>($pm), .reference_condition = std::move(get<2>($pm)) }; IGNORE_TERM($QMARK); }
 
     | internal-identifier[intid] COLON pattern-mod[pm] parameter-default-value-opt[default]
-        { $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>(std::move(get<0>($pm))), .default_value = std::move($default), .modifier = get<1>($pm) }; }
-    | internal-identifier[intid] COLON concept-expression-list[cpts] parameter-default-value-opt[default]
-        { $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint =  ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($intid.name.location) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default), .modifier =  parameter_constraint_modifier_t::constexpr_or_runtime_type };   }        
+        { $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>(std::move(get<0>($pm))), .default_value = std::move($default), .modifier = get<1>($pm), .reference_condition = std::move(get<2>($pm)) }; }
+    | internal-identifier[intid] COLON concept-expression-list[cpts] ellipsis-opt-assign-value-opt[default]
+        {
+            auto modifier = $default.first ? parameter_constraint_modifier_t::constexpr_or_runtime_type | parameter_constraint_modifier_t::variadic : parameter_constraint_modifier_t::constexpr_or_runtime_type;
+            $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint =  ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($intid.name.location) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default.second), .modifier = modifier };
+        }
     | internal-identifier[intid] COLON constraint-expression-specified-mod[mod] concept-expression-list[cpts] parameter-default-value-opt[default]
         { $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint =  ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($intid.name.location) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default), .modifier = get<1>($mod) }; }
     | COLON pattern-mod[pm] parameter-default-value-opt[default]
-        { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>(std::move(get<0>($pm))), .default_value = std::move($default), .modifier = get<1>($pm) }; }
+        { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>(std::move(get<0>($pm))), .default_value = std::move($default), .modifier = get<1>($pm), .reference_condition = std::move(get<2>($pm)) }; }
     | pattern-mod[pm] parameter-default-value-opt[default]
-        { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>(std::move(get<0>($pm))), .default_value = std::move($default), .modifier = get<1>($pm) }; }
+        { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>(std::move(get<0>($pm))), .default_value = std::move($default), .modifier = get<1>($pm), .reference_condition = std::move(get<2>($pm)) }; }
 
     // sugar for simple placeholder types
     //| identifier[id] internal-identifier-opt[intid] concept-expression-list-opt[cpts] parameter-default-value-opt[default] 
     //    { $$ = parameter{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($intid.name.location) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default), .modifier = parameter_constraint_modifier_t::constexpr_or_runtime_type }; }
     //| identifier[id] internal-identifier[intid] QMARK
     //    { $$ = parameter{ .name = named_parameter_name{ std::move($id), std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($intid.name.location) } } ), .default_value = optional_t{}, .modifier =  parameter_constraint_modifier_t::constexpr_or_runtime_type }; }
-    | internal-identifier[intid] concept-expression-list-opt[cpts] parameter-default-value-opt[default]
-        { $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($intid.name.location) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default), .modifier =  parameter_constraint_modifier_t::constexpr_or_runtime_type }; }
-    | UNDERSCORE parameter-default-value-opt[default]
-        { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($UNDERSCORE) } } ), .default_value = std::move($default), .modifier =  parameter_constraint_modifier_t::constexpr_or_runtime_type }; }
-    | internal-identifier[intid] ELLIPSIS parameter-default-value-opt[default]
-        { $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($ELLIPSIS) } } ), .default_value = std::move($default), .modifier =  parameter_constraint_modifier_t::constexpr_or_runtime_type | parameter_constraint_modifier_t::variadic }; }
+    | internal-identifier[intid] concept-expression-list-opt[cpts] ellipsis-opt-assign-value-opt[default]
+        {
+            auto modifier = $default.first ? parameter_constraint_modifier_t::constexpr_or_runtime_type | parameter_constraint_modifier_t::variadic : parameter_constraint_modifier_t::constexpr_or_runtime_type;
+            $$ = parameter{ .name = unnamed_parameter_name{ std::move($intid.name) }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($intid.name.location) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default.second), .modifier = modifier };
+        }
+    | UNDERSCORE concept-expression-list-opt[cpts] ellipsis-opt-assign-value-opt[default]
+        {
+            auto modifier = $default.first ? parameter_constraint_modifier_t::constexpr_or_runtime_type | parameter_constraint_modifier_t::variadic : parameter_constraint_modifier_t::constexpr_or_runtime_type;
+            $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($UNDERSCORE) }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default.second), .modifier = modifier };
+        }
+    | concept-expression-list[cpts] ellipsis-opt-assign-value-opt[default]
+        {
+            auto modifier = $default.first ? parameter_constraint_modifier_t::constexpr_or_runtime_type | parameter_constraint_modifier_t::variadic : parameter_constraint_modifier_t::constexpr_or_runtime_type;
+            $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ $cpts.front().location }, .concepts = ctx.make_array<syntax_expression>($cpts) } ), .default_value = std::move($default.second), .modifier = modifier };
+        }
     | ELLIPSIS parameter-default-value-opt[default]
         { $$ = parameter{ .name = unnamed_parameter_name{ }, .constraint = ctx.make<syntax_pattern>( syntax_pattern{ .descriptor = placeholder{ std::move($ELLIPSIS) } } ), .default_value = std::move($default), .modifier =  parameter_constraint_modifier_t::constexpr_or_runtime_type | parameter_constraint_modifier_t::variadic }; }
     
@@ -966,13 +1004,20 @@ pattern-field:
     ;
 
 pattern-mod:
-      TILDA pattern-sfx[ps]                   { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::constexpr_or_runtime_type }; }
-    | TILDA CONSTEXPR pattern-sfx[ps]         { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::constexpr_type }; IGNORE_TERM($CONSTEXPR); }
-    | TILDA RUNTIME pattern-sfx[ps]           { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::runtime_type }; IGNORE_TERM($RUNTIME); }
-    | TILDA TYPENAME pattern-sfx[ps]          { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::typename_value }; IGNORE_TERM($TYPENAME); }
-    | TILDA TYPENAME                          { $$ = std::pair{ syntax_pattern{ .descriptor = placeholder{ std::move($TYPENAME) } }, parameter_constraint_modifier_t::typename_value }; IGNORE_TERM($TYPENAME); }
-    | TYPENAME pattern-sfx[ps]                { $$ = std::pair{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::typename_value }; IGNORE_TERM($TYPENAME); }
-    | TYPENAME                                { $$ = std::pair{ syntax_pattern{ .descriptor = placeholder{ std::move($TYPENAME) } }, parameter_constraint_modifier_t::typename_value }; IGNORE_TERM($TYPENAME); }
+      TILDA pattern-sfx[ps]                   { $$ = std::tuple{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::constexpr_or_runtime_type, static_cast<syntax_expression const*>(nullptr) }; }
+    | TILDA CONSTEXPR pattern-sfx[ps]         { $$ = std::tuple{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::constexpr_type, static_cast<syntax_expression const*>(nullptr) }; IGNORE_TERM($CONSTEXPR); }
+    | TILDA RUNTIME pattern-sfx[ps]           { $$ = std::tuple{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::runtime_type, static_cast<syntax_expression const*>(nullptr) }; IGNORE_TERM($RUNTIME); }
+    | TILDA REFERENCE pattern-sfx[ps]         { $$ = std::tuple{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::reference_type, static_cast<syntax_expression const*>(nullptr) }; IGNORE_TERM($REFERENCE); }
+    // `~ reference(EXPR)` -- conditional reference-taking: EXPR is evaluated (typically an earlier
+    // parameter in the same pattern -- already matched and bound by now, since parameters are
+    // matched strictly in declaration order, see parameter_matcher.cpp -- but any expression that
+    // folds to a compile-time bool works) to decide whether a reference is actually requested here.
+    // See parameter_matcher.cpp's reference_type branch.
+    | TILDA REFERENCE OPEN_PARENTHESIS syntax-expression[cond] CLOSE_PARENTHESIS pattern-sfx[ps]
+        { $$ = std::tuple{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::reference_type, ctx.make<syntax_expression>(std::move($cond)) }; IGNORE_TERM($REFERENCE); IGNORE_TERM($OPEN_PARENTHESIS); }
+    | CONSTEVAL syntax-expression[expr]       { $$ = std::tuple{ syntax_pattern{ .descriptor = ctx.make<syntax_expression>(std::move($expr)) }, parameter_constraint_modifier_t::constexpr_not_a_typename_value, static_cast<syntax_expression const*>(nullptr) }; IGNORE_TERM($CONSTEVAL); }
+    | TYPENAME pattern-sfx[ps]                { $$ = std::tuple{ std::move(get<0>($ps)), get<1>($ps) | parameter_constraint_modifier_t::typename_value, static_cast<syntax_expression const*>(nullptr) }; IGNORE_TERM($TYPENAME); }
+    | TYPENAME                                { $$ = std::tuple{ syntax_pattern{ .descriptor = placeholder{ std::move($TYPENAME) } }, parameter_constraint_modifier_t::typename_value, static_cast<syntax_expression const*>(nullptr) }; }
     ;
 
 pattern-sfx:
@@ -1066,17 +1111,20 @@ syntax-expression-base:
         }
 
     | OPEN_SQUARE_BRACKET expression-list[list] CLOSE_SQUARE_BRACKET
-        { 
+        {
             if ($list.size() == 1) {
                 $$ = syntax_expression{ std::move($OPEN_SQUARE_BRACKET), bracket_expression{ ctx.make<syntax_expression>(std::move($list.front())) } };
             } else {
                 $$ = syntax_expression{ std::move($OPEN_SQUARE_BRACKET), array_expression{ ctx.make_array<syntax_expression>($list) } };
             }
         }
+    // trailing comma forces the array-literal reading unconditionally, regardless of element
+    // count -- this is the only way to spell a one-element array value (`[x]` alone is
+    // `bracket_expression`, ambiguous between "array type" and "one-element array value")
+    | OPEN_SQUARE_BRACKET expression-list[list] COMMA CLOSE_SQUARE_BRACKET
+        { $$ = syntax_expression{ std::move($OPEN_SQUARE_BRACKET), array_expression{ ctx.make_array<syntax_expression>($list) } }; }
     | OPEN_SQUARE_BRACKET braced-statements[body] CLOSE_SQUARE_BRACKET
-        { $$ = syntax_expression{ std::move($OPEN_SQUARE_BRACKET), array_with_body_expression{ ctx.make_array<statement>($body) } }; } 
-    | OPEN_SQUARE_DBL_BRACKET expression-list[list] CLOSE_SQUARE_DBL_BRACKET
-        { $$ = syntax_expression{ std::move($OPEN_SQUARE_DBL_BRACKET), array_expression{ ctx.make_array<syntax_expression>($list) } }; }
+        { $$ = syntax_expression{ std::move($OPEN_SQUARE_BRACKET), array_with_body_expression{ ctx.make_array<statement>($body) } }; }
     | syntax-expression[type] OPEN_SQUARE_BRACKET syntax-expression[index] CLOSE_SQUARE_BRACKET
         { $$ = syntax_expression{ std::move($OPEN_SQUARE_BRACKET), index_expression{ ctx.make<syntax_expression>(std::move($type)), ctx.make<syntax_expression>(std::move($index)) } }; }
     | PROBE braced-statements[body]
@@ -1097,6 +1145,22 @@ syntax-expression-base:
 //////////////////////////// 3 priority
     | MINUS syntax-expression[expr] %prec PREFIXMINUS
         { $$ = syntax_expression{ std::move($MINUS), unary_expression{ unary_operator_type::MINUS, true, std::span{ ctx.make<opt_named_expression_t>(std::move($expr)), 1 } } }; }
+    | CONSTEVAL syntax-expression[expr] %prec PREFIXMINUS
+        { $$ = syntax_expression{ std::move($CONSTEVAL), consteval_expression{ ctx.make<syntax_expression>(std::move($expr)) } }; }
+    // Guarded form: consteval(condition) expr -- analogous to C++'s explicit(bool)/noexcept(bool).
+    // Disambiguated from the plain rule above lexically, not grammatically: CONSTEVAL_GUARD is only
+    // lexed in place of CONSTEVAL when "consteval" is immediately followed by "(" with no whitespace
+    // (annium.l trailing-context rule), so this production and the plain one never share a leading
+    // token and Bison sees no shift/reduce conflict between them at all. `consteval (x)` (a space
+    // before the paren) keeps lexing as plain CONSTEVAL and stays exactly the plain rule's
+    // parenthesized operand, same as always -- including the "operand happens to itself be a call
+    // through a parenthesized/computed callable" case, e.g. `consteval (x)()`, which would otherwise
+    // collide with this rule (see IMPLEMENTATION_NOTES.md's `consteval` section for the concrete
+    // counterexample bison reported before the lexer split was added). Only `consteval(...)` with no
+    // space reads as the guarded form; write `consteval (x);` (or drop the redundant parens
+    // entirely) if you genuinely mean the no-space-glued plain form.
+    | CONSTEVAL_GUARD OPEN_PARENTHESIS syntax-expression[cond] CLOSE_PARENTHESIS syntax-expression[expr] %prec PREFIXMINUS
+        { $$ = syntax_expression{ std::move($CONSTEVAL_GUARD), consteval_expression{ ctx.make<syntax_expression>(std::move($expr)), ctx.make<syntax_expression>(std::move($cond)) } }; IGNORE_TERM($OPEN_PARENTHESIS); }
     | EXCLPT syntax-expression[expr]
 		{ $$ = syntax_expression{ std::move($EXCLPT), unary_expression{ unary_operator_type::NEGATE, true, std::span{ ctx.make<opt_named_expression_t>(std::move($expr)), 1 } } }; }
     | ASTERISK syntax-expression[expr] %prec DEREF
@@ -1106,6 +1170,8 @@ syntax-expression-base:
         { $$ = syntax_expression{ std::move($ASTERISK), binary_expression{ binary_operator_type::MUL, ctx.make_span_for_args<opt_named_expression_t>(std::move($larg), std::move($rarg)) } }; }
     | syntax-expression[larg] SLASH syntax-expression[rarg]
         { $$ = syntax_expression{ std::move($SLASH), binary_expression{ binary_operator_type::DIV, ctx.make_span_for_args<opt_named_expression_t>(std::move($larg), std::move($rarg)) } }; }
+    | syntax-expression[larg] PERCENT syntax-expression[rarg]
+        { $$ = syntax_expression{ std::move($PERCENT), binary_expression{ binary_operator_type::MOD, ctx.make_span_for_args<opt_named_expression_t>(std::move($larg), std::move($rarg)) } }; }
 
 //////////////////////////// 6 priority
     | syntax-expression[larg] PLUS syntax-expression[rarg]
@@ -1118,6 +1184,14 @@ syntax-expression-base:
         { $$ = syntax_expression{ std::move($EQ), binary_expression{ binary_operator_type::EQ, ctx.make_span_for_args<opt_named_expression_t>(std::move($larg), std::move($rarg)) } }; }
     | syntax-expression[larg] NE syntax-expression[rarg]
         { $$ = syntax_expression{ std::move($NE), binary_expression{ binary_operator_type::NE, ctx.make_span_for_args<opt_named_expression_t>(std::move($larg), std::move($rarg)) } }; }
+    | syntax-expression[larg] LESS syntax-expression[rarg]
+        { $$ = syntax_expression{ std::move($LESS), binary_expression{ binary_operator_type::LESS, ctx.make_span_for_args<opt_named_expression_t>(std::move($larg), std::move($rarg)) } }; }
+    | syntax-expression[larg] LESS_EQ syntax-expression[rarg]
+        { $$ = syntax_expression{ std::move($LESS_EQ), binary_expression{ binary_operator_type::LESS_EQ, ctx.make_span_for_args<opt_named_expression_t>(std::move($larg), std::move($rarg)) } }; }
+    | syntax-expression[larg] GREATER syntax-expression[rarg]
+        { $$ = syntax_expression{ std::move($GREATER), binary_expression{ binary_operator_type::GREATER, ctx.make_span_for_args<opt_named_expression_t>(std::move($larg), std::move($rarg)) } }; }
+    | syntax-expression[larg] GREATER_EQ syntax-expression[rarg]
+        { $$ = syntax_expression{ std::move($GREATER_EQ), binary_expression{ binary_operator_type::GREATER_EQ, ctx.make_span_for_args<opt_named_expression_t>(std::move($larg), std::move($rarg)) } }; }
     | syntax-expression[larg] CONCAT syntax-expression[rarg]
         { $$ = syntax_expression{ std::move($CONCAT), binary_expression{ binary_operator_type::CONCAT, ctx.make_span_for_args<opt_named_expression_t>(std::move($larg), std::move($rarg)) } }; }
 //////////////////////////// 10 priority
@@ -1188,25 +1262,48 @@ new-expression:
     //    { $$ = syntax_expression{ std::move($NEW), new_expression{ ctx.make<syntax_expression>(std::move($typeExpr)), ctx.make_array<opt_named_expression_t>($arguments) } }; IGNORE_TERM($OPEN_PARENTHESIS); }
     ;
 
+// General `.member`/`.member(...)` access, rooted at any syntax-expression (a literal, a grouped
+// expression, a `new` expression, a previous call/member-access result, anything) -- not just
+// any-reference-expression/call-expression the way call-expression's own now-removed member rules
+// used to be. A single general rule instead of duplicating this per root-expression-kind.
+//
+// Referenced from *only* compound-expression below (mirroring exactly how call-expression itself
+// is wired in -- also only via compound-expression, never duplicated directly into
+// syntax-expression-base too) so that a bare `obj.method(args);` is reachable as a statement
+// (expression-statement only accepts compound-expression, not the fully general syntax-expression --
+// see its own rule further down). compound-expression is itself one of syntax-expression's
+// alternatives, so this is still just as usable as a plain syntax-expression everywhere else
+// (function arguments, let bindings, ...) as call-expression already is -- nothing is lost by not
+// also inlining it directly into syntax-expression-base. Adding *that* second path was tried and
+// reverted: it made member-access-expression reachable two different ways for the same input
+// (once through syntax-expression-base, once through compound-expression), a real reduce/reduce
+// ambiguity bison flagged immediately, not a false alarm.
+//
+// Deliberately *not* referenced from type-expr, even though call-expression still is there (for its
+// own unrelated "invoke as function" alternatives) -- type-expr already has direct qname/
+// RESERVED_IDENTIFIER/CONTEXT_IDENTIFIER alternatives that heavily overlap with what a
+// syntax-expression[object] can itself reduce to, and adding member-access-expression there
+// produced over 200 reduce/reduce conflicts (confirmed with bison, not just suspected) between
+// type-expr's own alternatives and syntax-expression's. Checked whether this loses real capability
+// first: every nested-type reference in tests/test-suite uses `::` (a qname, e.g. `Tree::Leaf`),
+// never `.` -- the existing `Tree.Leaf(name: "hi")` construction syntax (nested_declarations.ann) is
+// an *expression* (a member_call resolving via bootstrap.ann's `::invoke` mechanism), not a type-expr
+// use at all, so type-expr never actually exercised dotted member access to begin with.
+member-access-expression:
+      syntax-expression[object] POINT identifier[property] %prec LOWEST
+        { $$ = syntax_expression{ $object.location, member_expression{ ctx.make<syntax_expression>(std::move($object)), ctx.make<syntax_expression>($property.location, std::move($property.value)) } }; IGNORE_TERM($POINT); }
+    | syntax-expression[object] POINT identifier[member] OPEN_PARENTHESIS pack-expression-opt[arguments] CLOSE_PARENTHESIS
+        {
+            syntax_expression mb{ std::move($member.location), std::move($member.value) };
+            $$ = syntax_expression{ std::move($POINT), member_call{ ctx.make<syntax_expression>(std::move($object)), ctx.make<syntax_expression>(std::move(mb)), ctx.make_array<opt_named_expression_t>($arguments) } }; IGNORE_TERM($OPEN_PARENTHESIS);
+        }
+    ;
+
 call-expression:
       any-reference-expression[refExpr] OPEN_PARENTHESIS pack-expression-opt[arguments] CLOSE_PARENTHESIS
         { $$ = syntax_expression{ std::move($OPEN_PARENTHESIS), function_call{ ctx.make<syntax_expression>(std::move($refExpr)), ctx.make_array<opt_named_expression_t>($arguments) } }; }
-    | any-reference-expression[object] POINT identifier[property] %prec LOWEST
-        { $$ = syntax_expression{ $object.location, member_expression{ ctx.make<syntax_expression>($object), ctx.make<syntax_expression>($property.location, std::move($property.value)) } }; IGNORE_TERM($POINT); }
-    | any-reference-expression[object] POINT identifier[member] OPEN_PARENTHESIS pack-expression-opt[arguments] CLOSE_PARENTHESIS
-        {
-            syntax_expression mb{ std::move($member.location), std::move($member.value) };
-            $$ = syntax_expression{ std::move($POINT), member_call{ ctx.make<syntax_expression>(std::move($object)), ctx.make<syntax_expression>(std::move(mb)), ctx.make_array<opt_named_expression_t>($arguments) } }; IGNORE_TERM($OPEN_PARENTHESIS);
-        }
     | call-expression[nameExpr] OPEN_PARENTHESIS pack-expression[arguments] CLOSE_PARENTHESIS
         { $$ = syntax_expression{ std::move($OPEN_PARENTHESIS), function_call{ ctx.make<syntax_expression>(std::move($nameExpr)), ctx.make_array<opt_named_expression_t>($arguments) } }; }
-    | call-expression[object] POINT identifier[property] %prec LOWEST
-        { $$ = syntax_expression{ $object.location, member_expression{ ctx.make<syntax_expression>($object), ctx.make<syntax_expression>($property.location, std::move($property.value)) } }; IGNORE_TERM($POINT); }
-    | call-expression[object] POINT identifier[member] OPEN_PARENTHESIS pack-expression-opt[arguments] CLOSE_PARENTHESIS
-        {
-            syntax_expression mb{ std::move($member.location), std::move($member.value) };
-            $$ = syntax_expression{ std::move($POINT), member_call{ ctx.make<syntax_expression>(std::move($object)), ctx.make<syntax_expression>(std::move(mb)), ctx.make_array<opt_named_expression_t>($arguments) } }; IGNORE_TERM($OPEN_PARENTHESIS);
-        }
     | grouped-expression[expr] OPEN_PARENTHESIS[start] pack-expression-opt[arguments] CLOSE_PARENTHESIS
         { $$ = syntax_expression{ std::move($start), function_call{ ctx.make<syntax_expression>(std::move($expr)), ctx.make_array<opt_named_expression_t>($arguments) } }; }
     ;
@@ -1216,8 +1313,62 @@ syntax-expression:
     | new-expression
     | compound-expression
     | lambda-expression
+    | match-expression
     | grouped-expression
     //| parenthesized-expression
+    ;
+
+////////////////////// MATCH (structural-enum/union case dispatch)
+// `match scrutinee { pattern1 => expr1, pattern2 { block2 } }` desugars (in
+// base_expression_visitor.cpp's operator()(match_expression const&)) to
+// `apply(to: scrutinee, visitor: <a fresh anonymous functional with one overload per arm>)`,
+// reusing the existing `apply(to:, visitor:)` union-dispatch builtin (entities/union/union_apply_pattern.cpp)
+// wholesale -- runtime dispatch, per-arm result-type unification, and casting into an already-known
+// expected result type are therefore not reimplemented here. Each arm's pattern is an ordinary
+// `pattern` (the same nonterminal `~Pattern(...)`-shaped parameter constraints already use), so
+// destructuring/binding (`Leaf(name $n)`) and the `_` placeholder fallback work unchanged, with no
+// new pattern-matching machinery either. See IMPLEMENTATION_NOTES.md's "match expression" section.
+match-expression:
+    MATCH syntax-expression[scrutinee] OPEN_BRACE match-arm-list-opt[arms] CLOSE_BRACE
+        { $$ = syntax_expression{ std::move($MATCH), match_expression{ ctx.make<syntax_expression>(std::move($scrutinee)), ctx.make_array<match_arm>($arms) } }; IGNORE_TERM($OPEN_BRACE); }
+    ;
+
+match-arm-list-opt:
+      %empty { $$ = {}; }
+    | match-arm-list
+    ;
+
+// A comma between arms is mandatory even for a block-bodied arm (`pattern { ... }`), which is
+// otherwise self-terminating via its closing brace -- tried making it optional (juxtaposed arms,
+// no separator) and it does NOT parse cleanly: an arrow-bodied arm's own `syntax-expression` body
+// can be mid-parse of a still-open construct (e.g. a call-expression waiting on `(`/`::`) when the
+// next arm's pattern-start token arrives, and the grammar genuinely cannot tell "keep extending
+// this expression" from "start the next arm" without deeper lookahead -- confirmed by bison itself
+// (9 shift/reduce + 3 reduce/reduce conflicts, `-Wcounterexamples` pointing at exactly this). Kept
+// mandatory, unconditionally, to stay conflict-free.
+// A comma between arms is mandatory even for a block-bodied arm (`pattern { ... }`), which is
+// otherwise self-terminating via its closing brace. Tried making it optional twice: fully
+// (juxtaposed arms with no separator at all) and narrower (no comma required only right before a
+// block-bodied arm) -- both fail the same way, confirmed with bison directly (9 shift/reduce + 3
+// reduce/reduce conflicts, `-Wcounterexamples` pointing at it): an arrow-bodied arm's own
+// `syntax-expression` body can still be mid-parse of an open construct (e.g. a call-expression
+// waiting on further `(`/`::`) at the point the *next* arm's tokens start arriving, and LALR(1)
+// has to commit to "keep extending this expression" vs "the arm ended here" before it can know
+// whether what follows will turn out to be a block-arm or not -- narrowing which arm-kind is
+// allowed to skip the comma doesn't help, since the ambiguity is in the arrow-arm's own parse, not
+// in what follows it. Kept mandatory, unconditionally, to stay conflict-free.
+match-arm-list:
+      match-arm[arm]
+        { $$ = std::vector<match_arm>{ std::move($arm) }; }
+    | match-arm-list[list] COMMA match-arm[arm]
+        { $$ = std::move($list); $$.emplace_back(std::move($arm)); }
+    ;
+
+match-arm:
+      pattern[pat] function-body[body]
+        { $$ = match_arm{ .pattern = ctx.make<syntax_pattern>(std::move($pat)), .body = ctx.make_array<statement>($body) }; }
+    | internal-identifier[iid] COLON pattern[pat] function-body[body]
+        { $$ = match_arm{ .bind_name = std::move($iid.name), .pattern = ctx.make<syntax_pattern>(std::move($pat)), .body = ctx.make_array<statement>($body) }; }
     ;
 
 lambda-start-decl:
@@ -1285,6 +1436,7 @@ compound-expression:
         syntax-expression[expr] ELLIPSIS
         { $$ = syntax_expression{ std::move($ELLIPSIS), unary_expression{ unary_operator_type::ELLIPSIS, false, std::span{ ctx.make<opt_named_expression_t>(std::move($expr)), 1 } } }; }
       | call-expression
+      | member-access-expression
 
     /*
     | syntax-expression OPEN_BRACE argument-list-opt[arguments] CLOSE_BRACE

@@ -21,43 +21,66 @@ std::expected<functional_match_descriptor_ptr, error_storage> equal_pattern::try
     
     auto lhs_descr = call_session.get_next_positioned_argument();
     if (!lhs_descr) return std::unexpected(std::move(lhs_descr.error()));
-        
-    syntax_expression_result& lhs_arg_er = lhs_descr->result;
-    resource_location lhs_loc = lhs_descr->expression->location;
-    entity_identifier lhs_type = get_result_type(ctx.env(), lhs_arg_er);
+    size_t const lhs_arg_index = lhs_descr->arg_index;
+    entity_identifier lhs_type = get_result_type(ctx.env(), lhs_descr->result);
 
     auto rhs_descr = call_session.get_next_positioned_argument(expected_result_t{ lhs_type });
     if (!rhs_descr) {
         alt_error err;
-        err.alternatives.emplace_back(std::move(lhs_descr.error()));
+        err.alternatives.emplace_back(std::move(rhs_descr.error()));
 
-        // try to start with right argument
+        // try to start with right argument (the RHS slot was already freed by
+        // get_next_positioned_argument's own failure path above; LHS stays
+        // consumed - it succeeded and must not be re-fetched here)
         rhs_descr = call_session.get_next_positioned_argument();
         if (!rhs_descr) {
             err.alternatives.emplace_back(std::move(rhs_descr.error()));
             return std::unexpected(make_error<alt_error>(std::move(err)));
         }
+        size_t const rhs_arg_index = rhs_descr->arg_index;
         entity_identifier rhs_type = get_result_type(ctx.env(), rhs_descr->result);
         if (auto argterm = call_session.unused_argument(); argterm) {
             return std::unexpected(make_error<basic_general_error>(argterm.location(), "equality comparison accepts exactly two arguments, but more were provided"sv, std::move(argterm.value())));
         }
-        call_session.reuse_argument(rhs_descr->arg_index);
-        call_session.reuse_argument(lhs_descr->arg_index);
+        call_session.reuse_argument(rhs_arg_index);
+        call_session.reuse_argument(lhs_arg_index);
         lhs_descr = call_session.get_next_positioned_argument(expected_result_t{ rhs_type });
         if (!lhs_descr) {
             err.alternatives.emplace_back(std::move(lhs_descr.error()));
-            return std::unexpected(make_error<alt_error>(std::move(err)));
+
+            // Neither side's type can steer the other's evaluation (e.g. a
+            // union-case probe landing on `string == 1`, where there's no
+            // implicit cast in either direction) - fall back to evaluating
+            // both operands in their own natural types, with no cross-
+            // steering at all. A genuine type mismatch then just becomes an
+            // unequal result instead of a compile failure: apply() below
+            // const-folds two mismatched constants to `false` by plain
+            // entity-identity comparison, and at runtime the native `equal`
+            // builtin (annium_any_equal, library/annium_library.cpp) already
+            // treats mismatched blob types as simply unequal rather than
+            // throwing - so there's a real, working `false` result on both
+            // ends for this function to route to, once it can actually gather
+            // both operands.
+            call_session.reuse_argument(rhs_arg_index);
+            call_session.reuse_argument(lhs_arg_index);
+            lhs_descr = call_session.get_next_positioned_argument();
+            if (!lhs_descr) {
+                err.alternatives.emplace_back(std::move(lhs_descr.error()));
+                return std::unexpected(make_error<alt_error>(std::move(err)));
+            }
+            rhs_descr = call_session.get_next_positioned_argument();
+            if (!rhs_descr) {
+                err.alternatives.emplace_back(std::move(rhs_descr.error()));
+                return std::unexpected(make_error<alt_error>(std::move(err)));
+            }
         }
-        lhs_loc = lhs_descr->expression->location;
-        
     } else if (auto argterm = call_session.unused_argument(); argterm) {
         return std::unexpected(make_error<basic_general_error>(argterm.location(), "equality comparison accepts exactly two arguments, but more were provided"sv, std::move(argterm.value())));
     }
-    resource_location rhs_loc = rhs_descr->expression->location;
-    syntax_expression_result& rhs_arg_er = rhs_descr->result;
+
     auto pmd = make_shared<functional_match_descriptor>(call);
-    pmd->append_arg(lhs_arg_er, lhs_loc);
-    pmd->append_arg(rhs_arg_er, rhs_loc);
+    pmd->append_arg(lhs_descr->result, lhs_descr->expression->location);
+    pmd->append_arg(rhs_descr->result, rhs_descr->expression->location);
     return pmd;
 }
 

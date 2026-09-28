@@ -1,0 +1,41 @@
+// Nested @concept matching: a @concept attached to a FIELD inside a pattern application, e.g.
+// `ref(of @is_struct)`, rather than only ever at the top level (`self: @is_struct`).
+// match_priority.ann's tesnfn2 already exercises a bound variable (`of $ET`) and a value pattern
+// (`size = {3}`) as field values; this file covers the bare-@concept field value alternative
+// (`pattern-field-sfx`'s `concept-expression-list-opt` branch, annium.y) and combining a bound
+// variable with a trailing concept on the same field (`of $T @is_struct`). See
+// pattern_matcher.cpp's `do_match`/`do_match_concepts` for the recursive per-field matcher this
+// exercises, and STRUCT_FIELDS_PLAN.md's Part B for why it matters (the mechanism a future
+// `self: ~ ref(of @is_struct)` struct-field-reference overload would rely on).
+
+struct point => (x: i32, y: i32);
+
+// `~ref(of ...)` is a *structural* pattern (see IMPLEMENTATION_NOTES.md's `ref(T)` section): it
+// never takes an implicit reference, and matches only a value that's already ref(of: E)-typed --
+// exactly what the explicit `ref(x)` builtin produces for a plain variable. A concept nested in
+// the `of` field is checked against the *unwrapped* E, not against ref(of: E) itself.
+fn classify(~ ref(of @is_struct)) => 1; // a reference to a struct
+fn classify(~$T) => 3;                 // anything else (including a ref to a non-struct, or a plain value)
+
+let p: point = init(x: runtime_cast(1), y: runtime_cast(2));
+let n: i32 = runtime_cast(42);
+
+assert_equal(classify(ref(p)), 1); // @is_struct(point) is true -- the concept-gated overload wins
+assert_equal(classify(ref(n)), 3); // @is_struct(i32) is false -- concept rejects this candidate, falls back
+assert_equal(classify(p), 3);      // p isn't a reference at all -- structural ~ref(...) never auto-references
+assert_equal(classify(n), 3);
+
+// The same nested concept, spelled with a named `self` parameter -- the exact form
+// `self: ~ ref(of @is_struct)` a struct-field-reference `get`/`set` overload would use.
+fn is_struct_ref(self: ~ ref(of @is_struct)) => true;
+fn is_struct_ref(self: ~$T) => false;
+
+assert_equal(is_struct_ref(self: ref(p)), true);
+assert_equal(is_struct_ref(self: ref(n)), false);
+assert_equal(is_struct_ref(self: p), false);
+
+// A bound variable and a trailing concept combined on one field (`of $T @is_struct`): $T binds to
+// the referenced type and is usable in the body like any other pattern-bound identifier, while the
+// concept still gates the match.
+fn struct_ref_type_is_struct(~ ref(of $T @is_struct)) => is_struct($T);
+assert_equal(struct_ref_type_is_struct(ref(p)), true);

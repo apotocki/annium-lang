@@ -1,0 +1,71 @@
+// Structural enum cases whose fields are *all* constexpr-valued -- `name => expr` (ANNIUM_SYNTAX.md's
+// "Named, constexpr-valued" struct field form), not the runtime-typed `name: type-expr` structural_enums.ann
+// uses for Leaf/Inner. Each case is still a real nested struct (`HttpStatusCode::OK` etc.) and still a
+// *structural* case at the grammar level -- `case-decl`'s "has fields" check is purely fields.has_value(),
+// independent of whether those fields end up const (declaration_visitor.cpp's enum_decl handling) -- so
+// this lands on the same "mixed union" layout structural_enums.ann's Tree does, not the all-bare
+// "enum_union" fast path enums.ann's test_enum takes, even though every field here is compile-time-known.
+//
+// The interesting bit: a constexpr field (struct_entity::build, struct_entity.cpp:62-70) is excluded from
+// the struct's own runtime field list (`fields_`) entirely -- it never becomes a caller-supplied
+// constructor argument -- so each case is constructed with a plain, argument-less `init()` (its expected
+// type, e.g. `HttpStatusCode::OK`, comes from the `let` annotation, same as any other `init()` call), and
+// reading `.text`/`.value` back off the constructed value reads the baked-in constexpr, not per-instance
+// storage.
+
+enum HttpStatusCode {
+    OK(text => "OK", value => 200),
+    NOT_FOUND(text => "Not Found", value => 404),
+    HTTP_VERSION_NOT_SUPPORTED(text => "HTTP Version Not Supported", value => 505)
+};
+
+// direct construction (no arguments -- both fields are constexpr) and field access
+let ok: HttpStatusCode::OK = init();
+assert_equal(ok.text, "OK");
+assert_equal(ok.value, 200);
+
+let nf: HttpStatusCode::NOT_FOUND = init();
+assert_equal(nf.text, "Not Found");
+assert_equal(nf.value, 404);
+
+let hvns: HttpStatusCode::HTTP_VERSION_NOT_SUPPORTED = init();
+assert_equal(hvns.text, "HTTP Version Not Supported");
+assert_equal(hvns.value, 505);
+
+assert_equal(__get_frame_stack_height(), 0);
+
+// implicit cast of a concrete case into the union, and the resulting tag ordinal
+let s1: HttpStatusCode = ok;
+let s2: HttpStatusCode = nf;
+let s3: HttpStatusCode = hvns;
+
+assert_equal(to_integer(s1), 0);
+assert_equal(to_integer(s2), 1);
+assert_equal(to_integer(s3), 2);
+
+// match: enum-local short case names as arm patterns, `$name: Pattern` binding to reach the matched
+// case's own (constexpr) fields -- same shape match_expression.ann's Leaf/Inner arms use
+fn describe($s: HttpStatusCode) -> string =>
+    match $s {
+        $c: OK => $c.text .. " (" .. to_string($c.value) .. ")",
+        $c: NOT_FOUND => $c.text .. " (" .. to_string($c.value) .. ")",
+        $c: HTTP_VERSION_NOT_SUPPORTED => $c.text .. " (" .. to_string($c.value) .. ")"
+    };
+
+assert_equal(describe(s1), "OK (200)");
+assert_equal(describe(s2), "Not Found (404)");
+assert_equal(describe(s3), "HTTP Version Not Supported (505)");
+
+// match's field-destructuring arm sugar (`Pattern(field $name, ...) => ...`) works the same over a
+// constexpr field as it does over Leaf/Inner's runtime-typed ones -- it's just `.value` member access
+// under the hood, const or not (match_expression.ann's leaf_value/leaf_name)
+fn code_of($s: HttpStatusCode) -> integer =>
+    match $s {
+        OK(text, value $v) => $v,
+        NOT_FOUND(text, value $v) => $v,
+        HTTP_VERSION_NOT_SUPPORTED(text, value $v) => $v
+    };
+
+assert_equal(code_of(s1), 200);
+assert_equal(code_of(s2), 404);
+assert_equal(code_of(s3), 505);

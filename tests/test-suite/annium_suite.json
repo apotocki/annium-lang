@@ -1,4 +1,5 @@
-[/*
+[
+  /*
   {
     "src": "draft.ann",
     "output": ""
@@ -33,16 +34,12 @@
     "output": ""
   },
   {
-    "src": "unions.ann",
+    "src": "enums/unions.ann",
     "output": ""
   },
   {
     "src": "function_calls.ann",
     "output": "test function called"
-  },
-  {
-    "src": "enums.ann",
-    "output": "CB"
   },
   {
     "src": "array_operations.ann",
@@ -71,7 +68,72 @@
   {
     "src": "arithmetic.ann",
     "output": ""
+  },
+  {
+    "src": "bitwise.ann",
+    "output": ""
+  },
+  {
+    "src": "comparisons.ann",
+    "output": ""
+  },
+  {
+    "src": "numeric_limits.ann",
+    "output": ""
+  },
+  {
+    "src": "math_functions.ann",
+    "output": ""
+  },
+  {
+    "src": "consteval.ann",
+    "output": ""
+  },
+  {
+    "src": "to_fancy_string.ann",
+    "output": ""
+  },
+  {
+    "src": "references.ann",
+    "output": ""
+  },
+  {
+    "src": "nested_concepts.ann",
+    "output": ""
+  },
+  {
+    "src": "positional_struct_fields.ann",
+    "output": ""
+  },
+  {
+    "src": "enums/enums.ann",
+    "output": "CB"
+  },
+  {
+    "src": "enums/structural_enums.ann",
+    "output": "[\"a\", 1:bigint][\"root\", [[\"a\", 1:bigint], 0:ui64], [[\"b\", 2:bigint], 0:ui64]]"
+  },
+  {
+    "src": "enums/match_expression.ann",
+    "output": ""
+  },
+  {
+    "src": "enums/enum_constexpr_cases.ann",
+    "output": ""
+  },
+  {
+    "src": "enums/mixed_enum.ann",
+    "output": ""
+  },
+  {
+    "src": "nested_declarations.ann",
+    "output": ""
+  },
+  {
+    "src": "applied/formatBytes.ann",
+    "output": ""
   }
+
   /*
     
     {

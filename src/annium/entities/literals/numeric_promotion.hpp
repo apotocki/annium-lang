@@ -4,6 +4,7 @@
 #pragma once
 
 #include <cmath>
+#include <iostream>
 #include <optional>
 #include <sstream>
 
@@ -16,6 +17,15 @@ namespace annium {
 // and the arbitrary-precision integer/decimal types). Excludes bool: it participates in
 // numeric literal casts but is not itself an arithmetic operand.
 bool is_numeric_eid(builtin_eid type) noexcept;
+
+// True for the 9 integral-kind types (fixed-width integers and the arbitrary-precision integer
+// type) among is_numeric_eid's 13 -- excludes decimal and the floating types, and (like
+// is_numeric_eid) excludes bool. Bitwise & and | are only defined for these: see
+// numeric_literal_bit_and_pattern/numeric_literal_bit_or_pattern, which use this to reject a
+// float/decimal operand before ever reaching bit_and_numeric/bit_or_numeric below (bool's own
+// & and | go through the separate bool_bit_and_pattern/bool_bit_or_pattern instead, since bool
+// isn't itself numeric).
+bool is_integral_kind_eid(builtin_eid type) noexcept;
 
 // Is a runtime value of `source_type` always representable as `target_type` without any
 // possibility of precision loss, independent of the actual value? This is the directed
@@ -60,45 +70,94 @@ smart_blob multiply_numeric(smart_blob const& lhs, smart_blob const& rhs, builti
 // an integral result_type only when both operands are integral-kind.
 smart_blob divide_numeric(smart_blob const& lhs, smart_blob const& rhs, builtin_eid result_type);
 
+// Same shape as add_numeric, but lhs % rhs. `result_type` is never builtin_eid::decimal --
+// numeric_literal_mod_pattern rejects decimal operands before this is ever called (unlike
+// divide_numeric, there's no constexpr escape hatch either -- decimal modulo has no design yet,
+// see FUTURE_WORK.md). Two integral-kind operands use native C++ `%` (remainder, sign follows the
+// dividend, matching divide_numeric's truncating-toward-zero `/`); floating-kind operands use
+// std::fmod, which follows the same toward-zero-truncation convention.
+smart_blob modulo_numeric(smart_blob const& lhs, smart_blob const& rhs, builtin_eid result_type);
+
+// Same shape as add_numeric, but lhs & rhs. `result_type` must be one of the 9 integral-kind
+// types (see is_integral_kind_eid) -- numeric_literal_bit_and_pattern rejects any other type
+// (decimal, f16/f32/f64) before this is ever called, same reasoning as divide_numeric excluding
+// decimal.
+smart_blob bit_and_numeric(smart_blob const& lhs, smart_blob const& rhs, builtin_eid result_type);
+
+// Same shape as bit_and_numeric, but lhs | rhs.
+smart_blob bit_or_numeric(smart_blob const& lhs, smart_blob const& rhs, builtin_eid result_type);
+
 // Attempts an exact constexpr `decimal / decimal` division. Unlike +, -, * (see divide_numeric's
 // comment), decimal division has no general definition here: most quotients (e.g. 1/3) don't have
-// a finite base-10 representation. But when the reduced fraction's denominator's only prime
-// factors are 2 and 5, the quotient *is* finite and exact -- computed here by clearing the
-// denominator to an exact power of 10 (via gcd + repeated factoring-out of 2s and 5s), never by
-// rounding or long division. Returns std::nullopt for division by zero or a non-terminating
-// (repeating) quotient; numeric_literal_div_pattern turns either into a compile error.
-// constexpr-only by design: at runtime nothing could reject a non-terminating result until the
-// actual operand values are known, so the plain `/` operator stays fully undefined for decimal at
-// runtime -- see FUTURE_WORK.md. (The explicit `divide(a, b, scale, mode)` bootstrap.ann function,
-// see decimal_rounding_mode/divide_decimal_rounded below, is the runtime-safe alternative: it
+// a finite base-10 representation. Thin wrapper around numetron::try_divide_exact (basic_decimal.hpp)
+// -- the actual gcd/factor-out-2s-and-5s algorithm lives there now, pure bigint arithmetic with no
+// Annium dependency (same move as to_fixed_string's own, see RESOLVED.md's "Moved to_fixed_string's
+// rounding algorithms into numetron" and "...divide_decimal_rounded/try_divide_decimal_constexpr..."
+// entries). Returns std::nullopt for division by zero or a non-terminating (repeating) quotient;
+// numeric_literal_div_pattern turns either into a compile error. constexpr-only by design: at
+// runtime nothing could reject a non-terminating result until the actual operand values are known,
+// so the plain `/` operator stays fully undefined for decimal at runtime -- see FUTURE_WORK.md.
+// (The explicit `divide(a, b, scale, mode)` bootstrap.ann function, see
+// numetron::decimal_round_mode/divide_decimal_rounded below, is the runtime-safe alternative: it
 // always produces a result by rounding to a caller-chosen scale instead of rejecting anything.)
 std::optional<numetron::decimal> try_divide_decimal_constexpr(numetron::decimal_view lhs, numetron::decimal_view rhs);
 
-// Mirrors bootstrap.ann's `rounding_mode` enum member-for-member (ordinal order must match
-// exactly -- the bootstrap.ann `divide(...)` wrapper crosses the runtime boundary by passing
-// `to_integer(mode)`'s bare ordinal to __divide_decimal_rounded, there's no shared symbolic type).
-// Only half_even is implemented so far (see divide_decimal_rounded); the rest are declared now so
-// the enum/signature shape doesn't need to change again when they're added incrementally.
-enum class decimal_rounding_mode : int
-{
-    half_even = 0,
-    half_up = 1,
-    half_down = 2,
-    up = 3,
-    down = 4,
-    ceiling = 5,
-    floor = 6,
-};
+// Divides two decimal values, rounded to at most `scale` digits after the decimal point. Unlike
+// try_divide_decimal_constexpr, this never rejects a non-terminating quotient -- it always produces
+// a result, by rounding. Thin wrapper around numetron::divide_rounded (basic_decimal.hpp) -- the
+// actual significand/exponent scaling and remainder tie-break live there now (same move as
+// try_divide_decimal_constexpr's own, see RESOLVED.md). This wrapper's own job is just guarding
+// unimplemented modes with Annium's own THROW_NOT_IMPLEMENTED_ERROR (rather than letting numetron's
+// plain std::runtime_error escape, which wouldn't match this codebase's own "not implemented yet"
+// exception type) -- only decimal_round_mode::half_even is implemented so far, every other mode
+// throws, see FUTURE_WORK.md. Returns std::nullopt for division by zero (the caller,
+// annium_divide_decimal_rounded, turns that into a runtime exception).
+//
+// `mode` is `numetron::decimal_round_mode` (decimal_view.hpp) directly -- Annium keeps no separate
+// mirror enum of its own (see divide_decimal_rounded's git history / RESOLVED.md for why one was
+// tried and then dropped). bootstrap.ann's own `rounding_mode` enum still has to mirror it
+// member-for-member (ordinal order must match exactly -- the bootstrap.ann `divide(...)` wrapper
+// crosses the runtime boundary by passing `to_integer(mode)`'s bare ordinal to
+// __divide_decimal_rounded, there's no shared symbolic type across that boundary).
+std::optional<numetron::decimal> divide_decimal_rounded(numetron::decimal_view lhs, numetron::decimal_view rhs, uint32_t scale, numetron::decimal_round_mode mode);
 
-// Divides two decimal values, rounded to at most `scale` digits after the decimal point (trailing
-// zeros are stripped afterward, same normalization every other decimal arithmetic result already
-// gets -- this codebase's decimal type has no way to print a non-significant trailing zero, so an
-// exact `scale`-digit padding wouldn't be observable anyway). Unlike try_divide_decimal_constexpr,
-// this never rejects a non-terminating quotient -- it always produces a result, by rounding.
-// Returns std::nullopt for division by zero (the caller, annium_divide_decimal_rounded, turns that
-// into a runtime exception). Throws THROW_NOT_IMPLEMENTED_ERROR for any `mode` other than
-// half_even -- the other modes are deliberately not implemented yet, see FUTURE_WORK.md.
-std::optional<numetron::decimal> divide_decimal_rounded(numetron::decimal_view lhs, numetron::decimal_view rhs, uint32_t scale, decimal_rounding_mode mode);
+// Formats `d` to exactly `digits` fractional digits (zero-padded, never trimmed), correctly rounded.
+// `digits` must be >= 0 (annium_numeric_to_fixed, the only caller, already clamps). Thin wrapper
+// around numetron::to_fixed_string(numetron::decimal_view, digits, numetron::decimal_round_mode)
+// (decimal_view.hpp) -- the actual bigint significand/exponent rounding algorithm lives there now,
+// since it's pure numetron arithmetic with no Annium dependency (see RESOLVED.md's "Moved
+// to_fixed_string's rounding algorithms into numetron" entry). This wrapper's own job is just
+// guarding unimplemented modes with Annium's own THROW_NOT_IMPLEMENTED_ERROR (rather than letting
+// numetron's plain std::runtime_error escape, which wouldn't match this codebase's own "not
+// implemented yet" exception type) -- only decimal_round_mode::half_even and ::half_up are
+// implemented (mirroring the two conventions round(value, digits, mode) implements natively in
+// annium_library.cpp), every other mode throws.
+std::string to_fixed_decimal_string(numetron::decimal_view d, int64_t digits, numetron::decimal_round_mode mode);
+
+// Formats any numeric value to exactly `digits` fractional digits (zero-padded, correctly rounded,
+// per `mode` -- backs bootstrap.ann's to_fixed(value, digits, mode)). Always exact, but splits into
+// two different rounding paths by source kind, both now living in numetron (decimal_view.hpp) --
+// this function is just the builtin_eid dispatch:
+//
+// - A `decimal` source, or any integral source (fixed-width int, bigint integer), is already exact
+//   when read as a numetron::decimal_view (no Dragonbox involved for those -- see
+//   sonia::invocation::from_blob<basic_decimal_view<LimbT>>, invocation.hpp) -- rounded directly via
+//   to_fixed_decimal_string above (itself calling numetron::to_fixed_string's decimal_view overload).
+// - An f16/f32/f64 source is read as a double first (exact: decimal_view -> double round-trips
+//   losslessly by Dragonbox's own round-trip guarantee) and then rounded by
+//   numetron::to_fixed_string's floating-point overload, which stays in base 2 throughout rather
+//   than going through an exact base-10 decimal -- see that overload's own comment (decimal_view.hpp)
+//   for why the base-10 route needs a divisor far too wide for numetron::limb_arithmetic::udiv's
+//   single-limb fast path for essentially any real float input, not a contrived one (see
+//   BUGFIXES.md), while the base-2 route uses only shifts and subtraction (no division at all,
+//   hence no udiv-width concern regardless of magnitude).
+//
+// (An even earlier version went through `double` + std::to_chars(..., chars_format::fixed) instead
+// of either exact path -- that couldn't have honored `mode` at all for a float source, since
+// std::to_chars has no rounding-mode parameter, it always uses whatever the current floating-point
+// environment's rounding mode happens to be -- which is *why* `mode` forced a rewrite in the first
+// place, rather than just being bolted on.)
+std::string to_fixed_string(smart_blob const& value, int64_t digits, numetron::decimal_round_mode mode);
 
 // Can the constexpr value `source_val` (of type `source_type`) be represented in `target_type`
 // without loss of precision? Used to check, at compile time, whether a literal operand's
@@ -183,21 +242,21 @@ bool can_convert_constexpr_value_safely(SourceValue const& source_val, builtin_e
                 // original (normalized) significand/exponent, float16_cast()'s rounding would
                 // have discarded precision -- not "always safe" the way an exact-family
                 // conversion is. A magnitude that overflows float16's range entirely (-> +-inf)
-                // is rejected up front, since basic_decimal's floating-point constructor throws
-                // for a non-finite value rather than reporting "doesn't fit".
+                // is rejected up front, since numetron::exact_decimal throws for a non-finite
+                // value rather than reporting "doesn't fit".
                 numetron::float16 f16v = numetron::float16_cast(source_val);
-                if (!std::isfinite(static_cast<float>(f16v))) return false;
-                return numetron::decimal{ f16v } == source_val;
+                if (!f16v.is_finit()) return false;
+                return numetron::exact_decimal(f16v) == source_val;
             }
             case builtin_eid::f32: {
                 float f32v = static_cast<float>(source_val);
                 if (!std::isfinite(f32v)) return false;
-                return numetron::decimal{ f32v } == source_val;
+                return numetron::exact_decimal(f32v) == source_val;
             }
             case builtin_eid::f64: {
                 double_t f64v = static_cast<double_t>(source_val);
                 if (!std::isfinite(f64v)) return false;
-                return numetron::decimal{ f64v } == source_val;
+                return numetron::exact_decimal(f64v) == source_val;
             }
             case builtin_eid::decimal:
                 return true; // same type; source_type == target_type already returned true above

@@ -127,6 +127,7 @@ EXTERN                   "extern"
 INCLUDE					 "include"
 INLINE					 "inline"
 VIABLE					 "viable"
+MATCH					 "match"
 NEW						 "new"
 
 CONTINUE                 "continue"
@@ -150,6 +151,7 @@ TYPENAME				 "typename"
 CONSTEXPR				 "constexpr"
 CONSTEVAL				 "consteval"
 RUNTIME					 "runtime"
+REFERENCE				 "reference"
 
 APOSTROPHE				 "`"
 AT_SYMBOL				 "@"
@@ -173,9 +175,8 @@ PLUS                     "+"
 MINUS                    "-"
 ASTERISK                 "*"
 SLASH                    "/"
+PERCENT                  "%"
 TILDA                    "~"
-OPEN_SQUARE_DBL_BRACKET  "[["
-CLOSE_SQUARE_DBL_BRACKET "]]"
 DBLCOLON                 "::"
 LOGIC_OR                 "||"
 LOGIC_AND                "&&"
@@ -185,6 +186,10 @@ FARROW					 "~>"
 CONCAT                   ".."
 EQ                       "=="
 NE                       "!="
+LESS					 "<"
+LESS_EQ                  "<="
+GREATER                  ">"
+GREATER_EQ               ">="
 ELLIPSIS                 "..."
 
 /*
@@ -237,10 +242,6 @@ PERCENT                 "%"
 
 TILDA                   "~"
 EXCL                    "^"
-OPEN_BROKET             "<"
-CLOSE_BROKET            ">"
-
-
 
 DOLLAR                  "$"
 
@@ -317,6 +318,7 @@ HASHTAG					"#"
 	{REQUIRES} { return (annium_lang::parser::token::REQUIRES); }
 	{PROBE} { variant_emplace(location); return (annium_lang::parser::token::PROBE); }
 	{VIABLE} { return (annium_lang::parser::token::VIABLE); }
+	{MATCH} { variant_emplace(location); return (annium_lang::parser::token::MATCH); }
 	{USING} { return (annium_lang::parser::token::USING); }
 	{EXTENDS} { return (annium_lang::parser::token::EXTENDS); }
 	{EXTERN} { return (annium_lang::parser::token::EXTERN); }
@@ -339,8 +341,10 @@ HASHTAG					"#"
 
 	{TYPENAME} { variant_emplace(location); return (annium_lang::parser::token::TYPENAME); }
 	{CONSTEXPR} { variant_emplace(location); return (annium_lang::parser::token::CONSTEXPR); }
+	{CONSTEVAL}/{OPEN_PARENTHESIS} { variant_emplace(location); return (annium_lang::parser::token::CONSTEVAL_GUARD); }
 	{CONSTEVAL} { variant_emplace(location); return (annium_lang::parser::token::CONSTEVAL); }
 	{RUNTIME} { variant_emplace(location); return (annium_lang::parser::token::RUNTIME); }
+	{REFERENCE} { variant_emplace(location); return (annium_lang::parser::token::REFERENCE); }
 
 	{NIL_WORD} {
 		variant_emplace(annotated_nil{location});
@@ -366,8 +370,6 @@ HASHTAG					"#"
 	{COLON}                    { return (annium_lang::parser::token::COLON); }
 	{OPEN_SQUARE_BRACKET}	   { variant_emplace(location); return (annium_lang::parser::token::OPEN_SQUARE_BRACKET); }
 	{CLOSE_SQUARE_BRACKET}	   { return (annium_lang::parser::token::CLOSE_SQUARE_BRACKET); }
-	{OPEN_SQUARE_DBL_BRACKET}  { variant_emplace(location); return (annium_lang::parser::token::OPEN_SQUARE_DBL_BRACKET); }
-	{CLOSE_SQUARE_DBL_BRACKET} { return (annium_lang::parser::token::CLOSE_SQUARE_DBL_BRACKET); }
 	{ASSIGN}                   { variant_emplace(location); return (annium_lang::parser::token::ASSIGN); }
 	{POINT}					   { variant_emplace(location); return (annium_lang::parser::token::POINT); }
 	{UNDERSCORE}		       { variant_emplace(location); return (annium_lang::parser::token::UNDERSCORE); }
@@ -380,6 +382,7 @@ HASHTAG					"#"
 	{MINUS}					   { variant_emplace(location); return (annium_lang::parser::token::MINUS); }
 	{ASTERISK}				   { variant_emplace(location); return (annium_lang::parser::token::ASTERISK); }
 	{SLASH}					   { variant_emplace(location); return (annium_lang::parser::token::SLASH); }
+	{PERCENT}				   { variant_emplace(location); return (annium_lang::parser::token::PERCENT); }
 	{TILDA}                    { return (annium_lang::parser::token::TILDA); }
 	{LOGIC_OR}                 { variant_emplace(location); return (annium_lang::parser::token::LOGIC_OR); }
     {LOGIC_AND}                { variant_emplace(location); return (annium_lang::parser::token::LOGIC_AND); }
@@ -389,6 +392,10 @@ HASHTAG					"#"
 	{CONCAT}                   { variant_emplace(location); return (annium_lang::parser::token::CONCAT); }
 	{EQ}					   { variant_emplace(location); return (annium_lang::parser::token::EQ); }
 	{NE}					   { variant_emplace(location); return (annium_lang::parser::token::NE); }
+	{LESS}                     { variant_emplace(location); return (annium_lang::parser::token::LESS); }
+	{LESS_EQ}                  { variant_emplace(location); return (annium_lang::parser::token::LESS_EQ); }
+	{GREATER}                  { variant_emplace(location); return (annium_lang::parser::token::GREATER); }
+	{GREATER_EQ}               { variant_emplace(location); return (annium_lang::parser::token::GREATER_EQ); }
 	{ELLIPSIS}                 { variant_emplace(location); return (annium_lang::parser::token::ELLIPSIS); }
 
 	{IDENTIFIER} {
@@ -444,21 +451,6 @@ HASHTAG					"#"
 		return (annium_lang::parser::token::OPERATOR_TERM);
 	}
 
-	
-	
-    
-	
-    
-	
-
-
-
-	{OPEN_BROKET}			{ return (annium_lang::parser::token::OPEN_BROKET); }
-	{CLOSE_BROKET}			{ return (annium_lang::parser::token::CLOSE_BROKET); }
-	
-	
-	
-	
 	{HASHTAG}               { return (annium_lang::parser::token::HASHTAG); }
 	*/
 }

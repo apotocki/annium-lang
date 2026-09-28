@@ -130,6 +130,17 @@ void expression_printer_visitor::operator()(push_local_variable const& lv) const
 #endif
 }
 
+void expression_printer_visitor::operator()(push_local_variable_index const& lv) const
+{
+    do_indent();
+    ss << "push INDEX_OF_VAR("sv << lv.varid.value;
+#ifdef SONIA_LANG_DEBUG
+    e_.print_to(ss << ") "sv, lv.varid.debug_name) << '\n';
+#else
+    ss << ")\n"sv;
+#endif
+}
+
 void expression_printer_visitor::operator()(push_variable const& v) const
 {
     do_indent();

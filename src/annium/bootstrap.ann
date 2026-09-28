@@ -1,6 +1,11 @@
 extern var std: object;
 
 // CONTROL
+inline fn assert(bool, location: string = __call_location) -> () {
+	if $0 { return; }
+	error(location: location, "Assertion failed");
+}
+
 inline fn assert_equal(_, _, location: string = __call_location) -> () {
 	if $0 == $1 { return; }
 	error(location: location, "Assertion failed: " .. to_string($0) .. " != " .. to_string($1));
@@ -42,25 +47,198 @@ inline fn __and($LHS: bool, $RHS) {
 }
 */
 
+// consts
+inline fn ::get(self: typename bool, property: consteval .min) -> bool => false;
+inline fn ::get(self: typename bool, property: consteval .max) -> bool => true;
+inline fn ::get(self: typename i8, property: consteval .min) -> i8 => -128;
+inline fn ::get(self: typename i8, property: consteval .max) -> i8 => 127;
+inline fn ::get(self: typename u8, property: consteval .min) -> u8 => 0;
+inline fn ::get(self: typename u8, property: consteval .max) -> u8 => 255;
+inline fn ::get(self: typename i16, property: consteval .min) -> i16 => -32768;
+inline fn ::get(self: typename i16, property: consteval .max) -> i16 => 32767;
+inline fn ::get(self: typename u16, property: consteval .min) -> u16 => 0;
+inline fn ::get(self: typename u16, property: consteval .max) -> u16 => 65535;
+inline fn ::get(self: typename i32, property: consteval .min) -> i32 => -2147483648;
+inline fn ::get(self: typename i32, property: consteval .max) -> i32 => 2147483647;
+inline fn ::get(self: typename u32, property: consteval .min) -> u32 => 0;
+inline fn ::get(self: typename u32, property: consteval .max) -> u32 => 4294967295;
+inline fn ::get(self: typename i64, property: consteval .min) -> i64 => -9223372036854775808;
+inline fn ::get(self: typename i64, property: consteval .max) -> i64 => 9223372036854775807;
+inline fn ::get(self: typename u64, property: consteval .min) -> u64 => 0;
+inline fn ::get(self: typename u64, property: consteval .max) -> u64 => 18446744073709551615;
+// f16/f32/f64 .min/.max are the most-negative/most-positive *finite* value (symmetric, min = -max),
+// matching the fixed-width integer types' min/max above -- not C++'s std::numeric_limits<T>::min(),
+// which for floating types means "smallest positive normalized value" instead. Each literal is the
+// exact decimal expansion of the IEEE-754 value (e.g. f32 max = (2^24-1)*2^104), not a rounded
+// approximation -- an inexact literal would make the implicit bigint/decimal -> floating narrowing
+// below fail its exact round-trip safety check (see BUGFIXES.md's
+// `can_convert_constexpr_value_safely` entry) instead of silently losing precision.
+inline fn ::get(self: typename f16, property: consteval .min) -> f16 => -65504;
+inline fn ::get(self: typename f16, property: consteval .max) -> f16 => 65504;
+inline fn ::get(self: typename f32, property: consteval .min) -> f32 => -340282346638528859811704183484516925440;
+inline fn ::get(self: typename f32, property: consteval .max) -> f32 => 340282346638528859811704183484516925440;
+inline fn ::get(self: typename f64, property: consteval .min) -> f64 => -179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368;
+inline fn ::get(self: typename f64, property: consteval .max) -> f64 => 179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368;
+// f16/f32/f64 .inf/.nan: unlike .min/.max, +infinity and NaN have no numeric-literal spelling and
+// can't be constructed via constexpr arithmetic either (float division by zero is rejected at
+// compile time, same as decimal division by zero -- see arithmetic.ann's `divide` section), so each
+// is backed by a tiny extern (__f16_infinity/__f32_infinity/__f64_infinity, __f16_nan/__f32_nan/
+// __f64_nan, annium_library.cpp) invoked via `consteval` to still fold at compile time -- same trick
+// `less`'s constexpr overload above uses for `consteval __less(...)`. No separate -infinity
+// property: unary `-` already works on f16/f32/f64, so `-f32.inf` covers it.
+inline fn ::get(self: typename f16, property: consteval .inf) -> f16 => consteval __f16_infinity();
+inline fn ::get(self: typename f32, property: consteval .inf) -> f32 => consteval __f32_infinity();
+inline fn ::get(self: typename f64, property: consteval .inf) -> f64 => consteval __f64_infinity();
+inline fn ::get(self: typename f16, property: consteval .nan) -> f16 => consteval __f16_nan();
+inline fn ::get(self: typename f32, property: consteval .nan) -> f32 => consteval __f32_nan();
+inline fn ::get(self: typename f64, property: consteval .nan) -> f64 => consteval __f64_nan();
+// f16/f32/f64 .pi/.e: like .min/.max (and unlike .inf/.nan), no extern needed -- pi and e are
+// irrational, but the correctly-rounded value actually *stored* in any given width is itself an
+// exact dyadic rational (significand * 2^exponent), so it has a finite, exact decimal expansion the
+// same way FLT_MAX/DBL_MAX do. Each literal below is that exact expansion for the IEEE-754 value
+// nearest to the true mathematical constant at that width (computed from System.Math.PI/E via each
+// width's own correct round-to-nearest-even, then decomposed exactly through its sign/exponent/
+// significand bits -- not a truncated decimal approximation), so the same implicit-narrowing
+// round-trip safety check .min/.max's comment above describes applies here too.
+inline fn ::get(self: typename f16, property: consteval .pi) -> f16 => 3.140625;
+inline fn ::get(self: typename f32, property: consteval .pi) -> f32 => 3.1415927410125732421875;
+inline fn ::get(self: typename f64, property: consteval .pi) -> f64 => 3.141592653589793115997963468544185161590576171875;
+inline fn ::get(self: typename f16, property: consteval .e) -> f16 => 2.71875;
+inline fn ::get(self: typename f32, property: consteval .e) -> f32 => 2.71828174591064453125;
+inline fn ::get(self: typename f64, property: consteval .e) -> f64 => 2.718281828459045090795598298427648842334747314453125;
+
 // STRINGS
-inline fn implicit_cast(string) ~> bool => !empty($0);
+inline fn implicit_cast(~string) ~> bool => !empty($0);
 inline fn clone(string) -> string => reinterpret(std.clone($0));
+inline fn starts_with(self: ~ runtime string, $prefix: runtime string) -> bool => reinterpret(std.starts_with(self, $prefix));
+inline fn starts_with(self: ~ constexpr string, $prefix: constexpr string) -> bool => consteval starts_with(self: runtime_cast(self), runtime_cast($prefix));
+inline fn substring(self: ~ runtime string, $start: runtime u32, $length: runtime i32 = i32.max) -> string => reinterpret(std.substring(self, $start, $length));
+inline fn substring(self: ~ constexpr string, $start: constexpr u32, $length: constexpr i32 = i32.max) -> string => consteval substring(self: runtime_cast(self), runtime_cast($start), runtime_cast($length));
+
+// trim_start/trim_end/trim: drop leading/trailing/both-side characters that are in `chars` (a *set*
+// of characters, not a substring pattern -- same convention as Python's str.lstrip/rstrip/strip),
+// stopping at the first character (from the relevant end) not in it. trim_end("1.5000", "0") ->
+// "1.5"; trim_end("1.0000", "0") -> "1." (the caller decides whether a resulting trailing "." is
+// itself worth stripping -- see formatBytes.ann for why that can't just be a second
+// trim_end("0.") call on the same, unsplit string).
+inline fn trim_start(self: ~ runtime string, $chars: runtime string) -> string => reinterpret(std.trim_start(self, $chars));
+inline fn trim_start(self: ~ constexpr string, $chars: constexpr string) -> string => consteval trim_start(self: runtime_cast(self), runtime_cast($chars));
+inline fn trim_end(self: ~ runtime string, $chars: runtime string) -> string => reinterpret(std.trim_end(self, $chars));
+inline fn trim_end(self: ~ constexpr string, $chars: constexpr string) -> string => consteval trim_end(self: runtime_cast(self), runtime_cast($chars));
+
+// No dedicated extern needed -- both sides at once is just one call into each of the above. Same
+// runtime/constexpr overload-pair shape as trim_start/trim_end/starts_with/substring above, not a
+// single bare-modifier declaration -- this codebase's string self-parameters are always written
+// that way (an unconstrained `self: ~string` was tried first and dropped, since nothing else here
+// establishes that it resolves the same way the explicit pair already does).
+inline fn trim(self: ~ runtime string, $chars: runtime string) -> string => trim_start(self: trim_end(self: self, $chars), $chars);
+inline fn trim(self: ~ constexpr string, $chars: constexpr string) -> string => consteval trim(self: runtime_cast(self), runtime_cast($chars));
 
 // UNIONS
+// When only one side is a union, unwrap it and compare its active value against the plain other
+// side. When BOTH sides are unions (e.g. two enum values), the two single-sided overloads below
+// would tie -- either one unwraps a union and compares against the still-union-typed other side,
+// which is just as valid a match as the other -- so a third, structurally more specific overload
+// (~union(...) on both parameters) is needed to disambiguate. It deliberately reuses the *same*
+// single-level `apply` the first overload below already does, rather than nesting a second `apply`
+// directly inside the first one's visitor: `$value == $r` recurses back into `equal`, where $value
+// is now a concrete (non-union) type and $r is still a union, so it lands on the *second* overload
+// below (unambiguously -- $value isn't itself ~union(...)) and unwraps $r in its own turn, one
+// `apply` per `equal` call rather than two `apply`s composed inline in one.
+inline fn equal($l: ~union(...), $r: ~union(...)) => apply(to: $l, visitor: fn[$r]($value) => $value == $r);
 inline fn equal($l: ~union(...), $r) => apply(to: $l, visitor: fn[$r]($value) => $value == $r);
 inline fn equal($l, $r: ~union(...)) => apply(to: $r, visitor: fn[$l]($value) => $value == $l);
 inline fn to_string(~union(...))->string => apply(to: $0, visitor: fn($x) => to_string($x));
-
+inline viable fn get(self: ~union(...), property: integer) => apply(to: self, visitor: fn[property]($x) => get(self: $x, property: property));
 inline viable fn implicit_cast(~ union(...)) ~> $T => apply(to: $0, visitor: (fn($x)->$T => implicit_cast($x)));
+// EnumName.CaseName(args) member-call sugar for a *structural* case: construct the case's own
+// struct (typeof(self, method) resolves its type by name, see union_typeof_pattern.cpp/.hpp) and
+// fold the result into the enum's own union type -- the structural counterpart of
+// union_get_pattern's bare-case `EnumName.CaseName` (see IMPLEMENTATION_NOTES.md's
+// "Dotted access for a bare case" section). The trailing `as self` (rather than a `-> self`
+// return-type annotation) is deliberate: `self` is an ordinary bound parameter by the time the
+// body runs, so this only relies on plain identifier lookup, not on return-type resolution
+// happening after parameter binding.
+inline fn ::invoke(self: typename union(...), method: constexpr __identifier, $args ...) => init($args...) as typeof(self, method) as self;
+
 
 // STRUCTS
-inline viable fn::get(self: @is_struct, property: constexpr __identifier) => get(self: tuple_of(self), property: property);
+// `property` is deliberately unconstrained-by-type (`constexpr`, not `constexpr __identifier`): the
+// delegated tuple_get_pattern already discriminates an integer (positional, `s.0`) from an identifier
+// (named, `s.field`) property itself, exactly like it does for a real tuple -- restricting this
+// overload's own `property` to `__identifier` would just block positional struct field access before
+// tuple_get_pattern ever got a chance to handle it.
+inline viable fn::get(self: @is_struct, property: constexpr) => get(self: tuple_of(self), property: property);
+
+// A reference to a struct (`ref(structval).field`, `structval.field` directly -- see below -- or a
+// chained `t.0.field`/`s.field.0` where an outer level already produced one): `self` is (or becomes)
+// `ref(of: SomeStruct)`, not a plain struct value, so the plain-value overload above doesn't match
+// (its `self: @is_struct` never accepts a ref). `~ reference(__result_wants_reference)` (as opposed
+// to plain `~`) is what makes this work for a plain struct variable directly, not just an
+// already-referenced one: `reference(EXPR)` evaluates EXPR (here, simply the bound parameter's own
+// name, though it can be any expression that folds to a compile-time bool -- see
+// parameter_matcher.cpp) and only then requests `self` via `value_modifier_t::runtime_reference` (see
+// terms.hpp/parameter_matcher.cpp) instead of the unconstrained resolution every other structural
+// pattern parameter gets, so try_take_reference fires for a plain `self` the same way it would for a
+// native C++ pattern's own self -- but only when __result_wants_reference (bound above, defaulted to
+// the compiler-injected __call_wants_reference constant -- see basic_fn_pattern.cpp's try_match) is
+// true, i.e. only when THIS call's own caller actually wants a reference back. When it's false, this
+// overload simply doesn't match a plain struct variable (self resolves to its own plain type, which
+// doesn't structurally match ref(of @is_struct)), and ordinary overload resolution falls through to
+// the plain-value overload above instead -- so a plain `p.y` read never pays for a reference-take it
+// doesn't need. This also makes __result_wants_reference's own resolved value part of this
+// function's matched parameters, so two calls that differ only in whether a reference is wanted
+// naturally get separate, independently-cached builds (see BUGFIXES.md's ".ann function's compiled
+// body silently ignored the caller's own [reference] intent" entry for the bug this avoids). The
+// nested `@is_struct` is checked against the *unwrapped* type by pattern_matcher itself (see
+// IMPLEMENTATION_NOTES.md's `@concept` section), so this needs no reference-awareness from
+// is_struct_pattern -- only tuple_of() had to learn to relabel a reference's own type instead of a
+// plain value's (see tuple_of_pattern.cpp). Delegates to tuple_get_pattern exactly like the
+// plain-value overload does, just with a reference all the way through: tuple_of(self) reinterprets
+// self as ref(of: TupleType) at zero cost, and tuple_get_pattern is already fully reference-aware
+// (see the `ref(T)` section), so it narrows to the field as a reference or dereferences it, whichever
+// this call's own caller wants.
+inline viable fn::get(__result_wants_reference: bool = __call_wants_reference, self: ~ reference(__result_wants_reference) ref(of @is_struct), property: constexpr) => get(self: tuple_of(self), property: property);
+
+// There is deliberately no struct-specific `set(self:, property:, value:)` overload (there used to
+// be one, mirroring the get overload above -- removed after confirming it had become dead code, see
+// BUGFIXES.md/STRUCT_FIELDS_PLAN.md). `s.field = value` doesn't need one: base_expression_visitor::
+// do_assign desugars *every* member/index assignment into `ref(lhs)` + `set(self: <that ref>, value:
+// rhs)` -- a 2-argument call that resolves through the generic `set(self: ~ref(of $T), value: runtime
+// $T)` below, not a struct-specific 3-argument one. `ref(lhs)` for `s.field` already succeeds via the
+// get overload above (requesting a reference through it), so nothing ever needed a separate struct
+// `set` to exist. This is also what makes `s.field = value` correct even for a struct with more than
+// one runtime field: the old native `struct_set_pattern` (which had a confirmed write-loss bug for
+// exactly that case, STRUCT_FIELDS_PLAN.md's Part A.4) is gone too, for the same reason.
+
+// REFERENCES
+// A ref(T) is always mutable and always backed by a genuine runtime slot -- see
+// base_expression_visitor::try_take_reference (ast/base_expression_visitor.cpp) for the runtime
+// T -> ref(T) conversion (which is the only way to produce a ref(T) value; a constexpr source is
+// rejected there, not here). get/set themselves stay deliberately explicit -- there's no type-level
+// ref(T) -> T decay -- but an ordinary operator/function call on a ref(T) argument still works with
+// no per-call changes needed: a failed call falls back to `deref_call` (functional/general/
+// deref_call_pattern.cpp), which retries with any ref(of: T)-typed argument transparently unwrapped
+// via get(...) first -- and, being an ordinary low-weight functional pattern, can be overridden by
+// a more specific `.ann`-declared `deref_call` overload if ever needed. See
+// IMPLEMENTATION_NOTES.md's `ref(T)` section.
+typefn ref(of: typename);
+inline fn get(self: ~ref(of $T)) -> $T => reinterpret(__ref_get(self));
+inline fn set(self: ~ref(of $T), value: runtime $T) -> $T => reinterpret(__ref_set(self, value));
+// Rebinding (pointing self at a DIFFERENT target) is deliberately a separate, explicit call from
+// `set` (which writes THROUGH self to its current target) -- plain `y = value;` for a `y: ref(of:
+// T)` variable now always means write-through (base_expression_visitor::do_assign), matching every
+// other ref(T) mutation syntax (arr[i] = v, t.field = v); rebinding is the rare case and has no `=`
+// spelling at all. `rebind(self:, value:)` itself is NOT declared here like get/set -- it's a
+// native pattern (functional/general/rebind_pattern.cpp), because it needs a genuine reference to
+// self's OWN slot (ref(of: ref(of: $T))), which `~ref(of $T)` (a plain-value self, same as get/set
+// use) can't produce. See IMPLEMENTATION_NOTES.md's `ref(T)` section.
 
 // ARRAYS
 typefn array(of: typename, size?: constexpr integer);
 inline fn empty(~array(of, size $size)) => $size == 0;
 inline fn size(~array(of, size $size)) => $size;
-inline fn size(~runtime array(of)) => __array_size($0);
+inline fn size(~array(of)) => consteval(is_const($0)) __array_size(runtime_cast($0));
 struct iterator(typename array(...)) => (index: integer = 0, array: $0);
 inline fn iterator(~array(...)) -> iterator(typeof($0)) => init(array: $0);
 inline fn has_next(~iterator(=array(...))) => $0.index != size($0.array);
@@ -99,51 +277,51 @@ inline fn foldl($f, $z, $elements ...) => foldl($f, $f($z, head($elements)...), 
 inline fn foldr($f, $z) => $z;
 inline fn foldr($f, $z, $elements ...) => $f(head($elements)..., foldr($f, $z, tail($elements)...));
 
-inline fn ::set(self: runtime object, property: constexpr __identifier, $value: runtime) => __set(self, to_string(property), $value);
-inline fn ::get(self: runtime object, property: constexpr __identifier) -> any => __get(self, to_string(property));
-inline fn ::invoke(self: runtime object, method: constexpr __identifier, runtime any ...) -> any => __invoke(self, to_string(method), $0 ..., size($0));
-
+inline fn ::set(self: ~ runtime object, property: constexpr __identifier, $value: runtime) => __set(self, to_string(property), $value);
+inline fn ::get(self: ~ runtime object, property: constexpr __identifier) -> any => __get(self, to_string(property));
+inline fn ::invoke(self: ~ runtime object, method: constexpr __identifier, runtime any ...) -> any => __invoke(self, to_string(method), $0 ..., size($0));
 
 struct regex_object => (cookie: any);
 inline fn init(runtime string) ~> regex_object {
-	return init(cookie: invoke(self: std, method: .regex_object, $0));
+	return init(cookie: std.regex_object($0));
 }
-inline fn regex_search(target: runtime string, re: runtime string) -> [string] {
-	return reinterpret(std.regex_search(target, re));
-}
-inline fn regex_search(target: runtime string, re: regex_object) -> [string] {
-	return reinterpret(std.regex_search(target, re.cookie));
+inline fn regex_search(target: string, re: string) -> [string] =>
+	consteval(is_const(target) & is_const(re)) reinterpret(std.regex_search(runtime_cast(target), runtime_cast(re)));
+
+inline fn search(self: ~regex_object, $target: runtime string) -> [string] {
+	return reinterpret(std.regex_search($target, self.cookie));
 }
 
-inline fn to_integer(runtime string) -> integer {
-    return reinterpret(std.to_integer($0));
-}
+inline fn to_integer(string) -> integer =>
+    consteval(is_const($0)) reinterpret(std.to_integer(runtime_cast($0)));
 
-// NUMERIC CASTS
-// explicit, context-driven counterpart to implicit_cast for the fixed-width numeric family:
-// the target type is picked from the expected result type at the call site (~>), like __plus/__extern_invoke do.
-inline fn numeric_cast(runtime @numeric) ~> i8  => __to_i8($0);
-inline fn numeric_cast(runtime @numeric) ~> u8  => __to_u8($0);
-inline fn numeric_cast(runtime @numeric) ~> i16 => __to_i16($0);
-inline fn numeric_cast(runtime @numeric) ~> u16 => __to_u16($0);
-inline fn numeric_cast(runtime @numeric) ~> i32 => __to_i32($0);
-inline fn numeric_cast(runtime @numeric) ~> u32 => __to_u32($0);
-inline fn numeric_cast(runtime @numeric) ~> i64 => __to_i64($0);
-inline fn numeric_cast(runtime @numeric) ~> u64 => __to_u64($0);
-inline fn numeric_cast(runtime @numeric) ~> integer => __to_integer($0);
-inline fn numeric_cast(runtime @numeric) ~> f16 => __to_f16($0);
-inline fn numeric_cast(runtime @numeric) ~> f32 => __to_f32($0);
-inline fn numeric_cast(runtime @numeric) ~> f64 => __to_f64($0);
-inline fn numeric_cast(runtime @numeric) ~> decimal => __to_decimal($0);
+// NUMERIC
+inline fn implicit_cast(@numeric) ~> bool => $0 != 0;
+inline fn less(@numeric, @numeric) -> bool =>
+	consteval(is_const($0) & is_const($1)) __less(runtime_cast($0), runtime_cast($1));
 
-// DECIMAL DIVISION WITH EXPLICIT ROUNDING
-// The plain `/` operator has no runtime definition for decimal (numeric_promotion.hpp) -- most
-// quotients (e.g. 1/3) aren't exactly representable in a finite number of decimal digits, and
-// unlike constexpr `/` (which can just reject a non-terminating result at compile time), runtime
-// `/` would have nothing to fall back on. divide(...) is the explicit, always-succeeding
-// alternative: it rounds to at most `scale` digits after the decimal point instead of rejecting
-// anything. Only rounding_mode.half_even is implemented so far (divide_decimal_rounded in
-// numeric_promotion.cpp) -- the rest are declared for a stable signature but throw if selected.
+// less_eq/greater_eq are deliberately NOT `!less(...)` of a swapped/same-order call: NaN makes `<`
+// (and `>`) unordered-false in both directions, so negating either would turn "unordered" into a
+// false "true" for `<=`/`>=` -- exactly backwards from IEEE-754, which says every relational operator
+// except `!=` is false whenever either operand is NaN. `less($0,$1) || equal($0,$1)` stays correct
+// for NaN because it only ever ORs two already-correct falses, never negates one. `not_equal` (above,
+// `!equal(...)`) and `greater` (below, a plain argument swap into `less`, no negation) don't have
+// this problem -- `!=` is IEEE's one relational operator that genuinely is the negation of `==`, and
+// swapping arguments into an already-correct `less` doesn't introduce any negation to go wrong.
+inline fn less_eq(@numeric, @numeric) -> bool => less($0, $1) || equal($0, $1);
+inline fn greater(@numeric, @numeric) -> bool => less($1, $0);
+inline fn greater_eq(@numeric, @numeric) -> bool => greater($0, $1) || equal($0, $1);
+
+// Shared by round(value, digits, mode)/to_fixed(value, digits, mode) below and divide(a, b, scale,
+// mode) further down -- declared once, up here, since round/to_fixed need it before divide's own
+// declaration point. Only half_even and half_up are actually implemented anywhere yet (annium_numeric
+// _round_digits/_to_fixed in library/annium_library.cpp, and to_fixed_decimal_string in
+// numeric_promotion.cpp) -- the rest are declared for a stable signature but throw if selected, same
+// incremental approach divide(...)'s own rounding_mode support already used. Crosses into each extern
+// as a bare integer ordinal (to_integer(mode)) -- there's no shared symbolic enum type between
+// bootstrap.ann and the C++ side, see numetron::decimal_round_mode's comment in decimal_view.hpp
+// (its member order must match this enum's exactly -- the C++ side reads the ordinal straight into
+// that enum, there's no intermediate Annium-side mirror of it to keep in sync as well).
 enum rounding_mode {
     half_even,
     half_up,
@@ -154,8 +332,111 @@ enum rounding_mode {
     floor
 }
 
-// mode crosses into __divide_decimal_rounded as a bare integer ordinal (to_integer(mode)) -- there's
-// no shared symbolic enum type between bootstrap.ann and the C++ side, see decimal_rounding_mode's
-// comment in numeric_promotion.hpp (its member order must match this enum's exactly).
-inline fn divide($a: runtime decimal, $b: runtime decimal, $scale: runtime u32, $mode: runtime rounding_mode = .half_even) -> decimal
-    => __divide_decimal_rounded($a, $b, $scale, to_integer($mode));
+// f64-only for now (decimal support deferred, see FUTURE_WORK.md). Each accepts any numeric source
+// (integer, f16/f32/f64, decimal) via @numeric -- like less/greater above -- rather than one overload
+// per type, so callers don't need an explicit numeric_cast before every call.
+inline fn sqrt(@numeric) -> f64 => consteval(is_const($0)) __sqrt(runtime_cast($0));
+inline fn log(@numeric) -> f64 => consteval(is_const($0)) __log(runtime_cast($0));
+inline fn floor(@numeric) -> f64 => consteval(is_const($0)) __floor(runtime_cast($0));
+inline fn ceil(@numeric) -> f64 => consteval(is_const($0)) __ceil(runtime_cast($0));
+inline fn pow(@numeric, @numeric) -> f64 => consteval(is_const($0) & is_const($1)) __pow(runtime_cast($0), runtime_cast($1));
+inline fn round(@numeric) -> f64 => consteval(is_const($0)) __round(runtime_cast($0));
+
+// $mode has no default (unlike divide's own $mode -- see the shared enum's comment above): round and
+// to_fixed's tie-breaking conventions used to silently disagree (round: half away from zero, via
+// std::round; to_fixed: half to even, via bigint arithmetic) whenever both were called with no way to
+// even ask for a specific one. Rather than picking one default and calling it fixed, both now require
+// the caller to say which -- consistent with this language's general "no implicit narrowing/no
+// ambient behavior" stance elsewhere (explicit numeric_cast, explicit @concept constraints, and
+// divide(...) itself over a scoped-precision pragma, see IMPLEMENTATION_NOTES.md).
+inline fn round(@numeric, $digits: @numeric, $mode: rounding_mode) -> f64 => consteval(is_const($0) & is_const($digits) & is_const($mode)) __round_digits(runtime_cast($0), runtime_cast($digits), runtime_cast(to_integer($mode)));
+
+// Formats to exactly `digits` digits after the decimal point (zero-padded, never trimmed --
+// mirrors to_string/toFixed/"%.*f" in other languages, not this file's own `round`, which leaves
+// trailing zeros for the caller to deal with). f64-only for now, same scoping as sqrt/log/floor/ceil
+// /pow/round above -- but exact regardless of source type (to_fixed_string in numeric_promotion.cpp
+// rounds a float source directly from its binary frexp/ldexp representation, or the source's own
+// exact significand/exponent for decimal/integer, never std::to_chars/double round-tripping, so
+// `mode` is honored uniformly instead of being unenforceable for float sources the way a to_chars-
+// based implementation could never have supported it -- see BUGFIXES.md for why the float path
+// specifically has to stay binary rather than going through an exact decimal intermediate).
+inline fn to_fixed(@numeric, $digits: @numeric, $mode: rounding_mode) -> string => consteval(is_const($0) & is_const($digits) & is_const($mode)) __to_fixed(runtime_cast($0), runtime_cast($digits), runtime_cast(to_integer($mode)));
+
+// abs/min/max: unlike sqrt/log/floor/ceil/pow/round above, these need no extern at all -- they're
+// exact for every numeric type (no transcendental/precision-losing math involved), so they're
+// written directly in terms of already-generic `<` (less/greater) and unary `-`, both of which
+// already work across the whole @numeric family and preserve the operand's own type (see
+// numeric_literal_unary_minus_pattern's "minus(:~$T @numeric)->$T" shape). No explicit `->` result
+// type is declared -- like __or/__and above, it's inferred from the body, so abs(i32) stays i32,
+// abs(f64) stays f64, etc., rather than forcing everything through f64 the way sqrt/log/... do.
+// unsigned operands are never negated: `$x < 0` is unconditionally false for any unsigned type, so
+// abs($x) degenerates to the identity for u8/u16/u32/u64, which is exactly what abs of a value
+// that's already non-negative by construction should do.
+inline fn abs($x: @numeric) => $x < 0 && -$x || $x;
+
+// min/max don't attempt NaN-specific handling beyond what `<` itself already does: since `<` is
+// unordered-false for NaN in both directions (see less_eq/greater_eq's comment above), min(NaN, x)
+// and min(x, NaN) can return different operands depending on argument order -- the same caveat
+// every `<`-based comparison in this file already carries, not a new one introduced here.
+inline fn min($a: @numeric, $rest: @numeric ...) {
+	if (empty($rest)) {
+		return $a;
+	} else {
+		if $a < head($rest)... {
+			return min($a, tail($rest)...);
+		}
+		return min(head($rest)..., tail($rest)...);
+	}
+}
+
+inline fn max($a: @numeric, $rest: @numeric ...) {
+    if empty($rest) {
+        return $a;
+    } else {
+        if $a < head($rest)... {
+            return max(head($rest)..., tail($rest)...);
+        }
+        return max($a, tail($rest)...);
+    }
+}
+
+
+// NUMERIC CASTS
+// explicit, context-driven counterpart to implicit_cast for the fixed-width numeric family:
+// the target type is picked from the expected result type at the call site (~>), like __plus/__extern_invoke do.
+inline fn numeric_cast(@numeric) ~> i8  => consteval(is_const($0)) __to_i8(runtime_cast($0));
+inline fn numeric_cast(@numeric) ~> u8  => consteval(is_const($0)) __to_u8(runtime_cast($0));
+inline fn numeric_cast(@numeric) ~> i16 => consteval(is_const($0)) __to_i16(runtime_cast($0));
+inline fn numeric_cast(@numeric) ~> u16 => consteval(is_const($0)) __to_u16(runtime_cast($0));
+inline fn numeric_cast(@numeric) ~> i32 => consteval(is_const($0)) __to_i32(runtime_cast($0));
+inline fn numeric_cast(@numeric) ~> u32 => consteval(is_const($0)) __to_u32(runtime_cast($0));
+inline fn numeric_cast(@numeric) ~> i64 => consteval(is_const($0)) __to_i64(runtime_cast($0));
+inline fn numeric_cast(@numeric) ~> u64 => consteval(is_const($0)) __to_u64(runtime_cast($0));
+inline fn numeric_cast(@numeric) ~> integer => consteval(is_const($0)) __to_integer(runtime_cast($0));
+inline fn numeric_cast(@numeric) ~> f16 => consteval(is_const($0)) __to_f16(runtime_cast($0));
+inline fn numeric_cast(@numeric) ~> f32 => consteval(is_const($0)) __to_f32(runtime_cast($0));
+inline fn numeric_cast(@numeric) ~> f64 => consteval(is_const($0)) __to_f64(runtime_cast($0));
+inline fn numeric_cast(@numeric) ~> decimal => consteval(is_const($0)) __to_decimal(runtime_cast($0));
+
+// DECIMAL DIVISION WITH EXPLICIT ROUNDING
+// The plain `/` operator has no runtime definition for decimal (numeric_promotion.hpp) -- most
+// quotients (e.g. 1/3) aren't exactly representable in a finite number of decimal digits, and
+// unlike constexpr `/` (which can just reject a non-terminating result at compile time), runtime
+// `/` would have nothing to fall back on. divide(...) is the explicit, always-succeeding
+// alternative: it rounds to at most `scale` digits after the decimal point instead of rejecting
+// anything. Unlike round/to_fixed above, $mode keeps its default here (.half_even) -- divide(...)
+// already existed with this default before round/to_fixed grew their own $mode parameters, and
+// nothing about divide(...) has the cross-function disagreement that motivated dropping the default
+// there (see rounding_mode's own declaration, up in the NUMERIC section, for the shared enum this
+// pulls from). Still only rounding_mode.half_even is implemented for divide specifically
+// (divide_decimal_rounded in numeric_promotion.cpp) -- the rest are declared for a stable signature
+// but throw if selected; round/to_fixed separately also implement half_up (see their own comments).
+inline fn divide($a: @numeric, $b: @numeric, $scale: @numeric, $mode: rounding_mode = .half_even) -> decimal
+    => consteval(is_const($a) & is_const($b) & is_const($scale) & is_const($mode)) __divide_decimal_rounded(runtime_cast($a), runtime_cast($b), runtime_cast($scale), runtime_cast(to_integer($mode)));
+
+// FANCY INTEGER FORMATTING
+// Human-readable rendering of a bigint with digit grouping (e.g. "1 234 567") and an optional
+// base prefix, backed by numetron::fancy_print (integer_view.hpp). All four options are named so
+// a caller can override just the one they need, e.g. 255.to_fancy_string(base: 16, showbase: true).
+inline fn to_fancy_string(self: ~ integer, base: u32 = 10, group_sz: u8 = 3, group_sep: string = " ", showbase: bool = false) -> string
+    => consteval(is_const(self) & is_const(base) & is_const(group_sz) & is_const(group_sep) & is_const(showbase)) __to_fancy_string(runtime_cast(self), runtime_cast(base), runtime_cast(group_sz), runtime_cast(group_sep), runtime_cast(showbase));

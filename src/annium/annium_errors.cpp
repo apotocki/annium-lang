@@ -4,9 +4,54 @@
 #include "sonia/config.hpp"
 #include "errors.hpp"
 
+#include <algorithm>
+
 #include "errors/utility.hpp"
 
 namespace annium {
+
+namespace {
+
+// A root-to-leaf chain of printable error nodes. alt_error nodes are transparent
+// branch points (they contribute no node of their own, just fan the chain out into
+// one chain per alternative); every other error node follows its single cause() link.
+using error_chain = std::vector<error const*>;
+
+std::vector<error_chain> collect_chains(error const& node)
+{
+    if (auto const* alt = dynamic_cast<alt_error const*>(&node)) {
+        std::vector<error_chain> chains;
+        for (auto const& a : alt->alternatives) {
+            if (!a) continue;
+            for (auto& c : collect_chains(*a)) chains.push_back(std::move(c));
+        }
+        return chains;
+    }
+
+    std::vector<error_chain> tails;
+    if (auto const& cause = node.cause()) {
+        tails = collect_chains(*cause);
+    } else {
+        tails.emplace_back(); // node is a leaf
+    }
+
+    std::vector<error_chain> chains;
+    chains.reserve(tails.size());
+    for (auto& tail : tails) {
+        error_chain c;
+        c.reserve(tail.size() + 1);
+        c.push_back(&node);
+        c.insert(c.end(), tail.begin(), tail.end());
+        chains.push_back(std::move(c));
+    }
+    return chains;
+}
+
+// Caps how many alternative chains get printed in full for a single error tree, so a
+// function call with many rejected overload candidates doesn't dump every one of them.
+constexpr size_t max_printed_chains = 33;
+
+}
 
 void error::rethrow(environment& e) const
 {
@@ -120,13 +165,6 @@ void error_printer_visitor::operator()(general_error const& err)
         std::visit(string_resolver_visitor{}, err.object(e_)),
         err.ref_location()
     );
-    
-    if (auto cause = err.cause()) {
-        s_ << '\n' << indent() << "caused by: \n"sv;
-        inc_indent();
-        cause->visit(*this);
-        dec_indent();
-    }
 }
 
 void error_printer_visitor::operator()(binary_relation_error const& err)
@@ -148,13 +186,17 @@ void error_printer_visitor::operator()(binary_relation_error const& err)
 
 void error_printer_visitor::operator()(alt_error const& err)
 {
+    // Not reached through print(): collect_chains() expands alt_error into separate
+    // chains before any node gets visited. Kept as a correct fallback in case an
+    // alt_error is ever visited directly instead of going through print().
     bool first = true;
     for (auto const& e : err.alternatives) {
+        if (!e) continue;
         if (!first) {
-            s_ << '\n' << indent() << " and \n"sv;
+            s_ << '\n' << indent() << " or \n"sv;
         }
         else { first = false; }
-        e->visit(*this);
+        print(*e);
     }
 }
 
@@ -178,6 +220,38 @@ void error_printer_visitor::operator()(ambiguity_error const& err)
     }
 }
 
+
+void error_printer_visitor::print_chain(std::vector<error const*> const& chain_root_to_leaf)
+{
+    for (auto it = chain_root_to_leaf.rbegin(); it != chain_root_to_leaf.rend(); ++it) {
+        if (it != chain_root_to_leaf.rbegin()) {
+            s_ << '\n' << indent() << "required by: \n"sv;
+        }
+        (*it)->visit(*this);
+    }
+}
+
+void error_printer_visitor::print(error const& err)
+{
+    std::vector<error_chain> chains = collect_chains(err);
+
+    // Longest chain first: it is usually the most specific, and therefore most likely
+    // relevant, explanation. stable_sort keeps declaration order among equal-length ties.
+    std::stable_sort(chains.begin(), chains.end(), [](error_chain const& a, error_chain const& b) {
+        return a.size() > b.size();
+    });
+
+    size_t const shown = std::min(chains.size(), max_printed_chains);
+    for (size_t i = 0; i < shown; ++i) {
+        if (i != 0) {
+            s_ << '\n' << indent() << "-- or --\n"sv;
+        }
+        print_chain(chains[i]);
+    }
+    if (chains.size() > shown) {
+        s_ << '\n' << indent() << "... and "sv << (chains.size() - shown) << " more similar candidate(s) not shown\n"sv;
+    }
+}
 
 general_error::string_t parameter_not_found_error::description(environment const& e) const noexcept
 {

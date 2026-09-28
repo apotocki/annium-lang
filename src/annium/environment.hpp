@@ -46,6 +46,7 @@ class arena;
 #define ANNIUM_BUILTIN_ID_SEQ              \
     ((location, "location"sv))             \
     ((call_location, "__call_location"sv)) \
+    ((call_wants_reference, "__call_wants_reference"sv)) \
     ((type, "__type"sv))                   \
     ((to, "to"sv))                         \
     ((self, "self"sv))                     \
@@ -59,7 +60,8 @@ class arena;
     ((mask, "mask"sv))                     \
     ((visitor, "visitor"sv))               \
     ((numargs, "$$"sv))                    \
-    ((init, "init"sv))
+    ((init, "init"sv))                     \
+    ((result_wants_reference, "__result_wants_reference"sv))
 
 #define ANNIUM_BUILTIN_QNAMES_SEQ          \
     ((fn, "__fn"sv))                       \
@@ -72,6 +74,9 @@ class arena;
     ((tuple, "tuple"sv))                   \
     ((tuple_project, "tuple_project"sv))   \
     ((array, "array"sv))                   \
+    ((ref, "ref"sv))                       \
+    ((rebind, "rebind"sv))                 \
+    ((deref_call, "deref_call"sv))         \
     ((function, "function"sv))             \
     ((functor, "functor"sv))               \
     ((data, "data"sv))                     \
@@ -107,10 +112,15 @@ class arena;
     ((init, "init"sv))                     \
     ((eq, "equal"sv))                      \
     ((ne, "not_equal"sv))                  \
+    ((less, "less"sv))                     \
+    ((less_eq, "less_eq"sv))               \
+    ((greater, "greater"sv))               \
+    ((greater_eq, "greater_eq"sv))         \
     ((plus, "__plus"))                     \
     ((minus, "__minus"))                   \
     ((multiply, "__multiply"))             \
     ((divide, "__divide"))                 \
+    ((modulo, "__modulo"))                 \
     ((bit_or, "__bit_or"))                 \
     ((bit_and, "__bit_and"))               \
     ((logical_not, "logical_not"))         \
@@ -192,6 +202,7 @@ enum class builtin_eid : entity_identifier::value_type
     array_at, // builtin ::array_at(array, index)-> elementT
     array_set_at, // builtin ::array_set_at(array, index, value)-> void
     equal, // builtin ::equal(a, b)-> boolean
+    less, // builtin ::less(a, b)-> boolean
     assert, // builtin ::assert(condition, message)-> void 
     error, // builtin ::__error(message)-> void
     string_empty, // builtin ::empty(runtime string)-> bool
@@ -207,6 +218,16 @@ enum class builtin_eid : entity_identifier::value_type
     subtract_numeric, // builtin ::__minus_numeric(runtime, runtime) -- generic numeric subtraction, see numeric_literal_minus_pattern
     multiply_numeric, // builtin ::__mul_numeric(runtime, runtime) -- generic numeric multiplication, see numeric_literal_mul_pattern
     divide_numeric, // builtin ::__div_numeric(runtime, runtime) -- generic numeric division, see numeric_literal_div_pattern
+    modulo_numeric, // builtin ::__mod_numeric(runtime, runtime) -- generic numeric modulo, see numeric_literal_mod_pattern
+    bitand_numeric, // builtin ::__bit_and_numeric(runtime, runtime) -- generic integral bitwise AND, see numeric_literal_bit_and_pattern
+    bitor_numeric, // builtin ::__bit_or_numeric(runtime, runtime) -- generic integral bitwise OR, see numeric_literal_bit_or_pattern
+    bitand_bool, // builtin ::__bit_and_bool(runtime bool, runtime bool)->bool -- non-short-circuiting bitwise AND, see bool_bit_and_pattern
+    bitor_bool, // builtin ::__bit_or_bool(runtime bool, runtime bool)->bool -- non-short-circuiting bitwise OR, see bool_bit_or_pattern
+    ref_of, // builtin ::__ref_of(runtime integer) -- given a variable's absolute stack index, pushes a NEW blob_reference pointing at it (the variable's own slot is left untouched), see ref_implicit_cast_pattern
+    ref_get, // builtin ::__ref_get(runtime ref(T))-> T -- dereferences a ref(T), backs bootstrap.ann's `get`
+    ref_set, // builtin ::__ref_set(runtime ref(T), runtime T) -- writes through a ref(T), backs bootstrap.ann's `set`
+    ref_rebind, // builtin ::__ref_rebind(runtime ref(of: ref(of: T)), runtime ref(of: T)) -- given an OUTER reference to a ref(T)-typed variable's own slot, overwrites that slot's bytes wholesale with a new ref(T) value (bypassing smart_blob::operator='s write-through special case, unlike ref_set). Like ref_at, never resolved through overload matching -- always emitted directly by rebind_pattern; the signature string is inert
+    ref_at, // builtin ::__ref_at(runtime ref(TupleType), runtime integer)-> ref(elementT) -- turns a whole-tuple reference (see ref_of) into a reference to one of its runtime fields, see tuple_get_pattern
     eof_builtin_eid_value
 };
 
@@ -248,6 +269,8 @@ class environment : public enable_shared_from_this<environment>
     std::vector<small_string> strings_;
 
     sonia::lang::compiler_task_tracer task_tracer_;
+
+    invocation::invocable* compile_time_host_ = nullptr;
 
 public:
     enum class builtin_type
@@ -444,8 +467,17 @@ public:
 
     //// compiler
     intptr_t retrieve_function_rt_identifier(internal_function_entity const&);
-    
+
     size_t compile(internal_function_entity const&);
+
+    // The host used to run compiler-owned bytecode *during compilation* (consteval, see
+    // CONSTEVAL_CTFE_PLAN.md section 3.5) -- deliberately the same chained_host the compiled
+    // program itself will run with, parents included; set once by annium_impl right after both
+    // it and environment exist. Not the same thing as a vm::context's own `penv`, which is
+    // supplied fresh per run; this is just where the compiler finds the host to hand it, since
+    // environment otherwise has no notion of a host at all.
+    inline void set_compile_time_host(invocation::invocable* host) noexcept { compile_time_host_ = host; }
+    inline invocation::invocable* compile_time_host() const noexcept { return compile_time_host_; }
 
     //// utility
     std::unique_ptr<arena> acquire_arena();

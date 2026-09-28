@@ -57,7 +57,6 @@ using functional_identifier_entity = literal_entity<qname_identifier>;
 using qname_entity = literal_entity<qname>; // a reference to a variable or a functional
 using empty_entity = literal_entity<void>;
 
-class enum_entity;
 //class functional_entity;
 class internal_function_entity;
 class builtin_function_entity;

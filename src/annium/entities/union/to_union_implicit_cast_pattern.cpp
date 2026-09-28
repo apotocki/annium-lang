@@ -10,6 +10,7 @@
 #include "annium/entities/prepared_call.hpp"
 #include "annium/entities/signatured_entity.hpp"
 #include "annium/entities/literals/literal_entity.hpp"
+#include "annium/entities/struct/struct_entity.hpp"
 
 #include "annium/errors/type_mismatch_error.hpp"
 #include "annium/errors/cast_error.hpp"
@@ -77,7 +78,16 @@ std::expected<functional_match_descriptor_ptr, error_storage> to_union_implicit_
             return !fd.is_const() && fd.entity_id() == er_type;
         });
         if (it != pusig->fields().end()) {
-            type_index_and_kind.emplace((size_t)(it - pusig->fields().begin()), !er.is_const_result); // if er is const, then runtime cast is needed
+            // A constexpr self whose own type is itself a struct is, by construction, always
+            // zero-size (struct_init_pattern.cpp: a struct value can only be constexpr when every
+            // one of its fields is constexpr too, i.e. it carries no runtime payload at all) -- so
+            // exactly matching the field's type needs no real materialization, same as a bare atom's
+            // own exact_case fast path below (apply()'s dummy-null push), just for a non-const union
+            // field (a structural enum case) this time instead of a const one. Any other constexpr
+            // kind (a numeric literal, say) genuinely needs the `implicit_cast` machinery below to
+            // materialize its actual value bytes, so this stays narrowly struct-specific.
+            bool self_is_zero_size_struct = er.is_const_result && dynamic_cast<struct_entity const*>(&get_entity(env, er_type));
+            type_index_and_kind.emplace((size_t)(it - pusig->fields().begin()), !er.is_const_result || self_is_zero_size_struct);
         }
     }
     if (!type_index_and_kind) {
@@ -154,8 +164,10 @@ std::expected<syntax_expression_result, error_storage> to_union_implicit_cast_pa
     
     if (umd.exact_case) {
         if (arg_er.is_const_result) {
-            BOOST_ASSERT(umd.which_field().is_const());
-            // append null as dummy runtime value for const union element
+            // Either a bare atom exactly matching a const union field, or an all-constexpr
+            // structural case (struct_init_pattern.cpp) exactly matching its own, non-const-at-the-
+            // union-level field -- either way its runtime representation is zero bytes, so the same
+            // dummy null stands in for both (see the matching try_match comment above).
             env.push_back_expression(el, result.expressions, semantic::push_value{ smart_blob{} });
         } else {
             append_semantic_result(el, arg_er, result);
