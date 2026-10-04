@@ -13,6 +13,8 @@
     "boost-test",
     "boost-dynamic-bitset",
     "boost-container",
-    "boost-callable-traits"
+    "boost-callable-traits",
+    "gtest",
+    "gmp"
   ]
 }
