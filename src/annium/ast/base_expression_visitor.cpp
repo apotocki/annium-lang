@@ -1409,6 +1409,29 @@ base_expression_visitor::result_type base_expression_visitor::do_assign(binary_e
         return apply_cast(match->apply(ctx));
     }
 
+    // A member access whose target isn't addressable -- e.g. a property of an opaque runtime
+    // `object`, whose `::get(self:, property:)` yields a fresh `any` value rather than a reference
+    // into storage -- is written through the type's own property-set protocol instead:
+    // `set(self: obj, property: name, rhs)` (bootstrap.ann's `::set(self: ~ runtime object,
+    // property: constexpr __identifier, $value: runtime)`). This is the write-side counterpart of
+    // operator()(member_expression)'s `get(self:, property:)`. Structs never reach here: `ref(s.field)`
+    // already succeeds for them, and they deliberately declare no such `set` overload.
+    if (auto const* me = get_if<member_expression>(&lhs.value)) {
+        call_builder set_call{ context_expression_.location };
+        set_call.emplace_back(annotated_identifier{ env().get(builtin_id::self), me->object->location }, *me->object);
+        set_call.emplace_back(annotated_identifier{ env().get(builtin_id::property), me->property->location }, *me->property);
+        set_call.emplace_back(rhs);
+
+        auto match = ctx.find(builtin_qnid::set, set_call, expressions);
+        if (!match) {
+            return std::unexpected(append_cause(
+                make_error<assign_error>(context_expression_.location, lhs),
+                std::move(match.error())
+            ));
+        }
+        return apply_cast(match->apply(ctx));
+    }
+
     return std::unexpected(make_error<assign_error>(context_expression_.location, lhs));
 }
 

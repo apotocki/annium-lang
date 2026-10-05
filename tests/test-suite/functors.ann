@@ -99,4 +99,11 @@ extern fn iv_call(runtime integer);
 extern fn eftor_call(runtime string)->string;
 iv_call(24);
 assert_equal(eftor_call("Bye,"), "Bye, external functor!22");
-/**/
+
+extern fn create_object(runtime string)->object;
+
+let obj = create_object("test");
+assert_equal(obj.name, "test");
+
+obj.name = "test2";
+assert_equal(obj.name, "test2");
