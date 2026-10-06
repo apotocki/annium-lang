@@ -18,6 +18,16 @@ option(ENABLE_DEBUG_INFO "Enable debug information for GCC builds" OFF)
 
 option(VALGRIND_BUILD "Build with Valgrind compatibility" OFF)
 
+# Build annium_tests only when annium-lang is the top-level project; when it is pulled in as a
+# subproject the tests are not needed and
+# their extra Boost dependencies may not be available.
+if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    set(_annium_tests_default ON)
+else()
+    set(_annium_tests_default OFF)
+endif()
+option(ANNIUM_BUILD_TESTS "Build annium_tests" ${_annium_tests_default})
+
 # Set output directories. Skip this for the iOS toolchain (projects/ios/ios.toolchain.cmake
 # sets BUILD_IOS): Xcode is a multi-config generator there that already splits products by
 # $(CONFIGURATION)-$(EFFECTIVE_PLATFORM_NAME) (e.g. Release-iphoneos vs
@@ -42,7 +52,7 @@ if (DEFINED ENV{BOOST_INCLUDE})
     # find_package(Boost) would normally create these Boost::<component> imported targets;
     # since it never runs here, stub them out as header-only INTERFACE targets so
     # target_link_libraries(... Boost::xxx ...) in annium/annium_tests/tests still resolves.
-    foreach (_annium_boost_comp headers context log log_setup program_options thread unit_test_framework system filesystem)
+    foreach (_annium_boost_comp headers context log log_setup program_options serialization thread unit_test_framework system filesystem)
         if (NOT TARGET Boost::${_annium_boost_comp})
             add_library(Boost::${_annium_boost_comp} INTERFACE IMPORTED)
             target_include_directories(Boost::${_annium_boost_comp} INTERFACE "$ENV{BOOST_INCLUDE}")
@@ -148,7 +158,7 @@ set (ANNIUM_HOME ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/projects/cmake/annium)
 add_subdirectory(${PROJECT_HOME}/modules/numetron/lib "${CMAKE_CURRENT_BINARY_DIR}/numetron-lib")
-if (NOT BUILD_IOS)
+if (ANNIUM_BUILD_TESTS AND NOT BUILD_IOS)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/projects/cmake/annium_tests)
 endif()
 
