@@ -157,9 +157,8 @@ set (SONIA_HOME ${PROJECT_HOME}/modules/sonia-prime)
 set (ANNIUM_HOME ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_subdirectory(${PROJECT_HOME}/modules/numetron/lib "${CMAKE_CURRENT_BINARY_DIR}/numetron-lib")
-
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/projects/cmake/annium)
 if (ANNIUM_BUILD_TESTS AND NOT BUILD_IOS)
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/projects/cmake/annium)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/projects/cmake/annium_tests)
 endif()
 
