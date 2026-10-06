@@ -216,6 +216,15 @@ error_storage parameter_matcher::match(fn_compiler_context& callee_ctx)
             if (want_ref) {
                 cmatcher.argexp = expected_result_t{ .modifier = value_modifier_t::runtime_reference };
             }
+        } else if (can_be_only_runtime(param_it->modifier())) {
+            // A runtime-only pattern parameter (`$value: runtime`, `runtime @numeric`, `~ runtime T`)
+            // requests a runtime value, so a constexpr argument is materialized here (apply_cast's
+            // implicit_cast, reported via has_been_casted and penalized as a cast by
+            // constraint_matcher's pattern branch) instead of reaching the pattern branch as a
+            // constexpr result and being rejected there with "expected: a runtime value". This
+            // mirrors what resolve_expression_expected_result does for a type-constrained
+            // `runtime T` parameter.
+            cmatcher.argexp = expected_result_t{ .modifier = value_modifier_t::runtime_value };
         }
 
         bool is_variadic_param = has(param_it->modifier(), parameter_constraint_modifier_t::variadic);

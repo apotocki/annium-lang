@@ -340,15 +340,17 @@
     <!-- sonia-pygen is a private tool, not vendored into this (public) repo. PythonGenPath is
          only ever set locally (Directory.Build.local.props, gitignored) - without it this
          CustomBuild is skipped entirely and vm2.gen.hpp (checked in) is compiled as-is. -->
-    <CustomBuild Include="..\..\..\modules\sonia-prime\sonia\utility\lang\vm2.hpp" Condition="'$(PythonGenPath)' != ''">
-      <Command>"$(PythonExePath)" "$(PythonGenPath)" -c "$(SolutionDir)pygen.json" -f "%(FullPath)"</Command>
-      <Outputs>..\..\..\modules\sonia-prime\sonia\utility\lang\vm2.gen.hpp</Outputs>
+    <CustomBuild Include="$(SolutionDir)modules\sonia-prime\sonia\utility\lang\vm2.hpp" Condition="'$(PythonGenPath)' != ''">
+      <Command>"$(PythonExePath)" "$(PythonGenPath)" -c "$(ProjectDir)..\..\..\pygen.json" -f "%(FullPath)" --base-dir "$(SolutionDir)\"</Command>
+      <Outputs>$(SolutionDir)modules\sonia-prime\sonia\utility\lang\vm2.gen.hpp</Outputs>
       <Message>Generating vm2.gen.hpp from vm2.hpp via sonia-pygen</Message>
       <BuildInParallel>true</BuildInParallel>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"$(PythonExePath)" "$(PythonGenPath)" -c "$(ProjectDir)..\..\..\pygen.json" -f "%(FullPath)" --base-dir "$(SolutionDir)\"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)modules\sonia-prime\sonia\utility\lang\vm2.gen.hpp</Outputs>
     </CustomBuild>
-    <ClInclude Include="..\..\..\modules\sonia-prime\sonia\utility\lang\vm2.hpp" Condition="'$(PythonGenPath)' == ''" />
-    <ClInclude Include="..\..\..\modules\sonia-prime\sonia\utility\lang\vm2.gen.hpp" />
-    <ClInclude Include="..\..\..\modules\sonia-prime\sonia\utility\lang\vmop_proto.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\lang\vm2.hpp" Condition="'$(PythonGenPath)' == ''" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\lang\vm2.gen.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\lang\vmop_proto.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
@@ -411,7 +413,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;NUMETRON_COMPILED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>
@@ -434,7 +436,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;NUMETRON_COMPILED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>
@@ -455,7 +457,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_LIB;SONIA_PRIME_STATIC;BOOST_NO_USER_CONFIG;BOOST_ALL_DYN_LINK;SONIA_LANG_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_LIB;SONIA_PRIME_STATIC;BOOST_NO_USER_CONFIG;BOOST_ALL_DYN_LINK;SONIA_LANG_DEBUG;NUMETRON_COMPILED;NUMETRON_BACKEND_ASM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>
@@ -478,7 +480,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_LIB;SONIA_PRIME_STATIC;BOOST_NO_USER_CONFIG;BOOST_ALL_DYN_LINK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_LIB;SONIA_PRIME_STATIC;BOOST_NO_USER_CONFIG;BOOST_ALL_DYN_LINK;NUMETRON_COMPILED;NUMETRON_BACKEND_ASM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>

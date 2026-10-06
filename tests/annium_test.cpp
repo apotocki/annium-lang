@@ -90,6 +90,31 @@ int AllocHook(int allocType, void* userData, size_t size, int
 
 #endif
 
+class test_object
+    : public sonia::invocation::invocable
+    , public invocation::registrar<test_object>
+{
+    using base_t = invocation::registrar<test_object>;
+    using registrar_type = base_t::registrar_type;
+    friend base_t;
+
+    std::string name_;
+
+public:
+    static void do_registration(registrar_type& mr)
+    {
+        mr.register_property("name", [](test_object const& self) -> blob_result {
+                return smart_blob{ string_blob_result(self.name_) }.allocate().detach();
+            },
+            [](test_object& self, blob_result const& val) {
+                self.name_ = as<std::string>(val);
+            }
+        );
+    }
+
+    explicit test_object(std::string name) : name_(std::move(name)) {}
+};
+
 class annium_test_model 
     : public annium_view_model
     , public invocation::registrar<annium_test_model, annium_view_model>
@@ -107,6 +132,11 @@ public:
     annium_test_model()
     {
         set_cout_writer([this](string_view str) { output << str; });
+    }
+
+    blob_result create_object(string_view name)
+    {
+        return object_blob_result(make_shared<test_object>(std::string(name)));
     }
 
     blob_result iv_call(int arg)
@@ -165,6 +195,7 @@ public:
         mr.register_method<&annium_test_model::eftor_call>("eftor_call");
         mr.register_method<&annium_test_model::iv_call>("iv_call");
         mr.register_method<&annium_test_model::c0_call>("c0_call");
+        mr.register_method<&annium_test_model::create_object>("create_object");
     }
     
 };

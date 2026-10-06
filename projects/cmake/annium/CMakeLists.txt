@@ -168,6 +168,10 @@ set (LIBRARY_SOURCES
 add_library(${LIBRARY_NAME} STATIC ${LIBRARY_SOURCES})
 target_sources(${LIBRARY_NAME} PRIVATE ${BOOTSTRAP_HPP})
 
+# The numetron headers must see the configuration the numetron library was built with
+# (NUMETRON_COMPILED, NUMETRON_BACKEND_ASM), which the `numetron` target exports.
+target_link_libraries(${LIBRARY_NAME} PUBLIC numetron)
+
 if(NOT DO_NOT_LINK_BOOST_HEADERS)
 target_link_libraries(${LIBRARY_NAME} PRIVATE Boost::headers)
 endif()

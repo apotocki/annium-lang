@@ -884,13 +884,13 @@
     <ClInclude Include="..\..\..\src\annium\functional\general\qname_implicit_cast_pattern.hpp">
       <Filter>annium\functional\general</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\modules\sonia-prime\sonia\utility\lang\vmop_proto.hpp">
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\lang\vmop_proto.hpp">
       <Filter>annium\vm</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\modules\sonia-prime\sonia\utility\lang\vm2.gen.hpp">
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\lang\vm2.gen.hpp">
       <Filter>annium\vm</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\modules\sonia-prime\sonia\utility\lang\vm.hpp">
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\lang\vm.hpp">
       <Filter>annium\vm</Filter>
     </ClInclude>
   </ItemGroup>
@@ -909,7 +909,7 @@
     <CustomBuild Include="..\..\..\src\annium\annium.y">
       <Filter>annium</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\..\..\modules\sonia-prime\sonia\utility\lang\vm2.hpp">
+    <CustomBuild Include="$(SolutionDir)modules\sonia-prime\sonia\utility\lang\vm2.hpp">
       <Filter>annium\vm</Filter>
     </CustomBuild>
   </ItemGroup>

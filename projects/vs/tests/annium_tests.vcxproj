@@ -257,7 +257,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;NUMETRON_COMPILED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp23</LanguageStandard>
       <PrecompiledHeaderFile />
@@ -278,7 +278,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;NUMETRON_COMPILED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp23</LanguageStandard>
       <PrecompiledHeaderFile />
@@ -297,13 +297,13 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;_SILENCE_CXX23_DENORM_DEPRECATION_WARNING;SONIA_PRIME_STATIC;SONIA_NO_PRIME_BUNDLE;BOOST_NO_USER_CONFIG;BOOST_ALL_DYN_LINK;AUTO_TEST_REGISTRATION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;_SILENCE_CXX23_DENORM_DEPRECATION_WARNING;SONIA_PRIME_STATIC;SONIA_NO_PRIME_BUNDLE;BOOST_NO_USER_CONFIG;BOOST_ALL_DYN_LINK;AUTO_TEST_REGISTRATION;NUMETRON_COMPILED;NUMETRON_BACKEND_ASM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile />
       <PrecompiledHeaderOutputFile />
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\src;$(SolutionDir)modules\sonia-prime;$(SolutionDir)modules\dataforge\include;$(SolutionDir)modules\numetron\include;$(SolutionDir)third_party\lexertl14\include;$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/Zc:__cplusplus /Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/bigobj /Zc:__cplusplus /Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp23</LanguageStandard>
     </ClCompile>
     <Link>
@@ -319,14 +319,14 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;_SILENCE_CXX23_DENORM_DEPRECATION_WARNING;SONIA_PRIME_STATIC;SONIA_NO_PRIME_BUNDLE;BOOST_NO_USER_CONFIG;BOOST_ALL_DYN_LINK;AUTO_TEST_REGISTRATION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;_SILENCE_CXX23_DENORM_DEPRECATION_WARNING;SONIA_PRIME_STATIC;SONIA_NO_PRIME_BUNDLE;BOOST_NO_USER_CONFIG;BOOST_ALL_DYN_LINK;AUTO_TEST_REGISTRATION;NUMETRON_COMPILED;NUMETRON_BACKEND_ASM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp23</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <PrecompiledHeaderFile />
       <PrecompiledHeaderOutputFile />
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\src;$(SolutionDir)modules\sonia-prime;$(SolutionDir)modules\dataforge\include;$(SolutionDir)modules\numetron\include;$(SolutionDir)third_party\lexertl14\include;$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/Zc:__cplusplus /Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/bigobj /Zc:__cplusplus /Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
