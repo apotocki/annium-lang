@@ -241,3 +241,17 @@ let vfb: f64 = runtime_cast(1.25);
 let vfc: f64 = runtime_cast(2.75);
 assert_equal(min(vfa, vfb, vfc), 1.25);
 assert_equal(max(vfa, vfb, vfc), 3.5);
+
+// to_string / `..` of a float: the shortest round-trip decimal (numetron::to_general_string), not an ostream's
+// 6 significant digits; an integral value keeps ".0", a large / small one is scientific
+let tsa: f64 = runtime_cast(0.1);
+assert_equal(to_string(tsa), "0.1");
+let tsb: f64 = runtime_cast(16777217);
+assert_equal(to_string(tsb), "16777217.0");
+let tsc: f32 = runtime_cast(1.5);
+assert_equal(to_string(tsc), "1.5");
+assert_equal("v=" .. tsc, "v=1.5");
+let tsd: f64 = runtime_cast(100000000000000000000);
+assert_equal(to_string(tsd), "1e+20");
+let tse: f16 = runtime_cast(1);
+assert_equal(to_string(tse), "1.0");

@@ -7,6 +7,7 @@
 #include "sonia/utility/scope_exit.hpp"
 #include "numetron/basic_integer.hpp"
 #include "numetron/basic_decimal.hpp"
+#include "numetron/float_format.hpp"
 
 #include "annium/entities/literals/numeric_promotion.hpp"
 
@@ -335,10 +336,30 @@ void annium_f64_nan(vm::context& ctx)
     ctx.stack_push(smart_blob{ f64_blob_result(std::numeric_limits<double>::quiet_NaN()) });
 }
 
+// A value as text for to_string / print / `..`: print_to_stream (sonia-prime, shared with the logs), except the floats -
+// the shortest round-trip decimal (numetron::to_general_string: "0.1", "1.0", "1e+20", "inf", "NaN") instead of an
+// ostream's 6 significant digits ("1.67772e+07" for 16777217.0f)
+static void print_value(std::ostream& os, blob_result const& b)
+{
+    switch (b.type) {
+    case blob_type::flt16:
+        os << numetron::to_general_string(b.data.bp.f16value);
+        return;
+    case blob_type::flt32:
+        os << numetron::to_general_string(b.data.bp.f32value);
+        return;
+    case blob_type::flt64:
+        os << numetron::to_general_string(b.data.bp.f64value);
+        return;
+    default:
+        print_to_stream(os, b, false);
+    }
+}
+
 void annium_tostring(vm::context & ctx)
 {
     std::ostringstream res;
-    print_to_stream(res, *ctx.stack_back(), false);
+    print_value(res, *ctx.stack_back());
     ctx.stack_pop(1);
     smart_blob r{ string_blob_result(res.str()) };
     r.allocate();
@@ -370,7 +391,7 @@ void annium_print_string(vm::context& ctx)
     environment & e = ctx.get_environment();
     std::ostringstream res;
     for (size_t i = argcount; i > 0; --i) {
-        print_to_stream(res, *ctx.stack_back(i), false);
+        print_value(res, *ctx.stack_back(i));
     }
     e.write_cout(res.str());
     ctx.stack_pop(argcount + 1);
@@ -381,7 +402,7 @@ void annium_concat(vm::context& ctx)
     size_t argcount = ctx.stack_back().as<size_t>();
     std::ostringstream res;
     for (size_t i = argcount; i > 0; --i) {
-        print_to_stream(res, *ctx.stack_back(i), false);
+        print_value(res, *ctx.stack_back(i));
     }
     ctx.stack_pop(argcount + 1);
     smart_blob r{ string_blob_result(res.str()) };

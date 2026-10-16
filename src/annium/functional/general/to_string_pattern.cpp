@@ -13,6 +13,8 @@
 #include "annium/entities/functions/internal_function_entity.hpp"
 #include "annium/auxiliary.hpp"
 
+#include "numetron/float_format.hpp"
+
 namespace annium {
 
 std::expected<functional_match_descriptor_ptr, error_storage> to_string_pattern::try_match(fn_compiler_context& ctx, prepared_call const& call, expected_result_t const&) const
@@ -87,13 +89,13 @@ public:
             oss_ << ent.value().as<uint64_t>();
             return;
         case builtin_eid::f16:
-            oss_ << ent.value().as<numetron::float16>();
+            oss_ << numetron::to_general_string(ent.value().as<numetron::float16>()); // as the runtime to_string (annium_library.cpp print_value)
             return;
         case builtin_eid::f32:
-            oss_ << ent.value().as<float>();
+            oss_ << numetron::to_general_string(ent.value().as<float>());
             return;
         case builtin_eid::f64:
-            oss_ << ent.value().as<double>();
+            oss_ << numetron::to_general_string(ent.value().as<double>());
             return;
 
         default:

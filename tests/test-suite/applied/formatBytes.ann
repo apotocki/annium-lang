@@ -24,8 +24,8 @@ fn formatBytes($v: runtime integer, $p: runtime i64 = 4) -> string {
     // $p is the MAXIMUM number of decimal places to show -- trailing zero decimals are dropped
     // entirely (never padded out to $p places), and if every decimal digit is zero, no decimal
     // point is shown at all. to_fixed(...) always produces a fixed, zero-padded width (e.g.
-    // "1.0000", never re-rounded/truncated the way to_string(f64)'s default 6-significant-digit
-    // formatting would be, see IMPLEMENTATION_NOTES.md), so the trimming below only ever runs on
+    // "1.0000", unlike to_string(f64), which gives the shortest
+    // round-trip digits, not a fixed count), so the trimming below only ever runs on
     // the fractional part *after* splitting on the decimal point -- trim_end can't safely run on
     // the whole "int.frac" string at once: a trailing zero belonging to the *integer* part (e.g.
     // "120.00") would get stripped right along with the fractional zeros, corrupting the result.
