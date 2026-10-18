@@ -5,6 +5,8 @@
 
 #include <unordered_map>
 #include <ranges>
+#include <chrono>
+#include <vector>
 
 #include "sonia/variant.hpp"
 #include "sonia/shared_ptr.hpp"
@@ -100,6 +102,18 @@ inline std::basic_ostream<Elem, Traits>& operator<<(std::basic_ostream<Elem, Tra
     return os << *v;
 }
 */
+
+// Optional statistics of the extern function calls of a run, by efn index: the number of calls and the time
+// spent in them (inclusive: a call back into the VM from the host counts in the calling function).
+struct efn_profile
+{
+    struct entry
+    {
+        size_t calls = 0;
+        std::chrono::steady_clock::duration time{};
+    };
+    std::vector<entry> entries;
+};
 
 class context : public sonia::vm::basic_context<smart_blob>
 {
@@ -248,6 +262,8 @@ public:
 
     small_string generate_object_id() const;
 
+    inline void set_efn_profile(efn_profile* p) noexcept { efn_profile_ = p; }
+
     inline invocation::invocable* scope() const noexcept { return penv_; }
     inline invocation::invocable& env() const
     {
@@ -262,6 +278,7 @@ private:
     environment& environment_;
     vm_t& vm_;
     invocation::invocable* penv_;
+    efn_profile* efn_profile_ = nullptr;
 };
 
 } // namespace annium::vm
@@ -289,11 +306,6 @@ public:
     using base_t::append_ecall;
     void append_ecall(builtin_fn fn);
 
-    string_view describe_address(size_t address) const noexcept;
-    void set_address_description(size_t address, std::string description);
-
-private:
-    std::unordered_map<size_t, std::string> call_descriptions_;
 };
 
 }

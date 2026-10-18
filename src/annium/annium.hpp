@@ -24,8 +24,12 @@ public:
 
     void set_cout_writer(function<void(string_view)>);
     void set_host(invocation::invocable*);
+    // a file with the image extension (.annc, see vm/image.hpp) is loaded as a precompiled image
     void load(fs::path const& srcfile, span<string_view> args = {});
     void load(string_view code, span<string_view> args = {});
+
+    // compiles `srcfile` without running it and writes the precompiled image to `imagefile`
+    void build_image(fs::path const& srcfile, fs::path const& imagefile);
 
     smart_blob invoke(blob_result& ftor, span<const blob_result> args) noexcept;
 

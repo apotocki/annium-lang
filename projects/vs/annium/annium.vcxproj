@@ -163,6 +163,7 @@
     <ClCompile Include="..\..\..\src\annium\library\annium_std.cpp" />
     <ClCompile Include="..\..\..\src\annium\semantic\semantic_expression_printer.cpp" />
     <ClCompile Include="..\..\..\src\annium\vm\annium_vm.cpp" />
+    <ClCompile Include="..\..\..\src\annium\vm\image.cpp" />
     <ClCompile Include="..\..\..\src\sonia\mvvm\annium_view_model.cpp" />
     <ClCompile Include="..\..\..\src\sonia\mvvm\builder_view_model.cpp" />
     <ClCompile Include="..\..\..\src\sonia\mvvm\bunch_builder_view_model.cpp" />
@@ -313,6 +314,7 @@
     <ClInclude Include="..\..\..\src\annium\utility\linked_list.hpp" />
     <ClInclude Include="..\..\..\src\annium\utility\linked_list.ipp" />
     <ClInclude Include="..\..\..\src\annium\vm\annium_vm.hpp" />
+    <ClInclude Include="..\..\..\src\annium\vm\image.hpp" />
     <ClInclude Include="..\..\..\src\annium\vm\asm_builder.hpp" />
     <ClInclude Include="..\..\..\src\annium\vm\compiler_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\vm\push_value_visitor.hpp" />

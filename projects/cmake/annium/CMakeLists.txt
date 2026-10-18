@@ -160,6 +160,7 @@ set (LIBRARY_SOURCES
     ${ANNIUM_SRC}/annium/library/annium_std.cpp
     ${ANNIUM_SRC}/annium/library/annium_chained_host.cpp
     ${ANNIUM_SRC}/annium/vm/annium_vm.cpp
+    ${ANNIUM_SRC}/annium/vm/image.cpp
     ${ANNIUM_SRC}/sonia/mvvm/annium_view_model.cpp
     ${ANNIUM_SRC}/sonia/mvvm/builder_view_model.cpp
     ${ANNIUM_SRC}/sonia/mvvm/bunch_builder_view_model.cpp

@@ -23,6 +23,7 @@
 #include "applied/scoped_services.hpp"
 
 #include "annium/annium.hpp"
+#include "annium/vm/image.hpp"
 
 #include "sonia/mvvm/annium_view_model.hpp"
 
@@ -233,6 +234,9 @@ void annium_suite_test()
     
     json_value res = model.detach_result();
     auto testspan = res.get_array();
+    fs::path imagedir{ TEST_FOLDER };
+    fs::create_directories(imagedir);
+    size_t test_index = 0;
     for (json_value const& test_descr : testspan) {
         json_object test_obj = test_descr.get_object();
         auto filename = test_obj["src"]->get_u8string();
@@ -251,6 +255,21 @@ void annium_suite_test()
         ml->load(srcpath, args);
 
         BOOST_CHECK_EQUAL(expected_output, ml->output.str());
+
+        // the same program through a precompiled image must behave the same (images take no arguments)
+        if (args.empty()) {
+            fs::path imagepath = imagedir / ("test_" + std::to_string(test_index) + std::string{ annium::image_file_extension });
+            GLOBAL_LOG_INFO() << "image: " << imagepath.string() << "\n";
+
+            auto builder = std::make_shared<final_view_model<annium_test_model>>();
+            builder->build_image(srcpath, imagepath);
+
+            auto il = std::make_shared<final_view_model<annium_test_model>>();
+            il->load(imagepath);
+
+            BOOST_CHECK_EQUAL(expected_output, il->output.str());
+        }
+        ++test_index;
     }
 
     } catch (std::exception const&) {

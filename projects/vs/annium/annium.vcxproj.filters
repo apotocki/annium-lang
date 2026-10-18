@@ -99,6 +99,9 @@
     <ClCompile Include="..\..\..\src\annium\vm\annium_vm.cpp">
       <Filter>annium\vm</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\annium\vm\image.cpp">
+      <Filter>annium\vm</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\entities\prepared_call.cpp">
       <Filter>annium\entities</Filter>
     </ClCompile>
@@ -483,6 +486,9 @@
       <Filter>annium</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\vm\annium_vm.hpp">
+      <Filter>annium\vm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\annium\vm\image.hpp">
       <Filter>annium\vm</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\vm\compiler_visitor.hpp">

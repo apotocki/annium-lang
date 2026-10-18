@@ -263,7 +263,7 @@
       <PrecompiledHeaderFile />
       <PrecompiledHeaderOutputFile />
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\src;$(SolutionDir)modules\sonia-prime;$(SolutionDir)modules\dataforge\include;$(SolutionDir)modules\numetron\include;$(SolutionDir)third_party\lexertl14\include;$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\src;$(SolutionDir)modules\sonia-prime;$(SolutionDir)modules\sonia-prime\third_party\lexertl14\include;$(SolutionDir)modules\dataforge\include;$(SolutionDir)modules\numetron\include;$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:__cplusplus /Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -284,7 +284,7 @@
       <PrecompiledHeaderFile />
       <PrecompiledHeaderOutputFile />
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\src;$(SolutionDir)modules\sonia-prime;$(SolutionDir)modules\dataforge\include;$(SolutionDir)modules\numetron\include;$(SolutionDir)third_party\lexertl14\include;$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\src;$(SolutionDir)modules\sonia-prime;$(SolutionDir)modules\sonia-prime\third_party\lexertl14\include;$(SolutionDir)modules\dataforge\include;$(SolutionDir)modules\numetron\include;$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:__cplusplus /Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -302,7 +302,7 @@
       <PrecompiledHeaderFile />
       <PrecompiledHeaderOutputFile />
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\src;$(SolutionDir)modules\sonia-prime;$(SolutionDir)modules\dataforge\include;$(SolutionDir)modules\numetron\include;$(SolutionDir)third_party\lexertl14\include;$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\src;$(SolutionDir)modules\sonia-prime;$(SolutionDir)modules\sonia-prime\third_party\lexertl14\include;$(SolutionDir)modules\dataforge\include;$(SolutionDir)modules\numetron\include;$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj /Zc:__cplusplus /Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp23</LanguageStandard>
     </ClCompile>
@@ -325,7 +325,7 @@
       <PrecompiledHeaderFile />
       <PrecompiledHeaderOutputFile />
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\src;$(SolutionDir)modules\sonia-prime;$(SolutionDir)modules\dataforge\include;$(SolutionDir)modules\numetron\include;$(SolutionDir)third_party\lexertl14\include;$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\src;$(SolutionDir)modules\sonia-prime;$(SolutionDir)modules\sonia-prime\third_party\lexertl14\include;$(SolutionDir)modules\dataforge\include;$(SolutionDir)modules\numetron\include;$(SolutionDir)vcpkg_installed\x64-windows-cpp23\include;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj /Zc:__cplusplus /Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
