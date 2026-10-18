@@ -30,7 +30,9 @@ inline constexpr string_view image_file_extension = ".annc";
 // separate sonia::vm::bytecode_version.
 inline constexpr uint32_t image_format_version = 2;
 
-std::vector<uint8_t> save_image(virtual_stack_machine const& vm, size_t entry_address, string_view source_name);
+// `with_descriptions`: keep the address descriptions (function signatures for VM traces and
+// disassembly, diagnostics only); they are most of an image's size
+std::vector<uint8_t> save_image(virtual_stack_machine const& vm, size_t entry_address, string_view source_name, bool with_descriptions = true);
 
 // Replaces the code, constants and extern function table of `vm` with the image's ones, binding
 // the image's extern functions to the ones `vm` already has (builtins by index, the rest by

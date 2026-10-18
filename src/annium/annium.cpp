@@ -133,7 +133,7 @@ public:
     void set_host(chained_host::parent_ref phost) { chained_host_->extend(std::move(phost)); }
     void load(fs::path const& srcfile, span<string_view> args = {});
     void load(string_view code, span<string_view> args = {});
-    void build_image(fs::path const& srcfile, fs::path const& imagefile);
+    void build_image(fs::path const& srcfile, fs::path const& imagefile, bool strip);
 
     smart_blob invoke(blob_result& ftor, span<const blob_result> args) noexcept;
     smart_blob call(string_view name, span<const std::pair<string_view, const blob_result>> namedargs, span<const blob_result> args);
@@ -204,9 +204,9 @@ void language::load(string_view code, span<string_view> args)
     impl_->load(code, args);
 }
 
-void language::build_image(fs::path const& srcfile, fs::path const& imagefile)
+void language::build_image(fs::path const& srcfile, fs::path const& imagefile, bool strip)
 {
-    impl_->build_image(srcfile, imagefile);
+    impl_->build_image(srcfile, imagefile, strip);
 }
 
 smart_blob language::invoke(blob_result& ftor, span<const blob_result> args) noexcept
@@ -321,7 +321,7 @@ void annium_impl::expect_sources()
     content_ = content::sources;
 }
 
-void annium_impl::build_image(fs::path const& srcfile, fs::path const& imagefile)
+void annium_impl::build_image(fs::path const& srcfile, fs::path const& imagefile, bool strip)
 {
     std::vector<uint8_t> image;
     try {
@@ -332,7 +332,7 @@ void annium_impl::build_image(fs::path const& srcfile, fs::path const& imagefile
         if (!decls.has_value()) throw exception(decls.error());
         // compiled, not run: the image holds the machine state the program starts from
         size_t address = compile(std::move(*decls), {});
-        image = save_image(environment_->bvm(), address, srcfile.filename().generic_string());
+        image = save_image(environment_->bvm(), address, srcfile.filename().generic_string(), !strip);
     } catch (error const& e) {
         throw exception(environment_->print(e));
     }

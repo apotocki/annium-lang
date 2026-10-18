@@ -28,8 +28,9 @@ public:
     void load(fs::path const& srcfile, span<string_view> args = {});
     void load(string_view code, span<string_view> args = {});
 
-    // compiles `srcfile` without running it and writes the precompiled image to `imagefile`
-    void build_image(fs::path const& srcfile, fs::path const& imagefile);
+    // compiles `srcfile` without running it and writes the precompiled image to `imagefile`;
+    // `strip` leaves out the diagnostics (see save_image in vm/image.hpp)
+    void build_image(fs::path const& srcfile, fs::path const& imagefile, bool strip = false);
 
     smart_blob invoke(blob_result& ftor, span<const blob_result> args) noexcept;
 

@@ -3,11 +3,14 @@
 
 // annium-compile: compiles annium sources into precompiled images (.annc, see annium/vm/image.hpp).
 //
-// Usage: annium-compile <source.ann> <image.annc> [<source.ann> <image.annc> ...]
+// Usage: annium-compile [--strip] <source.ann> <image.annc> [<source.ann> <image.annc> ...]
 //        annium-compile --versions
 //
 // Each source is compiled in its own language instance without a host, so a consteval expression
 // that needs the host fails the compilation. Any error stops the tool with exit code 1.
+//
+// --strip leaves the diagnostics (the address descriptions: function signatures for VM traces and
+// disassembly) out of the images; they are most of an image's size.
 //
 // --versions prints the versions the images get, "image_format_version=N bytecode_version=M": a
 // build script compares them with the sources the runtime is built from, so a stale compiler fails
@@ -60,8 +63,12 @@ int main(int argc, char const* argv[])
         return 0;
     }
 
-    if (argc < 3 || (argc - 1) % 2) {
-        std::cerr << "usage: annium-compile <source.ann> <image.annc> [<source.ann> <image.annc> ...]\n"
+    int first = 1;
+    bool strip = argc > 1 && string_view{ argv[1] } == "--strip";
+    if (strip) ++first;
+
+    if (argc - first < 2 || (argc - first) % 2) {
+        std::cerr << "usage: annium-compile [--strip] <source.ann> <image.annc> [<source.ann> <image.annc> ...]\n"
                      "       annium-compile --versions\n";
         return 2;
     }
@@ -69,10 +76,10 @@ int main(int argc, char const* argv[])
     try {
         scoped_services ss{ prepare_services_configuration() };
 
-        for (int i = 1; i < argc; i += 2) {
+        for (int i = first; i < argc; i += 2) {
             fs::path src{ argv[i] }, image{ argv[i + 1] };
             annium::language lang;
-            lang.build_image(src, image);
+            lang.build_image(src, image, strip);
             std::cout << src.generic_string() << " -> " << image.generic_string() << "\n";
         }
     } catch (std::exception const& e) {
