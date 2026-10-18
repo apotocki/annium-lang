@@ -4,9 +4,14 @@
 // annium-compile: compiles annium sources into precompiled images (.annc, see annium/vm/image.hpp).
 //
 // Usage: annium-compile <source.ann> <image.annc> [<source.ann> <image.annc> ...]
+//        annium-compile --versions
 //
 // Each source is compiled in its own language instance without a host, so a consteval expression
 // that needs the host fails the compilation. Any error stops the tool with exit code 1.
+//
+// --versions prints the versions the images get, "image_format_version=N bytecode_version=M": a
+// build script compares them with the sources the runtime is built from, so a stale compiler fails
+// the build instead of the image load on the device.
 
 #include "sonia/config.hpp"
 
@@ -17,6 +22,8 @@
 #include "applied/scoped_services.hpp"
 
 #include "annium/annium.hpp"
+#include "annium/vm/image.hpp"
+#include "sonia/utility/lang/vm2.hpp"
 
 using namespace sonia;
 
@@ -47,8 +54,15 @@ std::string prepare_services_configuration()
 
 int main(int argc, char const* argv[])
 {
+    if (argc == 2 && string_view{ argv[1] } == "--versions") {
+        std::cout << "image_format_version=" << annium::image_format_version
+                  << " bytecode_version=" << sonia::vm::bytecode_version << "\n";
+        return 0;
+    }
+
     if (argc < 3 || (argc - 1) % 2) {
-        std::cerr << "usage: annium-compile <source.ann> <image.annc> [<source.ann> <image.annc> ...]\n";
+        std::cerr << "usage: annium-compile <source.ann> <image.annc> [<source.ann> <image.annc> ...]\n"
+                     "       annium-compile --versions\n";
         return 2;
     }
 
