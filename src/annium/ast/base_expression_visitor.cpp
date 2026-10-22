@@ -1013,8 +1013,15 @@ base_expression_visitor::result_type base_expression_visitor::make_function_call
     BOOST_ASSERT(pqnent);
     BOOST_ASSERT(pqnent->value()); // functor must have a name
     
-    // unfold capture list
-    if (fn_ent_sig->field_count() > 2) { // has at least two captured values
+    // unfold capture list: only the runtime captures are on the stack, packed into an array when there are at least
+    // two of them (see the lambda's captures, `rt_capture_size`); a constant capture lives in the signature only, so
+    // one runtime capture next to constant ones is a single value - unfolding it broke on a string
+    // (tests/test-suite/captures.ann)
+    size_t rt_capture_count = 0;
+    for (field_descriptor const& fd : fn_ent_sig->fields().subspan(1)) {
+        if (!fd.is_const()) ++rt_capture_count;
+    }
+    if (rt_capture_count > 1) {
         env().push_back_expression(expressions, ftor.expressions, semantic::invoke_function{ env().get(builtin_eid::unfold) });
         //env().push_back_expression(expressions, ftor_expr_res.expressions, semantic::truncate_values{ .count = 1, .keep_back = 0 }); // keep only the unfolded captured values on stack
     }

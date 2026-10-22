@@ -54,6 +54,10 @@
     "output": "0Hello!Hello, World!0Hi, Alice and Bob!"
   },
   {
+    "src": "captures.ann",
+    "output": "Hi, Alice!Hi, Bob?Bye, Alice!Bye, Alice!"
+  },
+  {
     "src": "match_priority.ann",
     "output": ""
   },

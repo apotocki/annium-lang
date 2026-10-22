@@ -602,3 +602,31 @@ numetron's multiplication thresholds (`toom/thresholds.hpp`) are declared `exter
 **Fix:** `annium` now does `target_link_libraries(annium PUBLIC numetron)`, so it (and everything linking it) compiles with the library's exported configuration; numetron's `add_subdirectory` moved ahead of annium's. The VS projects define `NUMETRON_COMPILED;NUMETRON_BACKEND_ASM` for x64 (where `numetron.vcxproj` builds the MASM kernels) and `NUMETRON_COMPILED` for Win32.
 
 **Rule:** any target that includes numetron headers and links the compiled `numetron` library must compile with the same `NUMETRON_COMPILED` / `NUMETRON_BACKEND_ASM` — in CMake, link the `numetron` target rather than just adding its include directory.
+
+## A lambda with one runtime capture next to constant ones crashed when called ("unexpected array element type")
+
+**File:** `src/annium/ast/base_expression_visitor.cpp` (the call of a functor)
+
+A lambda's runtime captures are packed into an array only when there are at least two of them (`rt_capture_size > 1`,
+the lambda's capture list); a constant capture lives in the functor's signature only. The call site unfolded the
+captures whenever the functor's signature had more than two fields (`field_count() > 2`) — counting the constant
+captures too. So `fn[name: runtime_cast("Alice"), suffix: "!"](...)` (one runtime capture, one constant) had its single
+runtime value unfolded; `annium_unfold` takes a string for an array (a string blob is a char array) and threw. Hit by
+hexform's `algorithms.ann`: a helper whose parameters were specialized by constant arguments captured them as constants
+next to one runtime string.
+
+**Fix:** the call site counts the non-constant capture fields and unfolds only when there are at least two of them.
+
+**Test coverage added:** `tests/test-suite/captures.ann`.
+
+## A `callable` variable called twice from a script crashed on the second call
+
+**File:** `src/annium/library/annium_library.cpp` (`annium_invoke_callable`)
+
+`annium_invoke_callable` *moved* the `shared_ptr<callable>` out of the stack slot of the callable, which can be the
+variable itself (or the object a host property returns, shared with the host): the next call got a null callable —
+an access violation. Calls of a script's handler by a host (`annium_callable::invoke` from C++) weren't affected.
+
+**Fix:** the `shared_ptr` is copied.
+
+**Test coverage added:** `tests/test-suite/captures.ann` (a callable variable called twice).

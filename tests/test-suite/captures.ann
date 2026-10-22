@@ -1,0 +1,17 @@
+// A lambda with one runtime capture next to a constant one: the runtime captures are packed into an array only when
+// there are at least two of them, a single one is passed as is - the call mustn't unfold it (a string broke there:
+// "unexpected array element type").
+fn greet($greeting: string, $name: string, $suffix: string) { print($greeting .. $name .. $suffix); }
+
+let one_runtime = fn[name: runtime_cast("Alice"), suffix: "!"](string) => greet($0, name, suffix);
+one_runtime("Hi, ");
+
+// two runtime captures (packed) and a constant one
+let two_runtime = fn[name: runtime_cast("Bob"), suffix: runtime_cast("?"), sep: " "](string) => greet($0 .. sep, name, suffix);
+two_runtime("Hi,");
+
+// a callable variable called twice: the call mustn't take the callable away from the variable
+let f: (string)->() = one_runtime;
+let c: callable = f;
+c("Bye, ");
+c("Bye, ");
