@@ -201,6 +201,52 @@ public:
     
 };
 
+// Loads into the same environment one after another (a builder loads its script, then evaluates code in its scope)
+void annium_reload_test()
+{
+    using callable_t = invocation::wrapper_object<shared_ptr<invocation::callable>>;
+
+    // every load runs its own code (an unregistered main had the code of the first load's main: a second load ran the
+    // first one again); the load's arguments $0.., $$ are set anew (were "`::$$`: identifier redefinition")
+    {
+        auto ml = std::make_shared<final_view_model<annium_test_model>>();
+        ml->load_code("print(\"a\");"sv);
+        ml->load_code("print(\"b\");"sv);
+        ml->load_code("print(\"c\");"sv);
+        BOOST_CHECK_EQUAL("abc"sv, ml->output.str());
+    }
+
+    // eval: an expression in the scope of what is loaded, statements, the same expression again
+    {
+        auto ml = std::make_shared<final_view_model<annium_test_model>>();
+        ml->load_code("fn greet($name: string) -> string { return \"hi, \" .. $name; }"sv);
+        for (int i = 0; i < 2; ++i) {
+            smart_blob r = ml->eval("greet(\"Bob\")"sv, false);
+            BOOST_REQUIRE(r->type != blob_type::error);
+            BOOST_CHECK_EQUAL("hi, Bob", from_blob<std::string>()(*r));
+        }
+        smart_blob r = ml->eval("print(greet(\"Alice\"))"sv, true);
+        BOOST_CHECK(r->type != blob_type::error);
+        BOOST_CHECK_EQUAL("hi, Alice"sv, ml->output.str());
+    }
+
+    // a lambda handed over to a callable extern by a load after the first one
+    {
+        auto ml = std::make_shared<final_view_model<annium_test_model>>();
+        ml->load_code("extern var c0: callable;"sv);
+        for (string_view text : { "1"sv, "2"sv }) {
+            ml->output.str(std::string{});
+            std::string var = "l" + std::string{ text };
+            std::string code = "let " + var + ": ()->() = fn() => print(\"" + std::string{ text } + "\"); c0 = " + var + ";";
+            ml->load_code(string_view{ code.data(), code.size() });
+            BOOST_REQUIRE(!ml->callable_.is_nil());
+            smart_blob r = ml->callable_.as<callable_t>().value->invoke({});
+            BOOST_CHECK_MESSAGE(r->type != blob_type::error, "the lambda of the load " << text << ": " << *r);
+            BOOST_CHECK_EQUAL(text, ml->output.str());
+        }
+    }
+}
+
 void annium_suite_test()
 {
     try {
@@ -271,6 +317,8 @@ void annium_suite_test()
         }
         ++test_index;
     }
+
+    annium_reload_test(); // needs the services above
 
     } catch (std::exception const&) {
         std::cout << "Exception: \n" << boost::current_exception_diagnostic_information() << "\n";

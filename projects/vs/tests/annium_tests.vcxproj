@@ -72,9 +72,9 @@
     <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\utility\iterators\file_region_iterator.cpp" />
     <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\utility\json\json_value.cpp" />
     <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\utility\parsers\json\json_model.cpp" />
-    <ClCompile Include="..\..\..\modules\sonia-prime\sonia\fibers\context_shared.cpp" />
-    <ClCompile Include="..\..\..\modules\sonia-prime\sonia\fibers\default_stack.cpp" />
-    <ClCompile Include="..\..\..\modules\sonia-prime\sonia\utility\mvvm\view_model.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\context_shared.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\default_stack.cpp" />
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\utility\mvvm\view_model.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(SolutionDir)modules\sonia-prime\applied\tests_external.hpp" />
@@ -148,11 +148,11 @@
     <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\parsers\json\parser.hpp" />
     <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\parsers\lexer.hpp" />
     <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\parsers\utility.hpp" />
-    <ClInclude Include="..\..\..\modules\sonia-prime\sonia\utility\mvvm\view_model.hpp" />
-    <ClInclude Include="..\..\..\modules\sonia-prime\sonia\utility\mvvm\view_model.ipp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\mvvm\view_model.hpp" />
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\mvvm\view_model.ipp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\modules\numetron\msvc\numetron.vcxproj">
+    <ProjectReference Include="..\..\..\..\numetron\msvc\numetron.vcxproj">
       <Project>{b3da4b02-589c-4f86-b8be-4cccd9faa17b}</Project>
     </ProjectReference>
     <ProjectReference Include="..\annium\annium.vcxproj">
@@ -199,7 +199,7 @@
     <None Include="..\..\..\tests\test-suite\whiles.ann" />
   </ItemGroup>
   <ItemGroup>
-    <Natvis Include="..\..\..\modules\sonia-prime\projects\vs\sonia.natvis" />
+    <Natvis Include="$(SolutionDir)modules\sonia-prime\projects\vs\sonia.natvis" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

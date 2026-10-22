@@ -119,13 +119,13 @@
     <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\services\bundle.cpp">
       <Filter>sonia\services</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\modules\sonia-prime\sonia\fibers\context_shared.cpp">
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\context_shared.cpp">
       <Filter>sonia\fibers</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\modules\sonia-prime\sonia\utility\mvvm\view_model.cpp">
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\utility\mvvm\view_model.cpp">
       <Filter>sonia\utility\mvvm</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\modules\sonia-prime\sonia\fibers\default_stack.cpp">
+    <ClCompile Include="$(SolutionDir)modules\sonia-prime\sonia\fibers\default_stack.cpp">
       <Filter>sonia\fibers</Filter>
     </ClCompile>
   </ItemGroup>
@@ -414,10 +414,10 @@
     <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\lang\vm.hpp">
       <Filter>sonia\utility\lang</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\modules\sonia-prime\sonia\utility\mvvm\view_model.hpp">
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\mvvm\view_model.hpp">
       <Filter>sonia\utility\mvvm</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\modules\sonia-prime\sonia\utility\mvvm\view_model.ipp">
+    <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\mvvm\view_model.ipp">
       <Filter>sonia\utility\mvvm</Filter>
     </ClInclude>
   </ItemGroup>
@@ -535,7 +535,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Natvis Include="..\..\..\modules\sonia-prime\projects\vs\sonia.natvis">
+    <Natvis Include="$(SolutionDir)modules\sonia-prime\projects\vs\sonia.natvis">
       <Filter>sonia</Filter>
     </Natvis>
   </ItemGroup>
