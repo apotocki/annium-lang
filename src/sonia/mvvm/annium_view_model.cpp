@@ -4,6 +4,7 @@
 #include "sonia/config.hpp"
 #include "annium_view_model.hpp"
 #include "sonia/utility/scope_exit.hpp"
+#include "sonia/exceptions.hpp"
 
 namespace sonia {
 
@@ -41,28 +42,38 @@ void annium_view_model::load_file(string_view pathstr)
     load(path);
 }
 
+// The code in the scope of what is loaded, compiled once as a function of no arguments (the result is `any`): the script
+// hands the function over by assigning it to the extern __eval_fn (as it hands its callbacks to a host), it is called as
+// a callable. (It
+// used to be called by its name through language::call, which isn't implemented.)
 smart_blob annium_view_model::eval(string_view code, bool no_return)
 {
-    auto it = inplace_fns_.find(code);
+    std::string key = std::string{ no_return ? "s:"sv : "e:"sv } + std::string{ code };
+    auto it = inplace_fns_.find(key);
     if (it == inplace_fns_.end()) {
-        std::ostringstream fnnamess;
-        fnnamess << "inplace_"sv << inplace_fns_.size() << "()"sv;
-        std::string fnname = fnnamess.str();
-
-        std::ostringstream fncodess;
-        fncodess << "fn " << fnname << " { ";
-        if (!no_return) {
-            fncodess << "return " << code << "; }";
-        } else {
-            fncodess << code << "; }";
+        if (!eval_declared_) {
+            load("extern var __eval_fn: callable;"sv);
+            eval_declared_ = true;
         }
+        // a named function cast to its function type converts to callable (as a script's `on_change = handler as
+        // (integer, string)->();`); a lambda in a `let` of the function type came as a callable of no code
+        std::string fname = "__eval_fn_" + std::to_string(eval_count_++);
+        std::ostringstream fncodess;
+        if (!no_return) {
+            fncodess << "fn " << fname << "()->any => " << code << ";";
+            fncodess << " __eval_fn = " << fname << " as ()->any;";
+        } else {
+            fncodess << "fn " << fname << "()->() { " << code << "; }";
+            fncodess << " __eval_fn = " << fname << " as ()->();";
+        }
+        eval_fn_.reset();
         load((string_view)fncodess.str());
-        
-        it = inplace_fns_.insert(std::pair{ std::string{code}, std::move(fnname) }).first;
+        if (!eval_fn_) {
+            throw exception("eval: the code didn't make a function: %1%"_fmt % code);
+        }
+        it = inplace_fns_.insert(std::pair{ std::move(key), std::move(eval_fn_) }).first;
     }
-
-    std::string const& fnname = it->second;
-    return call(fnname);
+    return it->second->invoke({});
 }
 
 void annium_view_model::set_invoker(smart_blob invoker)
@@ -87,6 +98,12 @@ bool annium_view_model::try_get_property(string_view propname, smart_blob& resul
 
 bool annium_view_model::try_set_property(string_view propname, blob_result const& val)
 {
+    if (propname == "__eval_fn"sv) { // eval's function, see eval
+        using namespace sonia::invocation;
+        using wrapper_object_t = wrapper_object<shared_ptr<callable>>;
+        eval_fn_ = as<wrapper_object_t>(val).value;
+        return true;
+    }
     if (view_model::try_set_property(propname, val)) return true;
     if (!invoker_ftor_) return false;
     return invoker_ftor_->try_set_property(propname, val);

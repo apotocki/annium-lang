@@ -220,6 +220,8 @@ public:
     void set_default_entity(annotated_entity_identifier); // can throw redefinition_error
     void set_default_entity(shared_ptr<entity_resolver>); // can throw redefinition_error
     void set_default_result(functional_variable); // can throw redefinition_error
+    // a value that each use sets anew (a load's arguments $0.., $$): no redefinition check
+    void replace_default_entity(annotated_entity_identifier);
 
     void push(shared_ptr<pattern> p);
     

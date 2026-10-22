@@ -309,6 +309,12 @@ void functional::set_default_entity(annotated_entity_identifier e)
     set_default_result<annotated_entity_identifier>(std::move(e), [](auto const& e) { return e.location; });
 }
 
+void functional::replace_default_entity(annotated_entity_identifier e)
+{
+    lock_guard lock{ default_entity_mtx_ };
+    default_result_ = std::move(e);
+}
+
 void functional::set_default_entity(shared_ptr<entity_resolver> e)
 {
     set_default_result<shared_ptr<entity_resolver>>(std::move(e), [](auto const& e) { return e->location(); });

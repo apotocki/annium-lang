@@ -388,10 +388,17 @@ void annium_impl::run_main(size_t address)
 size_t annium_impl::compile(span<const statement> decls, span<string_view> args)
 {
     //identifier main_id = environment_->new_identifier();
-    entity_signature main_sig{};
+    // every load's main is an entity of its own: environment::compile keys the compiled code by the entity id, and an
+    // unregistered main (a null id) got the code of the first load's main - a second load ran the first one again.
+    // A fresh signature name makes it unique (as consteval's scratch functions); a provision, so not compiled with the
+    // other functions below.
+    entity_signature main_sig{ environment_->new_qname_identifier() };
     auto main_fn_ent = make_shared<internal_function_entity>(*environment_, qname{/*main_id*/}, std::move(main_sig), resource_location{}, field_descriptor{});
+    environment_->eregistry_insert(main_fn_ent);
     main_fn_ent->set_body(decls);
     fn_compiler_context ctx{ *environment_, *main_fn_ent };
+    // the load's arguments: $0, $1, ... and their count $$ - global, set anew by every load (a second load into the
+    // same environment, e.g. the builder's eval after load_file, used to fail with "`::$$`: identifier redefinition")
     size_t argindex = 0;
     std::array<char, 16> argname = { '$' };
     for (string_view arg : args) {
@@ -402,8 +409,8 @@ size_t annium_impl::compile(span<const statement> decls, span<string_view> args)
         entity const& argent = environment_->make_string_entity(arg);
         identifier argid = environment_->slregistry().resolve(string_view{ argname.data(), epos });
         functional& arg_fnl = environment_->fregistry_resolve(ctx.ns() / argid);
-        arg_fnl.set_default_entity(annotated_entity_identifier{ argent.id, {} });
-            
+        arg_fnl.replace_default_entity(annotated_entity_identifier{ argent.id, {} });
+
         //ctx.new_const_entity(string_view{ argname.data(), epos }, std::move(ent));
         ++argindex;
     }
@@ -411,7 +418,7 @@ size_t annium_impl::compile(span<const statement> decls, span<string_view> args)
     entity const& argent = environment_->make_integer_entity(argindex);
     identifier argid = environment_->slregistry().resolve(string_view{ argname.data(), 2 });
     functional& arg_fnl = environment_->fregistry_resolve(ctx.ns() / argid);
-    arg_fnl.set_default_entity(annotated_entity_identifier{ argent.id, {} });
+    arg_fnl.replace_default_entity(annotated_entity_identifier{ argent.id, {} });
         
 
     //if (!default_ctx_) {

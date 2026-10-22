@@ -39,7 +39,11 @@ protected:
     static void do_registration(registrar_type& mr);
 
 private:
-    std::unordered_map<std::string, std::string, hasher, string_equal_to> inplace_fns_;
+    // eval: the code -> its compiled function (the script hands it over by assigning the extern __eval_fn)
+    std::unordered_map<std::string, shared_ptr<invocation::callable>, hasher, string_equal_to> inplace_fns_;
+    shared_ptr<invocation::callable> eval_fn_;
+    size_t eval_count_ = 0; // names the functions of eval
+    bool eval_declared_ = false;
     shared_ptr<invocable> invoker_ftor_;
 };
 
