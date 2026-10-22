@@ -152,7 +152,7 @@
     <ClInclude Include="$(SolutionDir)modules\sonia-prime\sonia\utility\mvvm\view_model.ipp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\numetron\msvc\numetron.vcxproj">
+    <ProjectReference Include="$(SolutionDir)modules\numetron\msvc\numetron.vcxproj">
       <Project>{b3da4b02-589c-4f86-b8be-4cccd9faa17b}</Project>
     </ProjectReference>
     <ProjectReference Include="..\annium\annium.vcxproj">
