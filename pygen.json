@@ -4,6 +4,8 @@
     "modules/sonia-prime",
     "modules/dataforge/include",
     "modules/numetron/include",
+    "Otok/*/include",
+    "modules/sonia-prime/third_party/lexertl14/include",
     "vcpkg_installed/x64-windows-cpp23/include"
   ],
   "preprocessor_defs": [
