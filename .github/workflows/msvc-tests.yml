@@ -7,7 +7,8 @@ on:
     branches: [ main ]
 
 env:
-  OTOK_VERSION: 0.5.6
+  # the otok release to install, e.g. 0.5.6; empty: the latest release (never a release candidate)
+  OTOK_VERSION: ''
   # otok's cache (downloads, recipe trees, built libraries) where actions/cache keeps it
   OTOK_CACHE_DIR: ${{ github.workspace }}\.otok-cache
 
@@ -26,10 +27,19 @@ jobs:
 
       - name: Install otok
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-            $name = "otok-$env:OTOK_VERSION-windows-x64"
+            $version = $env:OTOK_VERSION
+            if (-not $version) {
+                # GitHub's latest release: drafts and prereleases (the -rc tags) are never it
+                $version = (gh release view --repo otok-dev/otok --json tagName -q .tagName).TrimStart('v')
+                if (-not $version) { throw "otok: cannot find the latest release" }
+            }
+            Write-Output "otok $version"
+            $name = "otok-$version-windows-x64"
             $dir = Join-Path $env:RUNNER_TEMP otok
-            $url = "https://github.com/otok-dev/otok/releases/download/v$env:OTOK_VERSION/$name.zip"
+            $url = "https://github.com/otok-dev/otok/releases/download/v$version/$name.zip"
             Invoke-WebRequest $url -OutFile "$dir.zip"
             # to a file: GitHub serves the .sha256 as application/octet-stream, whose .Content is bytes, not text
             Invoke-WebRequest "$url.sha256" -OutFile "$dir.zip.sha256"
