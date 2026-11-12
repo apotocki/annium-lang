@@ -29,8 +29,11 @@ jobs:
         run: |
             $name = "otok-$env:OTOK_VERSION-windows-x64"
             $dir = Join-Path $env:RUNNER_TEMP otok
-            Invoke-WebRequest "https://github.com/otok-dev/otok/releases/download/v$env:OTOK_VERSION/$name.zip" -OutFile "$dir.zip"
-            $expected = ((Invoke-WebRequest "https://github.com/otok-dev/otok/releases/download/v$env:OTOK_VERSION/$name.zip.sha256").Content -split '\s+')[0]
+            $url = "https://github.com/otok-dev/otok/releases/download/v$env:OTOK_VERSION/$name.zip"
+            Invoke-WebRequest $url -OutFile "$dir.zip"
+            # to a file: GitHub serves the .sha256 as application/octet-stream, whose .Content is bytes, not text
+            Invoke-WebRequest "$url.sha256" -OutFile "$dir.zip.sha256"
+            $expected = ((Get-Content -Raw "$dir.zip.sha256").Trim() -split '\s+')[0].ToLowerInvariant()
             if ((Get-FileHash -Algorithm SHA256 "$dir.zip").Hash.ToLowerInvariant() -ne $expected) { throw "otok: sha256 mismatch" }
             Expand-Archive "$dir.zip" -DestinationPath $dir
             $exe = Get-ChildItem $dir -Recurse -Filter otok.exe | Select-Object -First 1
