@@ -73,16 +73,23 @@ jobs:
               otok-${{ runner.os }}-${{ steps.msvc.outputs.version }}-
               otok-${{ runner.os }}-
 
+      # a failed build keeps its whole work directory in failed/ (OTOK_KEEP_BUILD_DIRS), for the files uploaded below
       - name: Install Dependencies
+        env:
+          OTOK_KEEP_BUILD_DIRS: 1
         run: otok install --locked --progress plain
 
-      # the whole logs of failed builds (otok prints only their end)
+      # the whole logs of failed builds (otok prints only their end), what the sandbox refused, and b2's configuration
       - name: Upload logs of failed builds
         if: failure()
         uses: actions/upload-artifact@v4
         with:
             name: otok-failed-builds
-            path: ${{ env.OTOK_CACHE_DIR }}/failed/
+            path: |
+              ${{ env.OTOK_CACHE_DIR }}/failed/*/build.log
+              ${{ env.OTOK_CACHE_DIR }}/failed/*/key.txt
+              ${{ env.OTOK_CACHE_DIR }}/failed/*/sandbox.log
+              ${{ env.OTOK_CACHE_DIR }}/failed/*/build/*.jam
             if-no-files-found: ignore
 
       - name: Set up MSBuild
