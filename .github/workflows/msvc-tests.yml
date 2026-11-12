@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 env:
-  OTOK_VERSION: 0.5.2
+  OTOK_VERSION: 0.5.3
   # otok's cache (downloads, recipe trees, built libraries) where actions/cache keeps it
   OTOK_CACHE_DIR: ${{ github.workspace }}\.otok-cache
 
