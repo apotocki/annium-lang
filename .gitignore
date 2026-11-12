@@ -5,6 +5,10 @@
 /projects/vs/**/x64
 /projects/vs/.vs
 /vcpkg_installed
+# the libraries otok installs (otok.toml); otok.lock is committed
+/Otok/
+# this machine's working trees for dev builds (otok.dev.toml), never committed
+/otok.dev.toml
 /build
 /logs
 /log.conf

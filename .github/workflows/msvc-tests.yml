@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  OTOK_VERSION: 0.5.2
+  # otok's cache (downloads, recipe trees, built libraries) where actions/cache keeps it
+  OTOK_CACHE_DIR: ${{ github.workspace }}\.otok-cache
+
 jobs:
   build-and-test:
     runs-on: windows-2025-vs2026
@@ -18,12 +23,18 @@ jobs:
 
       - name: Force checkout all submodules (including update=none)
         run: git -c submodule."tpls/dataforge".update=checkout -c submodule."tpls/numetron".update=checkout -c submodule."tpls/sonia-prime".update=checkout submodule update --init --recursive
-      
-      - name: Clone vcpkg
-        run: git clone https://github.com/microsoft/vcpkg.git vcpkg
 
-      - name: Bootstrap vcpkg
-        run: .\vcpkg\bootstrap-vcpkg.bat
+      - name: Install otok
+        shell: pwsh
+        run: |
+            $name = "otok-$env:OTOK_VERSION-windows-x64"
+            $dir = Join-Path $env:RUNNER_TEMP otok
+            Invoke-WebRequest "https://github.com/otok-dev/otok/releases/download/v$env:OTOK_VERSION/$name.zip" -OutFile "$dir.zip"
+            $expected = ((Invoke-WebRequest "https://github.com/otok-dev/otok/releases/download/v$env:OTOK_VERSION/$name.zip.sha256").Content -split '\s+')[0]
+            if ((Get-FileHash -Algorithm SHA256 "$dir.zip").Hash.ToLowerInvariant() -ne $expected) { throw "otok: sha256 mismatch" }
+            Expand-Archive "$dir.zip" -DestinationPath $dir
+            $exe = Get-ChildItem $dir -Recurse -Filter otok.exe | Select-Object -First 1
+            $exe.DirectoryName >> $env:GITHUB_PATH
 
       - name: Get MSVC version
         id: msvc
@@ -39,32 +50,31 @@ jobs:
             $version = (Get-ChildItem $msvcDir | Sort-Object Name -Descending | Select-Object -First 1).Name
 
             "version=$version" >> $env:GITHUB_OUTPUT
-            
-      - name: Cache vcpkg
+
+      - name: Cache otok
         uses: actions/cache@v4
         with:
-            path: |
-              ${{ github.workspace }}/vcpkg_installed
-            key: vcpkg-${{ runner.os }}-${{ steps.msvc.outputs.version }}-${{ hashFiles('vcpkg.json', 'vcpkg-lock.json', 'triplets/x64-windows-cpp23.cmake') }}
+            path: ${{ env.OTOK_CACHE_DIR }}
+            key: otok-${{ runner.os }}-${{ steps.msvc.outputs.version }}-${{ hashFiles('otok.toml', 'otok.lock') }}
             restore-keys: |
-              vcpkg-${{ runner.os }}-${{ steps.msvc.outputs.version }}-
-              vcpkg-${{ runner.os }}-
-      
+              otok-${{ runner.os }}-${{ steps.msvc.outputs.version }}-
+              otok-${{ runner.os }}-
+
       - name: Install Dependencies
-        run: .\vcpkg\vcpkg.exe install --triplet x64-windows-cpp23 --overlay-triplets="triplets"
-                  
+        run: otok install --locked --progress plain
+
       - name: Set up MSBuild
         uses: microsoft/setup-msbuild@v2
 
       - name: Build solution
-        run: msbuild annium.slnx /p:Configuration=Release
+        run: msbuild annium.slnx /p:Configuration=Release /p:Platform=x64
 
       - name: Copy log configuration
         run: Copy-Item "projects\vs\tests\log.conf" "x64\Release\log.conf"
 
+      # the DLLs of Otok/ are beside the executables (OtokCopyDlls of Otok/otok.targets)
       - name: Run tests
         run: |
           cd x64/Release
-          $env:PATH += ";${{ github.workspace }}\vcpkg_installed\x64-windows-cpp23\bin"
           $env:TESTS_HOME = "${{ github.workspace }}\tests"
           .\annium_tests.exe

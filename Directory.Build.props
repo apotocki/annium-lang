@@ -3,6 +3,17 @@
     <_ParentDirectoryBuildPropsFile>$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))</_ParentDirectoryBuildPropsFile>
   </PropertyGroup>
   <Import Project="$(_ParentDirectoryBuildPropsFile)" Condition="'$(_ParentDirectoryBuildPropsFile)' != ''" />
+
+  <!--
+    The libraries otok installs into Otok/ (otok.toml, `otok install`), when annium-lang is built alone: a solution above
+    with an otok.props of its own (PotoHEX) has set OtokDir already, and its libraries are used. Directory.Build.targets
+    imports the matching Otok/otok.targets.
+  -->
+  <PropertyGroup Condition="'$(OtokDir)' == ''">
+    <AnniumOwnOtok>true</AnniumOwnOtok>
+  </PropertyGroup>
+  <Import Project="$(MSBuildThisFileDirectory)Otok\otok.props" Condition="'$(AnniumOwnOtok)' == 'true'" />
+
   <ItemDefinitionGroup>
     <ClCompile>
         <PreprocessorDefinitions>BOOST_LIB_TOOLSET="vc145";%(PreprocessorDefinitions)</PreprocessorDefinitions>

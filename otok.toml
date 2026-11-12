@@ -1,0 +1,37 @@
+# The native libraries of annium-lang on Windows, built by otok into Otok/<library>/ (include/, lib/<arch>/ and
+# bin/<arch>/ for Release, debug/lib/<arch>/ and debug/bin/<arch>/ for Debug) instead of vcpkg. Directory.Build.props and
+# Directory.Build.targets give them to every project through Otok/otok.props and Otok/otok.targets; when annium-lang is
+# a module of a solution with an otok.props of its own (PotoHEX), that solution's Otok/ is used instead.
+# Install with `otok install` in this directory.
+[otok]
+format = 1
+
+[windows]
+build-on = ["windows/msvc"]
+architectures = { windows = ["x86_64"] }
+configurations = ["debug", "release"]
+linkage = "dynamic"
+# stdcpplatest of the projects
+cxx-standard = 23
+# sonia/config.hpp: the same in every configuration, so in every library holding the C++ library's types
+cxxflags = ["-D_ITERATOR_DEBUG_LEVEL=0"]
+
+# BOOST_NO_USER_CONFIG and BOOST_ALL_DYN_LINK in the projects: auto-linking asks for
+# boost_<name>-vc145-mt[-gd]-x64-1_92.lib by name
+[deps.boost]
+recipe = "apotocki/boost"
+version = "~> 1.92"
+options = { libraries = ["container", "context", "log", "program_options", "random", "serialization", "stacktrace", "test", "thread"] }
+cxxflags = ["-DBOOST_SPIRIT_THREADSAFE", "-DBOOST_USE_WINAPI_VERSION=0x0602"]
+
+# numetron_tests links gtest.lib and gmp.lib (both static: the dynamic build of gmp 6.3.0-r1 fails in `make install`,
+# otok's docs/tasks/gmp-dynamic-msys2-tmp.md)
+[deps.googletest]
+recipe = "apotocki/googletest"
+version = "~> 1.18"
+linkage = "static"
+
+[deps.gmp]
+recipe = "apotocki/gmp"
+version = "~> 6.3"
+linkage = "static"

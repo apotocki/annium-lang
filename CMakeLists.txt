@@ -67,21 +67,6 @@ else()
 endif()
 #find_package(PkgConfig REQUIRED)
 
-# vcpkg integration - try to find vcpkg installed dependencies
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed)
-    set(VCPKG_INSTALLED_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed)
-    if(WIN32)
-        list(APPEND CMAKE_PREFIX_PATH ${VCPKG_INSTALLED_DIR}/x64-windows-cpp23)
-        include_directories(${VCPKG_INSTALLED_DIR}/x64-windows-cpp23/include)
-    elseif(UNIX AND NOT APPLE)
-        list(APPEND CMAKE_PREFIX_PATH ${VCPKG_INSTALLED_DIR}/x64-linux)
-        include_directories(${VCPKG_INSTALLED_DIR}/x64-linux/include)
-    elseif(APPLE)
-        list(APPEND CMAKE_PREFIX_PATH ${VCPKG_INSTALLED_DIR}/x64-osx)
-        include_directories(${VCPKG_INSTALLED_DIR}/x64-osx/include)
-    endif()
-endif()
-
 # Compiler-specific options
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     # GCC specific flags
