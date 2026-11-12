@@ -66,6 +66,15 @@ jobs:
       - name: Install Dependencies
         run: otok install --locked --progress plain
 
+      # the whole logs of failed builds (otok prints only their end)
+      - name: Upload logs of failed builds
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+            name: otok-failed-builds
+            path: ${{ env.OTOK_CACHE_DIR }}/failed/
+            if-no-files-found: ignore
+
       - name: Set up MSBuild
         uses: microsoft/setup-msbuild@v2
 
