@@ -19,5 +19,11 @@
         <PreprocessorDefinitions>BOOST_LIB_TOOLSET="vc145";%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
+  <!--
+    flex and bison of otok.toml ([tool-deps] with `deliver`): OtokTool_flex and OtokTool_bison, which annium.vcxproj runs
+    to generate the parser at every build where annium.l or annium.y changed. Imported whenever otok has installed them,
+    in a solution above too; without them here, those of a solution above (its Directory.Build.props, imported first).
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)Otok\tools\otok-tools.props" Condition="Exists('$(MSBuildThisFileDirectory)Otok\tools\otok-tools.props')" />
   <Import Project="Directory.Build.local.props" Condition="Exists('Directory.Build.local.props')" />
 </Project>

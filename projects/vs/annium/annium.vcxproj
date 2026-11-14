@@ -30,11 +30,19 @@
     <ClCompile Include="..\..\..\src\annium\entities\fixed_array\fixed_array_make_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\entities\fixed_array\fixed_array_tail_pattern.cpp" />
     <ClCompile Include="..\..\..\src\annium\annium.cpp" />
-    <ClCompile Include="..\..\..\src\annium\annium.tab.cpp" />
-    <ClCompile Include="..\..\..\src\annium\annium.yy.cpp" />
+    <!-- the parser, generated into AnniumParserDir by the CustomBuild of annium.y and annium.l: it includes parser.hpp and
+         the other headers of src/annium -->
+    <ClCompile Include="$(AnniumParserDir)annium.tab.cpp">
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\src\annium;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <ClCompile Include="$(AnniumParserDir)annium.yy.cpp">
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\src\annium;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\annium_auxiliary.cpp" />
     <ClCompile Include="..\..\..\src\annium\annium_errors.cpp" />
-    <ClCompile Include="..\..\..\src\annium\annium_parser.cpp" />
+    <ClCompile Include="..\..\..\src\annium\annium_parser.cpp">
+      <AdditionalIncludeDirectories>$(AnniumParserDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
     <ClCompile Include="..\..\..\src\annium\annium_semantic.cpp" />
     <ClCompile Include="..\..\..\src\annium\annium_environment.cpp" />
     <ClCompile Include="..\..\..\src\annium\ast\base_expression_visitor.cpp" />
@@ -189,8 +197,6 @@
     <ClInclude Include="..\..\..\src\annium\entities\fixed_array\fixed_array_make_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\entities\fixed_array\fixed_array_tail_pattern.hpp" />
     <ClInclude Include="..\..\..\src\annium\annium.hpp" />
-    <ClInclude Include="..\..\..\src\annium\annium.tab.hpp" />
-    <ClInclude Include="..\..\..\src\annium\annium.yy.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\base_expression_visitor.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\consteval_evaluator.hpp" />
     <ClInclude Include="..\..\..\src\annium\ast\declaration_visitor.hpp" />
@@ -304,7 +310,6 @@
     <ClInclude Include="..\..\..\src\annium\library\library.hpp" />
     <ClInclude Include="..\..\..\src\annium\library\chained_host.hpp" />
     <ClInclude Include="..\..\..\src\annium\library\std.hpp" />
-    <ClInclude Include="..\..\..\src\annium\location.hh" />
     <ClInclude Include="..\..\..\src\annium\parser.hpp" />
     <ClInclude Include="..\..\..\src\annium\semantic.hpp" />
     <ClInclude Include="..\..\..\src\annium\semantic\expression_printer.hpp" />
@@ -324,20 +329,22 @@
     <ClInclude Include="..\..\..\src\sonia\mvvm\bunch_builder_view_model.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\..\..\src\annium\annium.l" Condition="'$(GENERATE_PARSER)'=='1'">
-      <Command>cd /d $(ProjectDir)..\..\..\src\annium
-"$(OtokTool_flex)" --nounistd annium.l</Command>
-      <Outputs>..\..\..\src\annium\annium.yy.cpp;..\..\..\src\annium\annium.yy.hpp</Outputs>
-      <Message>Generating annium.yy.cpp/annium.yy.hpp from annium.l via flex</Message>
+    <!-- the parser, generated into AnniumParserDir, never committed; the grammar is named with forward slashes, which the
+         #line directives quote as they are -->
+    <CustomBuild Include="..\..\..\src\annium\annium.l">
+      <Command>if not exist "$(AnniumParserDir)" mkdir "$(AnniumParserDir)"
+cd /d "$(AnniumParserDir)"
+"$(OtokTool_flex)" --nounistd "$(AnniumGrammarDir)/annium.l"</Command>
+      <Outputs>$(AnniumParserDir)annium.yy.cpp;$(AnniumParserDir)annium.yy.hpp</Outputs>
+      <Message>Generating annium.yy.cpp and annium.yy.hpp from annium.l with flex</Message>
     </CustomBuild>
-    <None Include="..\..\..\src\annium\annium.l" Condition="'$(GENERATE_PARSER)'!='1'" />
-    <CustomBuild Include="..\..\..\src\annium\annium.y" Condition="'$(GENERATE_PARSER)'=='1'">
-      <Command>cd /d $(ProjectDir)..\..\..\src\annium
-"$(OtokTool_bison)" -d -v -Wother -Wcounterexamples --output=annium.tab.cpp annium.y</Command>
-      <Outputs>..\..\..\src\annium\annium.tab.cpp;..\..\..\src\annium\annium.tab.hpp</Outputs>
-      <Message>Generating annium.tab.cpp/annium.tab.hpp from annium.y via bison</Message>
+    <CustomBuild Include="..\..\..\src\annium\annium.y">
+      <Command>if not exist "$(AnniumParserDir)" mkdir "$(AnniumParserDir)"
+cd /d "$(AnniumParserDir)"
+"$(OtokTool_bison)" -d -v -Wother -Wcounterexamples --output=annium.tab.cpp "$(AnniumGrammarDir)/annium.y"</Command>
+      <Outputs>$(AnniumParserDir)annium.tab.cpp;$(AnniumParserDir)annium.tab.hpp;$(AnniumParserDir)location.hh</Outputs>
+      <Message>Generating annium.tab.cpp, annium.tab.hpp and location.hh from annium.y with bison</Message>
     </CustomBuild>
-    <None Include="..\..\..\src\annium\annium.y" Condition="'$(GENERATE_PARSER)'!='1'" />
     <None Include="..\..\..\src\annium\generate_bootstrap.ps1" />
     <!-- sonia-pygen is a private tool, not vendored into this (public) repo. PythonGenPath is
          only ever set locally (Directory.Build.local.props, gitignored) - without it this
@@ -410,6 +417,11 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IntDir>$(ShortProjectName)\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup>
+    <!-- where the CustomBuild of annium.y and annium.l writes the parser, and the grammar with forward slashes -->
+    <AnniumParserDir>$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(MSBuildProjectDirectory)', '$(IntDir)parser\'))))</AnniumParserDir>
+    <AnniumGrammarDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\..\..\..\src\annium').Replace('\', '/'))</AnniumGrammarDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -503,8 +515,9 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
-  <!-- flex and bison come from otok.toml ([tool-deps] with `deliver`) through Otok/tools/otok-tools.props -->
-  <Target Name="AnniumCheckParserGenerators" BeforeTargets="CustomBuild" Condition="'$(GENERATE_PARSER)'=='1'">
-    <Error Condition="'$(OtokTool_flex)'=='' or '$(OtokTool_bison)'==''" Text="GENERATE_PARSER is 1, but flex and bison are not installed: run `otok install` in the directory of annium-lang (Otok/tools/otok-tools.props)" />
+  <!-- flex and bison come from otok.toml ([tool-deps] with `deliver`) through Otok/tools/otok-tools.props, annium-lang's
+       or that of a solution above (Directory.Build.props) -->
+  <Target Name="AnniumCheckParserGenerators" BeforeTargets="CustomBuild">
+    <Error Condition="'$(OtokTool_flex)'=='' or '$(OtokTool_bison)'==''" Text="flex and bison, which generate the parser, are not installed: run `otok install` in the directory of annium-lang (Otok/tools/otok-tools.props)" />
   </Target>
 </Project>

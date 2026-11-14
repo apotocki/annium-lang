@@ -29,10 +29,55 @@ add_custom_command(
     COMMENT "Generating bootstrap_code.generated.hpp from bootstrap.ann"
 )
 
+# The parser, generated in the build directory and never committed: annium.tab.cpp, annium.tab.hpp and location.hh by
+# Bison from annium.y, annium.yy.cpp and annium.yy.hpp by flex from annium.l. The programs: BISON_EXECUTABLE and
+# FLEX_EXECUTABLE when given (the recipes of otok pass those of their toolchains), else the ones `otok install` delivers
+# into Otok/tools/ of annium-lang (otok.toml, otok-tools.cmake), else bison and flex of PATH.
+set(ANNIUM_OTOK_TOOLS ${ANNIUM_HOME}/Otok/tools/otok-tools.cmake)
+if (EXISTS ${ANNIUM_OTOK_TOOLS})
+    include(${ANNIUM_OTOK_TOOLS})
+    if (DEFINED Otok_TOOL_bison AND NOT BISON_EXECUTABLE)
+        set(BISON_EXECUTABLE ${Otok_TOOL_bison} CACHE FILEPATH "bison, which generates the parser of annium" FORCE)
+    endif()
+    if (DEFINED Otok_TOOL_flex AND NOT FLEX_EXECUTABLE)
+        set(FLEX_EXECUTABLE ${Otok_TOOL_flex} CACHE FILEPATH "flex, which generates the scanner of annium" FORCE)
+    endif()
+endif()
+# Bison 3.8: the generated parser is the same as the one annium.vcxproj makes with win_bison of winflexbison
+find_package(BISON 3.8 REQUIRED)
+find_package(FLEX 2.6 REQUIRED)
+
+set(ANNIUM_PARSER_DIR ${CMAKE_CURRENT_BINARY_DIR}/parser)
+file(MAKE_DIRECTORY ${ANNIUM_PARSER_DIR})
+set(ANNIUM_PARSER_SOURCES ${ANNIUM_PARSER_DIR}/annium.tab.cpp ${ANNIUM_PARSER_DIR}/annium.yy.cpp)
+add_custom_command(
+    OUTPUT ${ANNIUM_PARSER_DIR}/annium.tab.cpp ${ANNIUM_PARSER_DIR}/annium.tab.hpp ${ANNIUM_PARSER_DIR}/location.hh
+    COMMAND ${BISON_EXECUTABLE} -d -v -Wother -Wcounterexamples --output=annium.tab.cpp ${ANNIUM_SRC}/annium/annium.y
+    DEPENDS ${ANNIUM_SRC}/annium/annium.y
+    WORKING_DIRECTORY ${ANNIUM_PARSER_DIR}
+    COMMENT "Generating annium.tab.cpp, annium.tab.hpp and location.hh from annium.y with bison"
+    VERBATIM
+)
+# annium.l names its outputs (%option outfile, header-file), written in the working directory
+add_custom_command(
+    OUTPUT ${ANNIUM_PARSER_DIR}/annium.yy.cpp ${ANNIUM_PARSER_DIR}/annium.yy.hpp
+    COMMAND ${FLEX_EXECUTABLE} --nounistd ${ANNIUM_SRC}/annium/annium.l
+    DEPENDS ${ANNIUM_SRC}/annium/annium.l
+    WORKING_DIRECTORY ${ANNIUM_PARSER_DIR}
+    COMMENT "Generating annium.yy.cpp and annium.yy.hpp from annium.l with flex"
+    VERBATIM
+)
+# the generated sources include parser.hpp and the other headers of src/annium; annium_parser.cpp includes the generated
+# headers
+set_source_files_properties(${ANNIUM_PARSER_SOURCES} PROPERTIES INCLUDE_DIRECTORIES ${ANNIUM_SRC}/annium)
+set_source_files_properties(${ANNIUM_SRC}/annium/annium_parser.cpp PROPERTIES INCLUDE_DIRECTORIES ${ANNIUM_PARSER_DIR})
+
 set (LIBRARY_SOURCES
     ${ANNIUM_SRC}/annium/annium.cpp
-    ${ANNIUM_SRC}/annium/annium.tab.cpp
-    ${ANNIUM_SRC}/annium/annium.yy.cpp
+    ${ANNIUM_PARSER_SOURCES}
+    ${ANNIUM_PARSER_DIR}/annium.tab.hpp
+    ${ANNIUM_PARSER_DIR}/annium.yy.hpp
+    ${ANNIUM_PARSER_DIR}/location.hh
     ${ANNIUM_SRC}/annium/annium_errors.cpp
     ${ANNIUM_SRC}/annium/annium_parser.cpp
     ${ANNIUM_SRC}/annium/annium_semantic.cpp
@@ -183,6 +228,6 @@ if(MSVC)
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     target_compile_options(${LIBRARY_NAME} PRIVATE -Wall -Wextra -pedantic -Wno-missing-field-initializers)
 
-    set_property(SOURCE ${ANNIUM_SRC}/annium/annium.tab.cpp APPEND PROPERTY COMPILE_OPTIONS "-Wno-missing-field-initializers" "-Wno-unused-but-set-variable")
-    set_property(SOURCE ${ANNIUM_SRC}/annium/annium.yy.cpp APPEND PROPERTY COMPILE_OPTIONS "-Wno-unused-function")
+    set_property(SOURCE ${ANNIUM_PARSER_DIR}/annium.tab.cpp APPEND PROPERTY COMPILE_OPTIONS "-Wno-missing-field-initializers" "-Wno-unused-but-set-variable")
+    set_property(SOURCE ${ANNIUM_PARSER_DIR}/annium.yy.cpp APPEND PROPERTY COMPILE_OPTIONS "-Wno-unused-function")
 endif()

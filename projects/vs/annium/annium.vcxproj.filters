@@ -75,10 +75,10 @@
     <ClCompile Include="..\..\..\src\annium\annium.cpp">
       <Filter>annium</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\annium.tab.cpp">
+    <ClCompile Include="$(AnniumParserDir)annium.tab.cpp">
       <Filter>annium</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\annium\annium.yy.cpp">
+    <ClCompile Include="$(AnniumParserDir)annium.yy.cpp">
       <Filter>annium</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\annium\annium_auxiliary.cpp">
@@ -449,16 +449,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\src\annium\location.hh">
-      <Filter>annium</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\src\annium\annium.hpp">
-      <Filter>annium</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\annium.tab.hpp">
-      <Filter>annium</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\annium\annium.yy.hpp">
       <Filter>annium</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\annium\ast_terms.hpp">

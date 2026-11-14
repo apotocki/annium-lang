@@ -37,8 +37,9 @@ version = "~> 6.3"
 linkage = "static"
 
 # flex and bison for the parser (src/annium/annium.l, annium.y), in Otok/tools/ with otok-tools.props, which
-# Directory.Build.props imports: annium.vcxproj runs $(OtokTool_flex) and $(OtokTool_bison) when GENERATE_PARSER is 1
-# (Directory.Build.local.props). win_flex and win_bison of winflexbison: the same output as GNU flex and Bison.
+# Directory.Build.props imports: annium.vcxproj runs $(OtokTool_flex) and $(OtokTool_bison) at every build where
+# the grammar changed, into its intermediate directory: the parser is not committed. win_flex and win_bison of
+# winflexbison: the same output as GNU flex and Bison, which the CMake build (projects/cmake/annium) runs elsewhere.
 [tool-deps.flex]
 recipe = "apotocki/flex"
 version = "~> 2.6"
