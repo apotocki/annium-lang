@@ -35,3 +35,16 @@ linkage = "static"
 recipe = "apotocki/gmp"
 version = "~> 6.3"
 linkage = "static"
+
+# flex and bison for the parser (src/annium/annium.l, annium.y), in Otok/tools/ with otok-tools.props, which
+# Directory.Build.props imports: annium.vcxproj runs $(OtokTool_flex) and $(OtokTool_bison) when GENERATE_PARSER is 1
+# (Directory.Build.local.props). win_flex and win_bison of winflexbison: the same output as GNU flex and Bison.
+[tool-deps.flex]
+recipe = "apotocki/flex"
+version = "~> 2.6"
+deliver = true
+
+[tool-deps.bison]
+recipe = "apotocki/bison"
+version = "~> 3.8"
+deliver = true

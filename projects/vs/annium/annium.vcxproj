@@ -326,14 +326,14 @@
   <ItemGroup>
     <CustomBuild Include="..\..\..\src\annium\annium.l" Condition="'$(GENERATE_PARSER)'=='1'">
       <Command>cd /d $(ProjectDir)..\..\..\src\annium
-"$(ParserGeneratorPath)/flex" --nounistd annium.l</Command>
+"$(OtokTool_flex)" --nounistd annium.l</Command>
       <Outputs>..\..\..\src\annium\annium.yy.cpp;..\..\..\src\annium\annium.yy.hpp</Outputs>
       <Message>Generating annium.yy.cpp/annium.yy.hpp from annium.l via flex</Message>
     </CustomBuild>
     <None Include="..\..\..\src\annium\annium.l" Condition="'$(GENERATE_PARSER)'!='1'" />
     <CustomBuild Include="..\..\..\src\annium\annium.y" Condition="'$(GENERATE_PARSER)'=='1'">
       <Command>cd /d $(ProjectDir)..\..\..\src\annium
-"$(ParserGeneratorPath)/bison.exe" -d -v -Wother -Wcounterexamples --output=annium.tab.cpp annium.y</Command>
+"$(OtokTool_bison)" -d -v -Wother -Wcounterexamples --output=annium.tab.cpp annium.y</Command>
       <Outputs>..\..\..\src\annium\annium.tab.cpp;..\..\..\src\annium\annium.tab.hpp</Outputs>
       <Message>Generating annium.tab.cpp/annium.tab.hpp from annium.y via bison</Message>
     </CustomBuild>
@@ -503,4 +503,8 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <!-- flex and bison come from otok.toml ([tool-deps] with `deliver`) through Otok/tools/otok-tools.props -->
+  <Target Name="AnniumCheckParserGenerators" BeforeTargets="CustomBuild" Condition="'$(GENERATE_PARSER)'=='1'">
+    <Error Condition="'$(OtokTool_flex)'=='' or '$(OtokTool_bison)'==''" Text="GENERATE_PARSER is 1, but flex and bison are not installed: run `otok install` in the directory of annium-lang (Otok/tools/otok-tools.props)" />
+  </Target>
 </Project>

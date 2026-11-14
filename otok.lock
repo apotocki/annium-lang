@@ -9,9 +9,9 @@ build-on = ["windows/msvc"]
 recipe = "apotocki/boost"
 variant = "windows-msvc"
 version = "1.92.0"
-revision = 1
-recipe-source = { git = "https://github.com/otok-dev/recipes.git", commit = "32756a87cf5bd189ca4c9825159bf0713ea8cf5e", path = "recipes/boost/1.92/windows-msvc" }
-recipe-sha256 = "64833d0ca0b66394cdebae3457296e8e0249ec1d1b09981bf047c8b0c9d5d19e"
+revision = 2
+recipe-source = { git = "https://github.com/otok-dev/recipes.git", commit = "f9a383aab88256600f84848694e609f0d2ed2571", path = "recipes/boost/1.92/windows-msvc" }
+recipe-sha256 = "317f4736a9a25b0a736a246ccf0fba8785a874fae534f977b032f38df1ba3483"
 source = { url = "https://archives.boost.io/release/1.92.0/source/boost_1_92_0.tar.bz2", sha256 = "5c1d40cb8e19adbf740a4ec2da35b3e58f3f5804b1dce44deb53df72193cbc6c", mirrors = ["https://sourceforge.net/projects/boost/files/boost/1.92.0/boost_1_92_0.tar.bz2"] }
 license = "BSL-1.0"
 
@@ -44,6 +44,19 @@ license = "BSD-3-Clause"
 tool-dependencies = ["cmake@4.4.5", "ninja@1.13.2"]
 
 [[tool-package]]
+library = "bison"
+build-on = ["windows/msvc"]
+recipe = "apotocki/bison"
+variant = "windows"
+version = "3.8.2"
+revision = 1
+recipe-source = { git = "https://github.com/otok-dev/recipes.git", commit = "5da01945f38d9afb64726f84ba66490b8096ee16", path = "recipes/bison/3.8/windows" }
+recipe-sha256 = "917592be2140f626c1010a2e4beaa4f66201688c29c18e8c5e1d84f791d3e538"
+source = { url = "https://github.com/lexxmark/winflexbison/archive/refs/tags/v2.5.25.tar.gz", sha256 = "8e1b71e037b524ba3f576babb0cf59182061df1f19cd86112f085a882560f60b" }
+license = "GPL-3.0-or-later"
+tool-dependencies = ["cmake@4.4.5", "ninja@1.13.2"]
+
+[[tool-package]]
 library = "cmake"
 build-on = ["windows/msvc"]
 recipe = "apotocki/cmake"
@@ -55,6 +68,19 @@ recipe-sha256 = "ab61fdffe280ce644ccfeafbc2e1a37926573fea554b2d0771ff32d79c5abb2
 source = { url = "https://github.com/Kitware/CMake/releases/download/v4.4.5/cmake-4.4.5.tar.gz", sha256 = "a0c54c88abb8078dd8eccadb717fc6bb194bf18e7d44c86309910288886e04e2" }
 resources = [{ name = "windows_arm64", url = "https://github.com/Kitware/CMake/releases/download/v4.4.5/cmake-4.4.5-windows-arm64.zip", sha256 = "b0b54ebdd3e7b9f5ad733d865541d6e0a3b774182e4318b26890221432835359" }, { name = "windows_x86_64", url = "https://github.com/Kitware/CMake/releases/download/v4.4.5/cmake-4.4.5-windows-x86_64.zip", sha256 = "326c826486d46a23cf9d5a1c9ee3a567d427bdd02c4a34071937a2a675cff004" }]
 license = "BSD-3-Clause"
+
+[[tool-package]]
+library = "flex"
+build-on = ["windows/msvc"]
+recipe = "apotocki/flex"
+variant = "windows"
+version = "2.6.4"
+revision = 1
+recipe-source = { git = "https://github.com/otok-dev/recipes.git", commit = "5da01945f38d9afb64726f84ba66490b8096ee16", path = "recipes/flex/2.6/windows" }
+recipe-sha256 = "89392cbd81b2bd4b46e3e3f49eb9bf684e7f3a8c73a18fe0790bbaadb4348760"
+source = { url = "https://github.com/lexxmark/winflexbison/archive/refs/tags/v2.5.25.tar.gz", sha256 = "8e1b71e037b524ba3f576babb0cf59182061df1f19cd86112f085a882560f60b" }
+license = "BSD-3-Clause-flex AND GPL-3.0-or-later"
+tool-dependencies = ["cmake@4.4.5", "ninja@1.13.2"]
 
 [[tool-package]]
 library = "make"
@@ -75,9 +101,9 @@ build-on = ["windows/msvc"]
 recipe = "apotocki/ninja"
 variant = "windows"
 version = "1.13.2"
-revision = 1
-recipe-source = { git = "https://github.com/otok-dev/recipes.git", commit = "32756a87cf5bd189ca4c9825159bf0713ea8cf5e", path = "recipes/ninja/1.13/windows" }
-recipe-sha256 = "3eafc737af8345c0c7a560096e0b00c6f92e305d212a5c6833ab59302f1da750"
+revision = 2
+recipe-source = { git = "https://github.com/otok-dev/recipes.git", commit = "f9a383aab88256600f84848694e609f0d2ed2571", path = "recipes/ninja/1.13/windows" }
+recipe-sha256 = "e43d7921cf034a3b4c38b2cf433e2c8d33aed8c8f33771d050c822fbc690061e"
 source = { git = "https://github.com/ninja-build/ninja", commit = "3441b633c2fe2c494e958780ba0f4227b1327634", tag = "v1.13.2" }
 license = "Apache-2.0"
 tool-dependencies = ["python@3.14.10"]
